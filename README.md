@@ -33,8 +33,6 @@ Working today:
 - Indeed/LinkedIn: `login|status|inspect|pull|diff`; Indeed `sync --section headline` (dry-run default, `--apply`)
 - Protocols for future portals: `ApplicationPortalAdapter`, `JobSourceAdapter`
 
-See [AGENTS.md](AGENTS.md).
-
 ## Match → apply (happy path)
 
 ```bash
