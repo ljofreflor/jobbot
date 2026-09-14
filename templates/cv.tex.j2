@@ -1,0 +1,88 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{fontspec}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+
+\setmainfont{Times New Roman}
+\setsansfont{Helvetica}
+
+\hypersetup{colorlinks=true,urlcolor=blue}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4em}
+\setlist[itemize]{leftmargin=*,itemsep=0.2em,topsep=0.2em}
+\titleformat{\section}{\large\bfseries\sffamily}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{1.2em}{0.6em}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries {{ personal.name | latex }}}\\[0.3em]
+  {\large {{ personal.headline | latex }}}\\[0.4em]
+  {{ contact_line }}
+\end{center}
+
+{% if candidate.summary %}
+\section*{Summary}
+{{ candidate.summary | latex_para }}
+{% endif %}
+
+{% if candidate.specialties %}
+\section*{Specialties}
+{{ specialties_line }}
+{% endif %}
+
+{% if experiences %}
+\section*{Experience}
+{% for exp, achievements in experiences %}
+{{ bold(exp.title) }} --- {{ exp.company | latex }}\\
+\textit{ {{ exp.format_date_range() | latex }} }{% if exp.location %} $\cdot$ {{ exp.location | latex }}{% endif %}
+
+{% if exp.description %}
+{{ exp.description | latex_para }}
+{% endif %}
+{% if achievements %}
+\begin{itemize}
+{% for ach in achievements %}
+  \item {{ ach.text | latex_para }}{% if ach.metrics %} \textit{({{ metrics_line(ach.metrics) }})}{% endif %}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if candidate.education %}
+\section*{Education}
+{% for edu in candidate.education %}
+{{ bold(edu.degree) }} --- {{ edu.institution | latex }}\\
+{% if edu.start_date or edu.end_date %}
+\textit{ {{ edu_dates(edu) | latex }} }
+{% endif %}
+{% if edu.details %}
+
+{{ edu.details | latex_para }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if skills %}
+\section*{Skills}
+{% for group, items in skills.items() %}
+{{ bold(group_label(group)) }}: {{ items | map('latex') | join(', ') }}\\
+{% endfor %}
+{% endif %}
+
+{% if publications %}
+\section*{Publications}
+\begin{itemize}
+{% for pub in publications %}
+  \item {% if pub.authors %}{{ pub.authors | map('latex') | join(', ') }}. {% endif %}{{ pub.title | latex }}{% if pub.journal %} --- \textit{ {{ pub.journal | latex }} }{% endif %}{% if pub.year %}, {{ pub.year }}{% endif %}{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %}. \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% endif %}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+\end{document}

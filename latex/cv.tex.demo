@@ -1,0 +1,54 @@
+\documentclass[11pt,a4paper,sans]{moderncv}
+\moderncvstyle{banking}
+\moderncvcolor{blue}
+
+% Dummy CV for demos / import-latex drills. Fake PII only.
+% Local private copy:  cp latex/cv.tex.demo latex/cv.tex
+% Then point .jobbot.toml paths.legacy_cv at latex/cv.tex (gitignored).
+
+\name{Ana}{Ejemplo}
+\title{Senior Data Scientist | Estadística}
+\address{Providencia}{Santiago, Chile}{}
+\phone[mobile]{+56\,9\,1111\,2222}
+\email{ana.ejemplo@example.com}
+\social[linkedin]{ana-ejemplo}
+\social[github]{ana-ejemplo}
+
+\begin{document}
+\makecvtitle
+
+\section{Resumen Profesional}
+Data scientist con foco en causal inference y productos de datos.
+Perfil de demostración — no es un CV real.
+
+\section{Experiencia Profesional Reciente}
+
+\cventry{Abr 2022 -- May 2025 (3 años)}{
+	\textbf{Senior Data Scientist}}{Acme Marketplace}{Santiago, Chile}{}{}
+\begin{itemize}
+	\item Diseñé un modelo de \textbf{Share of Wallet} para sellers de ejemplo.
+	\item Implementé experimentación A/B para campañas de crédito.
+\end{itemize}
+
+\cventry{Ene 2019 -- Mar 2022}{
+	\textbf{Data Scientist}}{Retail Co}{Santiago, Chile}{}{}
+\begin{itemize}
+	\item Pronósticos de demanda y priorización de inventario.
+\end{itemize}
+
+\section{Formación Académica}
+
+\cventry{2017 -- 2019}{\textbf{Magíster en Estadística}}
+{Universidad Ejemplo}{Santiago}{}{}
+
+\section{Habilidades Técnicas}
+
+\cvitem{Lenguajes}{Python, SQL, R}
+\cvitem{ML Frameworks}{XGBoost, scikit-learn}
+\cvitem{Cloud}{BigQuery, GCP}
+\cvitem{Metodologías}{Causal Inference, Experimentation, MLOps}
+
+\section{Publicaciones Científicas}
+\cvitem{2022}{\textbf{Example Journal} – \emph{Demo Paper}. doi:10.1000/example.doi}
+
+\end{document}

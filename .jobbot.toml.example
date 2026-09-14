@@ -1,0 +1,32 @@
+[paths]
+profile = "data/profile.yaml"
+generated_profile = "data/profile.generated.yaml"
+output = "output"
+templates = "templates"
+database = "data/jobbot.sqlite"
+# Optional: default legacy moderncv for `jobbot profile import-latex`
+# Prefer a path outside the repo for the real CV, or a local ignored copy:
+# legacy_cv = "/absolute/path/to/your/cv.tex"
+# legacy_cv = "latex/cv.tex"   # after: cp latex/cv.tex.demo latex/cv.tex
+# Demo (safe, tracked): uv run jobbot profile import-latex latex/cv.tex.demo
+
+[browser.indeed]
+profile_dir = "browser-data/indeed"
+headless = false
+slow_mo = 100
+
+[browser.linkedin]
+profile_dir = "browser-data/linkedin"
+headless = false
+slow_mo = 100
+
+[indeed]
+country = "cl"
+
+[linkedin]
+read_only = true
+
+[sync]
+# Writes to external portals are dry-run unless --apply is passed.
+require_apply = true
+removal_policy = "ignore"

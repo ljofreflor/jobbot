@@ -1,0 +1,10 @@
+Title: Junior Frontend Engineer
+Company: Pixel Labs
+Location: Remote
+Seniority: junior
+
+Requirements:
+- React and TypeScript
+- CSS and accessibility
+- GraphQL
+- English proficiency

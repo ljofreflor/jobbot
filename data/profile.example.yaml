@@ -1,0 +1,115 @@
+personal:
+  name: Ana Ejemplo
+  headline: "Senior Data Scientist | Estadística, IA y productos de datos"
+  city: Santiago
+  country: Chile
+  email: ana.ejemplo@example.com
+  phone: "+56 9 1234 5678"
+  linkedin: https://www.linkedin.com/in/ana-ejemplo
+  github: https://github.com/ana-ejemplo
+
+summary: >
+  Data scientist con experiencia en marketplace, causal inference y productos
+  de datos. Enfocada en impacto medible, experimentación y modelos en producción.
+
+specialties:
+  - Machine Learning
+  - Causal Inference
+  - Customer Analytics
+
+experience:
+  - id: meli-ds
+    company: Mercado Libre
+    title: Senior Data Scientist
+    location: Buenos Aires / Remote
+    start_date: 2022-04
+    end_date: 2025-05
+    current: false
+    description: >
+      Modelos de customer analytics y credit risk para sellers en LATAM.
+    achievements:
+      - id: meli-share-of-wallet
+        text: >
+          Diseñé e implementé un modelo de Share of Wallet para más de seis
+          millones de sellers en Argentina, Brasil y México.
+        tags:
+          - customer-analytics
+          - bayesian
+          - machine-learning
+          - fintech
+        metrics:
+          sellers: 6000000
+          potential_usd: 460000000
+      - id: meli-experimentation
+        text: >
+          Diseñé un framework de experimentación A/B para campañas de crédito,
+          reduciendo el tiempo de decisión de semanas a días.
+        tags:
+          - experimentation
+          - causal-inference
+          - fintech
+        metrics:
+          decision_days_before: 21
+          decision_days_after: 3
+
+  - id: retail-co
+    company: Retail Co
+    title: Data Scientist
+    location: Santiago, Chile
+    start_date: 2019-01
+    end_date: 2022-03
+    current: false
+    description: Forecasting y pricing para retail omnicanal.
+    achievements:
+      - id: retail-forecast
+        text: >
+          Construí un sistema de forecasting de demanda para más de dos
+          millones de SKUs con uplift medible en fill rate.
+        tags:
+          - machine-learning
+          - retail
+          - forecasting
+        metrics:
+          skus: 2000000
+          fill_rate_uplift_percent: 8
+
+education:
+  - id: uchile-ms
+    institution: Universidad de Chile
+    degree: Magíster en Estadística
+    start_date: 2017-03
+    end_date: 2019-12
+    details: Tesis en causal inference aplicada a políticas públicas.
+  - id: uchile-bs
+    institution: Universidad de Chile
+    degree: Licenciatura en Estadística
+    start_date: 2012-03
+    end_date: 2016-12
+
+skills:
+  programming:
+    - Python
+    - SQL
+    - R
+  machine_learning:
+    - XGBoost
+    - PyTorch
+    - scikit-learn
+  cloud:
+    - GCP
+    - AWS
+  statistics:
+    - Causal Inference
+    - Survival Analysis
+  engineering:
+    - MLOps
+    - APIs
+
+publications:
+  - id: pub-causal-2021
+    title: Estimating treatment effects under marketplace interference
+    journal: Working paper
+    year: 2021
+    status: preprint
+    doi: null
+    authors: []

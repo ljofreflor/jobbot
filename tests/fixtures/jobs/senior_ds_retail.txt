@@ -1,0 +1,22 @@
+Title: Senior Data Scientist
+Company: Sodimac
+Location: Santiago, Chile (Hybrid)
+Seniority: senior
+
+About the role:
+We are looking for a Senior Data Scientist to lead customer analytics and
+experimentation for our retail marketplace. You will build machine learning
+models, design A/B tests, and partner with product and commercial teams.
+
+Requirements:
+- Strong Python and SQL
+- Experience with Machine Learning (XGBoost, scikit-learn)
+- Causal Inference or uplift modeling
+- Experimentation / A/B Testing
+- Comfortable with GCP or BigQuery
+- Retail or marketplace domain preferred
+- English proficiency for global stakeholders
+
+Nice to have:
+- MLOps and APIs
+- Bayesian methods

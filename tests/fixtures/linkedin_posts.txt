@@ -1,0 +1,28 @@
+author: Ana Recruiter @ Acme Analytics
+url: https://www.linkedin.com/feed/update/urn:li:activity:111
+We're hiring a Senior Data Scientist to lead causal inference and experimentation.
+Must know Python, SQL, and A/B testing. Apply here:
+https://boards.greenhouse.io/acme/jobs/12345
+
+---
+author: Bob Talent @ DataCo
+url: https://www.linkedin.com/feed/update/urn:li:activity:222
+Buscamos Machine Learning Engineer con PyTorch y MLOps.
+Postula en https://jobs.lever.co/dataco/abc-def
+
+---
+author: Random
+url: https://www.linkedin.com/feed/update/urn:li:activity:333
+Great weekend hiking tips for Santiago! No job here.
+
+---
+author: Carol HR
+url: https://www.linkedin.com/feed/update/urn:li:activity:444
+Looking for a Data Engineer — Spark, Airflow, dbt experience preferred.
+https://jobs.ashbyhq.com/corp/role-99
+
+---
+author: Recruiter LATAM
+url: https://www.linkedin.com/feed/update/urn:li:activity:555
+Buscamos Data Scientist en Chile. Postula en Get on Board:
+https://www.getonbrd.com/jobs/data-scientist-lisit-santiago

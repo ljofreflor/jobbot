@@ -1,0 +1,33 @@
+# Seed ATS domains (no personal accounts / real applications).
+# Copy to portals.yaml after clone; JobBot learns more from sweeps locally.
+portals:
+  - domain: boards.greenhouse.io
+    ats_kind: greenhouse
+    registered: false
+    last_seen: null
+    notes: null
+    example_url: https://boards.greenhouse.io/acme/jobs/12345
+  - domain: job-boards.greenhouse.io
+    ats_kind: greenhouse
+    registered: false
+    last_seen: null
+    notes: null
+    example_url: https://job-boards.greenhouse.io/acme/jobs/12345
+  - domain: jobs.lever.co
+    ats_kind: lever
+    registered: false
+    last_seen: null
+    notes: null
+    example_url: https://jobs.lever.co/dataco/abc-def
+  - domain: jobs.ashbyhq.com
+    ats_kind: ashby
+    registered: false
+    last_seen: null
+    notes: null
+    example_url: https://jobs.ashbyhq.com/corp/role-99
+  - domain: getonbrd.com
+    ats_kind: getonboard
+    registered: false
+    last_seen: null
+    notes: Get on Board (LATAM job board)
+    example_url: https://www.getonbrd.com/jobs/data-scientist-example-santiago
