@@ -32,6 +32,7 @@ class JobRow(Base):
     remote_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
     ats_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     ats_kind: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)

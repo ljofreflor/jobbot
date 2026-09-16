@@ -6,6 +6,7 @@ import hashlib
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
@@ -55,6 +56,33 @@ class LinkedInPostCandidate:
     post_url: str | None = None
     ats_url: str | None = None
     ats_kind: AtsKind = AtsKind.UNKNOWN
+    posted_at: datetime | None = None
+
+
+# LinkedIn activity ids carry their creation time in the high bits: ms = id >> 22.
+_ACTIVITY_ID_RE = re.compile(r"(?:activity|share|ugcPost)[-:](\d{15,25})", re.IGNORECASE)
+_LINKEDIN_EPOCH_START = datetime(2005, 1, 1, tzinfo=UTC)
+
+
+def posted_at_from_url(url: str | None) -> datetime | None:
+    """
+    Publication date of a post, read from the activity id in its own URL.
+
+    Works for `/posts/…-activity-<id>-xxxx`, `/posts/…-share-<id>-xxxx` and
+    `feed/update/urn:li:{activity,share,ugcPost}:<id>`, which share the same id encoding.
+    Returns None for anything else (e.g. the author-profile fallback), so a post is
+    never given an invented date.
+    """
+    match = _ACTIVITY_ID_RE.search(url or "")
+    if match is None:
+        return None
+    try:
+        moment = datetime.fromtimestamp((int(match.group(1)) >> 22) / 1000, tz=UTC)
+    except (OverflowError, OSError, ValueError):
+        return None
+    if moment < _LINKEDIN_EPOCH_START:
+        return None
+    return moment
 
 
 _FEED_HEADERS = ("publicación en el feed", "publicacion en el feed", "feed post")
@@ -65,23 +93,41 @@ _CHROME_LINE = re.compile(
 )
 _CHROME_WINDOW = 5
 
+# Engagement UI around the post: exact lines LinkedIn renders, never post content.
+_ENGAGEMENT_LINE = re.compile(
+    r"^(?:\d+[\d.,\s]*"
+    r"(?:reacci(?:ón|on|ones)|comentario(?:s)?|comment(?:s)?|reaction(?:s)?|"
+    r"veces compartido|compartido(?:s)?|repost(?:s)?)"
+    r"|recomendar|comentar|compartir|enviar|like|comment|share|send|repost"
+    r"|ver traducción|ver traduccion|see translation"
+    r"|\d+[\d.,\s]*$"
+    r"|.{0,40}\ben linkedin\.com$)$",
+    re.IGNORECASE,
+)
+
+
+def strip_engagement_chrome(lines: list[str]) -> list[str]:
+    """Drop reaction / comment / share lines that LinkedIn paints around a post."""
+    return [line for line in lines if not _ENGAGEMENT_LINE.match(line.strip())]
+
 
 def strip_feed_chrome(text: str) -> tuple[str | None, str]:
     """
     Split LinkedIn's card header from the actual post body.
 
     Returns (author, body). Author is the name LinkedIn shows above the post;
-    only the first few lines are cleaned so bullet content in the post survives.
+    only the first few lines are cleaned so bullet content in the post survives,
+    while engagement lines are dropped wherever they appear.
     """
     lines = [line.strip() for line in text.splitlines()]
     if not lines or lines[0].casefold() not in _FEED_HEADERS:
-        return None, text.strip()
+        return None, "\n".join(strip_engagement_chrome(lines)).strip()
     rest = [line for line in lines[1:] if line]
     if not rest:
         return None, ""
     author = rest[0]
     head = [line for line in rest[1 : 1 + _CHROME_WINDOW] if not _CHROME_LINE.match(line)]
-    body = head + rest[1 + _CHROME_WINDOW :]
+    body = strip_engagement_chrome(head + rest[1 + _CHROME_WINDOW :])
     return author, "\n".join(body).strip()
 
 
@@ -96,11 +142,17 @@ def parse_post_blob(
     author: str | None = None,
     post_url: str | None = None,
     mailto_urls: Sequence[str] | None = None,
+    extra_urls: Sequence[str] | None = None,
 ) -> LinkedInPostCandidate:
-    """Parse a single post body (fixture or scraped text)."""
+    """
+    Parse a single post body (fixture or scraped text).
+
+    `extra_urls` are the card's anchors: they feed ATS detection without entering
+    the description, which must read like the advert the recruiter wrote.
+    """
     header_author, text = strip_feed_chrome(blob.strip())
     author = author or header_author
-    urls = expand_urls(extract_http_urls(text))
+    urls = expand_urls(extract_http_urls(text) + [u for u in (extra_urls or []) if u])
     ats_url, ats_kind = first_external_ats_url(urls)
     if ats_url is None:
         email = first_apply_email(text)
@@ -124,6 +176,7 @@ def parse_post_blob(
         post_url=post_url,
         ats_url=ats_url,
         ats_kind=ats_kind,
+        posted_at=posted_at_from_url(post_url),
     )
 
 
@@ -167,6 +220,7 @@ def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobP
         company=company,
         description=post.text,
         raw_description=post.text,
+        posted_at=post.posted_at,
         skills=extract_skills_from_text(post.text),
         ats_url=post.ats_url,
         ats_kind=post.ats_kind.value if post.ats_url else None,

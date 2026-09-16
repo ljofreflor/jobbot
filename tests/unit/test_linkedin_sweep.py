@@ -643,3 +643,72 @@ class _MenuFakeCard(_FakeCard):
                 [_FakeMenuItem("Abrir el menú de controles", on_click=self._page.open_menu)]
             )
         return super().locator(selector)
+
+
+# Real card text of the post stored as J0049: engagement chrome and the search URL leaked in.
+J0049_CARD = """Publicación en el feed
+Rodrigo Fernández
+VP of Product Management, Mercado Envios
+Buscamos Software Engineers y Data Scientists en el equipo de Mercado Envíos de Mercado Libre
+Rodrigo Fernández en linkedin.com
+68 reacciones
+68
+1 comentario
+1 comentario
+Recomendar
+Comentar"""
+
+
+def test_description_drops_engagement_chrome() -> None:
+    """Regression: J0049 stored '68 reacciones' and 'Recomendar Comentar' as the JD."""
+    from jobbot.adapters.linkedin.sweep import parse_post_blob
+
+    post = parse_post_blob(J0049_CARD)
+    assert post.author == "Rodrigo Fernández"
+    assert "Mercado Envíos" in post.text
+    for junk in ("68 reacciones", "Recomendar", "Comentar", "en linkedin.com", "1 comentario"):
+        assert junk not in post.text
+
+
+def test_extra_urls_feed_ats_detection_without_polluting_the_description() -> None:
+    from jobbot.adapters.linkedin.sweep import parse_post_blob
+
+    body = "Buscamos Data Scientist para el equipo de analytics. Postula en el link."
+    post = parse_post_blob(
+        body,
+        extra_urls=[
+            "https://boards.greenhouse.io/acme/jobs/123",
+            "https://www.linkedin.com/search/results/content/?keywords=enviar+CV",
+        ],
+    )
+    assert post.ats_url == "https://boards.greenhouse.io/acme/jobs/123"
+    assert post.text == body
+    assert "greenhouse" not in post.text
+    assert "search/results" not in post.text
+
+
+def test_collect_jobs_keeps_the_search_url_out_of_the_description() -> None:
+    from jobbot.adapters.linkedin.posts_source import (
+        MODERN_POST_CARD,
+        collect_jobs_from_feed_page,
+    )
+    from jobbot.jobs.sources import JobSearchQuery
+
+    blob = (
+        "Publicación en el feed\nAna Recruiter\n"
+        "Buscamos Data Scientist con Python.\nEnviar CV a ana@empresa.cl\n68 reacciones\nComentar"
+    )
+    hrefs = [
+        "https://www.linkedin.com/in/ana-recruiter/",
+        "https://www.linkedin.com/search/results/content/?keywords=enviar+CV",
+    ]
+    page = _FakeSearchPage([(blob, hrefs)], selector=MODERN_POST_CARD)
+    jobs = collect_jobs_from_feed_page(
+        page, JobSearchQuery(query="enviar CV", limit=5), resolve_short_links=False
+    )
+
+    assert jobs[0].ats_url == "mailto:ana@empresa.cl"
+    assert "search/results" not in jobs[0].description
+    assert "linkedin.com/in/" not in jobs[0].description
+    assert "68 reacciones" not in jobs[0].description
+    assert "Comentar" not in jobs[0].description

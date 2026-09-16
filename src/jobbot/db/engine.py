@@ -13,6 +13,7 @@ from jobbot.db import models as orm
 _JOB_EXTRA_COLUMNS: dict[str, str] = {
     "ats_url": "TEXT",
     "ats_kind": "VARCHAR(64)",
+    "posted_at": "DATETIME",
 }
 
 

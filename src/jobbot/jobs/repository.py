@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import select
@@ -127,12 +127,20 @@ def _to_row_fields(job: JobPosting) -> dict[str, object]:
         "remote_type": job.remote_type,
         "ats_url": job.ats_url,
         "ats_kind": job.ats_kind,
+        "posted_at": job.posted_at,
         "discovered_at": job.discovered_at
         if isinstance(job.discovered_at, datetime)
         else job.discovered_at,
         "note": job.note,
         "match_score": job.match_score,
     }
+
+
+def _as_utc(moment: datetime | None) -> datetime | None:
+    """SQLite drops tzinfo; everything we store is UTC."""
+    if moment is None or moment.tzinfo is not None:
+        return moment
+    return moment.replace(tzinfo=UTC)
 
 
 def _from_row(row: JobRow) -> JobPosting:
@@ -154,6 +162,7 @@ def _from_row(row: JobRow) -> JobPosting:
         remote_type=row.remote_type,
         ats_url=getattr(row, "ats_url", None),
         ats_kind=getattr(row, "ats_kind", None),
+        posted_at=_as_utc(getattr(row, "posted_at", None)),
         discovered_at=row.discovered_at,
         note=row.note,
         match_score=row.match_score,

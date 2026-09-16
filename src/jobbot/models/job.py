@@ -25,6 +25,7 @@ class JobPosting(BaseModel):
     remote_type: str | None = None
     ats_url: str | None = None
     ats_kind: str | None = None
+    posted_at: datetime | None = None
     discovered_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     note: str | None = None
     match_score: float | None = None

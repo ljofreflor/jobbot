@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
@@ -17,6 +18,7 @@ from jobbot.adapters.linkedin.sweep import (
 )
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
+from jobbot.jobs.freshness import age_label, is_fresh
 from jobbot.jobs.geo import country_allows
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
@@ -209,6 +211,7 @@ class LinkedInPostJobSource:
         query: str | None = None,
         countries: Sequence[str] = (),
         allow_remote: bool = True,
+        max_age_days: int = 0,
     ) -> list[JobPosting]:
         text = path.read_text(encoding="utf-8")
         posts = parse_posts_fixture(text)
@@ -218,6 +221,8 @@ class LinkedInPostJobSource:
             if not is_data_relevant(post.text):
                 continue
             if not country_allows(post.text, wanted=countries, allow_remote=allow_remote):
+                continue
+            if not is_fresh(post.posted_at, max_age_days=max_age_days):
                 continue
             if (
                 q
@@ -275,6 +280,7 @@ def collect_jobs_from_feed_page(
     *,
     resolve_short_links: bool = True,
     copy_permalinks: bool = False,
+    now: datetime | None = None,
 ) -> list[JobPosting]:
     """
     Scrape visible LinkedIn-like feed cards from an already-open page.
@@ -331,8 +337,19 @@ def collect_jobs_from_feed_page(
             unresolved = [h for h in hrefs if "lnkd.in" in h or "linkedin.com" in h]
             if unresolved:
                 hrefs = expand_urls(hrefs + _click_resolve_hrefs(card, unresolved))
-        blob = text if not hrefs else text + "\n" + "\n".join(hrefs)
-        post = parse_post_blob(blob, post_url=post_url, mailto_urls=mailtos)
+        post = parse_post_blob(
+            text,
+            post_url=post_url,
+            mailto_urls=mailtos,
+            extra_urls=hrefs,
+        )
+        if not is_fresh(post.posted_at, max_age_days=query.max_age_days, now=now):
+            logger.info(
+                "Skipped post published %s ago (max %d days)",
+                age_label(post.posted_at, now=now),
+                query.max_age_days,
+            )
+            continue
         jobs.append(post_to_job(post))
     return jobs
 

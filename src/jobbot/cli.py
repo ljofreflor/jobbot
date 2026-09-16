@@ -35,7 +35,8 @@ from jobbot.exit_codes import (
     SUCCESS,
     VALIDATION_FAILURE,
 )
-from jobbot.jobs.geo import resolve_countries
+from jobbot.jobs.freshness import age_label, is_fresh
+from jobbot.jobs.geo import detect_country, resolve_countries
 from jobbot.jobs.repository import JobRepository, write_job_json
 from jobbot.matching.analyzer import RuleBasedJobAnalyzer
 from jobbot.matching.scoring import format_match_report
@@ -557,6 +558,180 @@ def cv_build(
         console.print(f"[green]Wrote[/green] {path}")
 
 
+@cv_app.command("propagate")
+def cv_propagate(
+    targets: Annotated[
+        str,
+        typer.Option("--targets", help="all | cv,getonboard,indeed,linkedin"),
+    ] = "all",
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Write to the portals (default: dry-run plan)"),
+    ] = False,
+    section: Annotated[
+        str,
+        typer.Option("--section", help="Indeed section: headline|summary|skills|experience|all"),
+    ] = "all",
+    style: Annotated[
+        CvStyle,
+        typer.Option("--style", help="moderncv (your CV design) or plain"),
+    ] = CvStyle.MODERNCV,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Skip per-destination confirmation (with --apply)"),
+    ] = False,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to your logged-in Chrome (browser chrome-debug)"),
+    ] = None,
+) -> None:
+    """Rebuild the base CV and propagate it to your permanent portal profiles (HITL)."""
+    from jobbot.cv.propagate import (
+        PropagationTarget,
+        UnknownTargetError,
+        parse_targets,
+        plan_propagation,
+        summarize_plans,
+    )
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    validation = validate_candidate(candidate)
+    if not validation.ok:
+        err_console.print("[bold red]PROFILE INVALID[/bold red]")
+        for issue in validation.issues:
+            err_console.print(str(issue))
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        wanted = parse_targets(targets)
+    except UnknownTargetError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    plans = plan_propagation(config, candidate, targets=wanted, section=section)
+    narrator = _narrator()
+    narrator.phase(Phase.PROPAGATING_CV, summarize_plans(plans))
+
+    table = Table(title="CV propagation plan")
+    table.add_column("Destination")
+    table.add_column("Operations")
+    table.add_column("Detail")
+    for plan in plans:
+        detail = plan.blocked_reason or plan.note or ""
+        if plan.hint:
+            detail = f"{detail} → {plan.hint}"
+        table.add_row(
+            plan.target.value,
+            "blocked" if not plan.ready else str(len(plan.operations)),
+            detail,
+        )
+    console.print(table)
+    for plan in plans:
+        for operation in plan.operations:
+            narrator.note(f"{plan.target.value}: {operation}")
+
+    if not apply_changes:
+        console.print(
+            "Dry-run. Re-run with [bold]--apply[/bold] to rebuild the CV and open/write "
+            "each destination (you confirm one by one)."
+        )
+        raise typer.Exit(SUCCESS)
+
+    for plan in plans:
+        if not plan.ready:
+            err_console.print(
+                f"[yellow]Skipping {plan.target.value}[/yellow]: {plan.blocked_reason}"
+            )
+            continue
+        if not plan.actionable:
+            console.print(f"{plan.target.value}: nothing to do.")
+            continue
+        if not yes and not typer.confirm(
+            f"Propagate to {plan.target.value} ({len(plan.operations)} operation(s))?",
+            default=plan.target == PropagationTarget.CV,
+        ):
+            console.print(f"{plan.target.value}: skipped.")
+            continue
+        if plan.target == PropagationTarget.CV:
+            _propagate_base_cv(config, candidate, style=style)
+        elif plan.target == PropagationTarget.GETONBOARD:
+            _propagate_getonboard(config)
+        elif plan.target == PropagationTarget.INDEED:
+            _propagate_indeed(config, section=section, cdp=cdp, yes=yes)
+        elif plan.target == PropagationTarget.LINKEDIN:
+            _propagate_linkedin(config, cdp=cdp, yes=yes)
+
+
+def _propagate_base_cv(config: JobbotConfig, candidate: Candidate, *, style: CvStyle) -> None:
+    for target in (BuildTarget.CV, BuildTarget.ATS):
+        try:
+            outputs = build_cv(
+                candidate=candidate,
+                templates_dir=config.templates_dir,
+                output_dir=config.output_dir,
+                target=target,
+                style=style,
+            )
+        except (FileNotFoundError, RuntimeError) as exc:
+            err_console.print(f"[red]cv ({target.value}): {exc}[/red]")
+            continue
+        for path in outputs:
+            console.print(f"[green]Wrote[/green] {path}")
+
+
+def _propagate_getonboard(config: JobbotConfig) -> None:
+    from jobbot.adapters.getonboard.client import GetOnBoardProfileClient
+
+    client = GetOnBoardProfileClient.from_config(config)
+    path, result = client.prepare_package()
+    console.print(f"[green]Wrote[/green] {path}  (mode={result.mode})")
+    console.print("Abriendo Editar perfil (pega profile_permanent.md)…")
+    console.print(client.open_profile_edit())
+    console.print("Abriendo zona profesional (navega a Tus CVs)…")
+    console.print(client.open_resumes())
+
+
+def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, yes: bool) -> None:
+    from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.browser.cdp import resolve_cdp_url
+
+    adapter = IndeedAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
+    plan = adapter.build_sync_plan(section=section)
+    if not plan.actionable:
+        console.print("indeed: no changes required.")
+        return
+    if not yes and not typer.confirm(
+        f"Apply these {len(plan.actionable)} Indeed modifications?",
+        default=False,
+    ):
+        console.print("indeed: skipped.")
+        return
+    console.print(adapter.apply_sync_plan(plan).message)
+
+
+def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> None:
+    from jobbot.adapters.linkedin.client import LinkedInAdapter
+    from jobbot.adapters.linkedin.package import LinkedInPublicationItem
+    from jobbot.browser.cdp import resolve_cdp_url
+
+    adapter = LinkedInAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
+    console.print("Fetching remote publication titles…")
+    remote_titles = adapter.fetch_remote_publication_titles()
+
+    def _confirm(item: LinkedInPublicationItem) -> bool:
+        if yes:
+            return True
+        return typer.confirm(f"Add publication: {item.title}?", default=True)
+
+    console.print(
+        adapter.apply_publications(confirm_each=_confirm, remote_titles=remote_titles).message
+    )
+
+
 # ── jobs ─────────────────────────────────────────────────────────────────────
 
 
@@ -745,6 +920,26 @@ def jobs_shortlist() -> None:
     console.print("[bold]TOP MATCHES[/bold]")
     for score, jid, title, company in rows:
         console.print(f"{score:5.1f}%  {jid}  {title}  {company}")
+
+
+@jobs_app.command("backfill-dates")
+def jobs_backfill_dates() -> None:
+    """Date already-stored posts from the activity id in their URL (offline)."""
+    from jobbot.jobs.backfill import backfill_posted_at
+
+    session, _ = _session()
+    repo = JobRepository(session)
+    updated = backfill_posted_at(repo)
+    console.print(f"Dated [bold]{updated}[/bold] stored jobs from their post URL.")
+    stale = [
+        job
+        for job in repo.list_all()
+        if job.posted_at is not None and not is_fresh(job.posted_at)
+    ]
+    if stale:
+        console.print("Older than the freshness window:")
+        for job in stale:
+            console.print(f"  {job.id}  {age_label(job.posted_at):>9}  {job.title[:50]}")
 
 
 @jobs_app.command("note")
@@ -1462,6 +1657,17 @@ def linkedin_sweep(
             help="Read each post's own URL from its '…' menu (one extra click per post)",
         ),
     ] = True,
+    max_age_days: Annotated[
+        int | None,
+        typer.Option(
+            "--max-age-days",
+            help="Skip posts older than N days (default: [search].max_age_days, 30)",
+        ),
+    ] = None,
+    any_age: Annotated[
+        bool,
+        typer.Option("--any-age", help="Keep posts of every age"),
+    ] = False,
 ) -> None:
     """Sweep LinkedIn recruiter posts → store jobs + detect ATS URLs (MVP: posts)."""
     from jobbot.adapters.getonboard.jobs import remember_portal_from_url
@@ -1482,11 +1688,18 @@ def linkedin_sweep(
 
     session, config = _session()
     countries = resolve_countries(config.search.countries, country, any_country=any_country)
+    max_age = 0 if any_age else config.search.max_age_days
+    if max_age_days is not None and not any_age:
+        max_age = max_age_days
     source = get_job_source("linkedin_post", config, cdp_url=resolve_cdp_url(cdp))
     assert isinstance(source, LinkedInPostJobSource)
     if countries:
         console.print(
             f"Country filter: [bold]{', '.join(countries)}[/bold] (--any-country to lift)"
+        )
+    if max_age > 0:
+        console.print(
+            f"Age filter: posts newer than [bold]{max_age} days[/bold] (--any-age to lift)"
         )
     if fixture is not None:
         found = source.search_from_fixture(
@@ -1494,6 +1707,7 @@ def linkedin_sweep(
             query=query,
             countries=countries,
             allow_remote=config.search.allow_remote,
+            max_age_days=max_age,
         )
     else:
         console.print(f"Sweeping LinkedIn content for [bold]{query}[/bold]…")
@@ -1504,6 +1718,7 @@ def linkedin_sweep(
                 countries=countries,
                 allow_remote=config.search.allow_remote,
                 copy_permalinks=copy_links,
+                max_age_days=max_age,
             )
         )
 
@@ -1527,6 +1742,8 @@ def linkedin_sweep(
     table.add_column("Company")
     table.add_column("Role")
     table.add_column("ATS")
+    table.add_column("Age")
+    table.add_column("Where")
     table.add_column("Match")
     stored: list[str] = []
     for raw in found[:limit]:
@@ -1539,7 +1756,15 @@ def linkedin_sweep(
         stored.append(job.id)
         ats = job.ats_kind or "-"
         score = f"{job.match_score:.0f}%" if job.match_score is not None else "-"
-        table.add_row(job.id, job.company[:28], job.title[:40], ats, score)
+        table.add_row(
+            job.id,
+            job.company[:28],
+            job.title[:40],
+            ats,
+            age_label(job.posted_at),
+            detect_country(f"{job.title}\n{job.description}") or "?",
+            score,
+        )
         if register_portals and job.ats_url:
             domain = domain_from_url(job.ats_url)
             kind = AtsKind(job.ats_kind) if job.ats_kind else AtsKind.UNKNOWN

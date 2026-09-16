@@ -12,6 +12,7 @@ DEFAULT_OUTPUT = Path("output")
 DEFAULT_TEMPLATES = Path("templates")
 DEFAULT_DB = Path("data/jobbot.sqlite")
 DEFAULT_COUNTRIES: tuple[str, ...] = ("CL",)
+DEFAULT_MAX_AGE_DAYS = 30
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ class SearchConfig:
 
     countries: tuple[str, ...] = DEFAULT_COUNTRIES
     allow_remote: bool = True
+    max_age_days: int = DEFAULT_MAX_AGE_DAYS
 
 
 @dataclass(frozen=True)
@@ -123,4 +125,10 @@ def _load_search(raw: dict[str, object]) -> SearchConfig:
         countries_raw = [legacy_country] if isinstance(legacy_country, str) else []
     countries = normalize_countries([str(c) for c in countries_raw]) or DEFAULT_COUNTRIES
     allow_remote = search_raw.get("allow_remote", True)
-    return SearchConfig(countries=countries, allow_remote=bool(allow_remote))
+    raw_age = search_raw.get("max_age_days", DEFAULT_MAX_AGE_DAYS)
+    max_age = int(raw_age) if isinstance(raw_age, int | float | str) else DEFAULT_MAX_AGE_DAYS
+    return SearchConfig(
+        countries=countries,
+        allow_remote=bool(allow_remote),
+        max_age_days=max_age,
+    )

@@ -82,3 +82,40 @@ def test_resolve_countries_precedence() -> None:
     assert resolve_countries(("CL",), ["pe", "Argentina"]) == ("PE", "AR")
     assert resolve_countries(("CL",), ["pe"], any_country=True) == ()
     assert resolve_countries(("CL",), []) == ("CL",)
+
+
+# Real text of the post JobBot stored as J0050: Mexico, remote with visits to Monterrey.
+J0050_TEXT = """Tech Talent IT en Banco BASE
+🚀 Vacante: Data Scientist | Dominios Digitales
+Buscamos un/a Data Scientist con experiencia transformando problemas de negocio en
+soluciones analíticas escalables, productivas y basadas en inteligencia artificial.
+📍 Ubicación: México
+🏠 Modalidad: Remota, con visitas ocasionales a Monterrey
+🕒 Dedicación: Tiempo completo"""
+
+
+def test_explicit_foreign_country_beats_remote() -> None:
+    """Regression: J0050 slipped through a CL sweep because it said 'Remota'."""
+    assert detect_country(J0050_TEXT) == "MX"
+    assert mentions_remote(J0050_TEXT)
+    assert not country_allows(J0050_TEXT, wanted=("CL",))
+    assert country_allows(J0050_TEXT, wanted=("MX",))
+    assert country_allows(J0050_TEXT, wanted=())
+
+
+def test_remote_rescues_a_foreign_post_only_when_it_is_not_location_bound() -> None:
+    """Remote-from-anywhere in Mexico is work for you; remote with office visits is not."""
+    free = "Data Scientist 100% remoto para LATAM, oficinas centrales en Ciudad de México"
+    assert country_allows(free, wanted=("CL",))
+    assert not country_allows(free, wanted=("CL",), allow_remote=False)
+    assert not country_allows(J0050_TEXT, wanted=("CL",))  # remoto + visitas a Monterrey
+
+
+def test_undetectable_country_is_kept_even_without_remote_rescue() -> None:
+    plain = "Data Scientist for a global team, apply by email"
+    assert country_allows(plain, wanted=("CL",))
+    assert country_allows(plain, wanted=("CL",), allow_remote=False)
+
+
+def test_remote_chilean_post_still_passes() -> None:
+    assert country_allows("Data Scientist remoto, empresa en Santiago de Chile", wanted=("CL",))

@@ -20,6 +20,7 @@ class JobSearchQuery(BaseModel):
     countries: tuple[str, ...] = ()
     allow_remote: bool = True
     copy_permalinks: bool = True
+    max_age_days: int = 0  # 0 = keep every age; the CLI passes the configured default
 
 
 class JobSourceAdapter(Protocol):

@@ -90,6 +90,19 @@ _REMOTE_MARKERS = (
     "anywhere",
 )
 
+# Wording that ties a "remote" posting to a place: then it is a local job.
+_LOCATION_ANCHORS = (
+    "visita",
+    "presencial",
+    "híbrid",
+    "hibrid",
+    "onsite",
+    "on-site",
+    "on site",
+    "acudir",
+    "asistir a la oficina",
+)
+
 _WORD_RE = re.compile(r"[a-záéíóúñü]+", re.IGNORECASE)
 
 
@@ -133,6 +146,19 @@ def mentions_remote(text: str) -> bool:
     return any(marker in lowered for marker in _REMOTE_MARKERS)
 
 
+def remote_is_location_free(text: str) -> bool:
+    """
+    Remote you can take from another country, as opposed to remote-with-visits.
+
+    "Remota, con visitas ocasionales a Monterrey" is a job in Mexico; "100% remoto
+    para LATAM" is not.
+    """
+    if not mentions_remote(text):
+        return False
+    lowered = (text or "").casefold()
+    return not any(anchor in lowered for anchor in _LOCATION_ANCHORS)
+
+
 def country_allows(
     text: str,
     *,
@@ -142,18 +168,18 @@ def country_allows(
     """
     True when the posting fits the countries we want to work in.
 
-    Postings whose country cannot be detected are kept: a human decides, JobBot
-    does not silently discard work it failed to classify.
+    An explicit foreign country wins over remote wording; remote only rescues a
+    foreign posting when it is not tied to a place. Postings whose country cannot
+    be detected are kept: a human decides, JobBot does not silently discard work
+    it failed to classify.
     """
     codes = normalize_countries(wanted)
     if not codes:
         return True
-    if allow_remote and mentions_remote(text):
-        return True
     detected = detect_country(text)
-    if detected is None:
+    if detected is None or detected in codes:
         return True
-    return detected in codes
+    return allow_remote and remote_is_location_free(text)
 
 
 def resolve_countries(

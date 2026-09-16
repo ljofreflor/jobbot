@@ -64,10 +64,11 @@ uv run jobbot application prepare J0003
 uv sync --group dev
 cp .jobbot.toml.example .jobbot.toml   # optional
 cp data/profile.example.yaml data/profile.yaml
-cp data/portals.example.yaml data/portals.yaml   # optional ATS seed
+cp data/portals.example.yaml data/portals.yaml       # optional ATS seed
+cp data/companies.example.yaml data/companies.yaml   # optional company↔portal seed
 ```
 
-**PII:** `data/profile.yaml` (and `portals.yaml`, SQLite, `browser-data/`, `output/`) are
+**PII:** `data/profile.yaml` (and `portals.yaml`, `companies.yaml`, SQLite, `browser-data/`, `output/`) are
 **gitignored**. Only `*.example.yaml` templates are safe to commit. See [data/README.md](data/README.md).
 
 **Private LaTeX CV:** keep your real moderncv private. Use `latex/cv.tex.demo` (tracked
@@ -150,7 +151,7 @@ education, `\cvitem` skills, and publications. Review IDs, tags, and metrics bef
 jobbot indeed login | inspect | pull | diff | sync --apply
 jobbot linkedin login | inspect | pull | diff
 jobbot linkedin sync --section publications --apply   # DOI + coauthors; confirm each
-jobbot linkedin sweep "hiring data scientist" [--country CL] [--fixture PATH] [--cdp URL]
+jobbot linkedin sweep "hiring data scientist" [--country CL] [--max-age-days 30] [--fixture PATH] [--cdp URL]
 jobbot getonboard search "data scientist"
 jobbot portals list | add | detect
 jobbot jobs match J0001 | shortlist
@@ -161,6 +162,67 @@ jobbot profile suggest-from-market [--ask] [--promote]
 ```
 
 Recruiter posts → external ATS URL → portal registry → assisted apply (HITL). Market feedback suggests baseline wording; gaps require confirmation before `--promote`.
+
+## Propagate the CV (permanent profiles)
+
+One command rebuilds the base CV and pushes it outward to the profiles that live beyond a
+single vacancy. Dry-run by default; `--apply` confirms destination by destination:
+
+```bash
+jobbot cv propagate                        # plan only (no browser, no writes)
+jobbot cv propagate --apply                # rebuild CV, then Get on Board / Indeed / LinkedIn
+jobbot cv propagate --targets cv,indeed --section headline --apply
+jobbot cv propagate --apply --cdp http://127.0.0.1:9222   # reuse your logged-in Chrome
+```
+
+Planning is read-only and browser-free: Indeed diffs against the stored snapshot (it asks for
+`jobbot indeed pull` when there is none), LinkedIn covers Publications only, and Get on Board
+refines the permanent profile cumulatively. Writes stay HITL — nothing is submitted for you.
+For a specific vacancy the path is still `cv build --job J0001` → `application prepare J0001`
+→ `application apply J0001 --apply`.
+
+## Company career platforms (who hires where)
+
+Many employers never publish everything on LinkedIn/Indeed/GetOnBoard: they keep their own
+portal, an employment subdomain, or a private ATS instance. `jobbot companies` learns that
+topology as **public** knowledge — company, domains, career URLs, ATS, evidence, dates — and
+never candidate PII.
+
+```bash
+jobbot companies detect https://empresa.wd3.myworkdayjobs.com/External   # classify only
+jobbot companies learn https://trabajaenbci.cl --company BCI --country CL
+jobbot companies list [--status candidate|active]
+jobbot companies show bci
+jobbot companies promote bci [--site URL]      # candidate → active (HITL)
+jobbot companies reject bci --site URL
+jobbot companies sites                          # reusable knowledge for job discovery
+jobbot companies export                         # shareable snapshot (active only)
+```
+
+One company holds 0..N career sites (corporate portal, Workday, a subsidiary's Greenhouse…).
+Each site keeps `first_seen`, `last_verified`, status, and one observation per sighting, so
+several sources raise confidence instead of duplicating entries. A portal that changes ATS is
+flagged `stale` with the contradiction recorded — stored facts are never overwritten silently,
+and an ATS stays `unknown` without technical evidence (host rule, redirect, or embedded marker).
+
+`linkedin sweep` and `jobs add` feed this registry automatically as **candidate** knowledge.
+
+### One-shot seeding (not a crawler)
+
+Seed a first base of employers from public sources, then review:
+
+```bash
+jobbot companies discover data/companies-cl.example.yaml   # banks, retail, telco, mining, tech, insurance
+# → output/discovery/company_portals.generated.yaml   (status: candidate)
+jobbot companies import output/discovery/company_portals.generated.yaml
+jobbot companies promote COMPANY
+```
+
+The oneshot probes public career paths and subdomains on the official domain (sequentially,
+with a delay) and accepts a candidate only with real evidence: an ATS marker, a redirect, or
+employment wording on the page. HTTP 200 alone is not evidence. It writes candidates to
+`output/` and never modifies `data/companies.yaml`. Web search hits obtained elsewhere can be
+fed in with `--search-results FILE`; JobBot does not query a search engine itself.
 
 Sessions persist under `browser-data/` (gitignored). Passwords are never stored.
 
