@@ -63,10 +63,15 @@ strict = true
 mypy_path = "src"
 packages = ["jobbot"]
 
+# Optional LLM extra: only installed with `uv sync --extra llm`
+[[tool.mypy.overrides]]
+module = ["langchain_openai.*", "langchain_core.*", "langchain.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
 addopts = "-m 'not integration'"
 markers = [
-    "integration: tests that may need external tools or network",
+    "integration: tests that may need external tools, browser, or network",
 ]

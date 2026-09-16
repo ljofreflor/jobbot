@@ -17,6 +17,7 @@ class AtsKind(StrEnum):
     BAMBOOHR = "bamboohr"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
+    EMAIL = "email"
     UNKNOWN = "unknown"
 
 
@@ -44,6 +45,8 @@ def detect_ats(url: str) -> AtsKind:
     raw = url.strip()
     if not raw:
         return AtsKind.UNKNOWN
+    if raw.lower().startswith("mailto:"):
+        return AtsKind.EMAIL
     if not re.match(r"^https?://", raw, re.I):
         raw = "https://" + raw
     host = (urlparse(raw).hostname or "").lower()

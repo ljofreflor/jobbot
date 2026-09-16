@@ -822,14 +822,16 @@ def application_apply(
         bool,
         typer.Option(
             "--apply",
-            help="Open ATS and record assisted apply (default: dry-run plan only)",
+            help="Open ATS/Gmail and record assisted apply (default: dry-run plan only)",
         ),
     ] = False,
     yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation")] = False,
 ) -> None:
-    """Plan or open ATS prefill for a job (HITL; no CAPTCHA bypass; no invented answers)."""
+    """Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers)."""
     from jobbot.adapters.ats.apply import build_apply_plan, prefill_field_map
+    from jobbot.adapters.ats.email_apply import build_email_draft, open_gmail_compose
     from jobbot.adapters.ats.registry import adapter_for_job
+    from jobbot.adapters.base import ApplyMethod
     from jobbot.applications.manager import FilesystemApplicationPackage
 
     session, config = _session()
@@ -849,6 +851,67 @@ def application_apply(
     console.print(f"[bold]{job.id}[/bold]  {job.title} @ {job.company}")
     console.print(f"ATS: {plan.ats_kind.value}  adapter={adapter_name}  {plan.ats_url or '(none)'}")
     console.print(f"Method: {plan.method.value}")
+    console.print(plan.message)
+
+    if plan.method == ApplyMethod.EMAIL:
+        cv_pdf = config.output_dir / "base" / "cv.pdf"
+        if not cv_pdf.is_file():
+            cv_pdf = config.output_dir / "cv.pdf"
+        draft = build_email_draft(
+            candidate,
+            job,
+            cv_path=cv_pdf if cv_pdf.is_file() else None,
+        )
+        console.print(
+            Panel(
+                f"[bold]To:[/bold] {draft.to}\n"
+                f"[bold]Subject:[/bold] {draft.subject}\n\n"
+                f"{draft.body}\n\n"
+                f"[bold]CV:[/bold] {draft.cv_path or '(generá con jobbot cv build)'}",
+                title="email apply draft (HITL)",
+            )
+        )
+        if draft.body_truncated_for_url:
+            console.print(
+                "[yellow]Body is long — Gmail URL may truncate; "
+                "paste the rest from this dry-run if needed.[/yellow]"
+            )
+        if not apply_changes:
+            console.print(
+                "Dry-run only. Re-run with [bold]--apply[/bold] to open Gmail compose "
+                "(log in if asked, attach CV, press Send yourself)."
+            )
+            return
+        if not yes and not typer.confirm(
+            "¿Abrir Gmail para enviar este correo? (vos apretás Enviar)",
+            default=False,
+        ):
+            console.print("Aborted.")
+            raise typer.Exit(SUCCESS)
+        url = open_gmail_compose(draft)
+        console.print(f"Opened Gmail compose ({len(url)} chars URL)")
+        console.print(
+            f"Adjuntá el CV ({draft.cv_path or 'output/base/cv.pdf'}) "
+            "y pulsá [bold]Enviar[/bold] en Gmail. JobBot no envía por vos."
+        )
+        job_dir = config.output_dir / "jobs" / job.id
+        app_dir = prepare_application_package(
+            job, config.output_dir, job_dir=job_dir, candidate=candidate
+        )
+        ApplicationRepository(session).upsert_for_job(
+            job.id,
+            status=ApplicationStatus.PREPARED,
+            package_dir=str(app_dir),
+        )
+        if yes or typer.confirm("Mark application as applied after you send?", default=False):
+            ApplicationRepository(session).upsert_for_job(
+                job.id,
+                status=ApplicationStatus.APPLIED,
+                package_dir=str(app_dir),
+            )
+            console.print("[green]Status → applied[/green]")
+        return
+
     console.print("Known fields to inject:")
     for key, value in prefill_field_map(candidate).items():
         console.print(f"  {key}: {value}")

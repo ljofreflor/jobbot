@@ -1,9 +1,10 @@
-"""LinkedIn recruiter-post job source (MVP: posts → ATS URL)."""
+"""LinkedIn recruiter-post job source (MVP: posts → ATS URL / email)."""
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote_plus, urljoin
 
 from jobbot.adapters.linkedin.sweep import (
@@ -65,7 +66,6 @@ class LinkedInPostJobSource:
             "https://www.linkedin.com/search/results/content/"
             f"?keywords={quote_plus(query.query)}&origin=GLOBAL_SEARCH_HEADER"
         )
-        jobs: list[JobPosting] = []
         with BrowserSession(
             profile_dir=self.profile_dir,
             headless=False,
@@ -84,46 +84,64 @@ class LinkedInPostJobSource:
                 "Scroll the LinkedIn content results so relevant hiring posts are visible, "
                 "then continue."
             )
-            cards = page.locator("div.feed-shared-update-v2")
-            if cards.count() == 0:
-                cards = page.locator(
-                    "div.update-components-text, div.feed-shared-text, span.break-words"
-                )
-            seen: set[str] = set()
-            limit = query.limit
-            for i in range(min(cards.count(), 80)):
-                if len(jobs) >= limit:
-                    break
-                card = cards.nth(i)
-                try:
-                    text = card.inner_text(timeout=1000).strip()
-                except Exception:  # noqa: BLE001
-                    continue
-                if len(text) < 40 or text in seen:
-                    continue
-                seen.add(text)
-                if not is_data_relevant(text):
-                    continue
-                q = query.query.casefold()
-                if q not in text.casefold() and (
-                    "hiring" not in text.casefold()
-                    and "buscamos" not in text.casefold()
-                    and "postula" not in text.casefold()
-                    and "vacante" not in text.casefold()
-                ):
-                    continue
-                hrefs = expand_urls(_hrefs_from_locator(card, base_url=page.url))
-                unresolved = [h for h in hrefs if "lnkd.in" in h or "linkedin.com" in h]
-                if unresolved:
-                    hrefs = expand_urls(hrefs + _click_resolve_hrefs(card, unresolved))
-                blob = text if not hrefs else text + "\n" + "\n".join(hrefs)
-                post = parse_post_blob(blob)
-                jobs.append(post_to_job(post))
-        return jobs
+            return collect_jobs_from_feed_page(page, query)
 
     def get_job(self, job_id: str) -> JobPosting:
         msg = "LinkedInPostJobSource.get_job is not supported; use JobRepository"
         raise NotImplementedError(msg)
+
+
+def collect_jobs_from_feed_page(
+    page: Any,
+    query: JobSearchQuery,
+    *,
+    resolve_short_links: bool = True,
+) -> list[JobPosting]:
+    """
+    Scrape visible LinkedIn-like feed cards from an already-open page.
+
+    Same path used by live sweep after HITL scroll — suitable for game-condition
+    browser tests with a local DOM fixture.
+    """
+    jobs: list[JobPosting] = []
+    cards = page.locator("div.feed-shared-update-v2")
+    if cards.count() == 0:
+        cards = page.locator(
+            "div.update-components-text, div.feed-shared-text, span.break-words"
+        )
+    seen: set[str] = set()
+    limit = query.limit
+    for i in range(min(cards.count(), 80)):
+        if len(jobs) >= limit:
+            break
+        card = cards.nth(i)
+        try:
+            text = card.inner_text(timeout=1000).strip()
+        except Exception:  # noqa: BLE001
+            continue
+        if len(text) < 40 or text in seen:
+            continue
+        seen.add(text)
+        if not is_data_relevant(text):
+            continue
+        q = query.query.casefold()
+        if q not in text.casefold() and (
+            "hiring" not in text.casefold()
+            and "buscamos" not in text.casefold()
+            and "postula" not in text.casefold()
+            and "vacante" not in text.casefold()
+            and "enviar cv" not in text.casefold()
+        ):
+            continue
+        hrefs = expand_urls(_hrefs_from_locator(card, base_url=page.url))
+        if resolve_short_links:
+            unresolved = [h for h in hrefs if "lnkd.in" in h or "linkedin.com" in h]
+            if unresolved:
+                hrefs = expand_urls(hrefs + _click_resolve_hrefs(card, unresolved))
+        blob = text if not hrefs else text + "\n" + "\n".join(hrefs)
+        post = parse_post_blob(blob)
+        jobs.append(post_to_job(post))
+    return jobs
 
 
 def _click_resolve_hrefs(card: object, hrefs: list[str]) -> list[str]:

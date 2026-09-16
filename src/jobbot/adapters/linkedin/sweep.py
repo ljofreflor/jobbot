@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind, extract_http_urls, first_external_ats_url
+from jobbot.portals.email_apply import first_apply_email, mailto_url
 from jobbot.portals.redirect import expand_urls
 
 # Roles / themes relevant to this candidate's data career (title-agnostic filter)
@@ -70,6 +71,11 @@ def parse_post_blob(
     text = blob.strip()
     urls = expand_urls(extract_http_urls(text))
     ats_url, ats_kind = first_external_ats_url(urls)
+    if ats_url is None:
+        email = first_apply_email(text)
+        if email:
+            ats_url = mailto_url(email)
+            ats_kind = AtsKind.EMAIL
     digest = hashlib.sha1(text.encode("utf-8")).hexdigest()[:12]  # noqa: S324 — id only
     post_id = digest
     if post_url:
@@ -109,14 +115,17 @@ def parse_posts_fixture(text: str) -> list[LinkedInPostCandidate]:
 
 
 def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobPosting:
-    """Map a post to JobPosting; title/company are best-effort from text (not invented skills)."""
+    """Map a post to JobPosting; description is the post body (JD = anuncio)."""
     title = _guess_title(post.text) or "Role from LinkedIn post"
     company = post.author or _guess_company(post.text) or "Unknown company"
+    note = None
+    if post.ats_url:
+        note = f"ats={post.ats_kind.value}"
     return JobPosting(
         id=job_id,
         source="linkedin_post",
         source_job_id=post.post_id,
-        url=post.post_url or post.ats_url,
+        url=post.post_url,
         title=title,
         company=company,
         description=post.text,
@@ -124,7 +133,7 @@ def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobP
         skills=extract_skills_from_text(post.text),
         ats_url=post.ats_url,
         ats_kind=post.ats_kind.value if post.ats_url else None,
-        note=f"ats={post.ats_kind.value}" if post.ats_url else None,
+        note=note,
     )
 
 

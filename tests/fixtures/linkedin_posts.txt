@@ -26,3 +26,17 @@ author: Recruiter LATAM
 url: https://www.linkedin.com/feed/update/urn:li:activity:555
 Buscamos Data Scientist en Chile. Postula en Get on Board:
 https://www.getonbrd.com/jobs/data-scientist-lisit-santiago
+
+---
+author: Empresa Acequia
+url: https://www.linkedin.com/feed/update/urn:li:activity:666
+We're hiring a Senior Data Scientist for causal inference and experimentation.
+Python, SQL, A/B testing. Nothing fancy — just send your materials.
+
+Enviar CV a seleccion@empresa.cl.
+
+---
+author: Noise Post
+url: https://www.linkedin.com/feed/update/urn:li:activity:777
+We're hiring a Data Scientist. Reach me anytime at hola@gmail.com for coffee tips.
+No apply instructions here, just networking.

@@ -7,6 +7,7 @@ import logging
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger("jobbot.publications.doi")
 
@@ -34,7 +35,7 @@ def search_crossref_by_title(title: str, *, rows: int = 3) -> list[DoiMetadata]:
     return [_parse_work(item) for item in raw["message"]["items"]]
 
 
-def _parse_work(message: dict) -> DoiMetadata:
+def _parse_work(message: dict[str, Any]) -> DoiMetadata:
     authors: list[str] = []
     for author in message.get("author") or []:
         name = " ".join(x for x in (author.get("given"), author.get("family")) if x)
@@ -57,10 +58,11 @@ def _parse_work(message: dict) -> DoiMetadata:
     )
 
 
-def _get_json(url: str) -> dict:
+def _get_json(url: str) -> dict[str, Any]:
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "jobbot/0.1 (mailto:local; Crossref enrichment)"},
     )
     with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 — Crossref API
-        return json.load(resp)
+        payload: dict[str, Any] = json.load(resp)
+        return payload

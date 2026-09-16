@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 from dataclasses import dataclass, field
+from typing import Any
 
 from jobbot.jobs.normalization import normalize_skill
 from jobbot.models.candidate import Candidate
@@ -178,11 +179,11 @@ def apply_confirmed_skills(
 
 
 def merge_confirmed_skills_into_raw(
-    raw: dict,
+    raw: dict[str, Any],
     confirmed: list[str],
     *,
     group: str = "machine_learning",
-) -> dict:
+) -> dict[str, Any]:
     """Merge confirmed skills into a raw profile mapping (no deletions)."""
     import copy
 

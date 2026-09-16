@@ -32,5 +32,5 @@ class JobPosting(BaseModel):
     def validate_url(self) -> None:
         if self.url:
             HttpUrl(self.url)
-        if self.ats_url:
+        if self.ats_url and not self.ats_url.lower().startswith("mailto:"):
             HttpUrl(self.ats_url)

@@ -74,6 +74,18 @@ cp data/portals.example.yaml data/portals.yaml   # optional ATS seed
 dummy) or set `paths.legacy_cv` in local `.jobbot.toml` to a path outside the repo / to
 gitignored `latex/cv.tex`. See [latex/README.md](latex/README.md).
 
+**PII pre-commit guard:** enable it once per clone so real data cannot be committed
+(even with `git add -f`):
+
+```bash
+make hooks        # git config core.hooksPath .githooks
+make pii-check    # scan the current index on demand
+```
+
+It blocks `data/profile.yaml`, `data/portals.yaml`, SQLite, `output/`, `browser-data/`,
+`latex/cv.tex`, PDFs, and flags real-looking emails, phone numbers, RUTs, or
+`/Users/<you>/` paths in staged content. Fixtures and `*.example.yaml` are allowlisted.
+
 ## Create or edit your profile
 
 Edit `data/profile.yaml`. Use stable IDs for experiences and achievements:

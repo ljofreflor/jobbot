@@ -1,0 +1,12 @@
+#!/bin/sh
+# JobBot PII guard — blocks real candidate data from entering git.
+# Enable once per clone:  git config core.hooksPath .githooks
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+if command -v uv >/dev/null 2>&1; then
+	uv run --project "$ROOT" python -m jobbot.ops.pii_guard
+else
+	PYTHONPATH="$ROOT/src" python3 -m jobbot.ops.pii_guard
+fi

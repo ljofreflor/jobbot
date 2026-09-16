@@ -27,6 +27,8 @@ class AtsApplyPlan:
 
 def resolve_ats_url(job: JobPosting) -> tuple[str | None, AtsKind]:
     if job.ats_url:
+        if job.ats_url.lower().startswith("mailto:") or job.ats_kind == "email":
+            return job.ats_url, AtsKind.EMAIL
         return job.ats_url, detect_ats(job.ats_url)
     if job.url:
         kind = detect_ats(job.url)
@@ -53,6 +55,23 @@ def build_apply_plan(candidate: Candidate, job: JobPosting) -> AtsApplyPlan:
             fields_to_fill=fields,
             needs_review=review,
             message="No ATS URL on job; open LinkedIn post manually or set ats_url.",
+        )
+    if kind == AtsKind.EMAIL or url.lower().startswith("mailto:"):
+        return AtsApplyPlan(
+            job_id=job.id,
+            ats_url=url,
+            ats_kind=AtsKind.EMAIL,
+            method=ApplyMethod.EMAIL,
+            fields_to_fill=fields,
+            needs_review=[
+                "Attach CV in Gmail UI",
+                "Review subject/body then press Send",
+                "Gmail login if prompted",
+            ],
+            message=(
+                "HITL email apply: review draft, open Gmail compose, "
+                "attach CV, press Send yourself."
+            ),
         )
     return AtsApplyPlan(
         job_id=job.id,

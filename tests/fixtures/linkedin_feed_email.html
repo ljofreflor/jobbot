@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LinkedIn content search (fixture — game-condition DOM)</title>
+</head>
+<body>
+  <!-- Minimal structure matching selectors used by collect_jobs_from_feed_page -->
+  <main>
+    <div class="feed-shared-update-v2" data-urn="urn:li:activity:email-only">
+      <div class="update-components-actor">
+        <span class="feed-shared-actor__name">Empresa Acequia</span>
+      </div>
+      <div class="feed-shared-update-v2__description">
+        <div class="feed-shared-text">
+          <span class="break-words">
+            We're hiring a Senior Data Scientist for causal inference and experimentation.
+            Python, SQL, A/B testing required. Nothing fancy in the process.
+
+            Enviar CV a seleccion@empresa.cl.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feed-shared-update-v2" data-urn="urn:li:activity:greenhouse">
+      <div class="update-components-actor">
+        <span class="feed-shared-actor__name">Acme Analytics</span>
+      </div>
+      <div class="feed-shared-update-v2__description">
+        <div class="feed-shared-text">
+          <span class="break-words">
+            We're hiring a Senior Data Scientist to lead experimentation.
+            Must know Python and SQL. Apply here:
+          </span>
+          <a href="https://boards.greenhouse.io/acme/jobs/12345">Apply</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="feed-shared-update-v2" data-urn="urn:li:activity:noise">
+      <div class="feed-shared-text">
+        <span class="break-words">
+          Great weekend hiking tips for Santiago! No job here at all.
+        </span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

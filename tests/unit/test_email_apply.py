@@ -1,0 +1,158 @@
+"""Email apply extraction, LinkedIn sweep, and Gmail HITL compose."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
+
+from jobbot.adapters.ats.apply import build_apply_plan
+from jobbot.adapters.ats.email_apply import (
+    build_email_draft,
+    gmail_compose_url,
+    open_gmail_compose,
+)
+from jobbot.adapters.base import ApplyMethod
+from jobbot.adapters.linkedin.sweep import parse_post_blob, parse_posts_fixture, post_to_job
+from jobbot.models.candidate import Candidate, PersonalInfo
+from jobbot.models.job import JobPosting
+from jobbot.portals.detect import AtsKind
+from jobbot.portals.email_apply import extract_emails, first_apply_email
+
+
+def test_first_apply_email_with_enviar_cv_context() -> None:
+    text = (
+        "We're hiring a Senior Data Scientist.\n"
+        "Enviar CV a seleccion@empresa.cl.\n"
+    )
+    assert first_apply_email(text) == "seleccion@empresa.cl"
+
+
+def test_first_apply_email_ignores_personal_without_apply_context() -> None:
+    text = (
+        "We're hiring a Data Scientist. Reach me at hola@gmail.com for coffee tips.\n"
+        "No apply instructions here.\n"
+    )
+    assert first_apply_email(text) is None
+
+
+def test_extract_emails_unique_order() -> None:
+    assert extract_emails("a@x.com then b@y.com then a@x.com") == ["a@x.com", "b@y.com"]
+
+
+def test_sweep_email_only_post_sets_mailto_and_jd_is_post(
+    project_root: Path,
+) -> None:
+    text = (project_root / "tests/fixtures/linkedin_posts.txt").read_text(encoding="utf-8")
+    posts = parse_posts_fixture(text)
+    email_posts = [p for p in posts if p.ats_kind == AtsKind.EMAIL]
+    assert len(email_posts) == 1
+    post = email_posts[0]
+    assert post.ats_url == "mailto:seleccion@empresa.cl"
+    job = post_to_job(post, job_id="J0099")
+    assert job.description == post.text
+    assert job.raw_description == post.text
+    assert job.ats_kind == "email"
+    assert "Enviar CV" in job.description
+
+
+def test_ats_url_wins_over_email_in_same_post() -> None:
+    post = parse_post_blob(
+        "Hiring DS. Apply https://boards.greenhouse.io/acme/jobs/1 "
+        "or email seleccion@empresa.cl"
+    )
+    assert post.ats_kind == AtsKind.GREENHOUSE
+    assert post.ats_url and "greenhouse" in post.ats_url
+
+
+def test_build_apply_plan_email_method() -> None:
+    cand = Candidate(
+        personal=PersonalInfo(name="Ana Ejemplo", headline="DS", email="ana@example.com")
+    )
+    job = JobPosting(
+        id="J1",
+        title="Senior Data Scientist",
+        company="Empresa Acequia",
+        description="Enviar CV a seleccion@empresa.cl. Causal inference.",
+        ats_url="mailto:seleccion@empresa.cl",
+        ats_kind="email",
+    )
+    plan = build_apply_plan(cand, job)
+    assert plan.method == ApplyMethod.EMAIL
+    assert plan.ats_kind == AtsKind.EMAIL
+
+
+def test_email_draft_includes_post_as_job_description() -> None:
+    cand = Candidate(
+        personal=PersonalInfo(name="Ana Ejemplo", headline="Senior DS", email="ana@example.com"),
+        summary="Causal inference.",
+    )
+    jd = "We're hiring. Enviar CV a seleccion@empresa.cl.\nPython and SQL."
+    job = JobPosting(
+        id="J1",
+        title="Senior Data Scientist",
+        company="Empresa Acequia",
+        description=jd,
+        ats_url="mailto:seleccion@empresa.cl",
+        ats_kind="email",
+    )
+    draft = build_email_draft(cand, job, cv_path=Path("/tmp/cv.pdf"))
+    assert draft.to == "seleccion@empresa.cl"
+    assert "Senior Data Scientist" in draft.subject
+    assert "Ana Ejemplo" in draft.subject
+    assert "Descripción del cargo" in draft.body
+    assert jd in draft.body
+    assert "Invented skill XYZ" not in draft.body
+
+
+def test_gmail_compose_url_contains_to_subject_body() -> None:
+    cand = Candidate(personal=PersonalInfo(name="Ana", headline="DS"))
+    job = JobPosting(
+        id="J1",
+        title="DS",
+        company="Co",
+        description="Enviar CV a seleccion@empresa.cl",
+        ats_url="mailto:seleccion@empresa.cl",
+        ats_kind="email",
+    )
+    draft = build_email_draft(cand, job)
+    url = gmail_compose_url(draft)
+    assert "mail.google.com" in url
+    assert "view=cm" in url
+    qs = parse_qs(urlparse(url).query)
+    assert qs["to"] == ["seleccion@empresa.cl"]
+    assert "DS" in unquote(qs["su"][0])
+    assert "Descripción del cargo" in unquote(qs["body"][0])
+
+
+def test_open_gmail_compose_calls_opener() -> None:
+    opened: list[str] = []
+    cand = Candidate(personal=PersonalInfo(name="Ana", headline="DS"))
+    job = JobPosting(
+        id="J1",
+        title="DS",
+        company="Co",
+        description="Enviar CV a seleccion@empresa.cl",
+        ats_url="mailto:seleccion@empresa.cl",
+        ats_kind="email",
+    )
+    draft = build_email_draft(cand, job)
+    url = open_gmail_compose(draft, opener=opened.append)
+    assert opened == [url]
+    assert "mail.google.com" in url
+
+
+def test_dry_run_does_not_need_webbrowser() -> None:
+    """Building a draft never opens a browser (dry-run path)."""
+    cand = Candidate(personal=PersonalInfo(name="Ana", headline="DS"))
+    job = JobPosting(
+        id="J1",
+        title="DS",
+        company="Co",
+        description="Enviar CV a seleccion@empresa.cl",
+        ats_url="mailto:seleccion@empresa.cl",
+        ats_kind="email",
+    )
+    draft = build_email_draft(cand, job)
+    assert draft.to
+    # gmail_compose_url alone must not open anything
+    assert gmail_compose_url(draft).startswith("https://mail.google.com/")
