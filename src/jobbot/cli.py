@@ -35,6 +35,8 @@ from jobbot.jobs.repository import JobRepository, write_job_json
 from jobbot.matching.analyzer import RuleBasedJobAnalyzer
 from jobbot.matching.scoring import format_match_report
 from jobbot.models.application import ApplicationStatus
+from jobbot.models.candidate import Candidate
+from jobbot.models.job import JobPosting
 from jobbot.profile.diff import compare_summaries, summarize_profile
 from jobbot.profile.importer_latex import (
     LatexImportError,
@@ -741,6 +743,35 @@ def jobs_note(
 # ── application(s) ───────────────────────────────────────────────────────────
 
 
+def _build_job_cv(config: JobbotConfig, candidate: Candidate, job: JobPosting) -> None:
+    """Build the CV adapted to this job, unless it is already there."""
+    job_dir = config.output_dir / "jobs" / job.id
+    if (job_dir / "cv.pdf").is_file() or (job_dir / "cv_ats.txt").is_file():
+        return
+    console.print(f"Building CV adapted to {job.id}…")
+    match = RuleBasedJobAnalyzer().analyze(candidate, job)
+    try:
+        build_cv(
+            candidate,
+            config.templates_dir,
+            config.output_dir,
+            target=BuildTarget.CV,
+            job=job,
+            match=match,
+        )
+    except RuntimeError as exc:
+        # PDF may fail without xelatex; ATS text is enough for the package
+        err_console.print(f"[yellow]{exc}[/yellow]")
+        build_cv(
+            candidate,
+            config.templates_dir,
+            config.output_dir,
+            target=BuildTarget.ATS,
+            job=job,
+            match=match,
+        )
+
+
 @application_app.command("prepare")
 def application_prepare(job_id: Annotated[str, typer.Argument()]) -> None:
     """Prepare application package for a job (does not invent answers)."""
@@ -758,29 +789,7 @@ def application_prepare(job_id: Annotated[str, typer.Argument()]) -> None:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
-    if not (job_dir / "cv.pdf").is_file() and not (job_dir / "cv_ats.txt").is_file():
-        console.print("Building job CV first…")
-        match = RuleBasedJobAnalyzer().analyze(candidate, job)
-        try:
-            build_cv(
-                candidate,
-                config.templates_dir,
-                config.output_dir,
-                target=BuildTarget.CV,
-                job=job,
-                match=match,
-            )
-        except RuntimeError as exc:
-            # PDF may fail without xelatex; ATS is enough for package
-            err_console.print(f"[yellow]{exc}[/yellow]")
-            build_cv(
-                candidate,
-                config.templates_dir,
-                config.output_dir,
-                target=BuildTarget.ATS,
-                job=job,
-                match=match,
-            )
+    _build_job_cv(config, candidate, job)
 
     app_dir = prepare_application_package(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
@@ -826,6 +835,17 @@ def application_apply(
         ),
     ] = False,
     yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation")] = False,
+    attach: Annotated[
+        bool,
+        typer.Option(
+            "--attach/--no-attach",
+            help="Email apply: attach the CV in Gmail via browser (--no-attach = compose URL only)",
+        ),
+    ] = True,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to your logged-in Chrome (see browser chrome-debug)"),
+    ] = None,
 ) -> None:
     """Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers)."""
     from jobbot.adapters.ats.apply import build_apply_plan, prefill_field_map
@@ -854,20 +874,31 @@ def application_apply(
     console.print(plan.message)
 
     if plan.method == ApplyMethod.EMAIL:
-        cv_pdf = config.output_dir / "base" / "cv.pdf"
-        if not cv_pdf.is_file():
-            cv_pdf = config.output_dir / "cv.pdf"
-        draft = build_email_draft(
-            candidate,
-            job,
-            cv_path=cv_pdf if cv_pdf.is_file() else None,
-        )
+        from jobbot.adapters.ats.email_apply import is_tailored_cv, resolve_cv_path
+
+        if apply_changes:
+            _build_job_cv(config, candidate, job)
+            prepare_application_package(
+                job,
+                config.output_dir,
+                job_dir=config.output_dir / "jobs" / job.id,
+                candidate=candidate,
+            )
+        cv_pdf = resolve_cv_path(config.output_dir, job.id)
+        tailored = is_tailored_cv(cv_pdf, job.id)
+        draft = build_email_draft(candidate, job, cv_path=cv_pdf)
+        if cv_pdf is None:
+            cv_line = "(none — run jobbot cv build --job " + job.id + ")"
+        elif tailored:
+            cv_line = f"{cv_pdf}  [green](adapted to {job.id})[/green]"
+        else:
+            cv_line = f"{cv_pdf}  [yellow](base CV — not adapted)[/yellow]"
         console.print(
             Panel(
                 f"[bold]To:[/bold] {draft.to}\n"
                 f"[bold]Subject:[/bold] {draft.subject}\n\n"
                 f"{draft.body}\n\n"
-                f"[bold]CV:[/bold] {draft.cv_path or '(generá con jobbot cv build)'}",
+                f"[bold]CV:[/bold] {cv_line}",
                 title="email apply draft (HITL)",
             )
         )
@@ -877,23 +908,46 @@ def application_apply(
                 "paste the rest from this dry-run if needed.[/yellow]"
             )
         if not apply_changes:
+            if not tailored:
+                console.print(
+                    f"Tip: [bold]jobbot cv build --job {job.id}[/bold] first — "
+                    "--apply builds the adapted CV for you."
+                )
             console.print(
                 "Dry-run only. Re-run with [bold]--apply[/bold] to open Gmail compose "
                 "(log in if asked, attach CV, press Send yourself)."
             )
             return
         if not yes and not typer.confirm(
-            "¿Abrir Gmail para enviar este correo? (vos apretás Enviar)",
+            "¿Abrir Gmail con el CV adjunto para que lo revises y envíes vos?",
             default=False,
         ):
             console.print("Aborted.")
             raise typer.Exit(SUCCESS)
-        url = open_gmail_compose(draft)
-        console.print(f"Opened Gmail compose ({len(url)} chars URL)")
-        console.print(
-            f"Adjuntá el CV ({draft.cv_path or 'output/base/cv.pdf'}) "
-            "y pulsá [bold]Enviar[/bold] en Gmail. JobBot no envía por vos."
-        )
+        if attach and cv_pdf is not None:
+            from jobbot.adapters.gmail.compose import GmailComposeAdapter, GmailComposeError
+
+            try:
+                GmailComposeAdapter(config, cdp_url=cdp).open_draft_for_review(
+                    draft, cv_path=cv_pdf
+                )
+                console.print(
+                    f"[green]Gmail draft ready with[/green] {cv_pdf.name} "
+                    "[green]attached. Review it and press Send yourself.[/green]"
+                )
+            except GmailComposeError as exc:
+                err_console.print(f"[yellow]Could not attach in Gmail: {exc}[/yellow]")
+                open_gmail_compose(draft)
+                err_console.print(
+                    f"[yellow]Opened plain compose — attach {cv_pdf} by hand.[/yellow]"
+                )
+        else:
+            url = open_gmail_compose(draft)
+            console.print(f"Opened Gmail compose ({len(url)} chars URL)")
+            console.print(
+                f"Adjuntá el CV ({cv_pdf or 'output/base/cv.pdf'}) "
+                "y pulsá [bold]Enviar[/bold] en Gmail. JobBot no envía por vos."
+            )
         job_dir = config.output_dir / "jobs" / job.id
         app_dir = prepare_application_package(
             job, config.output_dir, job_dir=job_dir, candidate=candidate
@@ -1758,7 +1812,7 @@ def browser_chrome_debug(
     port: Annotated[int, typer.Option("--port", help="Remote debugging port")] = 9222,
     site: Annotated[
         str,
-        typer.Option("--site", help="indeed | linkedin (profile dir + start URL)"),
+        typer.Option("--site", help="indeed | linkedin | gmail (profile dir + start URL)"),
     ] = "indeed",
     launch: Annotated[
         bool,
@@ -1780,8 +1834,12 @@ def browser_chrome_debug(
         profile_dir = config.root / "browser-data" / "indeed-cdp"
         start_url = "https://cl.indeed.com/"
         tip = f"jobbot jobs search … --cdp {cdp_http_url(port)}"
+    elif site_key == "gmail":
+        profile_dir = config.root / "browser-data" / "gmail-cdp"
+        start_url = "https://mail.google.com/"
+        tip = f"jobbot application apply J0001 --apply --cdp {cdp_http_url(port)}"
     else:
-        err_console.print(f"[red]Unknown --site {site!r} (use indeed|linkedin)[/red]")
+        err_console.print(f"[red]Unknown --site {site!r} (use indeed|linkedin|gmail)[/red]")
         raise typer.Exit(GENERIC_FAILURE)
     profile_dir.mkdir(parents=True, exist_ok=True)
     argv = chrome_debug_argv(profile_dir=profile_dir, port=port, start_url=start_url)

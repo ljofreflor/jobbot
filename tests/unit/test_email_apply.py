@@ -10,6 +10,7 @@ from jobbot.adapters.ats.email_apply import (
     build_email_draft,
     gmail_compose_url,
     open_gmail_compose,
+    resolve_cv_path,
 )
 from jobbot.adapters.base import ApplyMethod
 from jobbot.adapters.linkedin.sweep import parse_post_blob, parse_posts_fixture, post_to_job
@@ -139,6 +140,48 @@ def test_open_gmail_compose_calls_opener() -> None:
     url = open_gmail_compose(draft, opener=opened.append)
     assert opened == [url]
     assert "mail.google.com" in url
+
+
+def test_resolve_cv_path_prefers_job_tailored_cv(tmp_path: Path) -> None:
+    """Regression: email apply must attach the job CV, not the base one."""
+    output = tmp_path / "output"
+    base = output / "base"
+    base.mkdir(parents=True)
+    (base / "cv.pdf").write_bytes(b"base")
+    # Only base exists → fallback
+    assert resolve_cv_path(output, "J0005") == base / "cv.pdf"
+
+    job_dir = output / "jobs" / "J0005"
+    job_dir.mkdir(parents=True)
+    (job_dir / "cv.pdf").write_bytes(b"tailored")
+    assert resolve_cv_path(output, "J0005") == job_dir / "cv.pdf"
+
+    packaged = job_dir / "application"
+    packaged.mkdir()
+    (packaged / "cv.pdf").write_bytes(b"packaged")
+    assert resolve_cv_path(output, "J0005") == packaged / "cv.pdf"
+
+
+def test_resolve_cv_path_none_when_nothing_built(tmp_path: Path) -> None:
+    assert resolve_cv_path(tmp_path / "output", "J0005") is None
+
+
+def test_draft_carries_tailored_cv_path(tmp_path: Path) -> None:
+    output = tmp_path / "output"
+    job_dir = output / "jobs" / "J0007"
+    job_dir.mkdir(parents=True)
+    (job_dir / "cv.pdf").write_bytes(b"tailored")
+    cand = Candidate(personal=PersonalInfo(name="Ana", headline="DS"))
+    job = JobPosting(
+        id="J0007",
+        title="DS",
+        company="Co",
+        description="Enviar CV a seleccion@empresa.cl",
+        ats_url="mailto:seleccion@empresa.cl",
+        ats_kind="email",
+    )
+    draft = build_email_draft(cand, job, cv_path=resolve_cv_path(output, job.id))
+    assert draft.cv_path == job_dir / "cv.pdf"
 
 
 def test_dry_run_does_not_need_webbrowser() -> None:

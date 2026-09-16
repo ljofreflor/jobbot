@@ -24,6 +24,31 @@ class EmailApplyDraft:
     body_truncated_for_url: bool = False
 
 
+def resolve_cv_path(output_dir: Path, job_id: str) -> Path | None:
+    """
+    Pick the CV to attach, preferring the version tailored to this job.
+
+    Order: packaged application CV, job build, base CV, legacy output/cv.pdf.
+    """
+    candidates = (
+        output_dir / "jobs" / job_id / "application" / "cv.pdf",
+        output_dir / "jobs" / job_id / "cv.pdf",
+        output_dir / "base" / "cv.pdf",
+        output_dir / "cv.pdf",
+    )
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
+def is_tailored_cv(cv_path: Path | None, job_id: str) -> bool:
+    """True when the attachment came from output/jobs/<job_id>/…"""
+    if cv_path is None:
+        return False
+    return job_id in cv_path.parts
+
+
 def _recipient_from_job(job: JobPosting) -> str | None:
     raw = (job.ats_url or "").strip()
     if raw.lower().startswith("mailto:"):
