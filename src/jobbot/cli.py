@@ -104,6 +104,7 @@ def run_cli(
     args = list(sys.argv[1:] if argv is None else argv)
     exit_code = SUCCESS
     caught: BaseException | None = None
+    aborted = False
     try:
         result = app(args, prog_name=prog_name, standalone_mode=False)
         if isinstance(result, int):
@@ -114,18 +115,22 @@ def run_cli(
     except typer.Abort:
         exit_code = GENERIC_FAILURE
         caught = None
+        aborted = True
     except Exception as exc:  # noqa: BLE001 — CLI boundary capture
         exit_code = GENERIC_FAILURE
         caught = exc
         err_console.print(f"[red]Unhandled error:[/red] {exc}")
 
     if exit_code != SUCCESS:
-        from jobbot.ops.failures import capture_cli_failure
+        from jobbot.ops.failures import ABORT_MESSAGE, capture_cli_failure, runtime_context
 
         record = capture_cli_failure(
             exit_code,
             argv=["jobbot", *args],
             exc=caught if not isinstance(caught, typer.Exit) else None,
+            error_class="Abort" if aborted else None,
+            message=ABORT_MESSAGE if aborted else None,
+            context=runtime_context(),
         )
         if record is not None:
             err_console.print(

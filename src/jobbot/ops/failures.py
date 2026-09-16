@@ -208,12 +208,29 @@ def should_record_cli_failure(argv: Sequence[str], exit_code: int) -> bool:
     return head not in _OPS_SKIP_PREFIXES
 
 
+ABORT_MESSAGE = "Command aborted at a confirmation prompt (no answer given)"
+
+
+def runtime_context() -> dict[str, Any]:
+    """Facts a future issue needs: could anyone answer prompts, on what build."""
+    from jobbot import __version__
+
+    return {
+        "stdin_tty": sys.stdin.isatty(),
+        "version": __version__,
+        "platform": sys.platform,
+    }
+
+
 def capture_cli_failure(
     exit_code: int,
     *,
     argv: Sequence[str] | None = None,
     exc: BaseException | None = None,
     config: JobbotConfig | None = None,
+    error_class: str | None = None,
+    message: str | None = None,
+    context: dict[str, Any] | None = None,
 ) -> FailureRecord | None:
     """Record from CLI boundary; never raise (observability must not crash the crash)."""
     argv_list = list(argv if argv is not None else sys.argv)
@@ -231,6 +248,9 @@ def capture_cli_failure(
                 exit_code=exit_code,
                 argv=argv_list,
                 exc=exc,
+                error_class=error_class,
+                message=message,
+                context=context if context is not None else runtime_context(),
             )
         finally:
             session.close()

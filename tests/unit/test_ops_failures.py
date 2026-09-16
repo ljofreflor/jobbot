@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from sqlalchemy.orm import Session
 
 from jobbot.config import JobbotConfig, PathsConfig
 from jobbot.db.engine import make_engine, make_session_factory
@@ -32,6 +33,12 @@ def _config(tmp_path: Path) -> JobbotConfig:
             output=Path("output"),
         ),
     )
+
+
+def _session(tmp_path: Path) -> tuple[Session, JobbotConfig]:
+    config = _config(tmp_path)
+    engine = make_engine(config.database_path)
+    return make_session_factory(engine)(), config
 
 
 def test_fingerprint_stable_across_numeric_noise() -> None:
@@ -173,3 +180,70 @@ def test_loop_tick_records_and_continues(tmp_path: Path, monkeypatch: pytest.Mon
     assert calls["n"] >= 3
     assert ticks == [False, False, False]
     assert len(sleeps) == 2  # sleep between ticks, not after last
+
+
+def test_runtime_context_describes_the_run() -> None:
+    """Issues built from crashes need to say whether a human could answer prompts."""
+    from jobbot.ops.failures import runtime_context
+
+    ctx = runtime_context()
+    assert set(ctx) >= {"stdin_tty", "version", "platform"}
+    assert isinstance(ctx["stdin_tty"], bool)
+
+
+def test_abort_is_recorded_as_abort_with_a_message(tmp_path: Path) -> None:
+    """Regression: prompt aborts landed as 'Exit:' with no message, no context."""
+    from jobbot.ops.failures import ABORT_MESSAGE, record_failure, runtime_context
+
+    session, config = _session(tmp_path)
+    record = record_failure(
+        session,
+        config=config,
+        exit_code=1,
+        argv=["jobbot", "linkedin", "sweep", "hiring data scientist"],
+        error_class="Abort",
+        message=ABORT_MESSAGE,
+        context=runtime_context(),
+        write_mirror=False,
+    )
+
+    assert record.error_class == "Abort"
+    assert "prompt" in record.message
+    assert "stdin_tty" in record.context
+
+
+def test_capture_cli_failure_passes_class_message_and_context(tmp_path: Path) -> None:
+    from jobbot.ops.failures import capture_cli_failure
+
+    _session(tmp_path)
+    config = _config(tmp_path)
+    record = capture_cli_failure(
+        1,
+        argv=["jobbot", "linkedin", "sweep"],
+        error_class="Abort",
+        message="aborted at a confirmation prompt",
+        context={"stdin_tty": False},
+        config=config,
+    )
+    assert record is not None
+    assert record.error_class == "Abort"
+    assert record.context["stdin_tty"] is False
+
+
+def test_issue_body_includes_runtime_context(tmp_path: Path) -> None:
+    from jobbot.ops.failures import issue_body, record_failure
+
+    session, config = _session(tmp_path)
+    record = record_failure(
+        session,
+        config=config,
+        exit_code=1,
+        argv=["jobbot", "linkedin", "sweep"],
+        error_class="Abort",
+        message="aborted at a confirmation prompt",
+        context={"stdin_tty": False, "version": "0.1.0", "platform": "darwin"},
+        write_mirror=False,
+    )
+    body = issue_body(record)
+    assert "stdin_tty" in body
+    assert "Regression unit test" in body
