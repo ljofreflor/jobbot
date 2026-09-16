@@ -13,3 +13,7 @@ ATTACH_BUTTON = (
     '[command="Files"], [aria-label*="Attach files"], [aria-label*="Adjuntar archivos"]'
 )
 SEND_BUTTON = '[role="button"][aria-label^="Send"], [role="button"][aria-label^="Enviar"]'
+DISCARD_BUTTON = (
+    '[aria-label*="Discard draft"], [aria-label*="Descartar borrador"], [command="Files"] ~ '
+    '[aria-label*="Descartar"]'
+)

@@ -57,6 +57,8 @@ def prepare_gmail_draft(
         raise GmailAuthRequired(msg)
     page.wait_for_selector(selectors.COMPOSE_READY, timeout=timeout_ms)
     _attach(page, attachment, timeout_ms=timeout_ms)
+    if verify_attachment_upload(page, attachment):
+        logger.info("Verified %s upload against local bytes", attachment.name)
     return url
 
 
@@ -77,6 +79,66 @@ def _attach(page: Any, cv_path: Path, *, timeout_ms: int) -> None:
     except Exception as exc:  # noqa: BLE001 — Playwright timeout types vary
         msg = f"Attachment {cv_path.name} did not appear in the Gmail draft"
         raise GmailComposeError(msg) from exc
+
+
+_ATTACHMENT_URL_JS = """
+() => {
+  for (const el of document.querySelectorAll('*')) {
+    for (const attr of el.attributes) {
+      const value = attr.value || '';
+      if (value.includes('view=att') && value.includes('attid=')) return value;
+    }
+  }
+  return null;
+}
+"""
+
+_FETCH_ATTACHMENT_JS = """
+async (url) => {
+  const response = await fetch(url, {credentials: 'include'});
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const decode = new TextDecoder('latin1');
+  return {
+    status: response.status,
+    size: bytes.length,
+    head: decode.decode(bytes.slice(0, 8)),
+    tail: decode.decode(bytes.slice(-8)),
+  };
+}
+"""
+
+
+def verify_attachment_upload(page: Any, cv_path: Path) -> bool:
+    """
+    Read back what Gmail stored and compare it with the file on disk.
+
+    Returns False when Gmail exposes no attachment URL yet (unverified, not broken);
+    raises GmailComposeError when the stored bytes differ from the local PDF.
+    """
+    url = page.evaluate(_ATTACHMENT_URL_JS)
+    if not url:
+        logger.warning("Gmail exposed no attachment URL; upload left unverified")
+        return False
+    info = page.evaluate(_FETCH_ATTACHMENT_JS, url) or {}
+    size = int(info.get("size") or 0)
+    expected = cv_path.stat().st_size
+    if size != expected:
+        msg = f"Gmail stored {size} bytes for {cv_path.name}, expected {expected}"
+        raise GmailComposeError(msg)
+    if not str(info.get("head") or "").startswith("%PDF"):
+        msg = f"Gmail stored {cv_path.name} but it is not a PDF (starts with {info.get('head')!r})"
+        raise GmailComposeError(msg)
+    return True
+
+
+def discard_compose(page: Any) -> bool:
+    """Throw away a broken draft so it cannot be sent later by mistake."""
+    try:
+        page.click(selectors.DISCARD_BUTTON, timeout=5_000)
+    except Exception as exc:  # noqa: BLE001 — best effort cleanup
+        logger.warning("Could not discard Gmail draft: %s", exc)
+        return False
+    return True
 
 
 class GmailComposeAdapter:
@@ -123,6 +185,8 @@ class GmailComposeAdapter:
                 url = prepare_gmail_draft(page, draft, cv_path=cv_path)
             except GmailComposeError:
                 browser.dump_debug("gmail", "compose-failed", job_id=draft.job_id)
+                # A half-uploaded draft is worse than none: it can be sent later.
+                discard_compose(page)
                 raise
 
             browser.pause_for_manual(

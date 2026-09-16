@@ -66,7 +66,13 @@ class FakePage:
         self.clicked: list[str] = []
         self.uploaded: list[str] = []
         self.missing_selectors: set[str] = set()
+        self.evaluated: list[str] = []
         self.chooser = FakeChooser()
+
+    def evaluate(self, script: str, *_args: object) -> object:
+        """No attachment URL exposed → upload stays unverified, not broken."""
+        self.evaluated.append(script)
+        return None
 
     def goto(self, url: str, **_: Any) -> None:
         self.visited.append(url)
@@ -168,3 +174,74 @@ def test_prepare_gmail_draft_errors_when_attachment_not_confirmed(tmp_path: Path
 def test_is_auth_url() -> None:
     assert is_auth_url("https://accounts.google.com/ServiceLogin")
     assert not is_auth_url("https://mail.google.com/mail/u/0/#inbox")
+
+
+class _VerifyPage(FakePage):
+    """Fake page whose evaluate() returns queued values (url, then fetch info)."""
+
+    def __init__(self, results: list[object]) -> None:
+        super().__init__()
+        self._results = list(results)
+
+    def evaluate(self, script: str, *_args: object) -> object:
+        self.evaluated.append(script)
+        return self._results.pop(0) if self._results else None
+
+
+def test_verify_attachment_upload_accepts_matching_bytes(tmp_path: Path) -> None:
+    from jobbot.adapters.gmail.compose import verify_attachment_upload
+
+    cv = _cv(tmp_path)
+    page = _VerifyPage(
+        [
+            "https://mail.google.com/mail/u/0?view=att&attid=0.1&disp=safe",
+            {"status": 200, "size": cv.stat().st_size, "head": "%PDF-1.7", "tail": "%%EOF\n"},
+        ]
+    )
+    assert verify_attachment_upload(page, cv) is True
+
+
+def test_verify_attachment_upload_rejects_truncated_upload(tmp_path: Path) -> None:
+    """Regression: an interrupted run left a draft whose attachment was incomplete."""
+    from jobbot.adapters.gmail.compose import verify_attachment_upload
+
+    cv = _cv(tmp_path)
+    page = _VerifyPage(
+        [
+            "https://mail.google.com/mail/u/0?view=att&attid=0.1&disp=safe",
+            {"status": 200, "size": 12, "head": "%PDF-1.7", "tail": "trunc"},
+        ]
+    )
+    with pytest.raises(GmailComposeError, match="12 bytes"):
+        verify_attachment_upload(page, cv)
+
+
+def test_verify_attachment_upload_rejects_non_pdf_bytes(tmp_path: Path) -> None:
+    from jobbot.adapters.gmail.compose import verify_attachment_upload
+
+    cv = _cv(tmp_path)
+    page = _VerifyPage(
+        [
+            "https://mail.google.com/mail/u/0?view=att&attid=0.1&disp=safe",
+            {"status": 200, "size": cv.stat().st_size, "head": "<!DOCTYPE", "tail": "html>"},
+        ]
+    )
+    with pytest.raises(GmailComposeError, match="not a PDF"):
+        verify_attachment_upload(page, cv)
+
+
+def test_verify_attachment_upload_unverified_without_url(tmp_path: Path) -> None:
+    from jobbot.adapters.gmail.compose import verify_attachment_upload
+
+    page = _VerifyPage([None])
+    assert verify_attachment_upload(page, _cv(tmp_path)) is False
+
+
+def test_discard_compose_clicks_discard_not_send(tmp_path: Path) -> None:
+    """Failed runs must not leave half-uploaded drafts behind to be sent later."""
+    from jobbot.adapters.gmail.compose import discard_compose
+
+    page = FakePage()
+    assert discard_compose(page) is True
+    assert page.clicked == [selectors.DISCARD_BUTTON]
+    assert selectors.SEND_BUTTON not in page.clicked
