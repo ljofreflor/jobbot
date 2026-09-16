@@ -23,6 +23,7 @@ from jobbot.applications.manager import (
 )
 from jobbot.config import JobbotConfig, load_config
 from jobbot.cv.build import BuildTarget, build_cv
+from jobbot.cv.renderer import CvStyle
 from jobbot.db.engine import make_engine, make_session_factory
 from jobbot.exit_codes import (
     AUTH_REQUIRED,
@@ -491,6 +492,10 @@ def cv_build(
         str | None,
         typer.Option("--job", help="Build job-specific CV for Jxxxx"),
     ] = None,
+    style: Annotated[
+        CvStyle,
+        typer.Option("--style", help="moderncv (your CV design) or plain (portable article)"),
+    ] = CvStyle.MODERNCV,
 ) -> None:
     """Build CV from profile.yaml (base or job-specific)."""
     config = load_config()
@@ -527,6 +532,7 @@ def cv_build(
             target=target,
             job=job,
             match=match,
+            style=style,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         err_console.print(f"[red]{exc}[/red]")
