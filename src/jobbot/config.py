@@ -11,6 +11,7 @@ DEFAULT_GENERATED_PROFILE = Path("data/profile.generated.yaml")
 DEFAULT_OUTPUT = Path("output")
 DEFAULT_TEMPLATES = Path("templates")
 DEFAULT_DB = Path("data/jobbot.sqlite")
+DEFAULT_COUNTRIES: tuple[str, ...] = ("CL",)
 
 
 @dataclass(frozen=True)
@@ -24,9 +25,18 @@ class PathsConfig:
 
 
 @dataclass(frozen=True)
+class SearchConfig:
+    """Where we want to work; overridable per command with --country."""
+
+    countries: tuple[str, ...] = DEFAULT_COUNTRIES
+    allow_remote: bool = True
+
+
+@dataclass(frozen=True)
 class JobbotConfig:
     paths: PathsConfig = field(default_factory=PathsConfig)
     root: Path = field(default_factory=Path.cwd)
+    search: SearchConfig = field(default_factory=SearchConfig)
 
     @property
     def profile_path(self) -> Path:
@@ -78,6 +88,7 @@ def load_config(root: Path | None = None) -> JobbotConfig:
     if config_path is None:
         return JobbotConfig(root=base)
 
+
     with config_path.open("rb") as fh:
         raw = tomllib.load(fh)
 
@@ -93,4 +104,23 @@ def load_config(root: Path | None = None) -> JobbotConfig:
         database=Path(paths_raw.get("database", str(DEFAULT_DB))),
         legacy_cv=Path(legacy) if legacy else None,
     )
-    return JobbotConfig(paths=paths, root=base)
+    return JobbotConfig(paths=paths, root=base, search=_load_search(raw))
+
+
+def _load_search(raw: dict[str, object]) -> SearchConfig:
+    """[search] countries/allow_remote, falling back to [indeed].country."""
+    from jobbot.jobs.geo import normalize_countries
+
+    section = raw.get("search")
+    search_raw: dict[str, object] = section if isinstance(section, dict) else {}
+    countries_raw = search_raw.get("countries")
+    if isinstance(countries_raw, str):
+        countries_raw = [countries_raw]
+    if not isinstance(countries_raw, list):
+        indeed = raw.get("indeed")
+        indeed_raw: dict[str, object] = indeed if isinstance(indeed, dict) else {}
+        legacy_country = indeed_raw.get("country")
+        countries_raw = [legacy_country] if isinstance(legacy_country, str) else []
+    countries = normalize_countries([str(c) for c in countries_raw]) or DEFAULT_COUNTRIES
+    allow_remote = search_raw.get("allow_remote", True)
+    return SearchConfig(countries=countries, allow_remote=bool(allow_remote))

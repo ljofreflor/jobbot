@@ -32,6 +32,7 @@ from jobbot.exit_codes import (
     SUCCESS,
     VALIDATION_FAILURE,
 )
+from jobbot.jobs.geo import resolve_countries
 from jobbot.jobs.repository import JobRepository, write_job_json
 from jobbot.matching.analyzer import RuleBasedJobAnalyzer
 from jobbot.matching.scoring import format_match_report
@@ -1431,6 +1432,17 @@ def linkedin_sweep(
         str | None,
         typer.Option("--cdp", help="Attach to Chrome CDP"),
     ] = None,
+    country: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--country",
+            help="Where you want to work, repeatable (default: [search].countries, CL)",
+        ),
+    ] = None,
+    any_country: Annotated[
+        bool,
+        typer.Option("--any-country", help="Keep posts from every country"),
+    ] = False,
 ) -> None:
     """Sweep LinkedIn recruiter posts → store jobs + detect ATS URLs (MVP: posts)."""
     from jobbot.adapters.getonboard.jobs import remember_portal_from_url
@@ -1450,13 +1462,30 @@ def linkedin_sweep(
         raise typer.Exit(GENERIC_FAILURE)
 
     session, config = _session()
+    countries = resolve_countries(config.search.countries, country, any_country=any_country)
     source = get_job_source("linkedin_post", config, cdp_url=resolve_cdp_url(cdp))
     assert isinstance(source, LinkedInPostJobSource)
+    if countries:
+        console.print(
+            f"Country filter: [bold]{', '.join(countries)}[/bold] (--any-country to lift)"
+        )
     if fixture is not None:
-        found = source.search_from_fixture(fixture.expanduser().resolve(), query=query)
+        found = source.search_from_fixture(
+            fixture.expanduser().resolve(),
+            query=query,
+            countries=countries,
+            allow_remote=config.search.allow_remote,
+        )
     else:
         console.print(f"Sweeping LinkedIn content for [bold]{query}[/bold]…")
-        found = source.search_jobs(JobSearchQuery(query=query, limit=limit))
+        found = source.search_jobs(
+            JobSearchQuery(
+                query=query,
+                limit=limit,
+                countries=countries,
+                allow_remote=config.search.allow_remote,
+            )
+        )
 
 
     if not found:

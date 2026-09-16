@@ -17,6 +17,8 @@ class JobSearchQuery(BaseModel):
     location: str | None = None
     remote: bool = False
     limit: int = Field(default=30, ge=1, le=50)
+    countries: tuple[str, ...] = ()
+    allow_remote: bool = True
 
 
 class JobSourceAdapter(Protocol):

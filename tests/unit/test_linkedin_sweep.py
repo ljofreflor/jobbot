@@ -321,3 +321,49 @@ def test_wait_for_post_cards_returns_false_on_timeout() -> None:
     from jobbot.adapters.linkedin.posts_source import wait_for_post_cards
 
     assert wait_for_post_cards(_FakeWaitPage(raises=True), timeout_ms=10) is False
+
+
+def test_collect_jobs_drops_posts_outside_the_wanted_country() -> None:
+    """Setting the country keeps CDMX adverts out of a Chile-only search."""
+    from jobbot.adapters.linkedin.posts_source import (
+        MODERN_POST_CARD,
+        collect_jobs_from_feed_page,
+    )
+    from jobbot.jobs.sources import JobSearchQuery
+
+    mexico = (
+        "Publicación en el feed\nZayd Recruiter\n"
+        "Vacantes exclusivas en TI para CDMX. Data Scientist con Python y SQL.\n"
+        "Enviar CV a seleccion@empresa.mx"
+    )
+    chile = (
+        "Publicación en el feed\nAna Recruiter\n"
+        "Buscamos Data Scientist en Santiago, Chile. Python y SQL.\n"
+        "Enviar CV a seleccion@empresa.cl"
+    )
+    page = _FakeSearchPage([(mexico, []), (chile, [])], selector=MODERN_POST_CARD)
+    jobs = collect_jobs_from_feed_page(
+        page,
+        JobSearchQuery(query="enviar CV", limit=10, countries=("CL",)),
+        resolve_short_links=False,
+    )
+
+    assert [j.ats_url for j in jobs] == ["mailto:seleccion@empresa.cl"]
+
+
+def test_collect_jobs_without_country_preference_keeps_both() -> None:
+    from jobbot.adapters.linkedin.posts_source import (
+        MODERN_POST_CARD,
+        collect_jobs_from_feed_page,
+    )
+    from jobbot.jobs.sources import JobSearchQuery
+
+    mexico = (
+        "Publicación en el feed\nZayd Recruiter\n"
+        "Data Scientist para CDMX con Python.\nEnviar CV a seleccion@empresa.mx"
+    )
+    page = _FakeSearchPage([(mexico, [])], selector=MODERN_POST_CARD)
+    jobs = collect_jobs_from_feed_page(
+        page, JobSearchQuery(query="enviar CV", limit=10), resolve_short_links=False
+    )
+    assert len(jobs) == 1

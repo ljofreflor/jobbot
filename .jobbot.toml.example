@@ -20,6 +20,13 @@ profile_dir = "browser-data/linkedin"
 headless = false
 slow_mo = 100
 
+[search]
+# Where you want to work. Posts detected in other countries are skipped by the
+# sweep; override per run with --country PE (repeatable) or --any-country.
+countries = ["CL"]
+# Keep remote postings even when their team sits elsewhere.
+allow_remote = true
+
 [indeed]
 country = "cl"
 

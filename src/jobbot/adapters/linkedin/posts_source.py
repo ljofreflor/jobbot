@@ -17,6 +17,7 @@ from jobbot.adapters.linkedin.sweep import (
 )
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
+from jobbot.jobs.geo import country_allows
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind
@@ -112,13 +113,22 @@ class LinkedInPostJobSource:
         """Live LinkedIn content search for posts (HITL / CDP)."""
         return self.search_live(query)
 
-    def search_from_fixture(self, path: Path, *, query: str | None = None) -> list[JobPosting]:
+    def search_from_fixture(
+        self,
+        path: Path,
+        *,
+        query: str | None = None,
+        countries: Sequence[str] = (),
+        allow_remote: bool = True,
+    ) -> list[JobPosting]:
         text = path.read_text(encoding="utf-8")
         posts = parse_posts_fixture(text)
         jobs: list[JobPosting] = []
         q = (query or "").casefold()
         for post in posts:
             if not is_data_relevant(post.text):
+                continue
+            if not country_allows(post.text, wanted=countries, allow_remote=allow_remote):
                 continue
             if (
                 q
@@ -201,6 +211,13 @@ def collect_jobs_from_feed_page(
             continue
         seen.add(text)
         if not is_data_relevant(text):
+            continue
+        if not country_allows(
+            text,
+            wanted=query.countries,
+            allow_remote=query.allow_remote,
+        ):
+            logger.info("Skipped post outside %s", ", ".join(query.countries))
             continue
         q = query.query.casefold()
         if q not in text.casefold() and (

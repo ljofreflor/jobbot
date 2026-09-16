@@ -150,7 +150,7 @@ education, `\cvitem` skills, and publications. Review IDs, tags, and metrics bef
 jobbot indeed login | inspect | pull | diff | sync --apply
 jobbot linkedin login | inspect | pull | diff
 jobbot linkedin sync --section publications --apply   # DOI + coauthors; confirm each
-jobbot linkedin sweep "hiring data scientist" [--fixture PATH] [--cdp URL]
+jobbot linkedin sweep "hiring data scientist" [--country CL] [--fixture PATH] [--cdp URL]
 jobbot getonboard search "data scientist"
 jobbot portals list | add | detect
 jobbot jobs match J0001 | shortlist
