@@ -7,7 +7,7 @@ import re
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
 
 from jobbot.adapters.linkedin.sweep import (
     is_data_relevant,
@@ -21,7 +21,7 @@ from jobbot.jobs.geo import country_allows
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind
-from jobbot.portals.redirect import expand_urls
+from jobbot.portals.redirect import expand_urls, follow_redirect_url
 
 logger = logging.getLogger("jobbot.linkedin.sweep")
 
@@ -42,6 +42,7 @@ SEE_MORE_TOGGLE = (
 _PERMALINK_RE = re.compile(r"linkedin\.com/(?:feed/update|posts)/", re.IGNORECASE)
 _URN_RE = re.compile(r"urn:li:(?:activity|share|ugcPost):\d+")
 _PROFILE_RE = re.compile(r"linkedin\.com/in/[^/?#]+", re.IGNORECASE)
+_LINK_RE = re.compile(r"https?://", re.IGNORECASE)
 
 
 def permalink_from_html(html: str) -> str | None:
@@ -71,6 +72,80 @@ def author_profile_url(hrefs: Sequence[str]) -> str | None:
         if _PROFILE_RE.search(href):
             return href
     return None
+
+
+def canonical_post_url(url: str) -> str:
+    """
+    Resolve lnkd.in and drop the query string.
+
+    The copied link ends in ?utm_source=share&rcm=<your member id>: tracking that
+    identifies the account doing the sweep, so it never reaches the database.
+    """
+    resolved = url
+    host = (urlparse(url).hostname or "").casefold()
+    if host.endswith("lnkd.in"):
+        resolved = follow_redirect_url(url) or url
+    split = urlsplit(resolved)
+    return urlunsplit((split.scheme, split.netloc, split.path, "", ""))
+
+
+def copy_post_permalink(page: Any, card: Any) -> str | None:
+    """
+    Read the post's own URL out of the card's "…" menu → "Copy link to post".
+
+    Read-only: the menu is opened, the link copied and the menu closed with
+    Escape. Nothing is shared, reported or saved on LinkedIn.
+    """
+    from jobbot.adapters.linkedin import selectors as sel
+
+    try:
+        card.locator(sel.POST_CONTROL_MENU).first.click(timeout=4_000)
+    except Exception as exc:  # noqa: BLE001 — Playwright error types vary
+        logger.debug("No control menu on this card: %s", exc)
+        return None
+    try:
+        page.wait_for_timeout(800)
+        link = _click_copy_link(page)
+    finally:
+        page.keyboard.press("Escape")
+    if link and _LINK_RE.match(link.strip()):
+        return link.strip()
+    if link:
+        logger.debug("Clipboard held no post link: %r", link[:60])
+    return None
+
+
+def _click_copy_link(page: Any) -> str | None:
+    """Click the menu entry that copies the link, then read the clipboard."""
+    from jobbot.adapters.linkedin import selectors as sel
+
+    items = page.locator(sel.POST_MENU_ITEM)
+    for index in range(items.count()):
+        item = items.nth(index)
+        try:
+            label = item.inner_text(timeout=1_000).strip().casefold()
+        except Exception:  # noqa: BLE001, S112 — menus repaint while we read them
+            continue
+        if not any(hint in label for hint in sel.COPY_LINK_LABELS):
+            continue
+        item.click(timeout=4_000)
+        page.wait_for_timeout(800)
+        clipboard = page.evaluate("() => navigator.clipboard.readText()")
+        return str(clipboard) if clipboard else None
+    return None
+
+
+def allow_clipboard_read(context: Any) -> bool:
+    """Copying the post link needs clipboard permission on linkedin.com."""
+    try:
+        context.grant_permissions(
+            ["clipboard-read", "clipboard-write"],
+            origin="https://www.linkedin.com",
+        )
+    except Exception as exc:  # noqa: BLE001 — unsupported on some CDP targets
+        logger.warning("Clipboard permission denied; post links will fall back: %s", exc)
+        return False
+    return True
 
 
 def wait_for_post_cards(page: Any, *, timeout_ms: int = 20_000) -> bool:
@@ -169,6 +244,7 @@ class LinkedInPostJobSource:
         ) as browser:
             # Attached to the user's own Chrome: do not take over a tab in use.
             page = browser.context.new_page() if self.cdp_url else browser.page
+            copy_links = query.copy_permalinks and allow_clipboard_read(browser.context)
             page.goto(search_url, wait_until="domcontentloaded", timeout=60_000)
             if "login" in page.url.lower() or "authwall" in page.url.lower():
                 browser.pause_for_manual(
@@ -186,7 +262,7 @@ class LinkedInPostJobSource:
             )
             autoscroll_feed(page, rounds=2)
             expand_truncated_posts(page)
-            return collect_jobs_from_feed_page(page, query)
+            return collect_jobs_from_feed_page(page, query, copy_permalinks=copy_links)
 
     def get_job(self, job_id: str) -> JobPosting:
         msg = "LinkedInPostJobSource.get_job is not supported; use JobRepository"
@@ -198,6 +274,7 @@ def collect_jobs_from_feed_page(
     query: JobSearchQuery,
     *,
     resolve_short_links: bool = True,
+    copy_permalinks: bool = False,
 ) -> list[JobPosting]:
     """
     Scrape visible LinkedIn-like feed cards from an already-open page.
@@ -245,6 +322,9 @@ def collect_jobs_from_feed_page(
         raw_hrefs = _hrefs_from_locator(card, base_url=page.url)
         mailtos = _mailto_from_locator(card)
         permalink = first_post_permalink(raw_hrefs) or _permalink_from_card(card)
+        if permalink is None and copy_permalinks:
+            copied = copy_post_permalink(page, card)
+            permalink = canonical_post_url(copied) if copied else None
         post_url = permalink or author_profile_url(raw_hrefs)
         hrefs = expand_urls([h for h in raw_hrefs if h != permalink])
         if resolve_short_links:

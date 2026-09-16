@@ -19,6 +19,7 @@ class JobSearchQuery(BaseModel):
     limit: int = Field(default=30, ge=1, le=50)
     countries: tuple[str, ...] = ()
     allow_remote: bool = True
+    copy_permalinks: bool = True
 
 
 class JobSourceAdapter(Protocol):

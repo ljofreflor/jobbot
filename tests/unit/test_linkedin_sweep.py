@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from jobbot.adapters.linkedin.posts_source import LinkedInPostJobSource
 from jobbot.adapters.linkedin.sweep import is_data_relevant, parse_posts_fixture, post_to_job
 from jobbot.portals.detect import AtsKind
@@ -429,3 +431,215 @@ def test_permalink_wins_over_author_profile() -> None:
         page, JobSearchQuery(query="data scientist", limit=5), resolve_short_links=False
     )
     assert "urn:li:activity:7371583217478574080" in str(jobs[0].url)
+
+
+class _FakeMenuItem:
+    def __init__(self, label: str, *, on_click: object = None) -> None:
+        self._label = label
+        self._on_click = on_click
+        self.clicks = 0
+
+    def inner_text(self, **_kw: object) -> str:
+        return self._label
+
+    def click(self, **_kw: object) -> None:
+        self.clicks += 1
+        if callable(self._on_click):
+            self._on_click()
+
+
+class _FakeMenuLocator:
+    """Playwright-ish locator over a fixed list of menu items."""
+
+    def __init__(self, items: list[_FakeMenuItem]) -> None:
+        self._items = items
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def nth(self, index: int) -> _FakeMenuItem:
+        return self._items[index]
+
+    @property
+    def first(self) -> _FakeMenuItem:
+        if not self._items:
+            raise AssertionError("no menu item")
+        return self._items[0]
+
+
+class _MenuCard:
+    """A card whose control menu copies the permalink to the clipboard."""
+
+    def __init__(self, page: "_ClipboardPage", *, menu: bool = True) -> None:
+        self.page = page
+        self._menu = (
+            _FakeMenuLocator([_FakeMenuItem("Abrir el menú de controles", on_click=page.open_menu)])
+            if menu
+            else _FakeMenuLocator([])
+        )
+
+    def locator(self, selector: str) -> _FakeMenuLocator:
+        from jobbot.adapters.linkedin import selectors as sel
+
+        assert selector == sel.POST_CONTROL_MENU
+        return self._menu
+
+
+class _ClipboardPage:
+    def __init__(self, link: str = "https://lnkd.in/p/dRmZbTZG") -> None:
+        self.link = link
+        self.clipboard = ""
+        self.menu_open = False
+        self.keys: list[str] = []
+        self.keyboard = self
+
+    def open_menu(self) -> None:
+        self.menu_open = True
+
+    def _copy(self) -> None:
+        self.clipboard = self.link
+
+    def locator(self, selector: str) -> _FakeMenuLocator:
+        if not self.menu_open:
+            return _FakeMenuLocator([])
+        return _FakeMenuLocator(
+            [
+                _FakeMenuItem("Guardar"),
+                _FakeMenuItem("Copiar enlace a la publicación", on_click=self._copy),
+                _FakeMenuItem("Denunciar publicación"),
+            ]
+        )
+
+    def wait_for_timeout(self, _ms: int) -> None:
+        return None
+
+    def press(self, key: str) -> None:
+        self.keys.append(key)
+        self.menu_open = False
+
+    def evaluate(self, _script: str, *_args: object) -> str:
+        return self.clipboard
+
+
+def test_copy_post_permalink_uses_the_control_menu() -> None:
+    """LinkedIn hides the urn; the '…' menu still hands over the real post link."""
+    from jobbot.adapters.linkedin.posts_source import copy_post_permalink
+
+    page = _ClipboardPage()
+    card = _MenuCard(page)
+    assert copy_post_permalink(page, card) == "https://lnkd.in/p/dRmZbTZG"
+    assert page.keys == ["Escape"]  # menu closed, feed left as we found it
+
+
+def test_copy_post_permalink_returns_none_without_menu() -> None:
+    from jobbot.adapters.linkedin.posts_source import copy_post_permalink
+
+    page = _ClipboardPage()
+    assert copy_post_permalink(page, _MenuCard(page, menu=False)) is None
+
+
+def test_copy_post_permalink_ignores_non_link_clipboard() -> None:
+    from jobbot.adapters.linkedin.posts_source import copy_post_permalink
+
+    page = _ClipboardPage(link="algo que no es un link")
+    assert copy_post_permalink(page, _MenuCard(page)) is None
+
+
+def test_canonical_post_url_drops_tracking_and_member_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The copied link carries rcm=<your member id>: never store that."""
+    from jobbot.adapters.linkedin import posts_source
+
+    resolved = (
+        "https://www.linkedin.com/posts/gabriela-forton-714a86260_en-era-talent-"
+        "share-7371583217478574080-YDc9/?utm_source=share&utm_medium=member_desktop"
+        "&rcm=ACoAAAXJInQBLp3OTwoNIHue"
+    )
+    monkeypatch.setattr(posts_source, "follow_redirect_url", lambda _url: resolved)
+
+    assert posts_source.canonical_post_url("https://lnkd.in/p/dRmZbTZG") == (
+        "https://www.linkedin.com/posts/gabriela-forton-714a86260_en-era-talent-"
+        "share-7371583217478574080-YDc9/"
+    )
+
+
+def test_canonical_post_url_keeps_unresolvable_link() -> None:
+    from jobbot.adapters.linkedin.posts_source import canonical_post_url
+
+    plain = "https://www.linkedin.com/feed/update/urn:li:activity:7371583217478574080/"
+    assert canonical_post_url(plain) == plain
+
+
+def test_collect_jobs_copies_permalink_from_menu(monkeypatch: pytest.MonkeyPatch) -> None:
+    from jobbot.adapters.linkedin import posts_source
+    from jobbot.jobs.sources import JobSearchQuery
+
+    resolved = "https://www.linkedin.com/posts/ana-recruiter_share-7371583217478574080-YDc9/?utm_source=share"
+    monkeypatch.setattr(posts_source, "follow_redirect_url", lambda _url: resolved)
+
+    blob = (
+        "Publicación en el feed\nAna Recruiter\n"
+        "Buscamos Data Scientist con Python.\nEnviar CV a ana@empresa.cl"
+    )
+    hrefs = ["https://www.linkedin.com/in/ana-recruiter/"]
+    page = _MenuSearchPage([(blob, hrefs)])
+    jobs = posts_source.collect_jobs_from_feed_page(
+        page,
+        JobSearchQuery(query="data scientist", limit=5),
+        resolve_short_links=False,
+        copy_permalinks=True,
+    )
+
+    assert str(jobs[0].url) == (
+        "https://www.linkedin.com/posts/ana-recruiter_share-7371583217478574080-YDc9/"
+    )
+
+
+class _MenuSearchPage(_ClipboardPage):
+    """Modern cards whose only route to the post URL is the '…' menu."""
+
+    def __init__(
+        self,
+        cards: list[tuple[str, list[str]]],
+        link: str = "https://lnkd.in/p/dRmZbTZG",
+    ) -> None:
+        super().__init__(link)
+        self._cards = cards
+        self.url = "https://www.linkedin.com/search/results/content/?keywords=enviar+CV"
+
+    def locator(self, selector: str) -> object:
+        from jobbot.adapters.linkedin import posts_source as ps
+        from jobbot.adapters.linkedin import selectors as sel
+
+        if selector == ps.MODERN_POST_CARD:
+            return _MenuCards(self, self._cards)
+        if selector == sel.POST_MENU_ITEM:
+            return super().locator(selector)
+        return _FakeMenuLocator([])
+
+
+class _MenuCards:
+    def __init__(self, page: _MenuSearchPage, cards: list[tuple[str, list[str]]]) -> None:
+        self._page = page
+        self._cards = cards
+
+    def count(self) -> int:
+        return len(self._cards)
+
+    def nth(self, index: int) -> "_MenuFakeCard":
+        text, hrefs = self._cards[index]
+        return _MenuFakeCard(self._page, text, hrefs)
+
+
+class _MenuFakeCard(_FakeCard):
+    def __init__(self, page: _MenuSearchPage, text: str, hrefs: list[str]) -> None:
+        super().__init__(text, hrefs)
+        self._page = page
+
+    def locator(self, selector: str) -> object:
+        from jobbot.adapters.linkedin import selectors as sel
+
+        if selector == sel.POST_CONTROL_MENU:
+            return _FakeMenuLocator(
+                [_FakeMenuItem("Abrir el menú de controles", on_click=self._page.open_menu)]
+            )
+        return super().locator(selector)

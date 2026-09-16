@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import yaml
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -21,6 +22,8 @@ from jobbot.applications.manager import (
     ApplicationRepository,
     prepare_application_package,
 )
+from jobbot.companies.models import DiscoverySource
+from jobbot.companies.registry import CompanyRegistry
 from jobbot.config import JobbotConfig, load_config
 from jobbot.cv.build import BuildTarget, build_cv
 from jobbot.cv.renderer import CvStyle
@@ -39,6 +42,7 @@ from jobbot.matching.scoring import format_match_report
 from jobbot.models.application import ApplicationStatus
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
+from jobbot.ops.narrate import Narrator, Phase
 from jobbot.profile.diff import compare_summaries, summarize_profile
 from jobbot.profile.importer_latex import (
     LatexImportError,
@@ -72,6 +76,10 @@ getonboard_app = typer.Typer(
     no_args_is_help=True,
 )
 portals_app = typer.Typer(help="Recruitment portal registry (ATS)", no_args_is_help=True)
+companies_app = typer.Typer(
+    help="Company ↔ career platform knowledge (candidate → promote; public data only)",
+    no_args_is_help=True,
+)
 ops_app = typer.Typer(
     help="Local ops: failure observability + continuous loops (no telemetry)",
     no_args_is_help=True,
@@ -88,6 +96,7 @@ app.add_typer(linkedin_app, name="linkedin")
 app.add_typer(getonboard_app, name="getonboard")
 app.add_typer(browser_app, name="browser")
 app.add_typer(portals_app, name="portals")
+app.add_typer(companies_app, name="companies")
 app.add_typer(ops_app, name="ops")
 ops_app.add_typer(ops_failure_app, name="failure")
 
@@ -357,8 +366,6 @@ def profile_suggest_from_market(
     yes: Annotated[bool, typer.Option("--yes", "-y")] = False,
 ) -> None:
     """Suggest baseline wording from stored JDs; ask before adding missing skills."""
-    import yaml
-
     from jobbot.profile.loader import load_profile_raw
     from jobbot.profile.market import (
         merge_confirmed_skills_into_raw,
@@ -379,6 +386,8 @@ def profile_suggest_from_market(
         console.print("No stored jobs. Run jobs search or linkedin sweep first.")
         raise typer.Exit(SUCCESS)
 
+    narrator = _narrator()
+    narrator.phase(Phase.RECEIVING_WORLD, f"{len(jobs)} job descriptions", may_ask=ask)
     suggestion = suggest_from_market(candidate, jobs, min_count=min_count)
     out = config.output_dir / "profile_market_suggestion.md"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -578,6 +587,7 @@ def jobs_add(
     path = write_job_json(job, config.output_dir)
     console.print(f"[green]Added[/green] {job.id}  {job.company}  {job.title}")
     console.print(f"Wrote {path}")
+    _learn_company_knowledge(config, job)
 
 
 @jobs_app.command("search")
@@ -801,6 +811,8 @@ def application_prepare(job_id: Annotated[str, typer.Argument()]) -> None:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
+    narrator = _narrator()
+    narrator.phase(Phase.PROPAGATING_CV, f"{job.company} · {job.title}"[:60])
     _build_job_cv(config, candidate, job)
 
     app_dir = prepare_application_package(
@@ -1443,6 +1455,13 @@ def linkedin_sweep(
         bool,
         typer.Option("--any-country", help="Keep posts from every country"),
     ] = False,
+    copy_links: Annotated[
+        bool,
+        typer.Option(
+            "--copy-links/--no-copy-links",
+            help="Read each post's own URL from its '…' menu (one extra click per post)",
+        ),
+    ] = True,
 ) -> None:
     """Sweep LinkedIn recruiter posts → store jobs + detect ATS URLs (MVP: posts)."""
     from jobbot.adapters.getonboard.jobs import remember_portal_from_url
@@ -1484,6 +1503,7 @@ def linkedin_sweep(
                 limit=limit,
                 countries=countries,
                 allow_remote=config.search.allow_remote,
+                copy_permalinks=copy_links,
             )
         )
 
@@ -1500,6 +1520,8 @@ def linkedin_sweep(
     analyzer = RuleBasedJobAnalyzer()
     repo = JobRepository(session)
     registry = load_registry(default_portals_path(config.root))
+    narrator = _narrator()
+    narrator.phase(Phase.UPDATING_WORLD, f"{len(found)} recruiter posts")
     table = Table(title="LinkedIn post sweep")
     table.add_column("ID")
     table.add_column("Company")
@@ -1539,6 +1561,12 @@ def linkedin_sweep(
                 config,
                 job.ats_url,
                 notes=f"learned from LinkedIn post job {job.id}",
+            )
+            _learn_company_knowledge(
+                config,
+                job,
+                source=DiscoverySource.LINKEDIN_POST,
+                narrator=narrator,
             )
     if register_portals:
         save_registry(registry, default_portals_path(config.root))
@@ -1845,6 +1873,451 @@ def portals_add(
         f"[green]Upserted[/green] {entry.domain} ({entry.ats_kind.value}) "
         f"registered={entry.registered}"
     )
+
+
+# ── companies (collaborative career-platform knowledge) ──────────────────────
+
+
+def _narrator(quiet: bool = False) -> Narrator:
+    """Phase narration for the long loops (dim lines, local stdout only)."""
+    return Narrator(sink=lambda line: console.print(f"[dim]{line}[/dim]"), quiet=quiet)
+
+
+def _companies_registry(config: JobbotConfig) -> tuple[CompanyRegistry, Path]:
+    from jobbot.companies.registry import default_companies_path, load_companies
+
+    path = default_companies_path(config.root)
+    return load_companies(path), path
+
+
+def _learn_company_knowledge(
+    config: JobbotConfig,
+    job: JobPosting,
+    *,
+    source: DiscoverySource = DiscoverySource.JOB_SOURCE,
+    narrator: Narrator | None = None,
+) -> None:
+    """Record the company↔portal relation behind a stored job (candidate knowledge)."""
+    from jobbot.companies.learn import learn_from_job
+
+    result = learn_from_job(config, job, source=source)
+    if result is None:
+        return
+    voice = narrator or _narrator()
+    verb = "learned" if result.created else "confirmed"
+    voice.note(
+        f"{verb} {result.company_id}: {result.url} "
+        f"({result.site_type.value}, ats={result.ats}) — candidate"
+    )
+    if result.conflict:
+        err_console.print(f"[yellow]Contradiction:[/yellow] {result.conflict}")
+
+
+@companies_app.command("detect")
+def companies_detect(
+    url: Annotated[str, typer.Argument(help="Career page, ATS or job URL")],
+    resolve: Annotated[
+        bool,
+        typer.Option("--resolve/--no-resolve", help="Follow redirects before classifying"),
+    ] = False,
+) -> None:
+    """Classify a URL (posting / career portal / ATS / redirect). Writes nothing."""
+    from jobbot.companies.discovery import career_root_url, classify_url
+    from jobbot.companies.urls import PrivateRouteRejected, company_hint_from_url
+
+    try:
+        found = classify_url(url, resolve=resolve)
+    except PrivateRouteRejected as exc:
+        err_console.print(f"[red]Not shareable company knowledge:[/red] {exc}")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    table = Table(title="URL classification")
+    table.add_column("Field")
+    table.add_column("Value")
+    table.add_row("url", found.url)
+    table.add_row("domain", found.domain)
+    table.add_row("site_type", found.site_type.value)
+    table.add_row("ats", found.ats.value)
+    table.add_row("career_root", career_root_url(found.url, found.ats))
+    table.add_row("redirects_to", found.redirects_to or "—")
+    table.add_row("evidence", found.evidence or "(none — ats stays unknown)")
+    table.add_row("company_hint", company_hint_from_url(found.url))
+    console.print(table)
+
+
+@companies_app.command("learn")
+def companies_learn(
+    url: Annotated[str, typer.Argument(help="Career portal / ATS URL")],
+    company: Annotated[
+        str | None,
+        typer.Option("--company", help="Company name (defaults to a hint from the URL)"),
+    ] = None,
+    country: Annotated[str | None, typer.Option("--country", help="ISO code, e.g. CL")] = None,
+    resolve: Annotated[
+        bool,
+        typer.Option("--resolve/--no-resolve", help="Follow redirects before classifying"),
+    ] = False,
+    verify: Annotated[
+        bool,
+        typer.Option("--verify", help="Promote straight to active (you confirm it is right)"),
+    ] = False,
+) -> None:
+    """Register a company/portal relation you found yourself (candidate by default)."""
+    from jobbot.companies.learn import learn_from_url
+    from jobbot.companies.models import DiscoverySource
+    from jobbot.companies.registry import save_companies
+    from jobbot.companies.urls import PrivateRouteRejected, company_hint_from_url
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    narrator = _narrator()
+    narrator.phase(Phase.UPDATING_WORLD, "company career platforms")
+    try:
+        outcome = learn_from_url(
+            registry,
+            company=company or company_hint_from_url(url),
+            url=url,
+            source=DiscoverySource.USER_OBSERVATION,
+            country=country,
+            resolve=resolve,
+        )
+    except PrivateRouteRejected as exc:
+        err_console.print(f"[red]Not shareable company knowledge:[/red] {exc}")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    if outcome is None:
+        console.print(
+            "[yellow]Not company-specific[/yellow] (job board or unclear URL); nothing stored."
+        )
+        raise typer.Exit(SUCCESS)
+    if outcome.conflict and outcome.site is None:
+        err_console.print(f"[yellow]Duplicate:[/yellow] {outcome.conflict}")
+        raise typer.Exit(SUCCESS)
+    assert outcome.site is not None
+    if verify:
+        registry.promote(outcome.company.id, url=outcome.site.url)
+    save_companies(registry, path)
+    verb = "Added" if outcome.created_site else "Merged observation into"
+    narrator.note(
+        f"{verb} {outcome.site.url} → company={outcome.company.id} "
+        f"type={outcome.site.site_type.value} ats={outcome.site.ats.value} "
+        f"status={outcome.site.status.value} confidence={outcome.site.confidence}"
+    )
+    if outcome.conflict:
+        err_console.print(f"[yellow]Contradiction:[/yellow] {outcome.conflict}")
+    if not verify:
+        console.print(
+            f"Candidate stored. Confirm with: [bold]jobbot companies promote "
+            f"{outcome.company.id} --site {outcome.site.url}[/bold]"
+        )
+
+
+@companies_app.command("list")
+def companies_list(
+    status: Annotated[
+        str,
+        typer.Option("--status", help="candidate | active | stale | rejected | all"),
+    ] = "all",
+) -> None:
+    """List known companies and their career platforms."""
+    from jobbot.companies.models import KnowledgeStatus
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    if not registry.companies:
+        console.print(
+            "No company knowledge yet. Try [bold]jobbot companies learn URL --company NAME[/bold] "
+            "or [bold]jobbot companies discover data/companies-cl.example.yaml[/bold]."
+        )
+        return
+    wanted: set[str] | None = None
+    if status != "all":
+        if status not in {s.value for s in KnowledgeStatus}:
+            err_console.print(f"[red]Invalid --status {status!r}[/red]")
+            raise typer.Exit(GENERIC_FAILURE)
+        wanted = {status}
+    table = Table(title=f"Company career platforms ({path.name})")
+    table.add_column("Company")
+    table.add_column("Country")
+    table.add_column("Career site")
+    table.add_column("Type")
+    table.add_column("ATS")
+    table.add_column("Status")
+    table.add_column("Conf.")
+    rows = 0
+    for record in registry.companies:
+        for site in record.career_sites:
+            if wanted is not None and site.status.value not in wanted:
+                continue
+            table.add_row(
+                record.id,
+                record.country or "—",
+                site.url[:52],
+                site.site_type.value,
+                site.ats.value,
+                site.status.value,
+                str(site.confidence),
+            )
+            rows += 1
+    if rows == 0:
+        console.print(f"No career sites with status {status!r}.")
+        return
+    console.print(table)
+
+
+@companies_app.command("show")
+def companies_show(
+    company: Annotated[str, typer.Argument(help="Company id or name")],
+) -> None:
+    """Show one company with every portal, observation and contradiction."""
+    config = load_config()
+    registry, _ = _companies_registry(config)
+    record = registry.find_company(company)
+    if record is None:
+        err_console.print(f"[red]Unknown company {company!r}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    console.print(
+        Panel(
+            f"[bold]{record.name}[/bold] ({record.id})\n"
+            f"country: {record.country or '—'}  sector: {record.sector or '—'}\n"
+            f"domains: {', '.join(record.domains) or '—'}",
+            title="Company",
+        )
+    )
+    for site in record.career_sites:
+        verified = site.last_verified.date().isoformat() if site.last_verified else "—"
+        lines = [
+            f"type: {site.site_type.value}   ats: {site.ats.value}   status: {site.status.value}",
+            f"first_seen: {site.first_seen.date().isoformat()}   last_verified: {verified}",
+        ]
+        if site.reached_from:
+            lines.append(f"reached_from: {site.reached_from}")
+        lines.append(f"confidence: {site.confidence} independent source(s)")
+        for obs in site.observations:
+            lines.append(
+                f"  · {obs.checked_at.date().isoformat()} {obs.source.value}: "
+                f"{obs.evidence or '(no technical evidence)'}"
+            )
+        for conflict in site.conflicts:
+            lines.append(f"  ! {conflict}")
+        console.print(Panel("\n".join(lines), title=site.url))
+
+
+@companies_app.command("promote")
+def companies_promote(
+    company: Annotated[str, typer.Argument(help="Company id or name")],
+    site: Annotated[
+        str | None,
+        typer.Option("--site", help="Promote only this career URL"),
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation")] = False,
+) -> None:
+    """Promote candidate knowledge to active (the only way it becomes truth)."""
+    from jobbot.companies.models import KnowledgeStatus
+    from jobbot.companies.registry import save_companies
+    from jobbot.companies.urls import canonical_key
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    record = registry.find_company(company)
+    if record is None:
+        err_console.print(f"[red]Unknown company {company!r}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    targets = [
+        s
+        for s in record.career_sites
+        if s.status != KnowledgeStatus.REJECTED
+        and (site is None or s.key == canonical_key(site))
+    ]
+    if not targets:
+        console.print("Nothing to promote.")
+        raise typer.Exit(SUCCESS)
+    narrator = _narrator()
+    narrator.phase(Phase.RECEIVING_WORLD, f"company {record.id}", may_ask=not yes)
+    promoted = 0
+    for target in targets:
+        narrator.note(
+            f"{target.url} type={target.site_type.value} ats={target.ats.value} "
+            f"evidence={target.observations[-1].evidence if target.observations else '—'}"
+        )
+        if not yes and not typer.confirm(f"Promote {target.url} to active?", default=True):
+            continue
+        registry.promote(record.id, url=target.url)
+        promoted += 1
+    if promoted:
+        save_companies(registry, path)
+    console.print(f"[green]Promoted[/green] {promoted} career site(s) → {path}")
+
+
+@companies_app.command("reject")
+def companies_reject(
+    company: Annotated[str, typer.Argument(help="Company id or name")],
+    site: Annotated[str, typer.Option("--site", help="Career URL to reject")],
+) -> None:
+    """Mark a discovered portal as wrong so it stops coming back."""
+    from jobbot.companies.registry import save_companies
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    rejected = registry.reject(company, url=site)
+    if rejected is None:
+        err_console.print(f"[red]No stored site {site} for {company!r}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    save_companies(registry, path)
+    console.print(f"[yellow]Rejected[/yellow] {rejected.url}")
+
+
+@companies_app.command("discover")
+def companies_discover(
+    seeds_file: Annotated[Path, typer.Argument(help="YAML list of companies to seed")],
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", help="Where to write candidates (default: output/discovery/…)"),
+    ] = None,
+    limit: Annotated[int | None, typer.Option("--limit", help="Max companies to probe")] = None,
+    search_results: Annotated[
+        Path | None,
+        typer.Option("--search-results", help="YAML with already-obtained web search hits"),
+    ] = None,
+    delay: Annotated[
+        float,
+        typer.Option("--delay", help="Seconds between HTTP requests (be polite)"),
+    ] = 1.0,
+) -> None:
+    """One-shot: seed candidate career portals for a company list (never canonical)."""
+    from jobbot.companies.oneshot import (
+        CompanyPortalCandidate,
+        CompanySeed,
+        UrllibFetcher,
+        load_search_hits,
+        load_seeds,
+        run_oneshot,
+        write_candidates,
+    )
+    from jobbot.companies.registry import generated_candidates_path
+
+    config = load_config()
+    path = seeds_file.expanduser().resolve()
+    if not path.is_file():
+        err_console.print(f"[red]Seed file not found: {path}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        seeds = load_seeds(path)
+    except (ValueError, yaml.YAMLError) as exc:
+        err_console.print(f"[red]Invalid seed file:[/red] {exc}")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    hits = load_search_hits(search_results.expanduser().resolve()) if search_results else None
+
+    narrator = _narrator()
+    narrator.phase(Phase.RECEIVING_WORLD, f"{len(seeds)} companies", may_ask=False)
+
+    def on_company(seed: CompanySeed, found: list[CompanyPortalCandidate]) -> None:
+        narrator.note(f"{seed.name}: {len(found)} candidate portal(s)")
+
+    report = run_oneshot(
+        seeds,
+        UrllibFetcher(delay=delay),
+        search_hits=hits,
+        limit=limit,
+        on_company=on_company,
+    )
+    target = (out.expanduser().resolve() if out else generated_candidates_path(config.output_dir))
+    write_candidates(report.candidates, target)
+    console.print(
+        f"Probed {report.companies_seen} companies with {report.requests_made} requests → "
+        f"{len(report.candidates)} candidate portal(s)."
+    )
+    if report.companies_without_portal:
+        console.print(
+            "No public portal found for: "
+            + ", ".join(report.companies_without_portal[:10])
+        )
+    console.print(f"Candidates (not truth yet): {target}")
+    console.print(f"Next: [bold]jobbot companies import {target}[/bold]")
+
+
+@companies_app.command("import")
+def companies_import(
+    candidates_file: Annotated[Path, typer.Argument(help="Generated candidates YAML")],
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Import without asking")] = False,
+) -> None:
+    """Merge oneshot candidates into the registry (still candidate, never active)."""
+    from jobbot.companies.oneshot import CompanyPortalCandidate, import_candidates, load_candidates
+    from jobbot.companies.registry import save_companies
+
+    config = load_config()
+    path = candidates_file.expanduser().resolve()
+    if not path.is_file():
+        err_console.print(f"[red]Candidates file not found: {path}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    candidates = load_candidates(path)
+    registry, registry_path = _companies_registry(config)
+    narrator = _narrator()
+    narrator.phase(Phase.UPDATING_WORLD, f"{len(candidates)} candidates", may_ask=not yes)
+
+    def confirm(candidate: CompanyPortalCandidate) -> bool:
+        narrator.note(
+            f"{candidate.company}: {candidate.career_url} "
+            f"type={candidate.site_type.value} ats={candidate.ats.value} "
+            f"evidence={candidate.evidence or '—'}"
+        )
+        if yes:
+            return True
+        return typer.confirm("Keep as candidate knowledge?", default=True)
+
+    outcomes = import_candidates(registry, candidates, confirm=confirm)
+    save_companies(registry, registry_path)
+    created = sum(1 for o in outcomes if o.created_site)
+    merged = sum(1 for o in outcomes if o.merged)
+    conflicts = [o.conflict for o in outcomes if o.conflict]
+    console.print(
+        f"[green]Imported[/green] {created} new, merged {merged} into existing → {registry_path}"
+    )
+    for conflict in conflicts:
+        err_console.print(f"[yellow]Conflict:[/yellow] {conflict}")
+    console.print("Promote what you verified: [bold]jobbot companies promote COMPANY[/bold]")
+
+
+@companies_app.command("export")
+def companies_export(
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", help="Destination file (default: output/discovery/…)"),
+    ] = None,
+) -> None:
+    """Write a shareable snapshot: active entries only, no candidate PII."""
+    from jobbot.companies.registry import shareable_payload, shared_export_path
+
+    config = load_config()
+    registry, _ = _companies_registry(config)
+    payload = shareable_payload(registry)
+    target = out.expanduser().resolve() if out else shared_export_path(config.output_dir)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    companies = payload.get("companies")
+    count = len(companies) if isinstance(companies, list) else 0
+    console.print(f"[green]Exported[/green] {count} company(ies) with active portals → {target}")
+
+
+@companies_app.command("sites")
+def companies_sites(
+    include_candidates: Annotated[
+        bool,
+        typer.Option("--include-candidates", help="Also list unverified knowledge"),
+    ] = False,
+) -> None:
+    """Career portals reusable by later job discovery."""
+    from jobbot.companies.registry import active_career_sites
+
+    config = load_config()
+    registry, _ = _companies_registry(config)
+    pairs = active_career_sites(registry, include_candidates=include_candidates)
+    if not pairs:
+        console.print("No reusable career sites yet (promote some candidates first).")
+        return
+    for record, site in pairs:
+        console.print(f"{record.id}\t{site.ats.value}\t{site.url}")
 
 
 @browser_app.command("chrome-debug")
