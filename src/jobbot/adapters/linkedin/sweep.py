@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from jobbot.jobs.parsing import extract_skills_from_text
@@ -56,6 +57,34 @@ class LinkedInPostCandidate:
     ats_kind: AtsKind = AtsKind.UNKNOWN
 
 
+_FEED_HEADERS = ("publicación en el feed", "publicacion en el feed", "feed post")
+_CHROME_LINE = re.compile(
+    r"^(?:•\s*\d+\S*|seguir|follow|recomendar|editado.*"
+    r"|\d+\s*(?:min|h|d|sem|mes(?:es)?|año(?:s)?)\b.*)$",
+    re.IGNORECASE,
+)
+_CHROME_WINDOW = 5
+
+
+def strip_feed_chrome(text: str) -> tuple[str | None, str]:
+    """
+    Split LinkedIn's card header from the actual post body.
+
+    Returns (author, body). Author is the name LinkedIn shows above the post;
+    only the first few lines are cleaned so bullet content in the post survives.
+    """
+    lines = [line.strip() for line in text.splitlines()]
+    if not lines or lines[0].casefold() not in _FEED_HEADERS:
+        return None, text.strip()
+    rest = [line for line in lines[1:] if line]
+    if not rest:
+        return None, ""
+    author = rest[0]
+    head = [line for line in rest[1 : 1 + _CHROME_WINDOW] if not _CHROME_LINE.match(line)]
+    body = head + rest[1 + _CHROME_WINDOW :]
+    return author, "\n".join(body).strip()
+
+
 def is_data_relevant(text: str) -> bool:
     lowered = text.casefold()
     return any(hint in lowered for hint in _DATA_ROLE_HINTS)
@@ -66,15 +95,23 @@ def parse_post_blob(
     *,
     author: str | None = None,
     post_url: str | None = None,
+    mailto_urls: Sequence[str] | None = None,
 ) -> LinkedInPostCandidate:
     """Parse a single post body (fixture or scraped text)."""
-    text = blob.strip()
+    header_author, text = strip_feed_chrome(blob.strip())
+    author = author or header_author
     urls = expand_urls(extract_http_urls(text))
     ats_url, ats_kind = first_external_ats_url(urls)
     if ats_url is None:
         email = first_apply_email(text)
         if email:
             ats_url = mailto_url(email)
+            ats_kind = AtsKind.EMAIL
+    if ats_url is None and mailto_urls:
+        # Address only reachable through the post's mailto link, not its text.
+        first = next((m for m in mailto_urls if "@" in m), None)
+        if first:
+            ats_url = first if first.startswith("mailto:") else mailto_url(first)
             ats_kind = AtsKind.EMAIL
     digest = hashlib.sha1(text.encode("utf-8")).hexdigest()[:12]  # noqa: S324 — id only
     post_id = digest
