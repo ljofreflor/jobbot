@@ -41,6 +41,7 @@ SEE_MORE_TOGGLE = (
 
 _PERMALINK_RE = re.compile(r"linkedin\.com/(?:feed/update|posts)/", re.IGNORECASE)
 _URN_RE = re.compile(r"urn:li:(?:activity|share|ugcPost):\d+")
+_PROFILE_RE = re.compile(r"linkedin\.com/in/[^/?#]+", re.IGNORECASE)
 
 
 def permalink_from_html(html: str) -> str | None:
@@ -55,6 +56,19 @@ def first_post_permalink(hrefs: Sequence[str]) -> str | None:
     """The post's own URL, ignoring author profiles and hashtag searches."""
     for href in hrefs:
         if _PERMALINK_RE.search(href):
+            return href
+    return None
+
+
+def author_profile_url(hrefs: Sequence[str]) -> str | None:
+    """
+    Fallback when the card exposes no permalink.
+
+    Modern LinkedIn cards carry no urn:li:activity, so the recruiter's profile is
+    the only durable handle: it leaves the post one click away instead of nothing.
+    """
+    for href in hrefs:
+        if _PROFILE_RE.search(href):
             return href
     return None
 
@@ -231,13 +245,14 @@ def collect_jobs_from_feed_page(
         raw_hrefs = _hrefs_from_locator(card, base_url=page.url)
         mailtos = _mailto_from_locator(card)
         permalink = first_post_permalink(raw_hrefs) or _permalink_from_card(card)
+        post_url = permalink or author_profile_url(raw_hrefs)
         hrefs = expand_urls([h for h in raw_hrefs if h != permalink])
         if resolve_short_links:
             unresolved = [h for h in hrefs if "lnkd.in" in h or "linkedin.com" in h]
             if unresolved:
                 hrefs = expand_urls(hrefs + _click_resolve_hrefs(card, unresolved))
         blob = text if not hrefs else text + "\n" + "\n".join(hrefs)
-        post = parse_post_blob(blob, post_url=permalink, mailto_urls=mailtos)
+        post = parse_post_blob(blob, post_url=post_url, mailto_urls=mailtos)
         jobs.append(post_to_job(post))
     return jobs
 

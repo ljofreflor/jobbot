@@ -367,3 +367,65 @@ def test_collect_jobs_without_country_preference_keeps_both() -> None:
         page, JobSearchQuery(query="enviar CV", limit=10), resolve_short_links=False
     )
     assert len(jobs) == 1
+
+
+def test_author_profile_url_is_the_fallback_when_no_permalink() -> None:
+    """LinkedIn stopped exposing urn:li:activity; keep at least the author's profile."""
+    from jobbot.adapters.linkedin.posts_source import author_profile_url
+
+    # Real href order seen in a modern search card (author repeated, then company).
+    hrefs = [
+        "https://www.linkedin.com/in/gabriela-forton-714a86260/",
+        "https://www.linkedin.com/in/gabriela-forton-714a86260/",
+        "https://www.linkedin.com/company/eratalent/",
+        "mailto:gforton@eratalent.one",
+        "https://www.linkedin.com/",
+    ]
+    assert author_profile_url(hrefs) == "https://www.linkedin.com/in/gabriela-forton-714a86260/"
+    no_profile = ["https://www.linkedin.com/", "https://boards.greenhouse.io/x"]
+    assert author_profile_url(no_profile) is None
+
+
+def test_collect_jobs_stores_author_profile_when_permalink_is_absent() -> None:
+    from jobbot.adapters.linkedin.posts_source import (
+        MODERN_POST_CARD,
+        collect_jobs_from_feed_page,
+    )
+    from jobbot.jobs.sources import JobSearchQuery
+
+    blob = (
+        "Publicación en el feed\nGabriela Forton\n"
+        "En ERA TALENT buscamos Data Scientist con Python y SQL.\n"
+        "Enviar CV a gforton@eratalent.one"
+    )
+    hrefs = ["https://www.linkedin.com/in/gabriela-forton-714a86260/"]
+    page = _FakeSearchPage([(blob, hrefs)], selector=MODERN_POST_CARD)
+    jobs = collect_jobs_from_feed_page(
+        page, JobSearchQuery(query="data scientist", limit=5), resolve_short_links=False
+    )
+
+    assert len(jobs) == 1
+    assert str(jobs[0].url) == "https://www.linkedin.com/in/gabriela-forton-714a86260/"
+    assert jobs[0].ats_url == "mailto:gforton@eratalent.one"
+
+
+def test_permalink_wins_over_author_profile() -> None:
+    from jobbot.adapters.linkedin.posts_source import (
+        MODERN_POST_CARD,
+        collect_jobs_from_feed_page,
+    )
+    from jobbot.jobs.sources import JobSearchQuery
+
+    blob = (
+        "Publicación en el feed\nAna Recruiter\n"
+        "Buscamos Data Scientist con Python.\nEnviar CV a ana@empresa.cl"
+    )
+    hrefs = [
+        "https://www.linkedin.com/in/ana-recruiter/",
+        "https://www.linkedin.com/feed/update/urn:li:activity:7371583217478574080/",
+    ]
+    page = _FakeSearchPage([(blob, hrefs)], selector=MODERN_POST_CARD)
+    jobs = collect_jobs_from_feed_page(
+        page, JobSearchQuery(query="data scientist", limit=5), resolve_short_links=False
+    )
+    assert "urn:li:activity:7371583217478574080" in str(jobs[0].url)
