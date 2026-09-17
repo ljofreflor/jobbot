@@ -498,6 +498,8 @@ def _strip_latex_commands(text: str) -> str:
     out = out.replace(r"\&", "&").replace(r"\%", "%").replace(r"\_", "_")
     out = out.replace(r"\,", " ").replace("~", " ").replace(r"\\", " ")
     out = re.sub(r"[{}]", "", out)
+    # Orphan environment names must never reach profile.yaml / the PDF.
+    out = re.sub(r"\b(itemize|enumerate|description)\b", "", out, flags=re.IGNORECASE)
     out = re.sub(r"\s+", " ", out)
     return out.strip()
 
