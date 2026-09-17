@@ -3355,7 +3355,7 @@ def browser_chrome_debug(
     import subprocess
 
     from jobbot.browser.cdp import cdp_http_url, chrome_debug_argv
-    from jobbot.browser.sessions import KNOWN_SITES, site_spec
+    from jobbot.browser.sessions import KNOWN_SITES, ProfileBusyError, ensure_profile_free, site_spec
 
     config = load_config()
     spec = site_spec(site)
@@ -3378,6 +3378,11 @@ def browser_chrome_debug(
     console.print(" ".join(argv))
     if not launch:
         return
+    try:
+        ensure_profile_free(profile_dir)
+    except ProfileBusyError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
     subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
     console.print(f"[green]Launched[/green] Chrome with CDP at {url}")
 

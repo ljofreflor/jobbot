@@ -97,3 +97,4 @@ tmp/
 _chunks/
 _put_*/
 _update_args/
+coverage.json
