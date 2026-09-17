@@ -1,4 +1,4 @@
-.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities
+.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities coverage
 
 install:
 	uv sync --group dev
@@ -21,6 +21,9 @@ capabilities:
 
 test:
 	uv run pytest
+
+coverage:
+	uv run pytest tests/unit --cov=jobbot --cov-report=term-missing:skip-covered --cov-fail-under=80
 
 lint:
 	uv run ruff check .

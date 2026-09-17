@@ -23,6 +23,7 @@ dependencies = [
 dev = [
     "mypy>=1.11",
     "pytest>=8.0",
+    "pytest-cov>=7.0",
     "ruff>=0.6",
     "types-PyYAML>=6.0",
 ]
@@ -49,6 +50,7 @@ dev = [
     "mypy>=1.11",
     "playwright>=1.62.0",
     "pytest>=8.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.6",
     "types-PyYAML>=6.0",
 ]
@@ -78,4 +80,36 @@ pythonpath = ["src", "."]
 addopts = "-m 'not integration'"
 markers = [
     "integration: tests that may need external tools, browser, or network",
+]
+
+[tool.coverage.run]
+branch = false
+source = ["jobbot"]
+omit = [
+    # Typer entrypoint: covered by focused CLI unit tests, not line-counted here.
+    "src/jobbot/cli.py",
+    # Optional [llm] extra; suite must stay offline without API keys.
+    "src/jobbot/nlp/langchain_refine.py",
+    # Live Chrome helpers (CDP / clipboard / challenge UI); need a real browser.
+    "src/jobbot/browser/challenges.py",
+    "src/jobbot/browser/clipboard.py",
+    "src/jobbot/browser/helpers.py",
+    "src/jobbot/browser/debug.py",
+    # Playwright portal mutators: unit suite uses fakes; full clients need sessions.
+    "src/jobbot/adapters/linkedin/client.py",
+    "src/jobbot/adapters/linkedin/publications.py",
+    "src/jobbot/adapters/indeed/client.py",
+    "src/jobbot/adapters/indeed/reconcile.py",
+    "src/jobbot/adapters/indeed/resume_edit.py",
+    "src/jobbot/adapters/portal_status.py",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
 ]
