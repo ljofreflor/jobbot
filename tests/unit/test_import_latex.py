@@ -62,3 +62,41 @@ def test_parse_present_and_year_only_dates(project_root: Path) -> None:
     phd = next(e for e in result.data["education"] if "Doctorado" in e["degree"])
     assert phd["start_date"] == "2020-01"
     assert "end_date" not in phd
+
+
+def test_nested_itemize_does_not_leak_the_environment_name(tmp_path: Path) -> None:
+    """The closing tag search stopped at the inner list, leaving a bare \\begin.
+
+    The orphan command then became the word 'itemize' at the end of a bullet, and
+    that word travelled all the way into the exported CV.
+    """
+    tex = tmp_path / "cv.tex"
+    tex.write_text(
+        r"""
+\documentclass{moderncv}
+\begin{document}
+\section{Experiencia}
+\cventry{2022--2025}{Analista}{Empresa Neutra}{Ciudad}{}{}
+\begin{itemize}
+  \item Construí modelos de propensión para varios canales:
+  \begin{itemize}
+    \item Canal directo: mejora sostenida.
+    \item Canal socios: mejora sostenida.
+  \end{itemize}
+  \item Documenté el proceso de despliegue.
+\end{itemize}
+\end{document}
+""",
+        encoding="utf-8",
+    )
+
+    result = import_latex_cv(tex)
+
+    bullets = [a["text"] for a in result.data["experience"][0]["achievements"]]
+    assert bullets, "the itemize block after the cventry was not read at all"
+    for text in bullets:
+        assert "itemize" not in text, f"LaTeX environment leaked into: {text!r}"
+    # The bullet that introduced the nested list keeps its own sentence.
+    assert any(text.rstrip().endswith("canales:") for text in bullets)
+    # And the bullet after the nested list is not lost.
+    assert any("Documenté el proceso" in text for text in bullets)

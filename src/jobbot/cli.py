@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 import yaml
@@ -43,15 +44,26 @@ from jobbot.matching.scoring import format_match_report
 from jobbot.models.application import ApplicationStatus
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
-from jobbot.ops.narrate import Narrator, Phase
+from jobbot.ops.narrate import ExplorationOutcome, Narrator, Phase
 from jobbot.profile.diff import compare_summaries, summarize_profile
-from jobbot.profile.importer_latex import (
-    LatexImportError,
-    import_latex_cv,
-    write_generated_profile,
-)
+from jobbot.profile.importer_common import write_generated_profile
+from jobbot.profile.importer_latex import LatexImportError, import_latex_cv
+from jobbot.profile.importer_pdf import PdfImportError, import_pdf_cv
 from jobbot.profile.loader import ProfileLoadError, load_profile, load_profile_raw
 from jobbot.profile.validator import validate_candidate
+from jobbot.workspace import (
+    DEFAULT_LABEL,
+    STAMP_NAME,
+    WorkspaceOwnerError,
+    active_workspace,
+    list_workspaces,
+    read_stamp,
+    resolve_root,
+    sandboxes_dir,
+    set_active_workspace,
+    workspace_root,
+)
+from jobbot.workspace import adopt as adopt_workspace
 
 app = typer.Typer(
     name="jobbot",
@@ -76,9 +88,14 @@ getonboard_app = typer.Typer(
     help="Get on Board: perfil/CVs HITL + job discovery (LATAM)",
     no_args_is_help=True,
 )
+torre_app = typer.Typer(help="Torre: job discovery (LATAM / remoto)", no_args_is_help=True)
 portals_app = typer.Typer(help="Recruitment portal registry (ATS)", no_args_is_help=True)
 companies_app = typer.Typer(
     help="Company ↔ career platform knowledge (candidate → promote; public data only)",
+    no_args_is_help=True,
+)
+recruiters_app = typer.Typer(
+    help="Public hiring practice that feeds cv advise (practices only, never people)",
     no_args_is_help=True,
 )
 ops_app = typer.Typer(
@@ -86,7 +103,12 @@ ops_app = typer.Typer(
     no_args_is_help=True,
 )
 ops_failure_app = typer.Typer(help="Inspect / triage stored failures", no_args_is_help=True)
+workspace_app = typer.Typer(
+    help="Isolated homes for extra candidates (test CVs) in this checkout",
+    no_args_is_help=True,
+)
 
+app.add_typer(workspace_app, name="workspace")
 app.add_typer(profile_app, name="profile")
 app.add_typer(cv_app, name="cv")
 app.add_typer(jobs_app, name="jobs")
@@ -95,9 +117,11 @@ app.add_typer(applications_app, name="applications")
 app.add_typer(indeed_app, name="indeed")
 app.add_typer(linkedin_app, name="linkedin")
 app.add_typer(getonboard_app, name="getonboard")
+app.add_typer(torre_app, name="torre")
 app.add_typer(browser_app, name="browser")
 app.add_typer(portals_app, name="portals")
 app.add_typer(companies_app, name="companies")
+app.add_typer(recruiters_app, name="recruiters")
 app.add_typer(ops_app, name="ops")
 ops_app.add_typer(ops_failure_app, name="failure")
 
@@ -127,6 +151,13 @@ def run_cli(
         exit_code = GENERIC_FAILURE
         caught = None
         aborted = True
+    except WorkspaceOwnerError as exc:
+        # Pointing a profile at somebody else's data is a wrong invocation, not a bug:
+        # report it and stop, without recording an ops failure or writing anything.
+        err_console.print(f"[bold red]Wrong workspace[/bold red]\n{exc}")
+        if standalone_mode:
+            raise SystemExit(VALIDATION_FAILURE) from exc
+        return VALIDATION_FAILURE
     except Exception as exc:  # noqa: BLE001 — CLI boundary capture
         exit_code = GENERIC_FAILURE
         caught = exc
@@ -175,15 +206,104 @@ def main(
         bool,
         typer.Option("--verbose", "-v", help="Enable debug logging"),
     ] = False,
+    workspace: Annotated[
+        str | None,
+        typer.Option(
+            "--workspace",
+            "-w",
+            help="Run against another candidate's workspace (see `jobbot workspace list`)",
+        ),
+    ] = None,
 ) -> None:
     """JobBot CLI."""
     _setup_logging(verbose)
+    set_active_workspace(workspace)
+    if workspace is not None:
+        console.print(f"[yellow]workspace:[/yellow] {workspace} ({workspace_root(workspace)})")
 
 
 @app.command("version")
 def version_cmd() -> None:
     """Show JobBot version."""
     console.print(__version__)
+
+
+# ── workspace ────────────────────────────────────────────────────────────────
+
+
+@workspace_app.command("list")
+def workspace_list() -> None:
+    """List the extra candidates living in this checkout."""
+    names = list_workspaces()
+    if not names:
+        console.print(f"No workspaces yet in {sandboxes_dir()} — create one with `workspace new`.")
+        return
+    table = Table(title="Workspaces")
+    table.add_column("name")
+    table.add_column("profile")
+    table.add_column("owner")
+    for name in names:
+        root = workspace_root(name)
+        profile = root / "data" / "profile.yaml"
+        stamp = read_stamp(root / "data" / STAMP_NAME)
+        table.add_row(
+            name,
+            "yes" if profile.is_file() else "missing",
+            stamp.fingerprint if stamp else "unstamped",
+        )
+    console.print(table)
+
+
+@workspace_app.command("new")
+def workspace_new(
+    name: Annotated[str, typer.Argument(help="Workspace name, e.g. a test CV's nickname")],
+) -> None:
+    """Create an isolated `data/` + `output/` for another candidate."""
+    root = workspace_root(name)
+    if root.exists():
+        err_console.print(f"Workspace already exists: {root}")
+        raise typer.Exit(GENERIC_FAILURE)
+    (root / "data").mkdir(parents=True)
+    (root / "output").mkdir(parents=True)
+    console.print(f"Created {root}")
+    console.print(f"Now put the candidate's profile in {root / 'data' / 'profile.yaml'}")
+    console.print(f"and run commands with [bold]--workspace {name}[/bold].")
+
+
+@workspace_app.command("show")
+def workspace_show() -> None:
+    """Show which candidate the current run would touch."""
+    name = active_workspace()
+    config = load_config()
+    table = Table(title="Active workspace")
+    table.add_column("field")
+    table.add_column("value")
+    table.add_row("workspace", name or "default (current directory)")
+    table.add_row("profile", str(config.profile_path))
+    table.add_row("output", str(config.output_dir))
+    table.add_row("database", str(config.database_path))
+    stamp = read_stamp(config.profile_path.parent / STAMP_NAME)
+    table.add_row("owner", stamp.fingerprint if stamp else "unstamped")
+    console.print(table)
+
+
+@workspace_app.command("adopt")
+def workspace_adopt(
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the confirmation")] = False,
+) -> None:
+    """Hand this workspace's data and output over to the profile now in place."""
+    name = active_workspace()
+    base, _ = resolve_root(Path.cwd())
+    profile_path = base / "data" / "profile.yaml"
+    output_dir = base / "output"
+    console.print(f"Re-stamp {profile_path.parent} and {output_dir} for {profile_path}")
+    if not yes and not typer.confirm("Artifacts of the previous owner stay in place. Continue?"):
+        raise typer.Abort
+    fingerprint = adopt_workspace(profile_path, output_dir, label=name or DEFAULT_LABEL)
+    if fingerprint is None:
+        err_console.print(f"No profile with a name at {profile_path}")
+        raise typer.Exit(GENERIC_FAILURE)
+    console.print(f"Owner is now {fingerprint}")
 
 
 # ── profile ──────────────────────────────────────────────────────────────────
@@ -298,6 +418,53 @@ def profile_import_latex(
 
     console.print(
         Panel(
+            "Review the generated YAML, then:\n"
+            "  jobbot profile promote-generated\n"
+            "  jobbot profile validate",
+            title="Next steps",
+        )
+    )
+
+
+@profile_app.command("import-pdf")
+def profile_import_pdf(
+    pdf_path: Annotated[
+        Path,
+        typer.Argument(help="Path to a CV exported as PDF (needs a text layer)"),
+    ],
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Destination YAML"),
+    ] = None,
+) -> None:
+    """Import a PDF CV into profile.generated.yaml."""
+    config = load_config()
+    source = pdf_path.expanduser().resolve()
+    destination = (output or config.generated_profile_path).expanduser().resolve()
+
+    try:
+        result = import_pdf_cv(source)
+        write_generated_profile(result, destination, command="profile import-pdf")
+    except PdfImportError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    console.print("[bold green]PDF CV IMPORTED[/bold green]")
+    console.print(f"Source:  {source}")
+    console.print(f"Wrote:   {destination}")
+    console.print(f"Experiences: {result.experience_count}")
+    console.print(f"Achievements: {result.achievement_count}")
+    console.print(f"Skills: {result.skill_count}")
+    console.print(f"Education: {len(result.data.get('education', []))}")
+
+    if result.warnings:
+        console.print("\n[yellow]Warnings[/yellow]")
+        for warning in result.warnings:
+            console.print(f"- {warning}")
+
+    console.print(
+        Panel(
+            "A PDF carries no structure, so every field is a guess.\n"
             "Review the generated YAML, then:\n"
             "  jobbot profile promote-generated\n"
             "  jobbot profile validate",
@@ -558,6 +725,204 @@ def cv_build(
         console.print(f"[green]Wrote[/green] {path}")
 
 
+@cv_app.command("advise")
+def cv_advise(
+    limit: Annotated[
+        int,
+        typer.Option("--limit", help="How many suggestions this run may make"),
+    ] = 3,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Confirm each suggestion and write it to profile.yaml"),
+    ] = False,
+    axis: Annotated[
+        str | None,
+        typer.Option("--axis", help="machine | language | layout (default: all three)"),
+    ] = None,
+    llm: Annotated[
+        bool,
+        typer.Option("--llm", help="Let a plain LLM reword lines (validated; costs tokens)"),
+    ] = False,
+    llm_deep: Annotated[
+        bool,
+        typer.Option("--llm-deep", help="Also allow a reasoning model when --llm fails"),
+    ] = False,
+    max_llm_calls: Annotated[
+        int,
+        typer.Option("--max-llm-calls", help="Budget for this run"),
+    ] = 3,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="With --llm: print what would be sent, call nobody"),
+    ] = False,
+) -> None:
+    """Suggest how the CV presents what you already did. Adds no facts, deletes none."""
+    from jobbot.cv.advisor import (
+        advise,
+        apply_advice,
+        default_advice_log_path,
+        record_decision,
+        render_advice_markdown,
+    )
+    from jobbot.portals.form_learn import default_form_knowledge_path, load_form_knowledge
+    from jobbot.recruiters.playbook import advisor_notes
+
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    jobs = JobRepository(session).list_all()
+    forms = load_form_knowledge(default_form_knowledge_path(config.root))
+    notes = advisor_notes(config.root)
+    log_path = default_advice_log_path(config.output_dir)
+
+    narrator = _narrator()
+    narrator.phase(
+        Phase.RECEIVING_WORLD,
+        f"{len(jobs)} JD · {len(forms)} formulario(s) · {len(notes)} práctica(s)",
+    )
+    suggestions = advise(
+        candidate,
+        jobs=jobs,
+        forms=forms,
+        playbook=notes,
+        limit=max(1, limit),
+        log_path=log_path,
+    )
+    if axis:
+        wanted = axis.strip().casefold()
+        suggestions = [item for item in suggestions if item.axis.value == wanted]
+    if not suggestions:
+        console.print("Nothing to suggest this run (or you already answered what there was).")
+        console.print(f"Log: {log_path}")
+        raise typer.Exit(SUCCESS)
+
+    if llm or llm_deep:
+        suggestions = _reword_with_llm(
+            suggestions,
+            candidate,
+            config,
+            deep=llm_deep,
+            max_calls=max_llm_calls,
+            dry_run=dry_run,
+        )
+        if dry_run:
+            return
+
+    out = config.output_dir / "cv" / "advice.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(render_advice_markdown(suggestions), encoding="utf-8")
+
+    for item in suggestions:
+        body = [f"[bold]{item.what}[/bold]", f"where: {item.target.describe()}", f"why: {item.why}"]
+        if item.before:
+            body.append(f"\nnow:      {item.before}")
+        if item.is_rewrite:
+            body.append(f"proposed: {item.after}")
+        console.print(Panel("\n".join(body), title=f"{item.axis.value} · {item.id}"))
+    console.print(f"[green]Wrote[/green] {out}")
+
+    if not apply_changes:
+        console.print(
+            "Dry-run. Re-run with [bold]--apply[/bold] to confirm each one; "
+            "notes without proposed text are yours to act on."
+        )
+        return
+
+    raw = load_profile_raw(config.profile_path)
+    applied = 0
+    for item in suggestions:
+        if not item.is_rewrite:
+            console.print(f"[dim]{item.id}: nothing to write, it is a note.[/dim]")
+            continue
+        console.print(f"\n[bold]{item.what}[/bold]")
+        console.print(f"  now:      {item.before}")
+        console.print(f"  proposed: {item.after}")
+        if not typer.confirm("Take this wording?", default=False):
+            record_decision(log_path, item, "rejected")
+            continue
+        if apply_advice(raw, item):
+            record_decision(log_path, item, "applied")
+            applied += 1
+        else:
+            err_console.print("[yellow]The text changed since this was proposed; skipped.[/yellow]")
+
+    if not applied:
+        console.print("Nothing written.")
+        return
+    backup = config.profile_path.with_suffix(config.profile_path.suffix + ".bak")
+    shutil.copy2(config.profile_path, backup)
+    config.profile_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    console.print(f"Backup: {backup}")
+    console.print(f"[green]Applied[/green] {applied} rewording(s) → {config.profile_path}")
+    console.print("Next: [bold]jobbot cv build[/bold] then [bold]jobbot cv propagate[/bold]")
+
+
+def _reword_with_llm(
+    suggestions: list[Any],
+    candidate: Candidate,
+    config: JobbotConfig,
+    *,
+    deep: bool,
+    max_calls: int,
+    dry_run: bool,
+) -> list[Any]:
+    """Ask a model to reword the suggestions it can, keeping tier 0 when it cannot."""
+    from jobbot.cv.llm_advice import Budget, LlmRewriter, default_cache_dir
+
+    rewriter = LlmRewriter(
+        cache_dir=default_cache_dir(config.output_dir),
+        budget=Budget(max_calls=max(1, max_calls)),
+        deep=deep,
+        dry_run=dry_run,
+    )
+    if not rewriter.available and not dry_run:
+        console.print(
+            "[yellow]No LLM reachable (needs `uv sync --extra llm` and OPENAI_API_KEY). "
+            "Showing the deterministic suggestions.[/yellow]"
+        )
+        return suggestions
+
+    out: list[Any] = []
+    improved_count = 0
+    for item in suggestions:
+        better = rewriter.improve(item, candidate)
+        if better is not None:
+            improved_count += 1
+            out.append(better)
+        else:
+            out.append(item)
+
+    if dry_run:
+        table = Table(title="What --llm would send (nothing was sent)")
+        table.add_column("Suggestion")
+        table.add_column("Tier")
+        table.add_column("Chars", justify="right")
+        for call in rewriter.planned:
+            table.add_row(call.advice_id, call.tier.value, str(call.chars))
+        console.print(table)
+        console.print(
+            f"{len(rewriter.planned)} call(s), {rewriter.total_planned_chars} characters, "
+            f"budget {max_calls} call(s). Drop --dry-run to spend it."
+        )
+        return out
+
+    console.print(
+        f"[dim]LLM: {improved_count} rewording(s) accepted, "
+        f"{len(rewriter.rejections)} discarded by validation, "
+        f"{rewriter.budget.calls} call(s) spent.[/dim]"
+    )
+    for reason in rewriter.rejections[:3]:
+        console.print(f"[dim]  discarded: {reason}[/dim]")
+    return out
+
+
 @cv_app.command("propagate")
 def cv_propagate(
     targets: Annotated[
@@ -612,7 +977,17 @@ def cv_propagate(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
-    plans = plan_propagation(config, candidate, targets=wanted, section=section)
+    from jobbot.browser.sessions import inspect_sessions
+
+    sessions = inspect_sessions(config.root, sites=[t.value for t in wanted])
+    plans = plan_propagation(
+        config,
+        candidate,
+        targets=wanted,
+        section=section,
+        sessions=sessions,
+        cdp_url=cdp,
+    )
     narrator = _narrator()
     narrator.phase(Phase.PROPAGATING_CV, summarize_plans(plans))
 
@@ -659,7 +1034,7 @@ def cv_propagate(
         if plan.target == PropagationTarget.CV:
             _propagate_base_cv(config, candidate, style=style)
         elif plan.target == PropagationTarget.GETONBOARD:
-            _propagate_getonboard(config)
+            _propagate_getonboard(config, apply_changes=apply_changes, cdp=cdp, yes=yes)
         elif plan.target == PropagationTarget.INDEED:
             _propagate_indeed(config, section=section, cdp=cdp, yes=yes)
         elif plan.target == PropagationTarget.LINKEDIN:
@@ -683,15 +1058,70 @@ def _propagate_base_cv(config: JobbotConfig, candidate: Candidate, *, style: CvS
             console.print(f"[green]Wrote[/green] {path}")
 
 
-def _propagate_getonboard(config: JobbotConfig) -> None:
+def _getonboard_session(config: JobbotConfig, cdp: str | None) -> Any:
+    from jobbot.browser.cdp import resolve_cdp_url
+    from jobbot.browser.session import BrowserSession
+
+    return BrowserSession(
+        profile_dir=config.root / "browser-data" / "getonboard-cdp",
+        headless=False,
+        cdp_url=resolve_cdp_url(cdp),
+        debug_root=config.output_dir / "debug",
+    )
+
+
+def _propagate_getonboard(
+    config: JobbotConfig,
+    *,
+    apply_changes: bool,
+    cdp: str | None,
+    yes: bool,
+) -> None:
     from jobbot.adapters.getonboard.client import GetOnBoardProfileClient
+    from jobbot.adapters.getonboard.draft import load_permanent_profile
+    from jobbot.adapters.getonboard.profile_edit import (
+        GOB_EDIT_URL,
+        apply_writes,
+        desired_from_fields,
+        plan_writes,
+        read_current,
+    )
 
     client = GetOnBoardProfileClient.from_config(config)
     path, result = client.prepare_package()
     console.print(f"[green]Wrote[/green] {path}  (mode={result.mode})")
-    console.print("Abriendo Editar perfil (pega profile_permanent.md)…")
-    console.print(client.open_profile_edit())
-    console.print("Abriendo zona profesional (navega a Tus CVs)…")
+    if not apply_changes:
+        console.print(f"Dry-run: --apply escribe el perfil en {GOB_EDIT_URL}")
+        return
+
+    fields = load_permanent_profile(config.output_dir)
+    if fields is None:
+        err_console.print("[red]getonboard: no permanent profile to write[/red]")
+        return
+    desired = desired_from_fields(
+        fields.headline,
+        fields.experiencia_y_perfil,
+        fields.formacion_academica,
+    )
+    with _getonboard_session(config, cdp) as browser:
+        page = browser.page
+        page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+        page.wait_for_timeout(1500)
+        writes = plan_writes(read_current(page), desired)
+        if not writes:
+            console.print("getonboard: el portal ya tiene estos textos.")
+            return
+        for write in writes:
+            console.print(f"  {write.describe()}")
+        if not yes and not typer.confirm(
+            f"Write these {len(writes)} field(s) on Get on Board?",
+            default=False,
+        ):
+            console.print("getonboard: skipped.")
+            return
+        done = apply_writes(page, writes)
+    console.print(f"[green]Wrote[/green] {len(done)} field(s) on Get on Board.")
+    console.print("Tus CVs sigue siendo manual: sube output/base/cv.pdf y márcalo default.")
     console.print(client.open_resumes())
 
 
@@ -767,7 +1197,7 @@ def jobs_add(
 
 @jobs_app.command("search")
 def jobs_search(
-    query: Annotated[str, typer.Argument(help="Search query, e.g. Senior Data Scientist")],
+    query: Annotated[str, typer.Argument(help="Search query, e.g. the role you want")],
     location: Annotated[
         str | None,
         typer.Option("--location", "-l", help="Location (default: Santiago)"),
@@ -830,6 +1260,7 @@ def jobs_search(
     for raw in found:
         job = repo.upsert_external(raw)
         write_job_json(job, config.output_dir)
+        _learn_company_knowledge(config, job)
         stored.append(job.id)
         score = f"{job.match_score:.0f}%" if job.match_score is not None else "-"
         table.add_row(job.id, job.company, job.title, score)
@@ -1249,6 +1680,7 @@ def application_apply(
     console.print(f"[green]Opened ATS[/green] {plan.ats_url}")
     console.print(f"Prefill sheet: {cheat}")
     console.print("Submit manually after reviewing HITL fields.")
+    _learn_form_from_apply(config, plan.ats_url, job.company)
     if yes or typer.confirm("Mark application as applied?", default=False):
         ApplicationRepository(session).upsert_for_job(
             job.id,
@@ -1616,9 +2048,9 @@ def linkedin_sync(
 @linkedin_app.command("sweep")
 def linkedin_sweep(
     query: Annotated[
-        str,
-        typer.Argument(help="Content search keywords, e.g. 'hiring data scientist'"),
-    ] = "hiring data scientist",
+        str | None,
+        typer.Argument(help="Content search keywords (default: your own headline + 'hiring')"),
+    ] = None,
     limit: Annotated[int, typer.Option("--limit", help="Max posts to keep")] = 20,
     fixture: Annotated[
         Path | None,
@@ -1687,6 +2119,16 @@ def linkedin_sweep(
         raise typer.Exit(GENERIC_FAILURE)
 
     session, config = _session()
+    if query is None:
+        role = _profile_role_query(config)
+        if role is None:
+            err_console.print(
+                "No query given and no role in the profile: "
+                "pass the keywords or set personal.headline."
+            )
+            raise typer.Exit(GENERIC_FAILURE)
+        query = f"hiring {role}"
+        console.print(f"[dim]Query from your profile: {query}[/dim]")
     countries = resolve_countries(config.search.countries, country, any_country=any_country)
     max_age = 0 if any_age else config.search.max_age_days
     if max_age_days is not None and not any_age:
@@ -1963,9 +2405,9 @@ def getonboard_sync(
 @getonboard_app.command("search")
 def getonboard_search(
     query: Annotated[
-        str,
-        typer.Argument(help="Search query, e.g. data scientist"),
-    ] = "data scientist",
+        str | None,
+        typer.Argument(help="Search query (default: the role in your own profile)"),
+    ] = None,
     limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
 ) -> None:
     """Search Get on Board (Spanish/LATAM) and store jobs locally."""
@@ -1977,6 +2419,15 @@ def getonboard_search(
         raise typer.Exit(GENERIC_FAILURE)
 
     session, config = _session()
+    if query is None:
+        query = _profile_role_query(config)
+        if query is None:
+            err_console.print(
+                "No query given and no role in the profile: "
+                "pass the search terms or set personal.headline."
+            )
+            raise typer.Exit(GENERIC_FAILURE)
+        console.print(f"[dim]Query from your profile: {query}[/dim]")
     source = GetOnBoardJobSource(config)
     console.print(f"Searching Get on Board for [bold]{query}[/bold]…")
     try:
@@ -2021,6 +2472,84 @@ def getonboard_search(
     console.print(table)
     console.print(
         f"Stored {len(stored)} jobs (portal getonbrd.com learned). "
+        f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
+    )
+
+
+@torre_app.command("search")
+def torre_search(
+    query: Annotated[
+        str | None,
+        typer.Argument(help="Search query (default: the role in your own profile)"),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
+    remote: Annotated[bool, typer.Option("--remote", help="Only remote opportunities")] = False,
+) -> None:
+    """Search Torre (LATAM / remote) and store jobs locally."""
+    from jobbot.adapters.torre.jobs import TorreJobSource
+    from jobbot.jobs.sources import JobSearchQuery
+
+    if limit < 1 or limit > 50:
+        err_console.print("--limit must be between 1 and 50")
+        raise typer.Exit(GENERIC_FAILURE)
+
+    session, config = _session()
+    if query is None:
+        query = _profile_role_query(config)
+        if query is None:
+            err_console.print(
+                "No query given and no role in the profile: "
+                "pass the search terms or set personal.headline."
+            )
+            raise typer.Exit(GENERIC_FAILURE)
+        console.print(f"[dim]Query from your profile: {query}[/dim]")
+
+    narrator = _narrator()
+    narrator.phase(Phase.RECEIVING_WORLD, f"Torre: {query}")
+    source = TorreJobSource(config)
+    try:
+        found = source.search_jobs(JobSearchQuery(query=query, limit=limit, remote=remote))
+    except Exception as exc:
+        err_console.print(f"[red]Torre search failed: {exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    if not found:
+        console.print("No jobs found.")
+        raise typer.Exit(SUCCESS)
+
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError:
+        candidate = None
+    analyzer = RuleBasedJobAnalyzer()
+    repo = JobRepository(session)
+    table = Table(title="Torre results")
+    table.add_column("ID")
+    table.add_column("Company")
+    table.add_column("Role")
+    table.add_column("Where")
+    table.add_column("Match")
+    stored: list[str] = []
+    for raw in found:
+        job = repo.upsert_external(raw)
+        if candidate is not None:
+            match = analyzer.analyze(candidate, job)
+            repo.update_match_score(job.id, match.score)
+            job.match_score = match.score
+        write_job_json(job, config.output_dir)
+        _learn_company_knowledge(config, job)
+        stored.append(job.id)
+        score = f"{job.match_score:.0f}%" if job.match_score is not None else "-"
+        table.add_row(
+            job.id,
+            job.company[:24],
+            job.title[:36],
+            (job.location or "-")[:20],
+            score,
+        )
+    console.print(table)
+    console.print(
+        f"Stored {len(stored)} jobs (portal torre.ai learned). "
         f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
     )
 
@@ -2100,6 +2629,142 @@ def portals_add(
     )
 
 
+def _learn_form_from_apply(config: JobbotConfig, url: str, company: str | None) -> None:
+    """While you fill the form, record what it asks. Best effort: never blocks the apply."""
+    from jobbot.portals.form_learn import learn_form_html
+
+    try:
+        html = _fetch_public_html(url)
+        if html is None:
+            return
+        form = learn_form_html(html, url=url, company=company)
+        if not form.readable:
+            console.print(f"[dim]Form questions: {form.evidence}[/dim]")
+            return
+        _store_form_knowledge(config, form)
+    except Exception:  # noqa: BLE001 — learning is a bonus, applying is the task
+        console.print("[dim]Form questions: could not be read this time.[/dim]")
+        return
+    questions = form.screening_questions()
+    narrator = _narrator()
+    narrator.phase(Phase.RECEIVING_WORLD, f"{len(form.fields)} campos del formulario")
+    if questions:
+        console.print(f"[dim]This form asks {len(questions)} question(s) beyond your data:[/dim]")
+        for question in questions[:6]:
+            console.print(f"[dim]  • {question}[/dim]")
+        console.print("[dim]Feeds jobbot cv advise.[/dim]")
+
+
+@portals_app.command("form-learn")
+def portals_form_learn(
+    url: Annotated[str, typer.Argument(help="Application form URL (public page)")],
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Read a saved HTML instead of fetching the URL"),
+    ] = None,
+    company: Annotated[
+        str | None,
+        typer.Option("--company", help="Who the form belongs to"),
+    ] = None,
+    fetch: Annotated[
+        bool,
+        typer.Option("--fetch", help="Allow one polite GET of the URL (obeys robots.txt)"),
+    ] = False,
+    save: Annotated[bool, typer.Option("--save/--no-save", help="Store what it learned")] = True,
+) -> None:
+    """Learn what an application form asks. Reads only; never fills or submits."""
+    from jobbot.portals.form_learn import learn_form_html
+
+    config = load_config()
+    if fixture is not None:
+        path = fixture.expanduser().resolve()
+        if not path.is_file():
+            err_console.print(f"[red]Fixture not found: {path}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        html = path.read_text(encoding="utf-8")
+    elif fetch:
+        fetched = _fetch_public_html(url)
+        if fetched is None:
+            raise typer.Exit(GENERIC_FAILURE)
+        html = fetched
+    else:
+        err_console.print(
+            "Reading a live form needs [bold]--fetch[/bold] (one GET, obeys robots.txt), "
+            "or pass [bold]--fixture PATH[/bold] with saved HTML."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    form = learn_form_html(html, url=url, company=company)
+    _print_form_knowledge(form)
+    if save and form.readable:
+        stored = _store_form_knowledge(config, form)
+        console.print(f"Learned (candidate knowledge): {stored}")
+    elif save:
+        console.print("[yellow]Nothing stored: the form could not be read.[/yellow]")
+
+
+def _fetch_public_html(url: str) -> str | None:
+    """One polite GET, robots.txt respected. Returns None when we must not look."""
+    from jobbot.companies.oneshot import RobotsPolicy, RobotsVerdict, UrllibFetcher
+
+    fetcher = UrllibFetcher()
+    verdict = RobotsPolicy(fetcher).verdict(url)
+    if verdict is RobotsVerdict.DISALLOWED:
+        err_console.print(f"[yellow]robots.txt disallows {url} — not fetched.[/yellow]")
+        return None
+    if verdict is RobotsVerdict.HOST_REFUSED:
+        err_console.print(
+            f"[yellow]{url} would not serve its robots.txt — staying out "
+            "(unknown, not empty).[/yellow]"
+        )
+        return None
+    result = fetcher.fetch(url)
+    if not result.ok:
+        err_console.print(f"[yellow]{url} answered HTTP {result.status}.[/yellow]")
+        return None
+    return result.html
+
+
+def _print_form_knowledge(form: Any) -> None:
+    from jobbot.portals.form_learn import FieldKind
+
+    console.print(f"[bold]{form.url}[/bold]  ats={form.ats.value}")
+    if not form.readable:
+        console.print(f"[yellow]{form.evidence}[/yellow]")
+        console.print("Tip: open the page, save the HTML, and pass it with --fixture.")
+        return
+    table = Table(title="What this form asks")
+    table.add_column("Question")
+    table.add_column("Kind")
+    table.add_column("Req", justify="center")
+    table.add_column("Choices")
+    for field in form.fields:
+        mark = "yes" if field.required else ""
+        choices = ", ".join(field.options[:4]) if field.options else ""
+        if field.kind is FieldKind.FILE and field.accepts:
+            choices = " ".join(field.accepts)
+        table.add_row(field.label[:52], field.kind.value, mark, choices[:34])
+    console.print(table)
+    questions = form.screening_questions()
+    if questions:
+        console.print(f"Questions your CV has to answer ({len(questions)}):")
+        for question in questions:
+            console.print(f"  • {question}")
+
+
+def _store_form_knowledge(config: JobbotConfig, form: Any) -> Path:
+    from jobbot.portals.form_learn import (
+        default_form_knowledge_path,
+        load_form_knowledge,
+        save_form_knowledge,
+        upsert_form,
+    )
+
+    path = default_form_knowledge_path(config.root)
+    forms = upsert_form(load_form_knowledge(path), form)
+    return save_form_knowledge(forms, path)
+
+
 # ── companies (collaborative career-platform knowledge) ──────────────────────
 
 
@@ -2113,6 +2778,25 @@ def _companies_registry(config: JobbotConfig) -> tuple[CompanyRegistry, Path]:
 
     path = default_companies_path(config.root)
     return load_companies(path), path
+
+
+def _profile_role_query(config: JobbotConfig) -> str | None:
+    """The role to search for comes from the profile, not from a literal default.
+
+    A default query hardcodes one career into the tool; the candidate's own
+    headline (or latest held title) is the only honest guess.
+    """
+    try:
+        candidate = load_profile(config.profile_path)
+    except Exception:  # noqa: BLE001 — no profile yet is a normal first run
+        return None
+    headline = (candidate.personal.headline or "").strip()
+    if headline:
+        return re.split(r"\s*[|/·–—]\s*", headline)[0].strip() or None
+    for exp in candidate.experience:
+        if exp.title.strip():
+            return exp.title.strip()
+    return None
 
 
 def _learn_company_knowledge(
@@ -2326,6 +3010,86 @@ def companies_show(
         console.print(Panel("\n".join(lines), title=site.url))
 
 
+@companies_app.command("signup")
+def companies_signup(
+    company: Annotated[str, typer.Argument(help="Company id or name (already in the registry)")],
+    open_page: Annotated[
+        bool,
+        typer.Option("--open/--no-open", help="Open the portal in your browser"),
+    ] = True,
+    site_url: Annotated[
+        str | None,
+        typer.Option("--site", help="Which career site, when the company has several"),
+    ] = None,
+) -> None:
+    """Open a company portal and list what registering will ask. Creates nothing."""
+    from jobbot.companies.signup import (
+        AccountNeed,
+        screening_to_prepare,
+        signup_sheet,
+        signup_target,
+    )
+    from jobbot.portals.form_learn import default_form_knowledge_path, load_form_knowledge
+
+    config = load_config()
+    registry, _ = _companies_registry(config)
+    record = registry.find_company(company)
+    if record is None:
+        err_console.print(f"[red]Unknown company {company!r}[/red]")
+        err_console.print("Learn it first: [bold]jobbot companies learn URL --company NAME[/bold]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    sites = record.career_sites
+    if site_url:
+        sites = [site for site in sites if site.url == site_url]
+    if not sites:
+        err_console.print(f"[red]No career site stored for {record.name}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    site = sites[0]
+    target = signup_target(site)
+
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    forms = load_form_knowledge(default_form_knowledge_path(config.root))
+    form = next(
+        (f for f in forms if f.url.startswith(site.url) or site.url.startswith(f.url)),
+        None,
+    )
+
+    console.print(
+        Panel(
+            f"[bold]{record.name}[/bold] ({record.id})\n"
+            f"{target.url}\n"
+            f"ats: {site.ats.value}   account: {target.need.value}\n\n{target.note}",
+            title="Registration (you complete it)",
+        )
+    )
+    table = Table(title="Have this at hand" + ("  (from the form we saw)" if form else ""))
+    table.add_column("The portal asks")
+    table.add_column("Your profile answers")
+    table.add_column("From")
+    for item in signup_sheet(candidate, form=form):
+        value = item.value or "[yellow]you decide[/yellow]"
+        table.add_row(item.label[:40], value[:46], item.source[:34])
+    console.print(table)
+    for question in screening_to_prepare(form):
+        console.print(f"  • decide beforehand: {question}")
+    console.print(
+        "[dim]JobBot does not create the account, does not set a password and does not "
+        "accept terms for you.[/dim]"
+    )
+    if target.need is AccountNeed.NOT_NEEDED:
+        console.print("You may not need an account at all — check before registering.")
+    if open_page:
+        from jobbot.adapters.ats.apply import open_ats_in_browser
+
+        open_ats_in_browser(target.url)
+        console.print(f"Opened {target.url}")
+
+
 @companies_app.command("promote")
 def companies_promote(
     company: Annotated[str, typer.Argument(help="Company id or name")],
@@ -2412,6 +3176,7 @@ def companies_discover(
         CompanyPortalCandidate,
         CompanySeed,
         UrllibFetcher,
+        group_candidates,
         load_search_hits,
         load_seeds,
         run_oneshot,
@@ -2432,7 +3197,7 @@ def companies_discover(
     hits = load_search_hits(search_results.expanduser().resolve()) if search_results else None
 
     narrator = _narrator()
-    narrator.phase(Phase.RECEIVING_WORLD, f"{len(seeds)} companies", may_ask=False)
+    narrator.phase(Phase.EXPLORING, f"{len(seeds)} companies")
 
     def on_company(seed: CompanySeed, found: list[CompanyPortalCandidate]) -> None:
         narrator.note(f"{seed.name}: {len(found)} candidate portal(s)")
@@ -2446,15 +3211,44 @@ def companies_discover(
     )
     target = (out.expanduser().resolve() if out else generated_candidates_path(config.output_dir))
     write_candidates(report.candidates, target)
+    narrator.phase(Phase.SURFACING, f"{len(report.candidates)} portal(s)")
+    narrator.outcome(
+        ExplorationOutcome(
+            found=len({candidate.company_id for candidate in report.candidates}),
+            refused=len(report.companies_blocked),
+            unknown=len(report.companies_without_portal),
+        )
+    )
     console.print(
         f"Probed {report.companies_seen} companies with {report.requests_made} requests → "
         f"{len(report.candidates)} candidate portal(s)."
     )
+    groups = group_candidates(report.candidates)
+    if rows := groups.rows():
+        table = Table(title="Portals found, grouped")
+        table.add_column("Axis")
+        table.add_column("Group")
+        table.add_column("Portals", justify="right")
+        table.add_column("Companies", justify="right")
+        for axis, label, portals, companies in rows:
+            table.add_row(axis, label, str(portals), str(companies))
+        console.print(table)
+    if report.companies_robots_skipped:
+        console.print(
+            "[yellow]Skipped by robots.txt (omitted, not absent):[/yellow] "
+            + ", ".join(report.companies_robots_skipped[:10])
+        )
     if report.companies_without_portal:
         console.print(
             "No public portal found for: "
             + ", ".join(report.companies_without_portal[:10])
         )
+    if report.companies_blocked:
+        console.print(
+            "[yellow]Refused our requests (unknown, not absent):[/yellow] "
+            + ", ".join(report.companies_blocked[:10])
+        )
+        console.print("Give those a hand: [bold]companies learn URL --company NAME[/bold]")
     console.print(f"Candidates (not truth yet): {target}")
     console.print(f"Next: [bold]jobbot companies import {target}[/bold]")
 
@@ -2550,7 +3344,7 @@ def browser_chrome_debug(
     port: Annotated[int, typer.Option("--port", help="Remote debugging port")] = 9222,
     site: Annotated[
         str,
-        typer.Option("--site", help="indeed | linkedin | gmail (profile dir + start URL)"),
+        typer.Option("--site", help="indeed | linkedin | gmail | getonboard (profile + start URL)"),
     ] = "indeed",
     launch: Annotated[
         bool,
@@ -2561,24 +3355,18 @@ def browser_chrome_debug(
     import subprocess
 
     from jobbot.browser.cdp import cdp_http_url, chrome_debug_argv
+    from jobbot.browser.sessions import KNOWN_SITES, site_spec
 
     config = load_config()
-    site_key = site.strip().lower()
-    if site_key == "linkedin":
-        profile_dir = config.root / "browser-data" / "linkedin-cdp"
-        start_url = "https://www.linkedin.com/login"
-        tip = f"jobbot linkedin sync --section publications --apply --cdp {cdp_http_url(port)}"
-    elif site_key == "indeed":
-        profile_dir = config.root / "browser-data" / "indeed-cdp"
-        start_url = "https://cl.indeed.com/"
-        tip = f"jobbot jobs search … --cdp {cdp_http_url(port)}"
-    elif site_key == "gmail":
-        profile_dir = config.root / "browser-data" / "gmail-cdp"
-        start_url = "https://mail.google.com/"
-        tip = f"jobbot application apply J0001 --apply --cdp {cdp_http_url(port)}"
-    else:
-        err_console.print(f"[red]Unknown --site {site!r} (use indeed|linkedin|gmail)[/red]")
+    spec = site_spec(site)
+    if spec is None:
+        known = "|".join(KNOWN_SITES)
+        err_console.print(f"[red]Unknown --site {site!r} (use {known})[/red]")
         raise typer.Exit(GENERIC_FAILURE)
+    site_key = spec.site
+    profile_dir = config.root / "browser-data" / spec.cdp_profile
+    start_url = spec.start_url
+    tip = spec.next_command.format(cdp=cdp_http_url(port))
     profile_dir.mkdir(parents=True, exist_ok=True)
     argv = chrome_debug_argv(profile_dir=profile_dir, port=port, start_url=start_url)
     url = cdp_http_url(port)
@@ -2592,6 +3380,49 @@ def browser_chrome_debug(
         return
     subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
     console.print(f"[green]Launched[/green] Chrome with CDP at {url}")
+
+
+@browser_app.command("sessions")
+def browser_sessions(
+    site: Annotated[
+        list[str] | None,
+        typer.Option("--site", help="Limit to these sites (repeatable)"),
+    ] = None,
+    port: Annotated[
+        list[int] | None,
+        typer.Option("--port", help="Debugging ports to probe (repeatable)"),
+    ] = None,
+) -> None:
+    """Report which browser sessions JobBot can reach (read-only; never attaches)."""
+    from jobbot.browser.sessions import DEFAULT_PORTS, SessionStatus, inspect_sessions
+
+    config = load_config()
+    states = inspect_sessions(
+        config.root,
+        sites=site or None,
+        ports=tuple(port) if port else DEFAULT_PORTS,
+    )
+    table = Table(title="Browser sessions")
+    table.add_column("Site")
+    table.add_column("Status")
+    table.add_column("Endpoint")
+    table.add_column("Evidence")
+    for state in states:
+        colour = {
+            SessionStatus.READY: "green",
+            SessionStatus.NEEDS_LOGIN: "yellow",
+            SessionStatus.PROFILE_BUSY: "red",
+        }.get(state.status, "white")
+        table.add_row(
+            state.site,
+            f"[{colour}]{state.status.value}[/{colour}]",
+            state.cdp_url or "-",
+            state.evidence,
+        )
+    console.print(table)
+    for state in states:
+        if state.hint:
+            console.print(f"  {state.site}: {state.hint}")
 
 
 # ── ops (local failure observability) ────────────────────────────────────────
@@ -2812,6 +3643,26 @@ def ops_loop(
     raise typer.Exit(code)
 
 
+@ops_app.command("capabilities")
+def ops_capabilities(
+    write: Annotated[
+        bool,
+        typer.Option("--write", help="Write docs/capabilities.md (default: print)"),
+    ] = False,
+) -> None:
+    """Index of commands and modules, so work already done is not re-derived."""
+    from jobbot.ops.capabilities import build_index, write_index
+    from jobbot.workspace import repo_root
+
+    root = repo_root()
+    if not write:
+        # Raw echo: rich would wrap the markdown at the console width.
+        typer.echo(build_index(root, app), nl=False)
+        return
+    target = write_index(root, app)
+    console.print(f"Wrote [bold]{target}[/bold]")
+
+
 @app.command("probe-exit", hidden=True)
 def probe_exit(
     code: Annotated[
@@ -2821,3 +3672,224 @@ def probe_exit(
 ) -> None:
     """Hidden helper for failure-capture drills and unit tests."""
     raise typer.Exit(code)
+
+
+# ── recruiters (public hiring practice; practices only, never people) ─────────
+
+
+def _recruiters_state(config: JobbotConfig) -> tuple[list[Any], Path]:
+    from jobbot.recruiters.sources import default_recruiters_path, load_sources
+
+    path = default_recruiters_path(config.root)
+    return load_sources(path), path
+
+
+@recruiters_app.command("discover")
+def recruiters_discover(
+    urls: Annotated[
+        list[str] | None,
+        typer.Argument(help="Public URLs about hiring practice"),
+    ] = None,
+    from_file: Annotated[
+        Path | None,
+        typer.Option("--from-file", help="Text/YAML file with one URL per line"),
+    ] = None,
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Read a saved HTML instead of fetching (single URL)"),
+    ] = None,
+    delay: Annotated[
+        float,
+        typer.Option("--delay", help="Seconds between requests (be polite)"),
+    ] = 1.0,
+) -> None:
+    """Read public pages about hiring and store what they teach as candidates."""
+    from jobbot.companies.oneshot import FetchResult, UrllibFetcher
+    from jobbot.recruiters.discover import discover_sources
+    from jobbot.recruiters.sources import save_sources, upsert_source
+
+    config = load_config()
+    targets = list(urls or [])
+    if from_file is not None:
+        path = from_file.expanduser().resolve()
+        if not path.is_file():
+            err_console.print(f"[red]File not found: {path}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        targets.extend(
+            line.strip().lstrip("- ").strip()
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        )
+    if not targets:
+        err_console.print("Give at least one URL, or --from-file with a list.")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    narrator = _narrator()
+    narrator.phase(Phase.EXPLORING, f"{len(targets)} public page(s)")
+
+    if fixture is not None:
+        saved = fixture.expanduser().resolve()
+        if not saved.is_file():
+            err_console.print(f"[red]Fixture not found: {saved}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        html = saved.read_text(encoding="utf-8")
+
+        class _FixtureFetcher:
+            def fetch(self, url: str) -> FetchResult:
+                return FetchResult(url=url, status=200, html=html)
+
+        report = discover_sources(targets[:1], _FixtureFetcher(), respect_robots=False)
+    else:
+        report = discover_sources(targets, UrllibFetcher(delay=delay))
+
+    narrator.phase(Phase.SURFACING, f"{len(report.sources)} source(s)")
+    narrator.outcome(
+        ExplorationOutcome(
+            found=len(report.sources),
+            refused=len(report.refused),
+            unknown=len(report.skipped_robots)
+            + len(report.skipped_login)
+            + len(report.nothing_learned),
+        )
+    )
+    if report.skipped_robots:
+        console.print(
+            "[yellow]robots.txt asked us not to read (omitted, not absent):[/yellow] "
+            + ", ".join(report.skipped_robots[:5])
+        )
+    if report.skipped_login:
+        console.print(
+            "[yellow]Behind a login (not public knowledge):[/yellow] "
+            + ", ".join(report.skipped_login[:5])
+        )
+    if report.refused:
+        console.print(
+            "[yellow]Refused our request (unknown, not empty):[/yellow] "
+            + ", ".join(report.refused[:5])
+        )
+    if not report.sources:
+        console.print("Nothing learned this run.")
+        raise typer.Exit(SUCCESS)
+
+    sources, path = _recruiters_state(config)
+    for source in report.sources:
+        sources = upsert_source(sources, source)
+        console.print(
+            f"[green]candidate[/green] {source.url}  ({len(source.practices)} practice(s))"
+        )
+    save_sources(sources, path)
+    console.print(f"Stored (candidates): {path}")
+    console.print("Only [bold]jobbot recruiters promote URL[/bold] lets these advise your CV.")
+
+
+@recruiters_app.command("list")
+def recruiters_list(
+    status: Annotated[
+        str | None,
+        typer.Option("--status", help="candidate | active | rejected"),
+    ] = None,
+) -> None:
+    """List known sources of hiring practice."""
+    config = load_config()
+    sources, _ = _recruiters_state(config)
+    if status:
+        wanted = status.strip().casefold()
+        sources = [s for s in sources if s.status.value == wanted]
+    if not sources:
+        console.print("No sources yet. Try [bold]jobbot recruiters discover URL[/bold].")
+        return
+    table = Table(title="Hiring practice sources")
+    table.add_column("Status")
+    table.add_column("Practices", justify="right")
+    table.add_column("Title")
+    table.add_column("URL")
+    for source in sources:
+        table.add_row(
+            source.status.value,
+            str(len(source.practices)),
+            (source.title or "—")[:38],
+            source.url[:48],
+        )
+    console.print(table)
+
+
+@recruiters_app.command("show")
+def recruiters_show(
+    url: Annotated[str, typer.Argument(help="Source URL")],
+) -> None:
+    """Show one source with every practice it taught."""
+    from jobbot.companies.urls import canonical_key
+
+    config = load_config()
+    sources, _ = _recruiters_state(config)
+    key = canonical_key(url)
+    source = next((s for s in sources if canonical_key(s.url) == key), None)
+    if source is None:
+        err_console.print(f"[red]Unknown source: {url}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    console.print(
+        Panel(
+            f"[bold]{source.title or source.url}[/bold]\n{source.url}\n"
+            f"status: {source.status.value}   practices: {len(source.practices)}\n"
+            f"{source.evidence}",
+            title="Source",
+        )
+    )
+    for practice in source.practices:
+        console.print(f"  [{practice.kind.value}] {practice.text}")
+
+
+@recruiters_app.command("promote")
+def recruiters_promote(
+    url: Annotated[str, typer.Argument(help="Source URL")],
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Promote without asking")] = False,
+) -> None:
+    """Let one source's practices reach `cv advise`."""
+    from jobbot.recruiters.sources import promote_source, save_sources
+
+    config = load_config()
+    sources, path = _recruiters_state(config)
+    if not yes and not typer.confirm(f"Let {url} advise your CV?", default=False):
+        console.print("Aborted.")
+        raise typer.Exit(SUCCESS)
+    save_sources(promote_source(sources, url), path)
+    console.print(f"[green]active[/green] {url} → its practices now reach cv advise")
+
+
+@recruiters_app.command("reject")
+def recruiters_reject(
+    url: Annotated[str, typer.Argument(help="Source URL")],
+) -> None:
+    """Keep one source out for good."""
+    from jobbot.recruiters.sources import reject_source, save_sources
+
+    config = load_config()
+    sources, path = _recruiters_state(config)
+    save_sources(reject_source(sources, url), path)
+    console.print(f"[yellow]rejected[/yellow] {url}")
+
+
+@recruiters_app.command("export")
+def recruiters_export(
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", help="Destination file (default: output/recruiters/…)"),
+    ] = None,
+) -> None:
+    """Write a shareable snapshot: active practices only, no people, no PII."""
+    from jobbot.recruiters.sources import export_payload
+
+    config = load_config()
+    sources, _ = _recruiters_state(config)
+    payload = export_payload(sources)
+    target = out.expanduser().resolve() if out else (
+        config.output_dir / "recruiters" / "hiring_practice.yaml"
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    listed = payload.get("sources")
+    count = len(listed) if isinstance(listed, list) else 0
+    console.print(f"[green]Exported[/green] {count} active source(s) → {target}")

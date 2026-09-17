@@ -19,6 +19,7 @@ from jobbot.adapters.indeed.resume_edit import (
     apply_full_resume_from_candidate,
     open_resume,
     parse_resume_page_text,
+    wait_for_resume_render,
 )
 from jobbot.browser.debug import inspect_page
 from jobbot.browser.session import BrowserSession
@@ -127,6 +128,7 @@ class IndeedAdapter:
                 raise RuntimeError(msg)
             if _is_auth_url(browser.page.url):
                 browser.page.goto(selectors.INDEED_RESUME, wait_until="domcontentloaded")
+            wait_for_resume_render(browser.page)
             html = browser.page.content()
             body = browser.page.inner_text("body")
             try:
@@ -286,20 +288,26 @@ class IndeedAdapter:
 
         assert isinstance(candidate, Candidate)
         open_resume(browser.page)
+        wait_for_resume_render(browser.page)
         body = browser.page.inner_text("body")
         parsed = parse_resume_page_text(body)
         skills_val = parsed.get("skills")
         skills = [str(s) for s in skills_val] if isinstance(skills_val, list) else []
         summary_val = parsed.get("summary")
         summary = str(summary_val) if isinstance(summary_val, str) and summary_val else None
+        rendered = parse_indeed_profile_html(browser.page.content())
+        # A resume that did not render is not a resume that lost its history.
+        previous = load_snapshot(self.config.output_dir, "indeed")
+        experience = rendered.experience or (previous.experience if previous else [])
+        education = rendered.education or (previous.education if previous else [])
         observed = ExternalProfile(
             source="indeed",
             headline=candidate.personal.headline,
             summary=summary,
             location=candidate.personal.location_line(),
-            experience=[],
-            education=[],
-            skills=skills,
+            experience=experience,
+            education=education,
+            skills=skills or (previous.skills if previous else []),
             captured_at=datetime.now(UTC),
         )
         save_snapshot(observed, self.config.output_dir)

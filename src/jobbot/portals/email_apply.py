@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from email_validator import EmailNotValidError, validate_email
+
 _EMAIL_RE = re.compile(
     r"\b([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})\b"
 )
@@ -55,16 +57,31 @@ _MAILBOX_LOCAL_TOKENS = (
 )
 
 
+def is_valid_email(addr: str) -> bool:
+    """
+    RFC-aware check, no DNS lookup (JobBot must work offline).
+
+    The extraction regex is deliberately loose so it can find addresses in prose;
+    this is what stops a loose match from becoming an apply route.
+    """
+    try:
+        validate_email(addr, check_deliverability=False)
+    except EmailNotValidError:
+        return False
+    return True
+
+
 def extract_emails(text: str) -> list[str]:
-    """Return unique emails in appearance order."""
+    """Return unique, valid emails in appearance order."""
     out: list[str] = []
     seen: set[str] = set()
     for match in _EMAIL_RE.finditer(text or ""):
         addr = match.group(1).rstrip(".,;:)")
         key = addr.casefold()
-        if key not in seen:
-            seen.add(key)
-            out.append(addr)
+        if key in seen or not is_valid_email(addr):
+            continue
+        seen.add(key)
+        out.append(addr)
     return out
 
 
@@ -89,6 +106,8 @@ def first_apply_email(text: str) -> str | None:
             return addr
     for match in _EMAIL_RE.finditer(body):
         addr = match.group(1).rstrip(".,;:)")
+        if not is_valid_email(addr):
+            continue
         start = max(0, match.start() - 80)
         end = min(len(body), match.end() + 40)
         window = body[start:end].casefold()

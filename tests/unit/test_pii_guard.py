@@ -19,8 +19,14 @@ def test_blocked_paths_cover_profile_db_and_private_latex() -> None:
     assert is_blocked_path("latex/cv.tex")
     assert is_blocked_path(".jobbot.toml")
     assert is_blocked_path("output/jobs/J0001/application/cv.pdf")
-    assert is_blocked_path("AGENTS.md")
     assert is_blocked_path(".cursor/rules/jobbot.mdc")
+
+
+def test_workspaces_of_other_candidates_are_blocked() -> None:
+    """A test CV is somebody else's PII: `sandboxes/` never reaches the index."""
+    assert is_blocked_path("sandboxes/rocio/data/profile.yaml")
+    assert is_blocked_path("sandboxes/rocio/output/jobs/J0001/cv_ats.txt")
+    assert is_blocked_path("sandboxes/rocio/nursing_job.txt")
 
 
 def test_tracked_templates_are_not_blocked() -> None:
@@ -30,6 +36,9 @@ def test_tracked_templates_are_not_blocked() -> None:
     assert is_blocked_path("templates/cv.tex.j2") is None
     assert is_blocked_path("src/jobbot/cli.py") is None
     assert is_blocked_path("tests/fixtures/moderncv_sample.tex") is None
+    # Project policy, no PII: remote agents fixing an issue must be able to read it.
+    assert is_blocked_path("AGENTS.md") is None
+    assert is_blocked_path("docs/library-audit.md") is None
 
 
 def test_scan_text_flags_real_email_and_phone() -> None:
@@ -82,3 +91,30 @@ def test_redact_replaces_contact_fields_with_placeholders() -> None:
     assert "[phone]" in out
     assert "[id]" in out
     assert "[path]/" in out
+
+
+def test_learned_form_questions_never_reach_git() -> None:
+    """A form's questions are local knowledge, and the file can hold a company's wording."""
+    assert is_blocked_path("data/form_knowledge.yaml")
+
+
+def test_redaction_keeps_the_sentence_and_drops_the_contact_data() -> None:
+    text = "Escríbeme a ada.lovelace@empresa-real.cl o al +56 9 8765 4321, RUT 12.345.678-9"
+    clean = redact(text)
+
+    assert "ada.lovelace@empresa-real.cl" not in clean
+    assert "+56 9 8765 4321" not in clean
+    assert "12.345.678-9" not in clean
+    assert "Escríbeme a" in clean and "RUT" in clean
+
+
+def test_redaction_leaves_ordinary_text_alone() -> None:
+    assert redact("Cuéntanos por qué te interesa el cargo") == (
+        "Cuéntanos por qué te interesa el cargo"
+    )
+    assert redact("") == ""
+
+
+def test_the_recruiter_reading_list_never_reaches_git() -> None:
+    """Which sources you read reflects your own search, so it stays local."""
+    assert is_blocked_path("data/recruiters.yaml")

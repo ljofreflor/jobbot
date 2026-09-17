@@ -11,7 +11,7 @@ from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
 
 from jobbot.adapters.linkedin.sweep import (
-    is_data_relevant,
+    looks_like_job_post,
     parse_post_blob,
     parse_posts_fixture,
     post_to_job,
@@ -218,7 +218,7 @@ class LinkedInPostJobSource:
         jobs: list[JobPosting] = []
         q = (query or "").casefold()
         for post in posts:
-            if not is_data_relevant(post.text):
+            if not looks_like_job_post(post.text):
                 continue
             if not country_allows(post.text, wanted=countries, allow_remote=allow_remote):
                 continue
@@ -307,7 +307,7 @@ def collect_jobs_from_feed_page(
         if len(text) < 40 or text in seen:
             continue
         seen.add(text)
-        if not is_data_relevant(text):
+        if not looks_like_job_post(text):
             continue
         if not country_allows(
             text,

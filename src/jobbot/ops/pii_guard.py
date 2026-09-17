@@ -14,15 +14,27 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"^data/profile\.generated\.yaml$", "derived from private LaTeX CV"),
     (r"^data/profile\.suggested\.yaml$", "derived from market feedback"),
     (r"^data/portals\.yaml$", "learned portals may include real applications"),
+    (
+        r"^data/companies\.yaml$",
+        "learned company portals reflect your own search (share via companies export)",
+    ),
+    (
+        r"^data/form_knowledge\.yaml$",
+        "observed application forms (local knowledge, not shared)",
+    ),
+    (
+        r"^data/recruiters\.yaml$",
+        "hiring-practice sources you read (share via recruiters export)",
+    ),
     (r"^data/.*\.bak$", "profile backup"),
     (r"^latex/cv\.tex$", "private LaTeX CV (only cv.tex.demo is tracked)"),
     (r"^\.jobbot\.toml$", "local config with private paths"),
+    (r"^sandboxes/", "another candidate's workspace (test CVs are their PII)"),
     (r"^browser-data/", "browser session data"),
     (r"^output/", "generated artefacts with PII"),
     (r"\.sqlite3?$", "local database"),
     (r"\.db$", "local database"),
     (r"^(?!latex/).*\.pdf$", "PDF CV / attachment"),
-    (r"^AGENTS\.md$", "local agent policy, not for remote"),
     (r"^\.cursor/", "local editor/agent config"),
 )
 

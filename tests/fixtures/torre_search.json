@@ -1,0 +1,120 @@
+{
+  "total": 3,
+  "size": 3,
+  "results": [
+    {
+      "id": "aB1cD2eF",
+      "slug": "estudio-neutro-analista-de-datos",
+      "objective": "Analista de Datos",
+      "tagline": "Apoyarás decisiones de negocio con modelos y reportes.",
+      "type": "full-time-employment",
+      "commitment": "full-time",
+      "opportunity": "employee",
+      "remote": true,
+      "status": "open",
+      "created": "2026-09-01T10:00:00.000Z",
+      "external": false,
+      "quickApply": true,
+      "locations": [],
+      "place": {
+        "remote": true,
+        "anywhere": true,
+        "timezone": false,
+        "locationType": "remote_anywhere",
+        "location": []
+      },
+      "compensation": {
+        "data": {
+          "code": "range",
+          "currency": "USD$",
+          "minAmount": 3000.0,
+          "maxAmount": 4500.0,
+          "periodicity": "monthly",
+          "negotiable": true
+        },
+        "visible": true
+      },
+      "organizations": [
+        {
+          "id": 111,
+          "name": "Estudio Neutro",
+          "status": "approved",
+          "size": 40,
+          "publicId": "EstudioNeutro"
+        }
+      ],
+      "skills": [
+        {"name": "SQL", "experience": "3-plus-years", "proficiency": "proficient"},
+        {"name": "Python", "experience": "1-plus-year", "proficiency": "proficient"},
+        {"name": "Data visualization", "experience": "potential-to-develop", "proficiency": "novice"}
+      ],
+      "members": [
+        {
+          "subjectId": "999",
+          "name": "Persona Reclutadora",
+          "username": "persona.reclutadora",
+          "professionalHeadline": "Talent Partner"
+        }
+      ]
+    },
+    {
+      "id": "gH3iJ4kL",
+      "slug": "clinica-neutra-enfermera-clinica",
+      "objective": "Enfermera Clínica",
+      "tagline": "Atención directa de pacientes en unidad de agudos.",
+      "type": "full-time-employment",
+      "opportunity": "employee",
+      "remote": false,
+      "status": "open",
+      "created": "2026-08-20T09:30:00.000Z",
+      "external": "https://boards.greenhouse.io/clinicaneutra/jobs/4455",
+      "locations": ["Santiago, Chile"],
+      "place": {
+        "remote": false,
+        "anywhere": false,
+        "locationType": "on_site",
+        "location": ["Santiago, Chile"]
+      },
+      "organizations": [{"id": 222, "name": "Clínica Neutra", "status": "approved"}],
+      "skills": [
+        {"name": "Cuidados intensivos", "experience": "3-plus-years"},
+        {"name": "Registro clínico", "experience": "1-plus-year"}
+      ],
+      "members": [{"subjectId": "888", "name": "Otra Persona", "username": "otra.persona"}]
+    },
+    {
+      "id": "mN5oP6qR",
+      "slug": "sin-organizacion",
+      "objective": "Redactor de Contenidos",
+      "tagline": "",
+      "opportunity": "employee",
+      "status": "open",
+      "created": "no-es-una-fecha",
+      "organizations": [],
+      "place": {},
+      "skills": []
+    },
+    {
+      "id": "sT7uV8wX",
+      "slug": "empresa-remota-cientifico-de-datos",
+      "objective": "Científico de Datos",
+      "tagline": "Remoto, pero solo desde ciertos países.",
+      "opportunity": "employee",
+      "remote": true,
+      "status": "open",
+      "created": "2026-09-10T12:00:00.000Z",
+      "locations": ["United States", "Canada"],
+      "place": {
+        "remote": true,
+        "anywhere": false,
+        "locationType": "remote_countries",
+        "location": [
+          {"id": "United States", "timezone": -5.0, "countryCode": "US", "latitude": 38.79},
+          {"id": "Canada", "timezone": -5.0, "countryCode": "CA", "latitude": 56.13}
+        ]
+      },
+      "organizations": [{"id": 333, "name": "Empresa Remota", "status": "approved"}],
+      "skills": [{"name": "Python", "experience": "3-plus-years"}]
+    }
+  ]
+}

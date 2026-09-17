@@ -27,6 +27,39 @@ def test_permanent_profile_within_limits_and_no_invention() -> None:
     assert "Mercado Libre" in fields.experiencia_y_perfil or "Data Scientist" in fields.headline
 
 
+def test_summary_is_not_cut_mid_sentence_when_there_is_room() -> None:
+    """A long summary was hard-cut at 549 chars, so GoB showed a dangling clause."""
+    data = sample_profile_dict()
+    data["summary"] = (
+        "Senior Data Scientist con experiencia en fintech, retail y sector público. "
+        + "Construyo modelos predictivos y plataformas de datos usadas a escala regional. "
+        * 6
+        + "Combino profundidad estadística con liderazgo técnico."
+    )
+    candidate = Candidate.model_validate(data)
+
+    fields = build_permanent_profile_fields(candidate)
+    summary_paragraph = fields.experiencia_y_perfil.split("\n\n")[0]
+
+    assert len(fields.experiencia_y_perfil) <= EXPERIENCE_MAX
+    assert summary_paragraph.endswith("."), summary_paragraph[-60:]
+    # The whole summary fits under the cap, so nothing should have been dropped.
+    assert summary_paragraph == data["summary"].strip()
+
+
+def test_a_summary_too_long_for_the_cap_ends_on_a_sentence() -> None:
+    data = sample_profile_dict()
+    data["summary"] = "Lidero equipos de data science y productos de datos medibles. " * 40
+    candidate = Candidate.model_validate(data)
+
+    fields = build_permanent_profile_fields(candidate)
+    summary_paragraph = fields.experiencia_y_perfil.split("\n\n")[0]
+
+    assert len(fields.experiencia_y_perfil) <= EXPERIENCE_MAX
+    assert summary_paragraph.endswith(".")
+    assert "," not in summary_paragraph[-2:]
+
+
 def test_save_and_load_permanent_profile(tmp_path: Path) -> None:
     candidate = Candidate.model_validate(sample_profile_dict())
     fields = build_permanent_profile_fields(candidate)

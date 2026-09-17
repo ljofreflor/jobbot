@@ -130,6 +130,12 @@ class CumulativeProfileRefiner:
 
 
 def _company_tokens(candidate: Candidate) -> set[str]:
+    """What the profile backs in an experience paragraph: employers, roles and tools.
+
+    A paragraph that only lists the candidate's own stack names no employer, so
+    without the skills it read as an unbacked claim and was deleted — and the cold
+    draft added it again on the next run, eroding the text back and forth.
+    """
     tokens: set[str] = set()
     for exp in candidate.experience:
         for part in re.split(r"[/|,]", exp.company):
@@ -137,6 +143,8 @@ def _company_tokens(candidate: Candidate) -> set[str]:
             if len(t) >= 3:
                 tokens.add(t)
         tokens.add(exp.title.casefold())
+    for skill in candidate.skills.all_skills():
+        tokens.add(skill.casefold())
     if candidate.summary:
         tokens.add(candidate.summary.casefold())
     return tokens
@@ -164,31 +172,37 @@ def _paragraphs(text: str) -> list[str]:
 
 
 def _paragraph_supported(paragraph: str, anchors: set[str]) -> bool:
-    """Keep paragraph if it overlaps known anchors, or looks like a summary lead."""
+    """Keep a paragraph unless it claims an employer or tool the profile dropped.
+
+    The old rule kept a paragraph only when it used a fixed set of words, which
+    meant a candidate outside that field lost their own text. What actually makes
+    a stored paragraph stale is naming an entity the profile no longer backs, and
+    that is checkable: the profile is the fact base.
+    """
     lower = paragraph.casefold()
     if any(a in lower for a in anchors if len(a) >= 4):
         return True
-    # Short generic lead without obsolete company names still useful
-    obsolete = (
-        "ceamos",
-        "matlab",
-        "mayavi",
-        "adexus",
-        "adacom",
-        "mmgeo",
-        "back-caving",
-        "vtk",
-        "qt-python",
+    return not any(
+        entity.casefold() not in " ".join(anchors)
+        for entity in _named_entities(paragraph)
     )
-    if any(o in lower for o in obsolete):
-        return False
-    # Keep if it mentions senior data / consultor without obsolete stack
-    return bool(
-        re.search(
-            r"data scientist|estadística|inferencia causal|thoughtworks|mercado",
-            lower,
-        )
-    )
+
+
+def _named_entities(paragraph: str) -> list[str]:
+    """Proper names as typography marks them: 'Adexus', 'MATLAB', 'Qt-Python'.
+
+    Sentence-initial words are skipped: capitalisation there says nothing.
+    """
+    entities: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+", paragraph.strip()):
+        words = sentence.split()
+        for word in words[1:]:
+            token = word.strip(".,;:()[]\"'")
+            if len(token) < 3:
+                continue
+            if token.isupper() or (token[:1].isupper() and not token.isdigit()):
+                entities.append(token)
+    return entities
 
 
 def _merge_experience(
@@ -203,7 +217,7 @@ def _merge_experience(
     dropped = 0
     for part in prev_parts:
         if _paragraph_supported(part, anchors):
-            kept.append(part)
+            kept.append(_completed_by(part, cold_parts))
         else:
             dropped += 1
 
@@ -239,6 +253,21 @@ def _merge_experience(
         kept = []
         dropped = len(prev_parts)
     return text, len(kept), added, dropped
+
+
+def _completed_by(paragraph: str, cold_parts: list[str]) -> str:
+    """Restore a stored paragraph that is only a prefix of the current text.
+
+    Old length caps cut paragraphs mid-sentence; keeping the mutilated version is
+    losing information, which is the opposite of a cumulative refine.
+    """
+    stem = paragraph.rstrip(" ,;:.").casefold()
+    if not stem:
+        return paragraph
+    for cold in cold_parts:
+        if len(cold) > len(paragraph) and cold.casefold().startswith(stem):
+            return cold
+    return paragraph
 
 
 def _similar(a: str, b: str, *, threshold: float = 0.55) -> bool:

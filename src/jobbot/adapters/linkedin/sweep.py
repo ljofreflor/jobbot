@@ -14,35 +14,43 @@ from jobbot.portals.detect import AtsKind, extract_http_urls, first_external_ats
 from jobbot.portals.email_apply import first_apply_email, mailto_url
 from jobbot.portals.redirect import expand_urls
 
-# Roles / themes relevant to this candidate's data career (title-agnostic filter)
-_DATA_ROLE_HINTS = (
-    "data scientist",
-    "data science",
-    "machine learning",
-    "ml engineer",
-    "mlops",
-    "analytics",
-    "analítica",
-    "analitica",
-    "científico de datos",
-    "cientifico de datos",
-    "estadíst",
-    "estadist",
-    "causal",
-    "experimentation",
-    "a/b test",
-    "ab test",
-    "data engineer",
-    "bi ",
-    "business intelligence",
-    "applied scientist",
-    "research scientist",
+# What makes a post a job post is hiring language and a way to apply — not the
+# field being hired for. A list of roles only ever recognises one career.
+_HIRING_HINTS = (
     "hiring",
+    "we are hiring",
     "we're hiring",
-    "estamos buscando",
+    "contratando",
+    "reclutando",
     "buscamos",
+    "estamos buscando",
+    "se busca",
+    "se necesita",
+    "looking for",
+    "join our team",
+    "únete",
+    "unete",
     "vacante",
-    "oferta",
+    "vacancy",
+    "oferta laboral",
+    "oportunidad laboral",
+    "convocatoria",
+    "búsqueda laboral",
+    "busqueda laboral",
+)
+_APPLY_HINTS = (
+    "postula",
+    "postular",
+    "apply",
+    "enviar cv",
+    "envía tu cv",
+    "envia tu cv",
+    "send your cv",
+    "send your resume",
+    "send your materials",
+    "cargo:",
+    "puesto:",
+    "role:",
 )
 
 
@@ -131,9 +139,10 @@ def strip_feed_chrome(text: str) -> tuple[str | None, str]:
     return author, "\n".join(body).strip()
 
 
-def is_data_relevant(text: str) -> bool:
+def looks_like_job_post(text: str) -> bool:
+    """A post is a job post when it says it is hiring or how to apply."""
     lowered = text.casefold()
-    return any(hint in lowered for hint in _DATA_ROLE_HINTS)
+    return any(hint in lowered for hint in (*_HIRING_HINTS, *_APPLY_HINTS))
 
 
 def parse_post_blob(
@@ -234,10 +243,7 @@ def _guess_title(text: str) -> str | None:
             r"(?i)(?:hiring|buscamos|looking for|we(?:'re| are) looking for)\s+"
             r"(?:a|an|un|una)?\s*([^\n.!?]{8,80})"
         ),
-        r"(?i)(?:role|puesto|cargo)\s*[:\-]\s*([^\n]{5,80})",
-        r"(?i)\b((?:senior |staff |lead )?data scientist[^\n.!?]{0,40})",
-        r"(?i)\b((?:senior |staff )?machine learning engineer[^\n.!?]{0,40})",
-        r"(?i)\b((?:senior )?data engineer[^\n.!?]{0,40})",
+        r"(?i)(?:role|puesto|cargo|posici[oó]n|vacante)\s*[:\-]\s*([^\n]{5,80})",
     ]
     for pat in patterns:
         match = re.search(pat, text)

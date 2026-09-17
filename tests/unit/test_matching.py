@@ -9,7 +9,18 @@ from jobbot.matching.analyzer import RuleBasedJobAnalyzer
 from jobbot.models.candidate import Candidate
 from jobbot.models.match import MatchStrength
 from jobbot.profile.loader import load_profile
-from tests.fixtures.profile import sample_profile_dict
+from tests.fixtures.profile import non_data_profile_dict, sample_profile_dict
+
+MINING_JOB = (
+    "Title: Coordinador de Proyectos Mineros\n"
+    "Company: Andes Ingeniería SpA\n"
+    "Location: Santiago, Chile\n"
+    "Requisitos:\n"
+    "- Título de Ingeniero (Geofísico, Civil, Minas o afín).\n"
+    "- 5+ años de experiencia en gestión de proyectos en minería o energía.\n"
+    "- Metodologías ágiles (Scrum) y gestión de proyectos.\n"
+    "- Manejo de AutoCAD y herramientas de procesamiento de datos geofísicos.\n"
+)
 
 
 def test_strong_match_for_aligned_job() -> None:
@@ -68,6 +79,48 @@ def test_product_manager_is_not_perfect_ds_match() -> None:
     assert match.score <= 40
     role = next(i for i in match.items if i.label.startswith("role:"))
     assert role.strength == MatchStrength.MISSING
+
+
+def test_non_data_candidate_matches_a_job_in_their_own_field() -> None:
+    """Regression: the matcher scored 0% for any profile outside data science."""
+    candidate = Candidate.model_validate(non_data_profile_dict())
+    job = parse_job_text(MINING_JOB, job_id="J0500")
+
+    match = RuleBasedJobAnalyzer().analyze(candidate, job)
+
+    assert match.score >= 60
+    strong = " ".join(i.label.lower() for i in match.by_strength(MatchStrength.STRONG))
+    assert "scrum" in strong
+    assert "autocad" in strong
+    assert "geofísico" in strong
+
+
+def test_long_spanish_requirements_are_not_dropped() -> None:
+    """Requirement lines over 60 characters used to disappear from the report."""
+    candidate = Candidate.model_validate(non_data_profile_dict())
+    job = parse_job_text(MINING_JOB, job_id="J0501")
+
+    match = RuleBasedJobAnalyzer().analyze(candidate, job)
+    labels = " ".join(i.label for i in match.items)
+
+    assert "gestión de proyectos en minería o energía" in labels
+    assert "herramientas de procesamiento de datos geofísicos" in labels
+
+
+def test_unclassified_candidate_is_not_assumed_to_be_a_data_scientist() -> None:
+    """A geophysicist applying to a DS role must not get a strong role match."""
+    candidate = Candidate.model_validate(non_data_profile_dict())
+    job = parse_job_text(
+        "Title: Senior Data Scientist\nCompany: NeuralWorks\n"
+        "Requirements:\n- Python\n- SQL\n- Machine Learning\n",
+        job_id="J0502",
+    )
+
+    match = RuleBasedJobAnalyzer().analyze(candidate, job)
+    role = next(i for i in match.items if i.label.startswith("role:"))
+
+    assert role.strength != MatchStrength.STRONG
+    assert match.score < 50
 
 
 def test_applied_scientist_outscores_product_manager() -> None:

@@ -1,0 +1,5 @@
+# Web search hits obtained elsewhere (JobBot does not query a search engine itself).
+results:
+  - company: Empresa Sin Portal
+    urls:
+      - https://sin-portal.recruitee.com/

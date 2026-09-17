@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from jobbot.adapters.linkedin.posts_source import LinkedInPostJobSource
-from jobbot.adapters.linkedin.sweep import is_data_relevant, parse_posts_fixture, post_to_job
+from jobbot.adapters.linkedin.sweep import looks_like_job_post, parse_posts_fixture, post_to_job
 from jobbot.portals.detect import AtsKind
 
 
@@ -13,7 +13,7 @@ def test_parse_posts_fixture_filters_and_detects_ats(project_root: Path) -> None
     text = (project_root / "tests/fixtures/linkedin_posts.txt").read_text(encoding="utf-8")
     posts = parse_posts_fixture(text)
     assert len(posts) == 7
-    relevant = [p for p in posts if is_data_relevant(p.text)]
+    relevant = [p for p in posts if looks_like_job_post(p.text)]
     assert len(relevant) == 6  # hiking post excluded
     greenhouse = next(p for p in relevant if p.ats_kind == AtsKind.GREENHOUSE)
     assert greenhouse.ats_url and "greenhouse" in greenhouse.ats_url

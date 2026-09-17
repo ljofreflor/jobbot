@@ -8,40 +8,73 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from jobbot.jobs.normalization import normalize_skill
+from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 
-# Tokens often requested in DS/data JDs (canonical via normalize when possible)
-_MARKET_TERMS = [
-    "python",
-    "sql",
-    "pytorch",
-    "xgboost",
-    "scikit-learn",
-    "machine learning",
-    "deep learning",
-    "causal inference",
-    "experimentation",
-    "a/b testing",
-    "bayesian",
-    "statistics",
-    "spark",
-    "airflow",
-    "dbt",
-    "bigquery",
-    "snowflake",
-    "aws",
-    "gcp",
-    "azure",
-    "mlops",
-    "llm",
-    "nlp",
-    "computer vision",
-    "feature store",
-    "kafka",
-    "docker",
-    "kubernetes",
-]
+# Market language is whatever the stored JDs repeat, so the terms are read from the
+# corpus: a fixed list would only ever return the field it was written for.
+_MAX_TERMS = 40
+_NEUTRAL_SKILL_GROUP = "other"
+_WORD_RE = re.compile(r"[a-záéíóúñü][a-záéíóúñü0-9+#.-]{2,}")
+
+_CORPUS_STOPWORDS = frozenset(
+    {
+        "para",
+        "con",
+        "como",
+        "los",
+        "las",
+        "del",
+        "que",
+        "por",
+        "una",
+        "uno",
+        "the",
+        "and",
+        "for",
+        "with",
+        "you",
+        "our",
+        "will",
+        "have",
+        "need",
+        "needs",
+        "must",
+        "your",
+        "are",
+        "this",
+        "that",
+        "from",
+        "experiencia",
+        "experience",
+        "conocimiento",
+        "conocimientos",
+        "requisitos",
+        "requirements",
+        "required",
+        "deseable",
+        "excluyente",
+        "manejo",
+        "años",
+        "anos",
+        "years",
+        "equipo",
+        "equipos",
+        "trabajo",
+        "empresa",
+        "company",
+        "cargo",
+        "puesto",
+        "role",
+        "senior",
+        "junior",
+        "semi",
+        "title",
+        "location",
+        "seniority",
+    }
+)
 
 
 @dataclass
@@ -69,10 +102,8 @@ def suggest_from_market(
     min_count: int = 2,
 ) -> MarketSuggestion:
     """Extract frequent JD terms; suggest rephrases; flag gaps as questions only."""
-    corpus = "\n".join((j.description or "") + "\n" + (j.raw_description or "") for j in jobs)
-    counts = _count_market_terms(corpus)
-    ranked = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
-    frequent = [(t, c) for t, c in ranked if c >= min_count]
+    counts = _count_market_terms(jobs)
+    frequent = _rank_terms(counts, min_count=min_count)
 
     cand_tokens = _candidate_token_set(candidate)
     present: list[str] = []
@@ -162,7 +193,7 @@ def apply_confirmed_skills(
     candidate: Candidate,
     confirmed: list[str],
     *,
-    group: str = "machine_learning",
+    group: str = _NEUTRAL_SKILL_GROUP,
 ) -> Candidate:
     """Add user-confirmed skills only; never remove existing ones."""
     data = candidate.model_dump()
@@ -182,7 +213,7 @@ def merge_confirmed_skills_into_raw(
     raw: dict[str, Any],
     confirmed: list[str],
     *,
-    group: str = "machine_learning",
+    group: str = _NEUTRAL_SKILL_GROUP,
 ) -> dict[str, Any]:
     """Merge confirmed skills into a raw profile mapping (no deletions)."""
     import copy
@@ -202,23 +233,75 @@ def merge_confirmed_skills_into_raw(
     return out
 
 
-def _count_market_terms(corpus: str) -> Counter[str]:
-    lowered = corpus.casefold()
+def _count_market_terms(jobs: list[JobPosting]) -> Counter[str]:
+    """How many stored jobs name each term, in the words the jobs themselves use."""
+    phrases = {
+        term for job in jobs for term in _named_terms(job) if len(term.split()) > 1
+    }
     counts: Counter[str] = Counter()
-    for term in _MARKET_TERMS:
-        # word-ish boundary for short tokens
-        if len(term) <= 3:
-            pat = rf"(?<![a-z]){re.escape(term)}(?![a-z])"
-            n = len(re.findall(pat, lowered))
-        else:
-            n = lowered.count(term.casefold())
-        if n:
-            counts[term] = n
+    for job in jobs:
+        blob = _job_blob(job)
+        terms = {term for term in _named_terms(job) if _is_term_like(term)}
+        terms |= {phrase for phrase in phrases if _mentions(blob, phrase)}
+        terms |= {word for word in _WORD_RE.findall(blob) if _is_term_like(word)}
+        for term in terms:
+            counts[term] += 1
     return counts
+
+
+def _rank_terms(counts: Counter[str], *, min_count: int) -> list[tuple[str, int]]:
+    """Frequent first, longest phrase first; a word inside a kept phrase is noise."""
+    frequent = [(term, count) for term, count in counts.items() if count >= min_count]
+    frequent.sort(key=lambda item: (-item[1], -len(item[0].split()), item[0]))
+
+    kept: list[tuple[str, int]] = []
+    for term, count in frequent:
+        if any(
+            count <= other_count and _inside(term, other)
+            for other, other_count in kept
+        ):
+            continue
+        kept.append((term, count))
+        if len(kept) >= _MAX_TERMS:
+            break
+    return kept
+
+
+def _inside(term: str, phrase: str) -> bool:
+    return term != phrase and re.search(rf"(?<!\w){re.escape(term)}(?!\w)", phrase) is not None
+
+
+def _named_terms(job: JobPosting) -> set[str]:
+    """The skills the JD names, read from its own structure (no fixed vocabulary)."""
+    terms = {term.casefold() for term in job.skills if term.strip()}
+    for text in (job.description or "", job.raw_description or ""):
+        terms |= {term.casefold() for term in extract_skills_from_text(text)}
+    return {term for term in terms if term}
+
+
+def _job_blob(job: JobPosting) -> str:
+    parts = (job.description or "", job.raw_description or "", *job.requirements, *job.skills)
+    return "\n".join(parts).casefold()
+
+
+def _mentions(blob: str, phrase: str) -> bool:
+    return re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", blob) is not None
+
+
+def _is_term_like(term: str) -> bool:
+    words = term.split()
+    if any(word in _CORPUS_STOPWORDS for word in words):
+        return False
+    return all(len(word) >= 2 for word in words) and any(len(word) >= 3 for word in words)
 
 
 def _candidate_token_set(candidate: Candidate) -> set[str]:
     tokens: set[str] = set()
+    for group in candidate.skills.as_dict():
+        # The group the candidate filed a skill under is a claim too: 'machine_learning'
+        # for someone who lists XGBoost, 'clinical' for someone who lists ventilation.
+        tokens.add(group.casefold())
+        tokens.add(group.replace("_", " ").casefold())
     for skill in candidate.skills.all_skills():
         tokens.add(normalize_skill(skill))
         tokens.add(skill.casefold())
@@ -235,33 +318,17 @@ def _candidate_token_set(candidate: Candidate) -> set[str]:
     return tokens
 
 
-_IMPLIED_BY_STACK: dict[str, set[str]] = {
-    "machine_learning": {
-        "machine_learning",
-        "pytorch",
-        "xgboost",
-        "scikit_learn",
-        "tensorflow",
-        "deep_learning",
-        "lightgbm",
-    },
-    "statistics": {
-        "statistics",
-        "bayesian",
-        "causal_inference",
-        "experimentation",
-        "survival_analysis",
-        "ab_testing",
-    },
-}
-
-
 def _term_present_in_profile(term: str, cand_tokens: set[str]) -> bool:
+    """Present when the profile says it, in its own words — never by implication."""
     canon = normalize_skill(term)
     if canon in cand_tokens or term.casefold() in cand_tokens:
         return True
-    implied = _IMPLIED_BY_STACK.get(canon, set())
-    return bool(implied & cand_tokens)
+    folded = term.casefold()
+    return any(
+        re.search(rf"(?<!\w){re.escape(folded)}(?!\w)", token)
+        for token in cand_tokens
+        if len(token) > len(folded)
+    )
 
 
 def _rephrase_hints(candidate: Candidate, present_market_terms: list[str]) -> list[str]:

@@ -3,6 +3,22 @@
 Local terminal tool for managing a job search: structured CV as source of truth, portal sync,
 matching, adapted CVs, and assisted applications. **No web UI** — everything runs from the CLI.
 
+New here? Start with the [tutorial](docs/tutorial.md): the loop end to end, the practices that
+keep it safe, and the guarantees the code enforces.
+
+## Why the compute spent here compounds
+
+**Every token spent on this project is progress on everyone's CV, collaboratively.** A run that
+figures out which portal a company hires through, which questions an application form asks, or
+which wording a posting expects does not evaporate when the terminal closes: it is written down as
+reusable knowledge. `data/companies.yaml` records company↔portal facts, `data/portals.yaml` the
+platforms, and `companies export` produces a shareable snapshot so the next candidate does not pay
+that cost again.
+
+What is shared is public knowledge about who hires where and how. What is never shared is you:
+your profile, your sessions, your applications and your CV stay on your machine, enforced by the
+PII guard (`make hooks`). The collaboration is on the map, not on the traveller.
+
 ## Architecture
 
 ```text
@@ -26,7 +42,7 @@ are views or adapters. Facts are never invented to fit a job posting.
 
 Working today:
 
-- Profile validate / import-latex / promote
+- Profile validate / import-latex / import-pdf / promote
 - `cv build` base and `--job Jxxxx`
 - `jobs add|show|match|shortlist|note`
 - `application prepare|show|open` + `applications list`
@@ -75,17 +91,25 @@ cp data/companies.example.yaml data/companies.yaml   # optional company↔portal
 dummy) or set `paths.legacy_cv` in local `.jobbot.toml` to a path outside the repo / to
 gitignored `latex/cv.tex`. See [latex/README.md](latex/README.md).
 
-**PII pre-commit guard:** enable it once per clone so real data cannot be committed
-(even with `git add -f`):
+**Pre-commit hook:** enable it once per clone so real data cannot be committed
+(even with `git add -f`) and a red suite cannot be pushed:
 
 ```bash
-make hooks        # git config core.hooksPath .githooks
-make pii-check    # scan the current index on demand
+make hooks         # git config core.hooksPath .githooks
+make pii-check     # scan the current index on demand
+make pre-commit    # run the whole hook without committing
+make capabilities  # regenerate docs/capabilities.md after adding code
 ```
 
-It blocks `data/profile.yaml`, `data/portals.yaml`, SQLite, `output/`, `browser-data/`,
+First the PII guard, then the unit tests. The guard blocks `data/profile.yaml`,
+`data/portals.yaml`, `data/companies.yaml`, SQLite, `output/`, `browser-data/`,
 `latex/cv.tex`, PDFs, and flags real-looking emails, phone numbers, RUTs, or
 `/Users/<you>/` paths in staged content. Fixtures and `*.example.yaml` are allowlisted.
+
+Tests only run when the commit stages code (`*.py`, `pyproject.toml`, `templates/`,
+`tests/`), so a docs-only commit stays instant. While you are working test-first and the
+suite is legitimately red, `JOBBOT_SKIP_TESTS=1 git commit …` commits anyway; the PII guard
+still runs. `git commit --no-verify` skips both and should stay a last resort.
 
 ## Create or edit your profile
 
@@ -136,6 +160,9 @@ uv run jobbot profile import-latex /path/to/cv.tex
 # then:
 uv run jobbot profile import-latex
 
+# or start from a CV exported as PDF (needs a text layer; no OCR):
+uv run jobbot profile import-pdf /path/to/cv.pdf
+
 # after human review:
 uv run jobbot profile promote-generated
 uv run jobbot profile validate
@@ -151,11 +178,18 @@ education, `\cvitem` skills, and publications. Review IDs, tags, and metrics bef
 jobbot indeed login | inspect | pull | diff | sync --apply
 jobbot linkedin login | inspect | pull | diff
 jobbot linkedin sync --section publications --apply   # DOI + coauthors; confirm each
-jobbot linkedin sweep "hiring data scientist" [--country CL] [--max-age-days 30] [--fixture PATH] [--cdp URL]
-jobbot getonboard search "data scientist"
+jobbot linkedin sweep [QUERY] [--country CL] [--max-age-days 30] [--fixture PATH] [--cdp URL]
+jobbot getonboard search [QUERY]   # sin QUERY usa el rol de tu perfil
+jobbot torre search [QUERY] [--remote]   # LATAM/remoto; requisitos vienen estructurados
 jobbot portals list | add | detect
+jobbot portals form-learn URL --fetch      # what a form asks (reads only, never submits)
+jobbot companies signup NOMBRE             # opens the registration; you create the account
+jobbot recruiters discover URL             # public hiring practice → candidate knowledge
+jobbot recruiters promote URL              # only then does it reach cv advise
 jobbot jobs match J0001 | shortlist
 jobbot cv build --job J0001
+jobbot cv advise [--apply]                 # presentation only; adds no facts, deletes none
+jobbot cv advise --llm --dry-run           # what an LLM run would cost, before spending it
 jobbot application prepare J0001
 jobbot application apply J0001 [--apply]   # ATS prefill plan / open (you submit)
 jobbot profile suggest-from-market [--ask] [--promote]
@@ -178,6 +212,18 @@ jobbot cv propagate --apply --cdp http://127.0.0.1:9222   # reuse your logged-in
 Planning is read-only and browser-free: Indeed diffs against the stored snapshot (it asks for
 `jobbot indeed pull` when there is none), LinkedIn covers Publications only, and Get on Board
 refines the permanent profile cumulatively. Writes stay HITL — nothing is submitted for you.
+
+The plan also runs a **session preflight** so a destination fails in the table instead of mid-write:
+
+```bash
+jobbot browser sessions                    # per site: ready | needs_login | unknown | profile_busy
+jobbot browser sessions --site indeed --port 9222
+```
+
+A session is `ready` only when an open page proves it (a port answering proves nothing), and
+JobBot never attaches on its own: it prints the `--cdp` command for you to run. When a leftover
+Chrome still holds `browser-data/<site>`, that destination is reported `profile_busy` with the
+PID — Chrome allows one instance per profile, so launching there could only fail.
 For a specific vacancy the path is still `cv build --job J0001` → `application prepare J0001`
 → `application apply J0001 --apply`.
 
@@ -205,7 +251,9 @@ several sources raise confidence instead of duplicating entries. A portal that c
 flagged `stale` with the contradiction recorded — stored facts are never overwritten silently,
 and an ATS stays `unknown` without technical evidence (host rule, redirect, or embedded marker).
 
-`linkedin sweep` and `jobs add` feed this registry automatically as **candidate** knowledge.
+`linkedin sweep`, `jobs search` and `jobs add` feed this registry automatically as **candidate**
+knowledge. Postings that live on a job board (Indeed, LinkedIn, GetOnBoard) teach nothing about
+who hires where, so they are skipped instead of stored.
 
 ### One-shot seeding (not a crawler)
 
@@ -218,6 +266,13 @@ jobbot companies import output/discovery/company_portals.generated.yaml
 jobbot companies promote COMPANY
 ```
 
+Probing is sequential and polite (own user-agent, `--delay`, no stealth), so plenty of sites
+simply refuse it. Those are reported apart from the real gaps: a company that never answered is
+listed as *refused our requests (unknown, not absent)*, while a company that answered without a
+career path is a genuine gap — feed it a `--search-results` file or teach it with
+`companies learn URL --company NAME`. Sites that only serve the `www.` host are retried there
+automatically, and the knowledge is still stored www-free so dedup keeps working.
+
 The oneshot probes public career paths and subdomains on the official domain (sequentially,
 with a delay) and accepts a candidate only with real evidence: an ATS marker, a redirect, or
 employment wording on the page. HTTP 200 alone is not evidence. It writes candidates to
@@ -225,6 +280,26 @@ employment wording on the page. HTTP 200 alone is not evidence. It writes candid
 fed in with `--search-results FILE`; JobBot does not query a search engine itself.
 
 Sessions persist under `browser-data/` (gitignored). Passwords are never stored.
+
+## Several candidates in one checkout (test CVs)
+
+Each candidate gets a workspace with its own `data/`, `output/` and database, so nothing
+depends on which directory you happen to be in:
+
+```bash
+uv run jobbot workspace new rocio        # creates sandboxes/rocio/{data,output}
+cp /path/to/cv.pdf /tmp/ && uv run jobbot --workspace rocio profile import-pdf /tmp/cv.pdf
+uv run jobbot --workspace rocio cv build --job J0001
+uv run jobbot workspace list             # who lives here
+uv run jobbot --workspace rocio workspace show
+```
+
+The first run stamps that `data/` and `output/` with a fingerprint of the profile's name
+(a hash, not the name). If another candidate's profile is later used against them, the
+command stops with exit `2` before writing, and you either pick the right workspace or
+take it over on purpose with `jobbot workspace adopt`. `sandboxes/` is gitignored and
+blocked by the PII guard: a test CV is somebody else's personal data, so delete the
+workspace when you are done.
 
 ## Tests & quality
 
@@ -239,9 +314,20 @@ uv run mypy src
 uv run pytest
 ```
 
+### Before writing a new helper
+
+- [docs/capabilities.md](docs/capabilities.md) — every command and module with what it exports.
+  Generated (`make capabilities`); the suite fails when it is stale, so it can be trusted.
+- [docs/library-audit.md](docs/library-audit.md) — what we replaced with a maintained library,
+  what we keep ours, and why.
+
+Work that repeats is promoted into a tested function instead of being redone by hand each time;
+the rule and its threshold live in `AGENTS.md`, section "Design economics".
+
 ## Security & privacy
 
-- Runs locally; MVP does not send your CV to external AI APIs.
+- Runs locally. No LLM is contacted unless you pass `--llm`, and then only the smallest text unit
+  needed, with contact data stripped from the prompt. See [the tutorial](docs/tutorial.md).
 - No CAPTCHA solving, 2FA bypass, or anti-bot evasion.
 - Do not commit `browser-data/`, `output/`, `.env`, or SQLite DBs.
 - LinkedIn: audit; Publications sync; recruiter-post sweep → ATS registry; apply is HITL on the ATS.

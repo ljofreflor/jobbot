@@ -5,21 +5,33 @@ data/profile.generated.yaml
 data/profile.suggested.yaml
 data/profile.yaml.bak
 data/*.bak
+# Owner stamp: a hash that ties this data/ + output/ to one candidate.
+data/.jobbot-owner.json
+# Extra candidates (test CVs) live in their own workspace: never their data.
+/sandboxes/
 data/portals.yaml
+data/companies.yaml
+# What application forms ask, observed locally. Questions only, but not shared.
+data/form_knowledge.yaml
+# Hiring-practice sources you read; share the practices via `recruiters export`.
+data/recruiters.yaml
 
 # Keep sanitized templates tracked
 !data/profile.example.yaml
 !data/portals.example.yaml
+!data/companies.example.yaml
+!data/companies-cl.example.yaml
 
 # Private CV sources (LaTeX/PDF). Real moderncv stays private.
 # Tracked: latex/cv.tex.demo + latex/README.md only.
 latex/**
 !latex/README.md
 !latex/**/*.demo
-cv/
-vitae/
-legacy/
-private/
+# Anchored to the repo root: unanchored `cv/` also matched src/jobbot/cv (source code).
+/cv/
+/vitae/
+/legacy/
+/private/
 data/**/*.tex
 data/**/*.pdf
 *.pdf
@@ -71,13 +83,14 @@ build/
 .coverage
 htmlcov/
 
-# ── OS / editor / local agent policy (not for remote) ───────────────────────
+# ── OS / editor / local agent config ────────────────────────────────────────
 .DS_Store
 .idea/
 .vscode/
 *.swp
+# Editor-specific agent config stays local; AGENTS.md is tracked so remote
+# agents working on an issue read the same policy as the local ones.
 .cursor/
-AGENTS.md
 
 # ── Temporary scaffolding (never version) ───────────────────────────────────
 tmp/
