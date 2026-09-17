@@ -22,6 +22,16 @@ def test_sql_alias_not_matched_inside_typescript() -> None:
     assert normalize_skill("React and TypeScript") != "sql"
 
 
+def test_unknown_non_ds_terms_fall_through_unchanged() -> None:
+    """Equivalence tables add recall; an unknown term is never dropped or gated."""
+    assert normalize_skill("Ventilación Mecánica") == "ventilacion_mecanica"
+    assert normalize_skill("Reanimación Cardiopulmonar") == "reanimacion_cardiopulmonar"
+    assert normalize_skill("SEO") == "seo"
+    assert normalize_skill("WordPress") == "wordpress"
+    for term in ("Ventilación Mecánica", "SEO", "Triage Avanzado"):
+        assert normalize_skill(term) not in {"machine_learning", "python", "sql"}
+
+
 def test_short_skill_r_not_matched_inside_react() -> None:
     """Regression: bare 'R' must not match inside 'React'."""
     text = """Title: Junior Frontend Engineer
