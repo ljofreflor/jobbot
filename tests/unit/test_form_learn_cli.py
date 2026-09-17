@@ -149,3 +149,12 @@ def test_apply_learns_the_form_while_you_fill_it(
     forms = load_form_knowledge(default_form_knowledge_path(tmp_path))
     assert len(forms) == 1
     assert "When could you start?" in forms[0].screening_questions()
+
+    from jobbot.applications.manager import ApplicationRepository
+    from jobbot.models.application import ApplicationStatus
+
+    apps = ApplicationRepository(session).list_all()
+    assert len(apps) == 1
+    assert apps[0].status is ApplicationStatus.PREPARED, (
+        "--yes must not mark applied after only opening the ATS"
+    )
