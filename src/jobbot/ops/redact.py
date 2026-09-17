@@ -1,10 +1,12 @@
-"""Redact secrets and sensitive fragments from failure payloads."""
+"""Redact secrets and contact PII from failure payloads."""
 
 from __future__ import annotations
 
 import re
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
+
+from jobbot.ops.pii_guard import redact as redact_contact
 
 _SECRET_KV = re.compile(
     r"(?i)\b(api[_-]?key|token|password|secret|authorization|cookie|bearer)"
@@ -16,13 +18,14 @@ _CDP_WS = re.compile(r"(?i)(ws://|wss://|http://|https://)[^\s\"']+/devtools/[^\
 
 
 def redact_text(text: str, *, max_len: int = 8000) -> str:
-    """Strip common secrets and truncate."""
+    """Strip secrets and contact PII, then truncate."""
     if not text:
         return ""
     out = _SECRET_KV.sub(r"\1=<redacted>", text)
     out = _BEARER.sub("Bearer <redacted>", out)
     out = _OPENAI.sub("sk-<redacted>", out)
     out = _CDP_WS.sub(r"\1<host>/devtools/<redacted>", out)
+    out = redact_contact(out)
     if len(out) > max_len:
         out = out[: max_len - 20] + "\n…[truncated]"
     return out

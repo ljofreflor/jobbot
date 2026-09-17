@@ -6,6 +6,7 @@ from jobbot.ops.pii_guard import (
     format_report,
     is_allowed_content_path,
     is_blocked_path,
+    redact,
     scan_text,
 )
 
@@ -66,3 +67,18 @@ def test_report_mentions_paths_and_remedy() -> None:
     report = format_report(findings)
     assert "docs/leak.md" in report
     assert "git restore --staged" in report
+
+
+def test_redact_replaces_contact_fields_with_placeholders() -> None:
+    out = redact(
+        "mail me@realdomain.cl tel +56 9 1234 5678 rut 12.345.678-9 "
+        "at /Users/someone/jobbot/data/profile.yaml"
+    )
+    assert "me@realdomain.cl" not in out
+    assert "+56 9 1234 5678" not in out
+    assert "12.345.678-9" not in out
+    assert "/Users/someone/" not in out
+    assert "[email]" in out
+    assert "[phone]" in out
+    assert "[id]" in out
+    assert "[path]/" in out

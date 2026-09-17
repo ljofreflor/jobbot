@@ -74,6 +74,52 @@ def test_redact_strips_secrets_and_url_query() -> None:
     assert ctx["note"] == "ok"
 
 
+def test_redact_strips_contact_pii_not_only_secrets() -> None:
+    """Failures leave the machine via ops failure issue; contact data must go too."""
+    sample = (
+        "Failed for ana.ejemplo@gmail.com phone +56 9 1234 5678 "
+        "RUT 12.345.678-9 path /Users/someone/jobbot/data/profile.yaml "
+        "token=sekrit"
+    )
+    text = redact_text(sample)
+    assert "ana.ejemplo@gmail.com" not in text
+    assert "+56 9 1234 5678" not in text
+    assert "12.345.678-9" not in text
+    assert "/Users/someone/" not in text
+    assert "sekrit" not in text
+
+
+def test_issue_body_does_not_leak_contact_pii(tmp_path: Path) -> None:
+    from jobbot.ops.failures import issue_body, record_failure
+
+    session, config = _session(tmp_path)
+    try:
+        rec = record_failure(
+            session,
+            config=config,
+            exit_code=GENERIC_FAILURE,
+            argv=["jobbot", "indeed", "sync"],
+            error_class="RuntimeError",
+            message=(
+                "sync failed for ana.candidato@gmail.com at /Users/candidato/jobbot "
+                "tel +56 9 8765 4321"
+            ),
+            context={"note": "RUT 11.222.333-4 also in context"},
+            tb=(
+                'File "/Users/candidato/jobbot/src/jobbot/cli.py", line 1\n'
+                "RuntimeError: ana.candidato@gmail.com"
+            ),
+        )
+        body = issue_body(rec)
+    finally:
+        session.close()
+
+    assert "ana.candidato@gmail.com" not in body
+    assert "/Users/candidato/" not in body
+    assert "+56 9 8765 4321" not in body
+    assert "11.222.333-4" not in body
+
+
 def test_record_and_list_failure(tmp_path: Path) -> None:
     config = _config(tmp_path)
     engine = make_engine(config.database_path)
