@@ -14,6 +14,12 @@ from jobbot.models.experience import Achievement, Experience
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch
 
+# A terse LinkedIn / email-apply post is not enough signal to shrink the CV.
+_SHORT_JD_CHARS = 400
+_MIN_EXPERIENCES = 4
+_MIN_ACHIEVEMENTS = 4
+_FLOOR_REASON = "floor: short JD — kept recent evidence so the CV stays usable"
+
 
 @dataclass
 class SelectedAchievement:
@@ -91,6 +97,14 @@ def select_for_job(
                     )
                 )
 
+    jd_blob = " ".join(
+        part
+        for part in (job.description, job.title, "\n".join(job.requirements))
+        if part
+    )
+    if len(jd_blob) < _SHORT_JD_CHARS or len({e for e in exp_ids}) < _MIN_EXPERIENCES:
+        _pad_selection_floor(candidate, exp_ids, selected)
+
     # Skills: intersection only
     skill_names = [
         s for s in candidate.skills.all_skills() if normalize_skill(s) in job_tokens
@@ -114,6 +128,27 @@ def select_for_job(
         include_publications=True,
         job_id=job.id,
     )
+
+
+def _pad_selection_floor(
+    candidate: Candidate,
+    exp_ids: list[str],
+    selected: list[SelectedAchievement],
+) -> None:
+    """Keep enough recent evidence when the posting is too short to select by keywords."""
+    selected_ids = {item.id for item in selected}
+    for exp in candidate.experience:
+        if len({eid for eid in exp_ids}) >= _MIN_EXPERIENCES and len(selected) >= _MIN_ACHIEVEMENTS:
+            return
+        if exp.id not in exp_ids:
+            exp_ids.append(exp.id)
+        for ach in exp.achievements:
+            if ach.id in selected_ids:
+                continue
+            selected.append(SelectedAchievement(id=ach.id, reason=[_FLOOR_REASON]))
+            selected_ids.add(ach.id)
+            if len(selected) >= _MIN_ACHIEVEMENTS and len({eid for eid in exp_ids}) >= _MIN_EXPERIENCES:
+                return
 
 
 def write_selection_json(selection: SelectionResult, path: Path) -> None:
