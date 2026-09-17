@@ -98,11 +98,44 @@ def test_an_unknown_portal_is_unknown_not_assumed() -> None:
 
 def test_nothing_in_this_module_can_submit_anything() -> None:
     """The guarantee is structural: the module has no writer and no browser driver."""
+    import ast
     import inspect
 
     from jobbot.companies import signup
 
     source = inspect.getsource(signup)
-
-    for forbidden in ("click(", "fill(", "submit(", "requests.", "urlopen"):
+    forbidden_tokens = (
+        "click(",
+        "fill(",
+        "submit(",
+        "requests.",
+        "urlopen",
+        "httpx",
+        "urllib.request",
+        "http.client",
+        "aiohttp",
+        "playwright",
+        "sync_playwright",
+        "BrowserSession",
+        "webbrowser",
+    )
+    for forbidden in forbidden_tokens:
         assert forbidden not in source, f"signup must not {forbidden}"
+
+    tree = ast.parse(source)
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name.split(".", 1)[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module.split(".", 1)[0])
+    banned_imports = {
+        "httpx",
+        "requests",
+        "urllib",
+        "aiohttp",
+        "playwright",
+        "webbrowser",
+        "http",
+    }
+    assert imported.isdisjoint(banned_imports), f"signup imports networking: {imported & banned_imports}"
