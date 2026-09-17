@@ -98,3 +98,4 @@ _chunks/
 _put_*/
 _update_args/
 coverage.json
+junit.xml
