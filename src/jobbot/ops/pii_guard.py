@@ -97,6 +97,21 @@ def scan_text(text: str, path: str) -> list[Finding]:
     return findings
 
 
+def redact(text: str) -> str:
+    """Replace contact data with placeholders, keeping surrounding text.
+
+    Used wherever text leaves the candidate's own files (failure payloads that
+    may become GitHub issues, learned form labels, LLM prompts). Same patterns
+    as the commit guard, so a change to what counts as PII lands in both places.
+    """
+    if not text:
+        return text
+    out = _EMAIL_RE.sub("[email]", text)
+    out = _CL_PHONE_RE.sub("[phone]", out)
+    out = _RUT_RE.sub("[id]", out)
+    return _HOME_PATH_RE.sub("[path]/", out)
+
+
 def _git(args: list[str]) -> str:
     proc = subprocess.run(  # noqa: S603
         ["git", *args],
