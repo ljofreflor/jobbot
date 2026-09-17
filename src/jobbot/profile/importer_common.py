@@ -31,17 +31,12 @@ _MONTHS: dict[str, int] = {
 }
 
 SKILL_GROUP_MAP: dict[str, str] = {
-    "lenguajes": "programming",
+    # English synonyms may collapse; Spanish (and unknown) labels keep their own slug
+    # so a Spanish CV still renders Spanish group names.
     "languages": "programming",
     "programming": "programming",
-    "ml frameworks": "machine_learning",
     "machine learning": "machine_learning",
-    "frameworks": "machine_learning",
-    "big data & cloud": "cloud",
-    "big data and cloud": "cloud",
     "cloud": "cloud",
-    "metodologías": "statistics",
-    "metodologias": "statistics",
     "methods": "statistics",
     "statistics": "statistics",
     "engineering": "engineering",
@@ -177,9 +172,17 @@ def map_skill_group(label: str) -> str:
 
     Falling back to a fixed group files a nurse's clinical skills under
     'engineering'; the label the CV used is better evidence than our guess.
+    Short English synonyms (languages → programming) still collapse; Spanish
+    labels keep their own slug so the rendered CV stays in the CV's language.
     """
     norm = normalize_key(label)
-    for key, group in SKILL_GROUP_MAP.items():
+    if norm in SKILL_GROUP_MAP:
+        return SKILL_GROUP_MAP[norm]
+    # Substring match only for longer keys, so "cloud" does not swallow
+    # "big data & cloud".
+    for key, group in sorted(SKILL_GROUP_MAP.items(), key=lambda item: -len(item[0])):
+        if len(key) < 8:
+            continue
         if key in norm or norm in key:
             return group
     slug = re.sub(r"[^a-z0-9]+", "_", norm).strip("_")

@@ -39,9 +39,10 @@ def test_import_moderncv_fixture(project_root: Path, tmp_path: Path) -> None:
     assert any("Magíster" in e["degree"] for e in education)
 
     skills = result.data["skills"]
-    assert "Python" in skills["programming"]
-    assert "XGBoost" in skills["machine_learning"]
-    assert "GCP" in skills["cloud"]
+    assert "Python" in skills["lenguajes"]
+    assert "XGBoost" in skills["ml_frameworks"]
+    assert "GCP" in skills["big_data_cloud"]
+    assert "Causal Inference" in skills["metodologias"]
 
     pubs = result.data["publications"]
     assert len(pubs) == 2
@@ -100,3 +101,30 @@ def test_nested_itemize_does_not_leak_the_environment_name(tmp_path: Path) -> No
     assert any(text.rstrip().endswith("canales:") for text in bullets)
     # And the bullet after the nested list is not lost.
     assert any("Documenté el proceso" in text for text in bullets)
+
+
+def test_spanish_skill_section_labels_are_kept(tmp_path: Path) -> None:
+    """A Spanish CV must not be rewritten into English group keys on import."""
+    tex = tmp_path / "cv.tex"
+    tex.write_text(
+        r"""
+\documentclass{moderncv}
+\begin{document}
+\section{Habilidades}
+\cvitem{Lenguajes}{Python, SQL}
+\cvitem{ML Frameworks}{PyTorch}
+\cvitem{Big Data \& Cloud}{GCP}
+\cvitem{Metodologías}{Experimentación}
+\end{document}
+""",
+        encoding="utf-8",
+    )
+    result = import_latex_cv(tex)
+    skills = result.data["skills"]
+    assert "lenguajes" in skills
+    assert "programming" not in skills
+    assert "ml_frameworks" in skills
+    assert "machine_learning" not in skills
+    assert "big_data_cloud" in skills
+    assert "metodologias" in skills
+    assert "statistics" not in skills
