@@ -11,6 +11,7 @@ from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
 
 from jobbot.adapters.linkedin.sweep import (
+    dedupe_jobs_by_apply_target,
     looks_like_job_post,
     parse_post_blob,
     parse_posts_fixture,
@@ -232,7 +233,7 @@ class LinkedInPostJobSource:
             ):
                 continue
             jobs.append(post_to_job(post))
-        return jobs
+        return dedupe_jobs_by_apply_target(jobs)
 
     def search_live(self, query: JobSearchQuery) -> list[JobPosting]:
         """Open LinkedIn content search; user assists; scrape visible post texts."""
@@ -351,7 +352,7 @@ def collect_jobs_from_feed_page(
             )
             continue
         jobs.append(post_to_job(post))
-    return jobs
+    return dedupe_jobs_by_apply_target(jobs)
 
 
 def _permalink_from_card(card: Any) -> str | None:

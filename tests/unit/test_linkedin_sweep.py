@@ -712,3 +712,33 @@ def test_collect_jobs_keeps_the_search_url_out_of_the_description() -> None:
     assert "linkedin.com/in/" not in jobs[0].description
     assert "68 reacciones" not in jobs[0].description
     assert "Comentar" not in jobs[0].description
+
+
+def test_reposts_of_the_same_vacancy_collapse_to_one_job() -> None:
+    """Same mailto + title from different authors must not become several jobs."""
+    from jobbot.adapters.linkedin.sweep import dedupe_jobs_by_apply_target, parse_post_blob
+
+    first = parse_post_blob(
+        "Buscamos Analista de Datos en Santiago. Enviar CV a seleccion@empresa.cl",
+        author="Recruiter A",
+        post_url="https://www.linkedin.com/feed/update/urn:li:activity:100/",
+    )
+    second = parse_post_blob(
+        "Buscamos Analista de Datos en Santiago. Enviar CV a seleccion@empresa.cl",
+        author="Recruiter B",
+        post_url="https://www.linkedin.com/feed/update/urn:li:activity:200/",
+    )
+    other = parse_post_blob(
+        "Hiring Enfermera Clínica. Enviar CV a rrhh@clinica.cl",
+        author="Clínica",
+        post_url="https://www.linkedin.com/feed/update/urn:li:activity:300/",
+    )
+    jobs = dedupe_jobs_by_apply_target(
+        [post_to_job(first), post_to_job(second), post_to_job(other)]
+    )
+    assert len(jobs) == 2
+    mailtos = sorted(j.ats_url or "" for j in jobs)
+    assert mailtos == [
+        "mailto:rrhh@clinica.cl",
+        "mailto:seleccion@empresa.cl",
+    ]
