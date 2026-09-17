@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from jobbot.jobs.normalization import fold_text
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind, extract_http_urls, first_external_ats_url
@@ -235,6 +236,43 @@ def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobP
         ats_kind=post.ats_kind.value if post.ats_url else None,
         note=note,
     )
+
+
+def vacancy_dedupe_key(job: JobPosting) -> str | None:
+    """Same apply target + title ⇒ same vacancy, even when reposted by others."""
+    target = (job.ats_url or "").strip().casefold()
+    if not target:
+        return None
+    title = fold_text(job.title or "")
+    if not title:
+        return None
+    return f"{target}|{title}"
+
+
+def dedupe_jobs_by_apply_target(jobs: list[JobPosting]) -> list[JobPosting]:
+    """Keep the earliest (or first-seen) post per apply target + title."""
+    winners: dict[str, JobPosting] = {}
+    order: list[str] = []
+    passthrough: list[JobPosting] = []
+    for job in jobs:
+        key = vacancy_dedupe_key(job)
+        if key is None:
+            passthrough.append(job)
+            continue
+        existing = winners.get(key)
+        if existing is None:
+            winners[key] = job
+            order.append(key)
+            continue
+        # Prefer the older posting when both carry a real date.
+        if (
+            job.posted_at is not None
+            and existing.posted_at is not None
+            and job.posted_at < existing.posted_at
+        ):
+            winners[key] = job
+        # else keep existing (first-seen / older)
+    return [winners[key] for key in order] + passthrough
 
 
 def _guess_title(text: str) -> str | None:

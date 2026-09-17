@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-79 commands, 108 modules, 489 public symbols.
+79 commands, 108 modules, 491 public symbols.
 
 ## Commands
 
@@ -147,7 +147,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
 - `publications.py` — Playwright helpers for LinkedIn Publications (Spanish UI; HITL; no CAPTCHA bypass). · `profile_publications_new_url`, `profile_publications_details_url`, `vanity_from_linkedin_url`, `list_remote_publication_titles`, `open_new_publication_form`, `open_edit_publication_form`, `fill_publication_form`, `save_publication`
 - `selectors.py` — LinkedIn selector hints.
-- `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `LinkedInPostCandidate`, `posted_at_from_url`, `strip_engagement_chrome`, `strip_feed_chrome`, `looks_like_job_post`, `parse_post_blob`, `parse_posts_fixture`, `post_to_job`
+- `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `LinkedInPostCandidate`, `posted_at_from_url`, `strip_engagement_chrome`, `strip_feed_chrome`, `looks_like_job_post`, `parse_post_blob`, `parse_posts_fixture`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`
 
 ### `adapters/torre`
 
