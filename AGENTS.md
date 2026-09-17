@@ -278,10 +278,15 @@ make coverage   # unit suite + ≥80% line gate (see [tool.coverage] in pyprojec
 ```
 
 CI (`.github/workflows/ci.yml`) runs the same checks on `develop` / `main` and on PRs.
-A change is not delivered until its behaviour has a unit test; the coverage gate keeps the
-library modules honest. `cli.py` and live Playwright portal clients are omitted from the
-line count (they still have focused unit tests) so the gate measures offline, fixture-backed
-code.
+
+Branch gates:
+
+- **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%.
+- **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%.
+
+A change is not delivered until its behaviour has a unit test. `cli.py` and live
+Playwright portal clients are omitted from the line count (they still have focused
+unit tests) so the gate measures offline, fixture-backed code.
 ## Key commands
 
 ```bash
