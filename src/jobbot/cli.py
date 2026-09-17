@@ -1607,7 +1607,12 @@ def application_apply(
             status=ApplicationStatus.PREPARED,
             package_dir=str(app_dir),
         )
-        if yes or typer.confirm("Mark application as applied after you send?", default=False):
+        if yes:
+            console.print(
+                "[dim]Status stays prepared — --yes skips the applied prompt; "
+                "confirm after you actually send.[/dim]"
+            )
+        elif typer.confirm("Mark application as applied after you send?", default=False):
             ApplicationRepository(session).upsert_for_job(
                 job.id,
                 status=ApplicationStatus.APPLIED,
@@ -1681,7 +1686,12 @@ def application_apply(
     console.print(f"Prefill sheet: {cheat}")
     console.print("Submit manually after reviewing HITL fields.")
     _learn_form_from_apply(config, plan.ats_url, job.company)
-    if yes or typer.confirm("Mark application as applied?", default=False):
+    if yes:
+        console.print(
+            "[dim]Status stays prepared — --yes skips the applied prompt; "
+            "confirm after you actually submit.[/dim]"
+        )
+    elif typer.confirm("Mark application as applied?", default=False):
         ApplicationRepository(session).upsert_for_job(
             job.id,
             status=ApplicationStatus.APPLIED,
