@@ -274,8 +274,14 @@ uv sync --group dev
 uv run ruff check .
 uv run mypy src
 uv run pytest
+make coverage   # unit suite + ≥80% line gate (see [tool.coverage] in pyproject.toml)
 ```
 
+CI (`.github/workflows/ci.yml`) runs the same checks on `develop` / `main` and on PRs.
+A change is not delivered until its behaviour has a unit test; the coverage gate keeps the
+library modules honest. `cli.py` and live Playwright portal clients are omitted from the
+line count (they still have focused unit tests) so the gate measures offline, fixture-backed
+code.
 ## Key commands
 
 ```bash

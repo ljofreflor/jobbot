@@ -308,11 +308,15 @@ make install
 make lint
 make typecheck
 make test
+make coverage   # unit tests + ≥80% coverage gate
 # or:
 uv run ruff check .
 uv run mypy src
 uv run pytest
 ```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, types, unit tests and the coverage gate
+on pushes and PRs to `main` / `develop`.
 
 ### Before writing a new helper
 
