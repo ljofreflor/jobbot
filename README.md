@@ -316,7 +316,8 @@ uv run pytest
 ```
 
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, types, unit tests and the coverage gate
-on pushes and PRs to `main` / `develop`.
+on pushes and PRs to `main` / `develop`. Merging **`develop` → `main`** additionally requires
+at least **95%** of unit tests to pass (`jobbot.ops.test_gate`).
 
 ### Before writing a new helper
 

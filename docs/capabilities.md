@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-79 commands, 108 modules, 491 public symbols.
+79 commands, 109 modules, 495 public symbols.
 
 ## Commands
 
@@ -237,6 +237,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `pii_guard.py` — Block real PII from entering git (pre-commit guard). Local only, no network. · `Finding`, `is_blocked_path`, `is_allowed_content_path`, `scan_text`, `redact`, `staged_paths`, `staged_content`, `scan_staged`, `format_report`, `main`
 - `precommit.py` — Decide whether a commit has to run the unit suite. Local only, no network. · `tests_needed`, `staged_paths`, `main`
 - `redact.py` — Redact secrets and contact PII from failure payloads. · `redact_text`, `host_only_url`, `redact_context`
+- `test_gate.py` — CI gates for unit-test pass rate (develop→main requires ≥95%). · `pass_rate`, `read_junit_counts`, `enforce_pass_rate`, `main`
 
 ### `portals`
 

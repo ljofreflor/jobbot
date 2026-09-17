@@ -1,4 +1,4 @@
-.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities coverage
+.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities coverage coverage-main
 
 install:
 	uv sync --group dev
@@ -24,6 +24,10 @@ test:
 
 coverage:
 	uv run pytest tests/unit --cov=jobbot --cov-report=term-missing:skip-covered --cov-fail-under=80
+
+coverage-main:
+	uv run pytest tests/unit --junitxml=junit.xml --cov=jobbot --cov-report=term-missing:skip-covered --cov-fail-under=80
+	uv run python -m jobbot.ops.test_gate junit.xml --min-pass-rate 0.95
 
 lint:
 	uv run ruff check .
