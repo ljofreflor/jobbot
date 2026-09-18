@@ -287,6 +287,17 @@ Branch gates:
 A change is not delivered until its behaviour has a unit test. `cli.py` and live
 Playwright portal clients are omitted from the line count (they still have focused
 unit tests) so the gate measures offline, fixture-backed code.
+
+### CI failures (agent initiative + HITL)
+
+When a PR or push is open and CI fails, **do not stop at the red check**. Take initiative:
+
+1. **Inspect logs** with `gh` (`gh pr checks`, `gh run view … --log-failed`) — read enough to name the first failing step (ruff, mypy, pytest, coverage gate), not only the job name.
+2. **Reproduce locally** with the same Verify commands; fix the root cause; add a regression unit test when the failure is behavioural.
+3. **Keep the human in the loop:** report what failed and the proposed fix before merging, pushing to `main`, or closing issues. Ask before force-push, amend of shared history, or any change that touches PII / live portals. Ship the fix on a feature branch / PR; do not merge without confirmation.
+
+Mechanical lint (line length, import order) may be fixed and offered for commit without ceremony; anything that changes product behaviour still needs a clear summary and a go-ahead.
+
 ## Key commands
 
 ```bash

@@ -3365,7 +3365,12 @@ def browser_chrome_debug(
     import subprocess
 
     from jobbot.browser.cdp import cdp_http_url, chrome_debug_argv
-    from jobbot.browser.sessions import KNOWN_SITES, ProfileBusyError, ensure_profile_free, site_spec
+    from jobbot.browser.sessions import (
+        KNOWN_SITES,
+        ProfileBusyError,
+        ensure_profile_free,
+        site_spec,
+    )
 
     config = load_config()
     spec = site_spec(site)
