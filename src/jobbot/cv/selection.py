@@ -147,7 +147,10 @@ def _pad_selection_floor(
                 continue
             selected.append(SelectedAchievement(id=ach.id, reason=[_FLOOR_REASON]))
             selected_ids.add(ach.id)
-            if len(selected) >= _MIN_ACHIEVEMENTS and len({eid for eid in exp_ids}) >= _MIN_EXPERIENCES:
+            if (
+                len(selected) >= _MIN_ACHIEVEMENTS
+                and len({eid for eid in exp_ids}) >= _MIN_EXPERIENCES
+            ):
                 return
 
 

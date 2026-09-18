@@ -43,7 +43,10 @@ def test_chrome_debug_print_only_does_not_need_a_free_profile(
 
 
 def test_chrome_debug_launch_refuses_a_busy_profile(
-    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     from jobbot.browser.sessions import ensure_profile_free
     from jobbot.cli import run_cli

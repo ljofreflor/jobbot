@@ -287,6 +287,17 @@ Branch gates:
 A change is not delivered until its behaviour has a unit test. `cli.py` and live
 Playwright portal clients are omitted from the line count (they still have focused
 unit tests) so the gate measures offline, fixture-backed code.
+
+### CI failures (detect → fix)
+
+When CI is red on a PR or push you are working on, **resolve it** — do not stop at reporting the check name.
+
+1. **Read the failed logs** (`gh pr checks`, `gh run view <id> --log-failed`) until you know the first failing step and the concrete error (ruff/mypy/pytest/coverage).
+2. **Fix the root cause** locally with the same Verify commands; push the fix on the same feature branch (or open a follow-up PR into `develop` if the breakage is already merged). Add a regression unit test when the failure is behavioural.
+3. **HITL only where it matters:** ask before merging to `develop`/`main`, force-push, amending shared history, or anything that touches PII / live portals. The human does not need to approve reading logs or applying a mechanical lint/test fix.
+
+Default posture: red CI → logs → fix → green CI. Summarize what broke and what you changed after the fix is in.
+
 ## Key commands
 
 ```bash

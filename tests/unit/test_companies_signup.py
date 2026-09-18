@@ -138,4 +138,5 @@ def test_nothing_in_this_module_can_submit_anything() -> None:
         "webbrowser",
         "http",
     }
-    assert imported.isdisjoint(banned_imports), f"signup imports networking: {imported & banned_imports}"
+    overlap = imported & banned_imports
+    assert imported.isdisjoint(banned_imports), f"signup imports networking: {overlap}"
