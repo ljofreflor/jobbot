@@ -119,3 +119,33 @@ def test_undetectable_country_is_kept_even_without_remote_rescue() -> None:
 
 def test_remote_chilean_post_still_passes() -> None:
     assert country_allows("Data Scientist remoto, empresa en Santiago de Chile", wanted=("CL",))
+
+
+def test_normalize_country_uses_cldr_names_beyond_our_curated_list() -> None:
+    """Country names are locale data: babel knows the ones we never typed."""
+    assert normalize_country("Ecuador") == "EC"
+    assert normalize_country("ecuador") == "EC"
+    assert normalize_country("Bolivia") == "BO"
+    assert normalize_country("Estados Unidos") == "US"
+    assert normalize_country("United States") == "US"
+    assert normalize_country("Brasil") == "BR"
+    assert normalize_country("Brazil") == "BR"
+    assert normalize_country("españa") == "ES"
+    assert normalize_country("Spain") == "ES"
+
+
+def test_normalize_country_keeps_local_shorthands() -> None:
+    """CLDR has no 'EEUU'; local shorthands stay ours, on purpose."""
+    assert normalize_country("EEUU") == "US"
+    assert normalize_country("usa") == "US"
+    assert normalize_country("uk") == "GB"
+
+
+def test_normalize_country_is_accent_insensitive() -> None:
+    assert normalize_country("mexico") == normalize_country("México") == "MX"
+    assert normalize_country("peru") == normalize_country("Perú") == "PE"
+
+
+def test_normalize_country_rejects_words_that_are_not_countries() -> None:
+    assert normalize_country("remoto") is None
+    assert normalize_country("Santiago") is None

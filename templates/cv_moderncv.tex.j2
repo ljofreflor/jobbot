@@ -67,14 +67,14 @@
 {% endif %}
 
 {% if skills %}
-\section{Habilidades Técnicas}
+\section{Habilidades}
 {% for group, items in skills.items() %}
 \cvitem{ {{- group_label(group) | latex -}} }{ {{- items | map('latex') | join(', ') -}} }
 {% endfor %}
 {% endif %}
 
 {% if publications %}
-\section{Publicaciones Científicas}
+\section{Publicaciones}
 {% for pub in publications %}
 \cvitem{ {{- pub.year if pub.year else '' -}} }{{ '{' }}{% if pub.journal %}\textbf{ {{- pub.journal | latex -}} } – {% endif %}\emph{ {{- pub.title | latex -}} }{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %} \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% endif %}{{ '}' }}
 {% endfor %}

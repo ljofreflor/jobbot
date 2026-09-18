@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-import urllib.error
-import urllib.request
+from typing import Any
 from urllib.parse import urlparse
+
+import httpx
 
 logger = logging.getLogger("jobbot.portals.redirect")
 
@@ -13,40 +14,32 @@ _MAX_REDIRECTS = 8
 _USER_AGENT = "jobbot/0.1 (local; redirect resolve)"
 
 
+def _client(**kwargs: Any) -> httpx.Client:
+    """Seam for tests: httpx handles the redirect chain and relative locations."""
+    return httpx.Client(**kwargs)
+
+
 def follow_redirect_url(url: str, *, timeout: float = 15.0) -> str:
     """Return final URL after redirects; original URL on failure."""
     raw = url.strip()
     if not raw:
         return url
-    if not raw.startswith(("http://", "https://")):
-        raw = f"https://{raw}"
-    current = raw
-    for _ in range(_MAX_REDIRECTS):
-        req = urllib.request.Request(
-            current,
-            method="HEAD",
+    target = raw if raw.startswith(("http://", "https://")) else f"https://{raw}"
+    try:
+        with _client(
+            follow_redirects=True,
+            max_redirects=_MAX_REDIRECTS,
+            timeout=timeout,
             headers={"User-Agent": _USER_AGENT},
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
-                final = resp.geturl() or current
-        except urllib.error.HTTPError as exc:
-            if exc.code in {301, 302, 303, 307, 308} and exc.headers.get("Location"):
-                loc = exc.headers["Location"]
-                if loc.startswith("/"):
-                    parsed = urlparse(current)
-                    loc = f"{parsed.scheme}://{parsed.netloc}{loc}"
-                current = loc
-                continue
-            logger.debug("HEAD failed for %s: %s", current, exc)
-            return current
-        except OSError as exc:
-            logger.debug("Redirect resolve failed for %s: %s", current, exc)
-            return current
-        if final == current:
-            return final
-        current = final
-    return current
+        ) as client:
+            response = client.head(target)
+            # Plenty of ATS hosts answer HEAD with 405/501 but redirect fine on GET.
+            if response.status_code >= 400:
+                response = client.get(target)
+            return str(response.url)
+    except httpx.HTTPError as exc:
+        logger.debug("Redirect resolve failed for %s: %s", target, exc)
+        return target
 
 
 def expand_urls(urls: list[str]) -> list[str]:

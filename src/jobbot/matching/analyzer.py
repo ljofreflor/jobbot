@@ -3,25 +3,86 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Protocol
 
-from jobbot.jobs.normalization import normalize_skill
+from jobbot.jobs.normalization import fold_text, normalize_skill
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch, MatchItem, MatchStrength
 
-# Role family adjacency: same family = 1.0 cap, adjacent = 70, mismatch = 40.
-_ROLE_FAMILY_CAP: dict[tuple[str, str], float] = {
-    ("data_science", "data_eng"): 70.0,
-    ("data_eng", "data_science"): 70.0,
-    ("data_science", "ml_eng"): 85.0,
-    ("ml_eng", "data_science"): 85.0,
-    ("data_eng", "ml_eng"): 70.0,
-    ("ml_eng", "data_eng"): 70.0,
-}
+# A job whose posting names almost nothing cannot be a perfect fit, whatever it asks.
+_THIN_EVIDENCE_ITEMS = 3
+_THIN_EVIDENCE_CAP = 80.0
 
-_GENERIC_ONLY = {"python", "sql", "machine_learning"}
+# Requirement sentences are prose: only content words carry evidence.
+_STOPWORDS = frozenset(
+    {
+        "años",
+        "anos",
+        "para",
+        "con",
+        "como",
+        "experiencia",
+        "experience",
+        "conocimiento",
+        "conocimientos",
+        "manejo",
+        "titulo",
+        "deseable",
+        "excluyente",
+        "trabajo",
+        "equipo",
+        "equipos",
+        "afin",
+        "otros",
+        "otras",
+        "sobre",
+        "strong",
+        "comfortable",
+        "preferred",
+        "nice",
+        "have",
+        "with",
+        "and",
+        "the",
+        "role",
+        "senior",
+        "junior",
+        "semi",
+    }
+)
+
+_MAX_REQUIREMENT_CHARS = 140
+
+
+@dataclass(frozen=True)
+class _Vocabulary:
+    """What the profile actually claims: skill phrases plus their content words."""
+
+    phrases: dict[str, str]  # folded phrase → original wording
+    words: frozenset[str]
+    stems: frozenset[str]
+
+
+def _stem(word: str) -> str:
+    """'geofísico' and 'geofísica' are the same claim; so are 'proyecto'/'proyectos'.
+
+    A JD writes the masculine and the profile the feminine (or the reverse), and a
+    requirement was reported as missing over a single vowel. Long words only, so
+    short names ('sql', 'scrum') are never touched.
+    """
+    folded = fold_text(word)
+    if len(folded) < 6:
+        return folded
+    for suffix in ("es", "s"):
+        if folded.endswith(suffix) and len(folded) - len(suffix) >= 5:
+            folded = folded[: -len(suffix)]
+            break
+    if folded[-1] in "aoe" and len(folded) >= 6:
+        folded = folded[:-1]
+    return folded
 
 
 class JobAnalyzer(Protocol):
@@ -33,10 +94,12 @@ class RuleBasedJobAnalyzer:
 
     def analyze(self, candidate: Candidate, job: JobPosting) -> JobMatch:
         candidate_tokens = _candidate_tokens(candidate)
+        vocabulary = _candidate_vocabulary(candidate)
         items: list[MatchItem] = []
 
-        required = _job_requirement_tokens(job)
-        for token, label in required:
+        required = _job_requirements(job)
+        for token, label, text in required:
+            evidence = _requirement_evidence(text, vocabulary)
             if token in candidate_tokens:
                 items.append(
                     MatchItem(
@@ -45,6 +108,9 @@ class RuleBasedJobAnalyzer:
                         detail="present in profile",
                     )
                 )
+            elif evidence is not None:
+                strength, detail = evidence
+                items.append(MatchItem(label=label, strength=strength, detail=detail))
             elif _partial_token(token, candidate_tokens):
                 items.append(
                     MatchItem(
@@ -78,7 +144,7 @@ class RuleBasedJobAnalyzer:
         if job.seniority:
             items.append(_seniority_item(candidate, job.seniority))
 
-        score = _score(items, role_cap=role_cap, required_tokens={t for t, _ in required})
+        score = _score(items, role_cap=role_cap, required_tokens={t for t, _, _ in required})
         return JobMatch(job_id=job.id, score=score, items=items)
 
 
@@ -105,76 +171,103 @@ def _candidate_tokens(candidate: Candidate) -> set[str]:
     return {t for t in tokens if t}
 
 
-def _job_requirement_tokens(job: JobPosting) -> list[tuple[str, str]]:
-    pairs: list[tuple[str, str]] = []
+def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
+    """(token, label, full text) per requirement; long Spanish lines stay in."""
+    pairs: list[tuple[str, str, str]] = []
     seen: set[str] = set()
     for skill in job.skills:
         token = normalize_skill(skill)
         if token and token not in seen:
             seen.add(token)
-            pairs.append((token, skill))
+            pairs.append((token, skill, skill))
     for req in job.requirements:
         if re.search(r"(?i)\b(english|spanish|idioma|language|proficiency)\b", req):
             continue
         token = normalize_skill(req)
-        if token and token not in seen and _looks_like_skill_token(token, req):
+        if token and token not in seen and len(req) <= _MAX_REQUIREMENT_CHARS:
             seen.add(token)
-            pairs.append((token, req[:80]))
+            pairs.append((token, req[:80], req))
     blob = f"{job.title}\n{job.description}\n{job.raw_description}"
     if len(pairs) < 3:
         for hint in extract_skills_from_text(blob):
             token = normalize_skill(hint)
             if token and token not in seen:
                 seen.add(token)
-                pairs.append((token, hint))
+                pairs.append((token, hint, hint))
     return pairs
 
 
-def _looks_like_skill_token(token: str, original: str) -> bool:
-    if len(original) > 60:
-        return False
-    # Known canonicals contain underscore or are short
-    return "_" in token or len(token) <= 20
+def _candidate_vocabulary(candidate: Candidate) -> _Vocabulary:
+    """Skills, specialties, titles and degrees: what the profile literally claims."""
+    phrases: dict[str, str] = {}
+    for claim in (
+        *candidate.skills.all_skills(),
+        *candidate.specialties,
+        *(exp.title for exp in candidate.experience),
+        *(edu.degree for edu in candidate.education),
+    ):
+        folded = fold_text(claim)
+        if len(folded) >= 3:
+            phrases.setdefault(folded, claim)
+
+    words = {
+        word
+        for folded in phrases
+        for word in folded.split()
+        if len(word) >= 4 and word not in _STOPWORDS
+    }
+    return _Vocabulary(
+        phrases=phrases,
+        words=frozenset(words),
+        stems=frozenset(_stem(word) for word in words),
+    )
+
+
+def _requirement_evidence(
+    requirement: str,
+    vocabulary: _Vocabulary,
+) -> tuple[MatchStrength, str] | None:
+    """Match a requirement sentence against the profile's own wording."""
+    folded = fold_text(requirement)
+    if not folded:
+        return None
+
+    for phrase, original in vocabulary.phrases.items():
+        if re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", folded):
+            return MatchStrength.STRONG, f"profile claims {original}"
+
+    content = [word for word in folded.split() if len(word) >= 4 and word not in _STOPWORDS]
+    hits = sorted({word for word in content if word in vocabulary.words})
+    variants = sorted(
+        {word for word in content if word not in hits and _stem(word) in vocabulary.stems}
+    )
+
+    if len(hits) >= 2:
+        return MatchStrength.STRONG, f"profile wording: {', '.join(hits)}"
+    if hits and variants:
+        return MatchStrength.STRONG, f"profile wording: {', '.join([*hits, *variants])}"
+    if hits:
+        return MatchStrength.PARTIAL, f"profile wording: {hits[0]}"
+    if variants:
+        return MatchStrength.PARTIAL, f"profile wording (variant): {variants[0]}"
+    return None
 
 
 def _keyword_candidates(text: str) -> set[str]:
-    words = set()
-    lower = text.lower()
-    for phrase in (
-        "machine learning",
-        "causal inference",
-        "share of wallet",
-        "customer analytics",
-        "a/b testing",
-        "experimentation",
-        "bigquery",
-        "feature store",
-        "genai",
-        "llm",
-        "fintech",
-        "retail",
-        "marketplace",
-        "bayesian",
-        "mlops",
-        "python",
-        "pytorch",
-        "xgboost",
-    ):
-        if phrase in lower:
-            words.add(normalize_skill(phrase))
-    return words
+    """Content words of the candidate's own prose — no vocabulary to belong to."""
+    return {
+        word
+        for word in fold_text(text).split()
+        if len(word) >= 4 and word not in _STOPWORDS
+    }
 
 
 def _partial_token(token: str, candidate_tokens: set[str]) -> bool:
-    related = {
-        "gcp": {"aws", "azure", "cloud"},
-        "aws": {"gcp", "azure", "cloud"},
-        "azure": {"gcp", "aws", "cloud"},
-        "pytorch": {"tensorflow", "deep_learning", "machine_learning"},
-        "tensorflow": {"pytorch", "deep_learning", "machine_learning"},
-        "xgboost": {"machine_learning", "scikit_learn"},
-    }
-    return any(alt in candidate_tokens for alt in related.get(token, set()))
+    """A requirement is partially met when the profile names part of that phrase."""
+    words = [word for word in token.split("_") if len(word) >= 4 and word not in _STOPWORDS]
+    if not words:
+        return False
+    return any(word in candidate_tokens for word in words)
 
 
 def _seniority_item(candidate: Candidate, required: str) -> MatchItem:
@@ -201,78 +294,65 @@ def _seniority_item(candidate: Candidate, required: str) -> MatchItem:
     )
 
 
-def _role_family(title: str) -> str:
-    t = title.casefold()
-    if any(k in t for k in ("product manager", "product owner", " project manager")):
-        return "product"
-    if any(k in t for k in ("frontend", "react", "typescript", "backend", "software engineer")):
-        return "software"
-    if any(k in t for k in ("data engineer", "analytics engineer", "ingeniero de datos")):
-        return "data_eng"
-    if any(
-        k in t
-        for k in (
-            "ml engineer",
-            "machine learning engineer",
-            "mle",
-            "ingeniero ml",
-        )
-    ):
-        return "ml_eng"
-    if any(
-        k in t
-        for k in (
-            "data scientist",
-            "applied scientist",
-            "research scientist",
-            "científico de datos",
-            "cientifico de datos",
-            "ia engineer",
-            "ai engineer",
-        )
-    ):
-        return "data_science"
-    if any(k in t for k in ("head of", "director", "vp ")):
-        return "leadership"
-    return "other"
-
-
-def _candidate_role_family(candidate: Candidate) -> str:
-    titles = " ".join(e.title for e in candidate.experience)
-    if candidate.personal.headline:
-        titles = f"{candidate.personal.headline} {titles}"
-    fam = _role_family(titles)
-    return fam if fam != "other" else "data_science"
-
-
 def _role_family_item(candidate: Candidate, job: JobPosting) -> tuple[MatchItem, float | None]:
-    cand_fam = _candidate_role_family(candidate)
-    job_fam = _role_family(job.title)
+    """Compare the job title with the titles the candidate has actually held.
+
+    A table of role families only knows the families someone wrote down, and a
+    candidate whose field is missing from it gets judged by a family they never
+    claimed. The titles in the profile are the only evidence there is.
+    """
     label = f"role:{job.title}"
-    if job_fam == cand_fam:
+    held = _title_words(
+        *(exp.title for exp in candidate.experience),
+        candidate.personal.headline or "",
+    )
+    wanted = _title_words(job.title)
+    shared = sorted(held & wanted)
+
+    if len(shared) >= 2:
         return (
-            MatchItem(label=label, strength=MatchStrength.STRONG, detail=f"family={job_fam}"),
+            MatchItem(
+                label=label,
+                strength=MatchStrength.STRONG,
+                detail=f"held titles share: {', '.join(shared)}",
+            ),
             None,
         )
-    if job_fam == "other":
+    if len(shared) == 1:
+        return (
+            MatchItem(
+                label=label,
+                strength=MatchStrength.PARTIAL,
+                detail=f"held titles share: {shared[0]}",
+            ),
+            70.0,
+        )
+    if not wanted:
         return (
             MatchItem(
                 label=label,
                 strength=MatchStrength.UNKNOWN,
-                detail="could not classify job title family",
+                detail="job title carries no comparable words",
             ),
             None,
         )
-    cap = _ROLE_FAMILY_CAP.get((cand_fam, job_fam), 40.0)
-    strength = MatchStrength.PARTIAL if cap >= 70 else MatchStrength.MISSING
     return (
         MatchItem(
             label=label,
-            strength=strength,
-            detail=f"candidate={cand_fam} job={job_fam}",
+            strength=MatchStrength.MISSING,
+            detail="job title does not match any title in the profile",
         ),
-        cap,
+        40.0,
     )
+
+
+def _title_words(*titles: str) -> set[str]:
+    return {
+        word
+        for title in titles
+        for word in fold_text(title).split()
+        if len(word) >= 4 and word not in _STOPWORDS
+    }
 
 
 def _score(
@@ -293,10 +373,9 @@ def _score(
             points += 0.5
         # missing contributes 0
     score = 100.0 * points / len(relevant)
-    # Generic-only JD (Python/SQL/ML) must not look like a perfect fit.
-    skill_tokens = required_tokens - {""}
-    if skill_tokens and skill_tokens <= _GENERIC_ONLY and score > 80:
-        score = 80.0
+    # A posting that names almost nothing is thin evidence, not a perfect fit.
+    if len(required_tokens - {""}) < _THIN_EVIDENCE_ITEMS:
+        score = min(score, _THIN_EVIDENCE_CAP)
     if role_cap is not None:
         score = min(score, role_cap)
     return round(score, 1)

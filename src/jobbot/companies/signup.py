@@ -1,0 +1,160 @@
+"""Prepare a portal registration for the candidate to complete themselves.
+
+Creating an account is the candidate's act: it accepts terms, sets a credential and
+starts a relationship with an employer. So this module only assembles what the
+portal will ask and what the profile already answers. It has no writer, no browser
+driver and no HTTP client, which is what makes the guarantee checkable rather than
+promised.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+from jobbot.companies.models import CareerSite
+from jobbot.models.candidate import Candidate
+from jobbot.portals.detect import AtsKind
+from jobbot.portals.form_learn import FieldKind, FormKnowledge
+
+
+class AccountNeed(StrEnum):
+    """Whether this portal makes you register before applying."""
+
+    NEEDED = "needed"
+    NOT_NEEDED = "not_needed"
+    UNKNOWN = "unknown"
+
+
+# What each platform requires, by how it works — not by how it looks.
+_ACCOUNT_BY_ATS: dict[AtsKind, AccountNeed] = {
+    AtsKind.GREENHOUSE: AccountNeed.NOT_NEEDED,
+    AtsKind.LEVER: AccountNeed.NOT_NEEDED,
+    AtsKind.ASHBY: AccountNeed.NOT_NEEDED,
+    AtsKind.WORKDAY: AccountNeed.NEEDED,
+    AtsKind.SUCCESSFACTORS: AccountNeed.NEEDED,
+    AtsKind.ORACLE: AccountNeed.NEEDED,
+    AtsKind.TEAMTAILOR: AccountNeed.NOT_NEEDED,
+}
+
+_NOTES: dict[AccountNeed, str] = {
+    AccountNeed.NOT_NEEDED: (
+        "No account needed: this platform takes the application directly. "
+        "Open it and apply."
+    ),
+    AccountNeed.NEEDED: (
+        "This platform keeps a candidate profile, so it will ask you to register. "
+        "JobBot fills nothing and creates nothing: you type the password."
+    ),
+    AccountNeed.UNKNOWN: (
+        "Unknown whether it needs an account. Open the portal and look for "
+        "'Crear cuenta' / 'Sign up'; nothing is assumed here."
+    ),
+}
+
+
+@dataclass(frozen=True)
+class SignupTarget:
+    """Where to register, and how sure we are that registering is even required."""
+
+    url: str
+    need: AccountNeed
+    note: str
+
+
+@dataclass(frozen=True)
+class SignupItem:
+    """One thing the portal will ask, next to what the profile already answers."""
+
+    label: str
+    value: str
+    source: str
+
+    @property
+    def yours_to_decide(self) -> bool:
+        """No fact in the profile answers this, so nobody may fill it but you."""
+        return not self.value
+
+
+def signup_target(site: CareerSite) -> SignupTarget:
+    need = _ACCOUNT_BY_ATS.get(site.ats, AccountNeed.UNKNOWN)
+    return SignupTarget(url=site.url, need=need, note=_NOTES[need])
+
+
+def signup_sheet(
+    candidate: Candidate,
+    *,
+    form: FormKnowledge | None = None,
+) -> list[SignupItem]:
+    """What to have at hand, from the profile. A password is never among it.
+
+    With a form already observed, the sheet is that form's own questions; without
+    one it is the set every portal asks. Either way a question the profile cannot
+    answer is handed back empty, never filled with something plausible.
+    """
+    answers = _profile_answers(candidate)
+    if form is not None and form.readable:
+        return [_item_for(field.label, answers) for field in form.fields]
+    return [_item_for(label, answers) for label in _USUAL_FIELDS]
+
+
+def screening_to_prepare(form: FormKnowledge | None) -> list[str]:
+    """The questions no profile can answer: yours to decide before you start."""
+    if form is None or not form.readable:
+        return []
+    return [
+        field.label
+        for field in form.fields
+        if field.is_screening and field.kind is not FieldKind.CHECKBOX
+    ]
+
+
+# The fields portals ask for before showing you a single job.
+_USUAL_FIELDS: tuple[str, ...] = (
+    "Full name",
+    "Email",
+    "Phone",
+    "City",
+    "Country",
+    "Current role",
+    "LinkedIn",
+    "Resume/CV",
+)
+
+
+def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
+    """label (folded) → (value, where in the profile it comes from)."""
+    personal = candidate.personal
+    pairs: dict[str, tuple[str, str]] = {}
+
+    def put(label: str, value: object, source: str) -> None:
+        text = str(value or "").strip()
+        if text:
+            pairs[label.casefold()] = (text, source)
+
+    put("full name", personal.name, "personal.name")
+    put("name", personal.name, "personal.name")
+    if personal.name:
+        parts = personal.name.split(None, 1)
+        put("first name", parts[0], "personal.name")
+        if len(parts) > 1:
+            put("last name", parts[1], "personal.name")
+    put("email", personal.email, "personal.email")
+    put("phone", personal.phone, "personal.phone")
+    put("city", personal.city, "personal.city")
+    put("country", personal.country, "personal.country")
+    put("location", personal.location_line(), "personal.city + country")
+    put("current role", personal.headline, "personal.headline")
+    put("headline", personal.headline, "personal.headline")
+    put("linkedin", personal.linkedin, "personal.linkedin")
+    put("linkedin profile", personal.linkedin, "personal.linkedin")
+    put("github", personal.github, "personal.github")
+    put("resume/cv", "output/base/cv.pdf", "cv build")
+    put("resume", "output/base/cv.pdf", "cv build")
+    put("cv", "output/base/cv.pdf", "cv build")
+    return pairs
+
+
+def _item_for(label: str, answers: dict[str, tuple[str, str]]) -> SignupItem:
+    value, source = answers.get(label.casefold(), ("", "you decide: not a fact in the profile"))
+    return SignupItem(label=label, value=value, source=source)

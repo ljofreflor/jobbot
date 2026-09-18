@@ -1,0 +1,25 @@
+JORGE PRADO VEGA 
++56 9 00000002 
+jorge.prado@example.com 
+PROFILE  
+Statistician with 15+ years of experience in risk models and analytics. 
+SUMMARY  OF SKILLS  
+• Development, validation and monitoring of scoring models 
+• Knowledge in SQL, Python and R 
+EDUCATION  
+M.S., Data Mining 2010 – 2011 
+Austral University, Buenos Aires, Argentina 
+PROFESSIONAL  EXPERIENCE  
+2022 to 
+present 
+Northbank, Toronto, Canada 
+Model and Data Risk Management 
+Manager, Provisioning and Data Science 
+• Design, development and calibration of provisioning models. 
+• Responsible for the monitoring process of risk models. 
+2020 to 
+2022 
+Southbank, Santiago of Chile, Chile 
+Risk Management 
+Director, Modelling and Provisions 
+• Design, development and monitoring of scoring models. 

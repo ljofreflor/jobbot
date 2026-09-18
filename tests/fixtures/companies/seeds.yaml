@@ -1,0 +1,14 @@
+# Oneshot seed list used by unit tests (offline; fake fetcher).
+companies:
+  - name: Empresa Portal Propio
+    country: CL
+    sector: retail
+    domain: empresa.cl
+  - name: Empresa Redirige A ATS
+    country: CL
+    sector: technology
+    domain: empresa-redirige.cl
+  - name: Empresa Sin Portal
+    country: CL
+    sector: insurance
+    domain: sin-portal.cl

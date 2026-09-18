@@ -1,0 +1,151 @@
+# Seed list for the one-shot career-portal discovery (public company identity only).
+#
+#   uv run jobbot companies discover data/companies-cl.example.yaml
+#
+# Only name + official domain + sector are asserted here. Career URLs are NOT listed:
+# the oneshot probes public paths and records whatever it can actually verify.
+# Use career_url_hints only when you already know a public career URL.
+companies:
+  # ── banca ────────────────────────────────────────────────────────────────
+  - name: Banco de Chile
+    country: CL
+    sector: banking
+    domain: bancochile.cl
+  - name: BCI
+    country: CL
+    sector: banking
+    domain: bci.cl
+  - name: Banco Santander Chile
+    country: CL
+    sector: banking
+    domain: santander.cl
+  - name: BancoEstado
+    country: CL
+    sector: banking
+    domain: bancoestado.cl
+  - name: Itaú Chile
+    country: CL
+    sector: banking
+    domain: itau.cl
+  - name: Scotiabank Chile
+    country: CL
+    sector: banking
+    domain: scotiabank.cl
+
+  # ── retail ───────────────────────────────────────────────────────────────
+  - name: Falabella
+    country: CL
+    sector: retail
+    domain: falabella.com
+  - name: Cencosud
+    country: CL
+    sector: retail
+    domain: cencosud.com
+  - name: Ripley
+    country: CL
+    sector: retail
+    domain: ripley.cl
+  - name: Walmart Chile
+    country: CL
+    sector: retail
+    domain: walmartchile.cl
+  - name: SMU
+    country: CL
+    sector: retail
+    domain: smu.cl
+  - name: Sodimac
+    country: CL
+    sector: retail
+    domain: sodimac.cl
+
+  # ── telecomunicaciones ───────────────────────────────────────────────────
+  - name: Entel
+    country: CL
+    sector: telecom
+    domain: entel.cl
+  - name: Movistar Chile
+    country: CL
+    sector: telecom
+    domain: movistar.cl
+  - name: Claro Chile
+    country: CL
+    sector: telecom
+    domain: clarochile.cl
+  - name: WOM
+    country: CL
+    sector: telecom
+    domain: wom.cl
+  - name: VTR
+    country: CL
+    sector: telecom
+    domain: vtr.cl
+
+  # ── minería ──────────────────────────────────────────────────────────────
+  - name: Codelco
+    country: CL
+    sector: mining
+    domain: codelco.com
+  - name: Antofagasta Minerals
+    country: CL
+    sector: mining
+    domain: aminerals.cl
+  - name: BHP
+    country: CL
+    sector: mining
+    domain: bhp.com
+  - name: Collahuasi
+    country: CL
+    sector: mining
+    domain: collahuasi.cl
+  - name: SQM
+    country: CL
+    sector: mining
+    domain: sqm.com
+  - name: Anglo American
+    country: CL
+    sector: mining
+    domain: angloamerican.com
+
+  # ── tecnología ───────────────────────────────────────────────────────────
+  - name: Mercado Libre Chile
+    country: CL
+    sector: technology
+    domain: mercadolibre.com
+  - name: NotCo
+    country: CL
+    sector: technology
+    domain: notco.com
+  - name: Betterfly
+    country: CL
+    sector: technology
+    domain: betterfly.com
+  - name: Fintual
+    country: CL
+    sector: technology
+    domain: fintual.cl
+  - name: Buk
+    country: CL
+    sector: technology
+    domain: buk.cl
+
+  # ── seguros ──────────────────────────────────────────────────────────────
+  - name: Consorcio
+    country: CL
+    sector: insurance
+    domain: consorcio.cl
+  - name: Seguros SURA Chile
+    country: CL
+    sector: insurance
+    domain: segurossura.cl
+  - name: MetLife Chile
+    country: CL
+    sector: insurance
+    domain: metlife.cl
+  - name: BICE Vida
+    country: CL
+    sector: insurance
+    domain: bicevida.cl
+  - name: Zurich Chile
+    country: CL
+    sector: insurance
+    domain: zurich.cl

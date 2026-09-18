@@ -3,37 +3,41 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Sequence
+from functools import lru_cache
+
+from babel import Locale
 
 DEFAULT_COUNTRIES: tuple[str, ...] = ("CL",)
 
-# Country names / codes accepted in config and CLI.
-_COUNTRY_ALIASES: dict[str, str] = {
-    "cl": "CL",
-    "chile": "CL",
-    "ar": "AR",
-    "argentina": "AR",
-    "pe": "PE",
-    "peru": "PE",
-    "perú": "PE",
-    "mx": "MX",
-    "mexico": "MX",
-    "méxico": "MX",
-    "co": "CO",
-    "colombia": "CO",
-    "br": "BR",
-    "brasil": "BR",
-    "brazil": "BR",
-    "uy": "UY",
-    "uruguay": "UY",
-    "es": "ES",
-    "espana": "ES",
-    "españa": "ES",
-    "spain": "ES",
-    "us": "US",
+# Local shorthands CLDR does not carry.
+_EXTRA_ALIASES: dict[str, str] = {
     "usa": "US",
     "eeuu": "US",
+    "ee uu": "US",
+    "uk": "GB",
 }
+
+
+def _fold(text: str) -> str:
+    """Case- and accent-insensitive key: 'México' and 'mexico' must match."""
+    stripped = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in stripped if not unicodedata.combining(ch)).casefold().strip()
+
+
+@lru_cache(maxsize=1)
+def _country_aliases() -> dict[str, str]:
+    """Country names in Spanish and English come from CLDR, not from a literal here."""
+    aliases: dict[str, str] = {}
+    for locale in ("es", "en"):
+        for code, name in Locale(locale).territories.items():
+            if len(code) != 2 or not code.isalpha():
+                continue  # numeric CLDR regions ('419' = Latin America) are not countries
+            aliases.setdefault(_fold(name), code)
+            aliases.setdefault(code.casefold(), code)
+    aliases.update(_EXTRA_ALIASES)
+    return aliases
 
 # Markers that tie a posting to one country: cities, currencies, demonyms.
 _COUNTRY_MARKERS: dict[str, tuple[str, ...]] = {
@@ -107,15 +111,24 @@ _WORD_RE = re.compile(r"[a-záéíóúñü]+", re.IGNORECASE)
 
 
 def normalize_country(value: str | None) -> str | None:
-    """Accept 'cl', 'CL', 'Chile' → 'CL'."""
+    """Accept 'cl', 'CL', 'Chile', 'México', 'Ecuador' → ISO code."""
     if not value:
         return None
-    key = str(value).strip().casefold()
-    if key in _COUNTRY_ALIASES:
-        return _COUNTRY_ALIASES[key]
-    if len(key) == 2:
+    key = _fold(str(value))
+    code = _country_aliases().get(key)
+    if code:
+        return code
+    if len(key) == 2 and key.isalpha():
         return key.upper()
     return None
+
+
+def country_name(code: str | None, *, locale: str = "es") -> str | None:
+    """'CL' → 'Chile'; the display name comes from CLDR, not from a literal here."""
+    if not code:
+        return None
+    name = Locale(locale).territories.get(code.upper())
+    return str(name) if name else None
 
 
 def normalize_countries(values: Sequence[str] | None) -> tuple[str, ...]:

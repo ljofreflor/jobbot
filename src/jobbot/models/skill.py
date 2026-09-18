@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 from pydantic import BaseModel, Field
 
 
@@ -45,6 +47,12 @@ class SkillGroups(BaseModel):
         return [values for _, values in self._groups()]
 
 
+def _name_tokens(name: str) -> set[str]:
+    folded = unicodedata.normalize("NFKD", name.casefold())
+    ascii_name = "".join(c for c in folded if not unicodedata.combining(c))
+    return {token for token in ascii_name.replace(",", " ").split() if len(token) > 2}
+
+
 class Publication(BaseModel):
     id: str = Field(min_length=1)
     title: str = Field(min_length=1)
@@ -55,14 +63,14 @@ class Publication(BaseModel):
     authors: list[str] = Field(default_factory=list)
 
     def coauthors(self, self_name: str) -> list[str]:
-        """Authors excluding the candidate (token overlap + Jofré surname)."""
-        me = self_name.casefold()
-        me_tokens = {t for t in me.replace(",", " ").split() if len(t) > 2}
-        out: list[str] = []
-        for author in self.authors:
-            a = author.casefold()
-            a_tokens = {t for t in a.replace(",", " ").split() if len(t) > 2}
-            if me_tokens & a_tokens and ("jofr" in a or "jofre" in a):
-                continue
-            out.append(author)
-        return out
+        """Authors excluding the candidate, by overlap with their own name.
+
+        Two shared name parts identify the candidate ('Jofré Flor, L.' vs the full
+        name); one shared part is a namesake ('Leonardo Pérez') and stays.
+        """
+        me_tokens = _name_tokens(self_name)
+        return [
+            author
+            for author in self.authors
+            if len(me_tokens & _name_tokens(author)) < 2
+        ]

@@ -268,7 +268,10 @@ def _location(attrs: dict[str, Any]) -> str | None:
 def _strip_html(html: str) -> str:
     text = re.sub(r"<br\s*/?>", "\n", html, flags=re.I)
     text = re.sub(r"</p>", "\n", text, flags=re.I)
-    text = re.sub(r"<li>", "- ", text, flags=re.I)
+    # Without the newline the items glue together ('Python- Español') and the list
+    # structure — the only thing that says 'these are separate requirements' — is lost.
+    text = re.sub(r"<li[^>]*>", "\n- ", text, flags=re.I)
+    text = re.sub(r"</li>", "\n", text, flags=re.I)
     text = re.sub(r"<[^>]+>", "", text)
     text = re.sub(r"&nbsp;", " ", text)
     text = re.sub(r"&amp;", "&", text)

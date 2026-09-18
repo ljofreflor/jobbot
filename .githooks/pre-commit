@@ -1,12 +1,36 @@
 #!/bin/sh
-# JobBot PII guard — blocks real candidate data from entering git.
-# Enable once per clone:  git config core.hooksPath .githooks
+# JobBot pre-commit: PII guard + unit tests.
+# Enable once per clone:  make hooks   (git config core.hooksPath .githooks)
+# Escape hatches:         JOBBOT_SKIP_TESTS=1 git commit …   |   git commit --no-verify
 set -e
 
 ROOT="$(git rev-parse --show-toplevel)"
 
-if command -v uv >/dev/null 2>&1; then
-	uv run --project "$ROOT" python -m jobbot.ops.pii_guard
-else
-	PYTHONPATH="$ROOT/src" python3 -m jobbot.ops.pii_guard
+run_py() {
+	if command -v uv >/dev/null 2>&1; then
+		uv run --project "$ROOT" "$@"
+	else
+		PYTHONPATH="$ROOT/src" python3 "$@"
+	fi
+}
+
+# 1. Never let real candidate data into git.
+run_py python -m jobbot.ops.pii_guard
+
+# 2. Unit tests, but only when this commit can break them.
+if [ -n "$JOBBOT_SKIP_TESTS" ]; then
+	echo "pre-commit: tests skipped (JOBBOT_SKIP_TESTS set)"
+	exit 0
 fi
+
+# The list of paths that matter lives in one place, and it is unit-tested.
+if ! run_py python -m jobbot.ops.precommit; then
+	echo "pre-commit: nothing behavioural staged, skipping tests"
+	exit 0
+fi
+
+# Note: tests run against the working tree, not the staged snapshot. Stashing to
+# isolate the index can lose work when a hook fails, and a partial commit is the
+# rare case; the guard above is the one that must never be bypassed.
+echo "pre-commit: running unit tests…"
+run_py pytest -q -x

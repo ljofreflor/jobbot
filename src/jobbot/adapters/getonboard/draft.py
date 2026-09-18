@@ -20,7 +20,7 @@ EXPERIENCE_MAX = 2000
 EDUCATION_MIN = 100
 EDUCATION_MAX = 2000
 
-JOBBOT_SIGNATURE = "powered by AI jobbot de Leonardo Jofré"
+JOBBOT_SIGNATURE = "powered by JobBot"
 
 
 @dataclass(frozen=True)
@@ -217,21 +217,15 @@ def load_permanent_profile(root_output: Path) -> PermanentProfileFields | None:
 
 def _draft_experience(candidate: Candidate) -> str:
     paragraphs: list[str] = []
-    if candidate.summary:
-        # Lead with summary, but leave room for recent roles (GoB 2000-char cap).
-        summary = candidate.summary.strip()
-        if len(summary) > 550:
-            summary = summary[:549].rsplit(" ", 1)[0]
-        paragraphs.append(summary)
 
-    # Prefer current + prior senior DS roles (facts only).
+    # The two most recent roles (facts only).
     for exp in candidate.experience[:2]:
         end = "actualidad" if exp.current else (exp.end_date or "")
         period = ""
         if exp.start_date:
             period = f" ({exp.start_date}–{end})" if end else f" ({exp.start_date})"
         head = f"{exp.title} en {exp.company}{period}."
-        # One achievement each keeps Thoughtworks + Mercado Libre under GoB cap.
+        # One achievement per role keeps two roles under the GoB character cap.
         achs = [a.text.strip() for a in exp.achievements[:1] if a.text.strip()]
         if achs:
             paragraphs.append(f"{head} {' '.join(achs)}")
@@ -242,30 +236,46 @@ def _draft_experience(candidate: Candidate) -> str:
 
     skills = candidate.skills.all_skills()
     if skills:
-        core = [
-            s
-            for s in skills
-            if s.casefold()
-            in {
-                "python",
-                "sql",
-                "r",
-                "bigquery",
-                "gcp",
-                "causal inference",
-                "estadística bayesiana",
-                "ab testing",
-                "uplift modeling",
-                "mlops",
-                "llms",
-            }
-            or "causal" in s.casefold()
-            or "bayes" in s.casefold()
-        ]
-        shown = core[:8] if core else skills[:8]
+        # Which skills matter is a question only this profile can answer: the ones
+        # its own headline, summary and achievements already talk about come first.
+        emphasis = " ".join(
+            [
+                candidate.personal.headline or "",
+                candidate.summary or "",
+                *(
+                    f"{exp.title} {exp.description or ''} "
+                    + " ".join(a.text for a in exp.achievements)
+                    for exp in candidate.experience
+                ),
+                *candidate.specialties,
+            ]
+        ).casefold()
+        highlighted = [skill for skill in skills if skill.casefold() in emphasis]
+        shown = (highlighted + [s for s in skills if s not in highlighted])[:8]
         paragraphs.append("Stack habitual: " + ", ".join(shown) + ".")
 
+    if candidate.summary:
+        # The summary leads, but the roles own their space: it gets what is left of
+        # the GoB cap, cut on a sentence so the portal never shows a dangling clause.
+        room = EXPERIENCE_MAX - len("\n\n".join(paragraphs)) - 2
+        summary = _sentence_prefix(candidate.summary.strip(), room)
+        if summary:
+            paragraphs.insert(0, summary)
+
     return "\n\n".join(paragraphs).strip()
+
+
+def _sentence_prefix(text: str, maximum: int) -> str:
+    """Longest prefix of whole sentences that fits, '' when not even one does."""
+    if maximum <= 0:
+        return ""
+    if len(text) <= maximum:
+        return text
+    window = text[:maximum]
+    cut = max(window.rfind(". "), window.rfind(".\n"))
+    if cut > 0:
+        return window[: cut + 1]
+    return window if window.endswith(".") else ""
 
 
 def _draft_education(candidate: Candidate) -> str:
