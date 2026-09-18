@@ -288,15 +288,15 @@ A change is not delivered until its behaviour has a unit test. `cli.py` and live
 Playwright portal clients are omitted from the line count (they still have focused
 unit tests) so the gate measures offline, fixture-backed code.
 
-### CI failures (agent initiative + HITL)
+### CI failures (detect → fix)
 
-When a PR or push is open and CI fails, **do not stop at the red check**. Take initiative:
+When CI is red on a PR or push you are working on, **resolve it** — do not stop at reporting the check name.
 
-1. **Inspect logs** with `gh` (`gh pr checks`, `gh run view … --log-failed`) — read enough to name the first failing step (ruff, mypy, pytest, coverage gate), not only the job name.
-2. **Reproduce locally** with the same Verify commands; fix the root cause; add a regression unit test when the failure is behavioural.
-3. **Keep the human in the loop:** report what failed and the proposed fix before merging, pushing to `main`, or closing issues. Ask before force-push, amend of shared history, or any change that touches PII / live portals. Ship the fix on a feature branch / PR; do not merge without confirmation.
+1. **Read the failed logs** (`gh pr checks`, `gh run view <id> --log-failed`) until you know the first failing step and the concrete error (ruff/mypy/pytest/coverage).
+2. **Fix the root cause** locally with the same Verify commands; push the fix on the same feature branch (or open a follow-up PR into `develop` if the breakage is already merged). Add a regression unit test when the failure is behavioural.
+3. **HITL only where it matters:** ask before merging to `develop`/`main`, force-push, amending shared history, or anything that touches PII / live portals. The human does not need to approve reading logs or applying a mechanical lint/test fix.
 
-Mechanical lint (line length, import order) may be fixed and offered for commit without ceremony; anything that changes product behaviour still needs a clear summary and a go-ahead.
+Default posture: red CI → logs → fix → green CI. Summarize what broke and what you changed after the fix is in.
 
 ## Key commands
 
