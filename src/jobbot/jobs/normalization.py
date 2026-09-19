@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 import unicodedata
 
-# Canonical key → accepted aliases (lowercase, normalized)
+# Canonical key → accepted aliases (lowercase, normalized).
+#
+# This table only records equivalences between names of the same thing, so an
+# unknown skill is never dropped: normalize_skill falls back to the term itself.
+# It must never hold an employer, a city or a person.
 _ALIAS_TO_CANONICAL: dict[str, str] = {}
 
 _GROUPS: dict[str, list[str]] = {
@@ -53,7 +57,7 @@ _GROUPS: dict[str, list[str]] = {
         "clv",
         "share of wallet",
     ],
-    "fintech": ["fintech", "mercado pago", "payments"],
+    "fintech": ["fintech", "payments"],
     "retail": ["retail", "marketplace", "e-commerce", "ecommerce"],
     "genai": ["genai", "generative ai", "llm", "llms", "langchain"],
     "scala": ["scala"],
@@ -74,6 +78,11 @@ def _normalize_key(text: str) -> str:
     nfkd = unicodedata.normalize("NFKD", text.strip().lower())
     ascii_text = "".join(c for c in nfkd if not unicodedata.combining(c))
     return re.sub(r"[^a-z0-9]+", " ", ascii_text).strip()
+
+
+def fold_text(text: str) -> str:
+    """Accent- and case-insensitive text: 'Gestión Ágil' → 'gestion agil'."""
+    return _normalize_key(text)
 
 
 def normalize_skill(text: str) -> str:

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from jobbot.config import JobbotConfig, load_config
 from jobbot.db.engine import make_engine, make_session_factory
 from jobbot.db.models import OpsFailureRow
-from jobbot.exit_codes import SUCCESS
+from jobbot.exit_codes import SUCCESS, VALIDATION_FAILURE
 from jobbot.jobs.ids import next_failure_id
 from jobbot.ops.redact import redact_context, redact_text
 
@@ -196,8 +196,10 @@ def record_failure(
 
 
 def should_record_cli_failure(argv: Sequence[str], exit_code: int) -> bool:
-    """Skip success and ops/version commands (avoid noise / recursion)."""
+    """Skip success, validation errors, and ops/version commands (avoid noise / recursion)."""
     if exit_code == SUCCESS:
+        return False
+    if exit_code == VALIDATION_FAILURE:
         return False
     parts = [a for a in argv if a and not a.startswith("-")]
     if parts and Path(parts[0]).name in {"jobbot", "python", "python3"}:
