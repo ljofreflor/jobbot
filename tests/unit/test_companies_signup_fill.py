@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-from jobbot.adapters.ats.signup_fill import SignupFillPlan, build_fill_plan
+from jobbot.adapters.ats.signup_fill import build_fill_plan
 from jobbot.companies.models import CareerSite, CareerSiteType, KnowledgeStatus
 from jobbot.companies.signup import AccountNeed
 from jobbot.models.candidate import Candidate
@@ -98,7 +96,7 @@ def test_learned_form_fixture_has_known_fields(project_root: Path) -> None:
     form = learn_form_html(html, url="https://boards.greenhouse.io/acme/jobs/4001")
 
     candidate = Candidate.model_validate(sample_profile_dict())
-    plan = build_fill_plan(
+    _plan = build_fill_plan(
         candidate,
         form.url,
         AccountNeed.NOT_NEEDED,
@@ -143,7 +141,10 @@ def test_terms_and_consent_never_filled() -> None:
         fields=[
             FormField(name="email", label="Email", kind=FieldKind.EMAIL, required=True),
             FormField(
-                name="terms", label="I agree to terms and conditions", kind=FieldKind.CHECKBOX, required=True
+                name="terms",
+                label="I agree to terms and conditions",
+                kind=FieldKind.CHECKBOX,
+                required=True,
             ),
         ],
     )
@@ -166,7 +167,7 @@ def test_greenhouse_lever_ashby_stay_not_needed() -> None:
     """Known ATS that don't require accounts remain not_needed."""
     candidate = Candidate.model_validate(sample_profile_dict())
 
-    for ats in [AtsKind.GREENHOUSE, AtsKind.LEVER, AtsKind.ASHBY]:
+    for _ats in [AtsKind.GREENHOUSE, AtsKind.LEVER, AtsKind.ASHBY]:
         plan = build_fill_plan(
             candidate,
             "https://example.com/apply",
