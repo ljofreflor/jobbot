@@ -3031,8 +3031,22 @@ def companies_signup(
         str | None,
         typer.Option("--site", help="Which career site, when the company has several"),
     ] = None,
+    apply_fill: Annotated[
+        bool,
+        typer.Option(
+            "--apply",
+            help="Fill known fields from profile.yaml (stops before password/terms/submit)",
+        ),
+    ] = False,
+    cdp_url: Annotated[
+        str | None,
+        typer.Option("--cdp", help="CDP endpoint URL (e.g. http://127.0.0.1:9222)"),
+    ] = None,
 ) -> None:
-    """Open a company portal and list what registering will ask. Creates nothing."""
+    """Open a company portal and list what registering will ask. Creates nothing.
+    
+    With --apply, fills fields profile.yaml already answers and may attach the built CV.
+    Stops before password, terms, CAPTCHA/2FA, and final create/submit."""
     from jobbot.companies.signup import (
         AccountNeed,
         screening_to_prepare,
@@ -3093,7 +3107,60 @@ def companies_signup(
     )
     if target.need is AccountNeed.NOT_NEEDED:
         console.print("You may not need an account at all — check before registering.")
-    if open_page:
+
+    # Handle --apply: fill known fields from profile.yaml
+    if apply_fill:
+        from jobbot.adapters.ats.signup_fill import build_fill_plan, fill_signup_with_session
+        from jobbot.browser.session import BrowserSession
+
+        # Resolve CV path
+        cv_path = config.root / "output" / "base" / "cv.pdf"
+
+        plan = build_fill_plan(candidate, target.url, target.need, form, cv_path)
+
+        console.print("\n[bold]Fill Plan:[/bold]")
+        filled_list = ", ".join(plan.fields_to_fill) if plan.fields_to_fill else "none"
+        console.print(f"  • Will fill: {filled_list}")
+        manual_list = ", ".join(plan.needs_manual[:3])
+        ellipsis = "..." if len(plan.needs_manual) > 3 else ""
+        console.print(f"  • Requires manual: {manual_list}{ellipsis}")
+        if plan.can_attach_cv:
+            console.print(f"  • Will attach CV: {plan.cv_path}")
+
+        if not plan.fields_to_fill and not plan.can_attach_cv:
+            console.print("[yellow]No fields can be filled automatically.[/yellow]")
+        else:
+            console.print("\n[bold yellow]Opening browser to fill form...[/bold yellow]")
+            console.print("[dim]Stop before password, terms, CAPTCHA/2FA and submit.[/dim]\n")
+
+            browser_data_dir = config.root / "browser-data" / "signup"
+            with BrowserSession(
+                browser_data_dir,
+                headless=False,
+                cdp_url=cdp_url,
+            ) as session:
+                result = fill_signup_with_session(session, target.url, candidate, form, cv_path)
+
+                console.print("\n[bold green]Filled:[/bold green]")
+                if result.filled_fields:
+                    for field in result.filled_fields:
+                        console.print(f"  ✓ {field}")
+                else:
+                    console.print(
+                        "  [yellow]No fields were filled "
+                        "(may need manual form inspection)[/yellow]"
+                    )
+
+                console.print(f"\n[bold]Stopped at:[/bold] {result.stopped_at}")
+                console.print(
+                    "\n[bold yellow]Complete the remaining fields yourself:[/bold yellow]"
+                )
+                for manual in result.plan.needs_manual[:5]:
+                    console.print(f"  • {manual}")
+
+                input("\nPress Enter when you're done (browser will close)...")
+
+    elif open_page:
         from jobbot.adapters.ats.apply import open_ats_in_browser
 
         open_ats_in_browser(target.url)
