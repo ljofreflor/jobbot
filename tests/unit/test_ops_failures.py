@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from jobbot.config import JobbotConfig, PathsConfig
 from jobbot.db.engine import make_engine, make_session_factory
-from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, UI_CHANGED
+from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, UI_CHANGED, VALIDATION_FAILURE
 from jobbot.ops.failures import (
     capture_cli_failure,
     failure_fingerprint,
@@ -108,6 +108,45 @@ def test_should_not_record_success_or_ops() -> None:
     assert not should_record_cli_failure(["jobbot", "profile", "validate"], SUCCESS)
     assert not should_record_cli_failure(["jobbot", "ops", "failures"], GENERIC_FAILURE)
     assert should_record_cli_failure(["jobbot", "probe-exit", "5"], UI_CHANGED)
+
+
+def test_should_not_record_validation_failure() -> None:
+    """Regression: validation errors (bad input) should not be recorded as ops failures."""
+    assert not should_record_cli_failure(
+        ["jobbot", "cv", "propagate", "--targets", "companies"], VALIDATION_FAILURE
+    )
+
+
+def test_cv_propagate_invalid_target_not_recorded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression for F0082 / issue #47: unknown propagation target must not record ops_failure."""
+    from jobbot.cli import run_cli
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "profile.yaml").write_text(
+        """
+name: Test User
+email: test@example.com
+phone: "+1234567890"
+location: Test City
+summary: Test summary
+experience: []
+education: []
+skills: []
+"""
+    )
+    code = run_cli(["cv", "propagate", "--targets", "companies"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    engine = make_engine(tmp_path / "data" / "jobbot.sqlite")
+    session = make_session_factory(engine)()
+    try:
+        rows = list_failures(session, status="new")
+        assert len(rows) == 0, "Invalid target should not record an ops_failure"
+    finally:
+        session.close()
+
 
 
 def test_capture_cli_failure_ui_changed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
