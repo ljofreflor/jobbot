@@ -15,10 +15,22 @@ class AtsKind(StrEnum):
     GETONBOARD = "getonboard"
     SMARTRECRUITERS = "smartrecruiters"
     BAMBOOHR = "bamboohr"
+    SUCCESSFACTORS = "successfactors"
+    ORACLE = "oracle"
+    TEAMTAILOR = "teamtailor"
+    WORKABLE = "workable"
+    RECRUITEE = "recruitee"
+    TORRE = "torre"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
     UNKNOWN = "unknown"
+
+
+# Boards/aggregators: many companies publish there, so they never identify one employer.
+JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
+    {AtsKind.INDEED, AtsKind.LINKEDIN, AtsKind.GETONBOARD, AtsKind.TORRE}
+)
 
 
 # Host suffix / substring → kind (checked in order)
@@ -35,9 +47,64 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("getonboard.com", AtsKind.GETONBOARD),
     ("smartrecruiters.com", AtsKind.SMARTRECRUITERS),
     ("bamboohr.com", AtsKind.BAMBOOHR),
+    ("successfactors.com", AtsKind.SUCCESSFACTORS),
+    ("successfactors.eu", AtsKind.SUCCESSFACTORS),
+    ("sapsf.com", AtsKind.SUCCESSFACTORS),
+    ("sapsf.eu", AtsKind.SUCCESSFACTORS),
+    ("taleo.net", AtsKind.ORACLE),
+    ("oraclecloud.com", AtsKind.ORACLE),
+    ("teamtailor.com", AtsKind.TEAMTAILOR),
+    ("workable.com", AtsKind.WORKABLE),
+    ("recruitee.com", AtsKind.RECRUITEE),
+    ("torre.ai", AtsKind.TORRE),
+    ("torre.co", AtsKind.TORRE),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
+
+# Embedded markers that prove an ATS behind a corporate page (technical evidence only).
+_HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
+    (
+        re.compile(r"(?:boards|job-boards)\.greenhouse\.io/embed", re.I),
+        AtsKind.GREENHOUSE,
+        "greenhouse embed script",
+    ),
+    (
+        re.compile(r"(?:boards|job-boards)\.greenhouse\.io/[a-z0-9_-]+", re.I),
+        AtsKind.GREENHOUSE,
+        "greenhouse board link",
+    ),
+    (re.compile(r"jobs\.lever\.co/[a-z0-9_-]+", re.I), AtsKind.LEVER, "lever board link"),
+    (
+        re.compile(r"[a-z0-9_-]+\.wd\d+\.myworkdayjobs\.com", re.I),
+        AtsKind.WORKDAY,
+        "workday tenant host",
+    ),
+    (re.compile(r"jobs\.ashbyhq\.com/[a-z0-9_-]+", re.I), AtsKind.ASHBY, "ashby board link"),
+    (
+        re.compile(r"(?:careers|jobs)\.smartrecruiters\.com/[a-z0-9_-]+", re.I),
+        AtsKind.SMARTRECRUITERS,
+        "smartrecruiters board link",
+    ),
+    (re.compile(r"[a-z0-9_-]+\.teamtailor\.com", re.I), AtsKind.TEAMTAILOR, "teamtailor host"),
+    (
+        re.compile(r"(?:apply|[a-z0-9_-]+)\.workable\.com", re.I),
+        AtsKind.WORKABLE,
+        "workable host",
+    ),
+    (re.compile(r"[a-z0-9_-]+\.recruitee\.com", re.I), AtsKind.RECRUITEE, "recruitee host"),
+    (
+        re.compile(r"[a-z0-9_-]*\.(?:successfactors|sapsf)\.(?:com|eu)", re.I),
+        AtsKind.SUCCESSFACTORS,
+        "successfactors host",
+    ),
+    (
+        re.compile(r"[a-z0-9_-]+\.(?:taleo\.net|fa\.oraclecloud\.com)", re.I),
+        AtsKind.ORACLE,
+        "oracle/taleo host",
+    ),
+    (re.compile(r"[a-z0-9_-]+\.bamboohr\.com", re.I), AtsKind.BAMBOOHR, "bamboohr host"),
+)
 
 
 def detect_ats(url: str) -> AtsKind:
@@ -56,6 +123,17 @@ def detect_ats(url: str) -> AtsKind:
         if host == needle or host.endswith("." + needle) or needle in host:
             return kind
     return AtsKind.UNKNOWN
+
+
+def detect_ats_in_html(html: str) -> tuple[AtsKind, str]:
+    """Classify by embedded ATS markers. Returns (kind, evidence); never guesses by looks."""
+    if not html:
+        return AtsKind.UNKNOWN, ""
+    for pattern, kind, label in _HTML_MARKERS:
+        match = pattern.search(html)
+        if match:
+            return kind, f"html marker: {label} ({match.group(0)[:60]})"
+    return AtsKind.UNKNOWN, ""
 
 
 def extract_http_urls(text: str) -> list[str]:
