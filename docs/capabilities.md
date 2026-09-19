@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-79 commands, 109 modules, 495 public symbols.
+80 commands, 110 modules, 503 public symbols.
 
 ## Commands
 
@@ -33,6 +33,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
+- `jobbot cv sync` — Standing presence: sync CV to permanent profiles + active company portals (plan-only).
 - `jobbot getonboard open-cvs` — Open Get on Board profile area for 'Tus CVs' (HITL upload).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
 - `jobbot getonboard prepare` — Maintain permanent GoB profile: cumulative refine by default (not cold replace).
@@ -188,6 +189,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
 - `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `render_cv_tex`, `render_cv_ats`
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
+- `sync.py` — CV sync: standing presence on permanent profiles + active company portals. · `CompanyPortalTarget`, `SyncPlan`, `plan_sync`, `summarize_sync_plan`
 
 ### `db`
 

@@ -1070,6 +1070,165 @@ def _getonboard_session(config: JobbotConfig, cdp: str | None) -> Any:
     )
 
 
+@cv_app.command("sync")
+def cv_sync(
+    section: Annotated[
+        str,
+        typer.Option("--section", help="Indeed section: headline|summary|skills|experience|all"),
+    ] = "all",
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Write to permanent portals only (company portals: plan-only)"),
+    ] = False,
+    style: Annotated[
+        CvStyle,
+        typer.Option("--style", help="moderncv (your CV design) or plain"),
+    ] = CvStyle.MODERNCV,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Skip per-destination confirmation (with --apply)"),
+    ] = False,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to your logged-in Chrome (browser chrome-debug)"),
+    ] = None,
+) -> None:
+    """Standing presence: sync CV to permanent profiles + active company portals (plan-only)."""
+    from jobbot.cv.sync import plan_sync, summarize_sync_plan
+    from jobbot.cv.propagate import PropagationTarget
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    validation = validate_candidate(candidate)
+    if not validation.ok:
+        err_console.print("[bold red]PROFILE INVALID[/bold red]")
+        for issue in validation.issues:
+            err_console.print(str(issue))
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    from jobbot.browser.sessions import inspect_sessions
+    from jobbot.companies.registry import default_companies_path, load_companies
+
+    # Load company registry
+    companies_path = default_companies_path(config.root)
+    if not companies_path.is_file():
+        err_console.print(
+            f"[yellow]No companies registry found at {companies_path}[/yellow]\n"
+            "Falling back to permanent profiles only (same as cv propagate)."
+        )
+        registry = None
+    else:
+        try:
+            from jobbot.companies.registry import CompanyRegistry
+            registry = load_companies(companies_path)
+        except Exception as exc:
+            err_console.print(f"[yellow]Could not load companies registry: {exc}[/yellow]")
+            registry = None
+
+    # Use empty registry if loading failed
+    if registry is None:
+        from jobbot.companies.registry import CompanyRegistry
+        registry = CompanyRegistry()
+
+    # Get browser sessions for permanent profiles
+    permanent_sites = ["cv", "getonboard", "indeed", "linkedin"]
+    sessions = inspect_sessions(config.root, sites=permanent_sites)
+    
+    # Plan sync
+    sync_plan = plan_sync(
+        config,
+        candidate,
+        registry,
+        section=section,
+        sessions=sessions,
+        cdp_url=cdp,
+    )
+    
+    narrator = _narrator()
+    narrator.phase(Phase.PROPAGATING_CV, summarize_sync_plan(sync_plan))
+
+    # Display permanent profiles plan
+    table = Table(title="CV sync plan: permanent profiles")
+    table.add_column("Destination")
+    table.add_column("Operations")
+    table.add_column("Detail")
+    for plan in sync_plan.permanent:
+        detail = plan.blocked_reason or plan.note or ""
+        if plan.hint:
+            detail = f"{detail} → {plan.hint}"
+        table.add_row(
+            plan.target.value,
+            "blocked" if not plan.ready else str(len(plan.operations)),
+            detail,
+        )
+    console.print(table)
+
+    # Display company portals plan
+    if sync_plan.companies:
+        company_table = Table(title="CV sync plan: active company portals (plan-only)")
+        company_table.add_column("Company")
+        company_table.add_column("Portal URL")
+        company_table.add_column("ATS")
+        company_table.add_column("Note")
+        for target in sync_plan.companies:
+            company_table.add_row(
+                target.company_name,
+                target.site_url,
+                target.ats,
+                target.note or "",
+            )
+        console.print(company_table)
+
+    # Log operations for narration
+    for plan in sync_plan.permanent:
+        for operation in plan.operations:
+            narrator.note(f"{plan.target.value}: {operation}")
+    for target in sync_plan.companies:
+        narrator.note(f"{target.company_name}: plan-only (no adapter yet)")
+
+    if not apply_changes:
+        console.print(
+            "\nDry-run. Re-run with [bold]--apply[/bold] to write permanent portals "
+            "(company portals remain plan-only until adapters exist)."
+        )
+        raise typer.Exit(SUCCESS)
+
+    # Apply changes to permanent portals only
+    console.print("\n[bold]Applying to permanent profiles only[/bold] (company portals: plan-only)")
+    for plan in sync_plan.permanent:
+        if not plan.ready:
+            err_console.print(
+                f"[yellow]Skipping {plan.target.value}[/yellow]: {plan.blocked_reason}"
+            )
+            continue
+        if not plan.actionable:
+            console.print(f"{plan.target.value}: nothing to do.")
+            continue
+        if not yes and not typer.confirm(
+            f"Write to {plan.target.value} ({len(plan.operations)} operation(s))?",
+            default=plan.target == PropagationTarget.CV,
+        ):
+            console.print(f"{plan.target.value}: skipped.")
+            continue
+        if plan.target == PropagationTarget.CV:
+            _propagate_base_cv(config, candidate, style=style)
+        elif plan.target == PropagationTarget.GETONBOARD:
+            _propagate_getonboard(config, apply_changes=apply_changes, cdp=cdp, yes=yes)
+        elif plan.target == PropagationTarget.INDEED:
+            _propagate_indeed(config, section=section, cdp=cdp, yes=yes)
+        elif plan.target == PropagationTarget.LINKEDIN:
+            _propagate_linkedin(config, cdp=cdp, yes=yes)
+
+    console.print(
+        "\n[dim]Company portals stayed plan-only. "
+        "Writes require portal adapters (see #44, #45).[/dim]"
+    )
+
+
 def _propagate_getonboard(
     config: JobbotConfig,
     *,
