@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-79 commands, 109 modules, 495 public symbols.
+80 commands, 110 modules, 499 public symbols.
 
 ## Commands
 
@@ -26,6 +26,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot companies learn` — Register a company/portal relation you found yourself (candidate by default).
 - `jobbot companies list` — List known companies and their career platforms.
 - `jobbot companies promote` — Promote candidate knowledge to active (the only way it becomes truth).
+- `jobbot companies recon` — Learn ATS and form questions by reading a page the human is already on (HITL).
 - `jobbot companies reject` — Mark a discovered portal as wrong so it stops coming back.
 - `jobbot companies show` — Show one company with every portal, observation and contradiction.
 - `jobbot companies signup` — Open a company portal and list what registering will ask. Creates nothing.
@@ -174,6 +175,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `learn.py` — Turn URLs seen during normal use into candidate company knowledge. · `LearnResult`, `learn_from_url`, `company_name_for_job`, `learn_from_job`
 - `models.py` — Company ↔ career platform knowledge model (shareable; never candidate PII). · `utc_now`, `CareerSiteType`, `KnowledgeStatus`, `DiscoverySource`, `Observation`, `CareerSite`, `CompanyRecord`
 - `oneshot.py` — One-shot seeding of company career portals from public sources (not a crawler). · `CompanySeed`, `CompanyPortalCandidate`, `FetchResult`, `Fetcher`, `UrllibFetcher`, `OneshotReport`, `CandidateGroups`, `group_candidates`, `RobotsVerdict`, `RobotsPolicy`, `load_seeds`, `load_search_hits`, `candidate_urls`, `is_refusal`, `www_variant`, `CompanyProbe`, `discover_company`, `run_oneshot`, `write_candidates`, `load_candidates`, `import_candidates`
+- `recon.py` — Inside recon: learn ATS and form questions by reading a page the human is on. · `ReconResult`, `recon_from_html`, `recon_from_fixture`, `make_observation`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
 - `signup.py` — Prepare a portal registration for the candidate to complete themselves. · `AccountNeed`, `SignupTarget`, `SignupItem`, `signup_target`, `signup_sheet`, `screening_to_prepare`
 - `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `public_url`, `canonical_key`, `host_of`, `registrable_domain`, `slugify`, `company_hint_from_url`

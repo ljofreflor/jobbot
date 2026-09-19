@@ -3020,6 +3020,137 @@ def companies_show(
         console.print(Panel("\n".join(lines), title=site.url))
 
 
+@companies_app.command("recon")
+def companies_recon(
+    company: Annotated[str, typer.Argument(help="Company id or name")],
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Learn from a saved HTML fixture (offline)"),
+    ] = None,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Chrome DevTools Protocol URL (http://127.0.0.1:9222)"),
+    ] = None,
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write observations + form knowledge (dry-run without this)"),
+    ] = False,
+) -> None:
+    """Learn ATS and form questions by reading a page the human is already on (HITL).
+
+    Inside recon learns technical evidence only: what ATS powers the portal and
+    what fields the form asks. It does NOT create accounts, set passwords, or
+    accept terms. The human completes irreversible steps; JobBot observes the page.
+
+    Without --apply: dry-run that shows what would be learned, writes nothing.
+    With --apply: stores observation + form questions only (still creates nothing).
+    """
+    from jobbot.companies.recon import make_observation, recon_from_fixture, recon_from_html
+    from jobbot.companies.registry import save_companies
+    from jobbot.portals.detect import AtsKind
+    from jobbot.portals.form_learn import (
+        default_form_knowledge_path,
+        load_form_knowledge,
+        save_form_knowledge,
+        upsert_form,
+    )
+
+    config = load_config()
+    registry, registry_path = _companies_registry(config)
+    record = registry.find_company(company)
+    if record is None:
+        err_console.print(f"[red]Unknown company {company!r}[/red]")
+        err_console.print("Learn it first: [bold]jobbot companies learn URL --company NAME[/bold]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    if fixture is None and cdp is None:
+        err_console.print("[red]Provide either --fixture PATH or --cdp URL[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    if fixture is not None and cdp is not None:
+        err_console.print("[red]Use only one of --fixture or --cdp, not both[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    if fixture is not None:
+        if not fixture.is_file():
+            err_console.print(f"[red]Fixture not found: {fixture}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        site_url = record.career_sites[0].url if record.career_sites else f"https://{record.id}.example.com"
+        result = recon_from_fixture(
+            fixture,
+            url=site_url,
+            company=record.name,
+            company_id=record.id,
+        )
+    else:
+        # CDP path will be implemented in a future iteration
+        err_console.print("[red]CDP support not yet implemented in this PR[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    console.print(Panel(
+        f"[bold]{record.name}[/bold] ({record.id})\n"
+        f"{result.url}\n"
+        f"ats: {result.ats.value}",
+        title="Recon results",
+    ))
+
+    if result.ats_evidence:
+        console.print(f"[green]ATS evidence:[/green] {result.ats_evidence}")
+    else:
+        console.print("[yellow]No ATS markers found — stays unknown[/yellow]")
+
+    if result.form.readable:
+        console.print(f"\n[green]Form readable:[/green] {len(result.form.fields)} field(s)")
+        table = Table(title="Form fields")
+        table.add_column("Label")
+        table.add_column("Type")
+        table.add_column("Required")
+        for field in result.form.fields[:10]:
+            table.add_row(
+                field.label[:50],
+                field.kind.value,
+                "✓" if field.required else "",
+            )
+        console.print(table)
+        if len(result.form.fields) > 10:
+            console.print(f"[dim]  … and {len(result.form.fields) - 10} more fields[/dim]")
+    else:
+        console.print(f"[yellow]Form not readable:[/yellow] {result.form.evidence}")
+
+    if not apply:
+        console.print("\n[dim]Dry-run complete. Nothing written.[/dim]")
+        console.print("[dim]Use --apply to store observation + form knowledge.[/dim]")
+        return
+
+    # Write observation to company registry
+    observation = make_observation(result)
+    site = record.find_site(result.url)
+    if site is not None:
+        site.observations.append(observation)
+        if result.ats != AtsKind.UNKNOWN and site.ats == AtsKind.UNKNOWN:
+            site.ats = result.ats
+        console.print(f"[green]✓[/green] Updated observation for {result.url}")
+    else:
+        err_console.print(
+            f"[yellow]Site {result.url} not in registry for {record.name}[/yellow]"
+        )
+        console.print("Learn it first: [bold]jobbot companies learn URL --company NAME[/bold]")
+
+    save_companies(registry, registry_path)
+
+    # Write form knowledge
+    if result.form.readable:
+        form_path = default_form_knowledge_path(config.root)
+        forms = load_form_knowledge(form_path)
+        forms = upsert_form(forms, result.form)
+        save_form_knowledge(forms, form_path)
+        console.print(f"[green]✓[/green] Stored form knowledge ({len(result.form.fields)} fields)")
+    else:
+        console.print("[dim]Form not readable; no form knowledge stored[/dim]")
+
+    console.print("\n[green]Recon complete.[/green] Observation and form knowledge stored.")
+
+
 @companies_app.command("signup")
 def companies_signup(
     company: Annotated[str, typer.Argument(help="Company id or name (already in the registry)")],

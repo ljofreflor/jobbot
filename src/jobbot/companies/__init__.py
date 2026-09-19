@@ -9,6 +9,7 @@ from jobbot.companies.models import (
     KnowledgeStatus,
     Observation,
 )
+from jobbot.companies.recon import ReconResult, make_observation, recon_from_fixture, recon_from_html
 from jobbot.companies.registry import (
     CompanyRegistry,
     ObserveOutcome,
@@ -32,6 +33,7 @@ __all__ = [
     "Observation",
     "ObserveOutcome",
     "PrivateRouteRejected",
+    "ReconResult",
     "SiteClassification",
     "active_career_sites",
     "canonical_key",
@@ -40,7 +42,10 @@ __all__ = [
     "default_companies_path",
     "generated_candidates_path",
     "load_companies",
+    "make_observation",
     "public_url",
+    "recon_from_fixture",
+    "recon_from_html",
     "save_companies",
     "shareable_payload",
     "shared_export_path",
