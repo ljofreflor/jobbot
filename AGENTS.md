@@ -31,8 +31,8 @@ against the collaborative portal base:
 ```bash
 jobbot profile import-latex          # or import-pdf; promote-generated after review
 jobbot cv advise --apply             # presentation only; confirms one by one
-jobbot cv sync --apply               # rebuild CV + permanent portals; plan active companies (#43)
-# Company portal writes + signup --apply fill: still landing (#43 / #44)
+jobbot cv sync --apply               # permanentes + active companies (HITL; #43)
+# Needs-account rows: signup sheet (#44). Fill when no account needed or session evidenced.
 ```
 
 **Accounts, as far as automatable.** If an active portal in the base needs an account and
@@ -68,8 +68,8 @@ jobbot jobs match J0001
 jobbot jobs shortlist
 jobbot cv build --job J0001
 jobbot cv advise # mejoras de presentación (determinista; --apply confirma una por una)
-jobbot cv sync # presencia: permanentes + plan de companies active (#43); hoy escribe solo permanentes
-jobbot status # CVs/perfiles permanentes arriba (evidencia local; alias: cv status)
+jobbot cv sync # presencia: permanentes + companies active (#43); --apply HITL por destino
+jobbot status # CVs/perfiles + active company portals (evidencia local; alias: cv status)
 jobbot application prepare J0001
 jobbot application open J0001          # opens ATS/job URL; no auto-submit
 jobbot application apply J0001         # dry-run prefill plan
@@ -380,11 +380,11 @@ uv run jobbot cv build
 uv run jobbot cv build --job J0001            # moderncv (tu diseño) por defecto
 uv run jobbot cv build --job J0001 --style plain
 uv run jobbot cv sync                      # plan: permanentes + companies active (#43)
-uv run jobbot cv sync --apply              # escribe permanentes (HITL); companies aún plan-only
+uv run jobbot cv sync --apply              # HITL: permanentes + fill/signup sheet por destino
 uv run jobbot cv propagate                 # alias permanente-only de sync (sin filas companies)
 uv run jobbot cv propagate --targets permanent --apply
-uv run jobbot status                       # CVs/perfiles permanentes arriba (evidencia local)
-# Company writes + signup --apply fill: issues #43 / #44
+uv run jobbot status                       # permanentes + active company portals (evidencia)
+# Signup fill beyond the sheet: issue #44
 uv run jobbot companies signup NOMBRE      # hoja + open; fill --apply es #44
 uv run jobbot cv advise                    # determinista, sin tokens
 uv run jobbot cv advise --apply            # confirma una por una → profile.yaml (con backup)

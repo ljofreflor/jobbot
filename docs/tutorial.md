@@ -52,10 +52,11 @@ uv run jobbot cv sync --apply --cdp http://127.0.0.1:9224
 uv run jobbot status                        # what is up (local evidence)
 ```
 
-`--apply` today writes permanent destinations (local CV + Get on Board + Indeed + LinkedIn).
-Active company rows are **plan-only** until the rest of #43 lands; for those use
-`companies signup NOMBRE` (sheet + open; fill behind `--apply` is
-[#44](https://github.com/ljofreflor/jobbot/issues/44)) and/or `application apply Jxxxx`.
+`--apply` writes permanent destinations (local CV + Get on Board + Indeed + LinkedIn) and
+handles each *active* company portal one by one: needs-account without session evidence →
+signup sheet ([#44](https://github.com/ljofreflor/jobbot/issues/44)); otherwise open the
+career URL, fill fields `profile.yaml` already answers, attach the built CV, and leave
+submit to you. A confirmation is not a receipt. Candidate and rejected sites never appear.
 `cv propagate` is the permanente-only subset of the same writers.
 
 `companies discover` only finds candidate URLs — it does not register you or upload your CV.
