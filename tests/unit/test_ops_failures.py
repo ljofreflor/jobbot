@@ -157,6 +157,15 @@ def test_should_not_record_success_or_ops() -> None:
     assert not should_record_cli_failure(["jobbot", "jobs", "add"], USER_CANCEL)
 
 
+def test_should_not_record_help_invocations() -> None:
+    """Exploring CLI help is not an ops failure — even when the command is wrong."""
+    assert not should_record_cli_failure(["jobbot", "cv", "build", "--help"], GENERIC_FAILURE)
+    assert not should_record_cli_failure(["jobbot", "cv", "build", "-h"], GENERIC_FAILURE)
+    assert not should_record_cli_failure(
+        ["jobbot", "ops failure show", "--help"], GENERIC_FAILURE
+    )
+
+
 def test_capture_cli_failure_ui_changed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     (tmp_path / "data").mkdir()
