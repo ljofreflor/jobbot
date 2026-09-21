@@ -34,6 +34,7 @@ from jobbot.exit_codes import (
     GENERIC_FAILURE,
     MANUAL_CHALLENGE,
     SUCCESS,
+    USER_CANCEL,
     VALIDATION_FAILURE,
 )
 from jobbot.jobs.freshness import age_label, is_fresh
@@ -129,6 +130,13 @@ console = Console()
 err_console = Console(stderr=True)
 
 
+class _QuietExit(Exception):
+    """The command refused on purpose (closed vacancy, and the like). Not a defect."""
+
+    def __init__(self, code: int) -> None:
+        self.code = code
+
+
 def run_cli(
     argv: Sequence[str] | None = None,
     *,
@@ -146,7 +154,19 @@ def run_cli(
             exit_code = result
     except typer.Exit as exc:
         exit_code = int(exc.exit_code)
+        if exit_code == USER_CANCEL:
+            # Ctrl-C. typer rewrites KeyboardInterrupt as Exit(130); that is the
+            # user stopping, not a defect, and it must not become an ops failure.
+            err_console.print("Cancelled.")
+            if standalone_mode:
+                raise SystemExit(exit_code) from exc
+            return exit_code
         caught = exc
+    except KeyboardInterrupt:
+        err_console.print("Cancelled.")
+        if standalone_mode:
+            raise SystemExit(USER_CANCEL) from None
+        return USER_CANCEL
     except typer.Abort:
         exit_code = GENERIC_FAILURE
         caught = None
@@ -158,6 +178,10 @@ def run_cli(
         if standalone_mode:
             raise SystemExit(VALIDATION_FAILURE) from exc
         return VALIDATION_FAILURE
+    except _QuietExit as exc:
+        if standalone_mode:
+            raise SystemExit(exc.code) from exc
+        return exc.code
     except Exception as exc:  # noqa: BLE001 — CLI boundary capture
         exit_code = GENERIC_FAILURE
         caught = exc
@@ -176,8 +200,7 @@ def run_cli(
         )
         if record is not None:
             err_console.print(
-                f"[yellow]Recorded failure[/yellow] {record.id} "
-                f"(fingerprint={record.fingerprint})"
+                f"[yellow]Recorded failure[/yellow] {record.id} (fingerprint={record.fingerprint})"
             )
 
     if standalone_mode:
@@ -226,6 +249,168 @@ def main(
 def version_cmd() -> None:
     """Show JobBot version."""
     console.print(__version__)
+
+
+def _ingest_with_progress(
+    config: JobbotConfig,
+    session: Session,
+    portal: Any,
+    *,
+    candidate: Candidate,
+    html: str | None,
+    ingest_hard_link: Any,
+) -> Any:
+    """Download a Get on Board page with a progress bar. Fixtures and other ATS skip it."""
+    from jobbot.portals.detect import AtsKind
+
+    downloading = html is None and portal.ats_kind == AtsKind.GETONBOARD
+    if not downloading:
+        return ingest_hard_link(
+            config,
+            session,
+            portal.url,
+            candidate=candidate,
+            html=html,
+        )
+    from rich.progress import (
+        BarColumn,
+        DownloadColumn,
+        Progress,
+        SpinnerColumn,
+        TextColumn,
+        TimeElapsedColumn,
+    )
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("{task.description}"),
+        BarColumn(),
+        DownloadColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("descargando la oferta", total=None)
+
+        def on_chunk(done: int, total: int | None) -> None:
+            progress.update(task, completed=done, total=total)
+
+        return ingest_hard_link(
+            config,
+            session,
+            portal.url,
+            candidate=candidate,
+            html=html,
+            on_chunk=on_chunk,
+        )
+
+
+@app.command("get")
+def get_hard_link(
+    url: Annotated[
+        str,
+        typer.Argument(
+            help="Hard job URL. Downloaded today: Get on Board only. "
+            "Other known ATS hosts are recognized, then refused.",
+        ),
+    ],
+    apply_changes: Annotated[
+        bool,
+        typer.Option(
+            "--apply",
+            help="After preparing the package, open the ATS assist (you submit)",
+        ),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation")] = False,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to your logged-in Chrome (see browser chrome-debug)"),
+    ] = None,
+    fixture: Annotated[
+        Path | None,
+        typer.Option(
+            "--fixture",
+            help="Local HTML fixture instead of fetching the live page (tests / offline)",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+        ),
+    ] = None,
+) -> None:
+    """Ingest a hard job link: know the portal → JD → CV → package (HITL apply)."""
+    from jobbot.jobs.from_url import (
+        UnknownPortalError,
+        UnsupportedPortalFetchError,
+        ingest_hard_link,
+    )
+
+    session, config = _session()
+    from jobbot.portals.knowledge import lookup_portal
+
+    portal = lookup_portal(config, url)
+    console.print(
+        f"portal: [bold]{portal.domain or '(none)'}[/bold]  "
+        f"ats={portal.ats_kind.value}  knowledge={portal.source.value}"
+    )
+    narrator = _narrator()
+    narrator.phase(Phase.RECEIVING_WORLD, portal.domain or url)
+    if not portal.known:
+        err_console.print(
+            f"[red]Unknown employment domain:[/red] {portal.domain or url}\n"
+            "Add it with [bold]jobbot portals add[/bold] or "
+            "[bold]jobbot companies learn[/bold], then retry."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    html = fixture.read_text(encoding="utf-8") if fixture is not None else None
+    try:
+        result = _ingest_with_progress(
+            config,
+            session,
+            portal,
+            candidate=candidate,
+            html=html,
+            ingest_hard_link=ingest_hard_link,
+        )
+    except UnknownPortalError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    except UnsupportedPortalFetchError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+    except OSError as exc:
+        err_console.print(f"[red]Could not fetch job page:[/red] {exc}")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    job = result.job
+    _learn_company_knowledge(config, job, narrator=narrator)
+    console.print(
+        f"[green]Stored[/green] {job.id}  {job.company}  {job.title}  "
+        f"(match {job.match_score if job.match_score is not None else '—'})"
+    )
+    console.print(f"Wrote {result.job_json}")
+    if result.match is not None:
+        console.print(Panel(format_match_report(result.match), title="match"))
+    if result.package_dir is not None:
+        console.print(f"[green]Prepared[/green] {result.package_dir}")
+        gob = result.package_dir / "getonboard_es.md"
+        if gob.is_file():
+            console.print(f"Get on Board Spanish drafts: {gob}")
+
+    if not apply_changes:
+        console.print(
+            f"Package ready. Re-run with "
+            f"[bold]jobbot application apply {job.id} --apply[/bold] "
+            "to open the portal (you submit), or pass [bold]--apply[/bold] here."
+        )
+        return
+
+    application_apply(job.id, apply_changes=True, yes=yes, cdp=cdp)
 
 
 # ── workspace ────────────────────────────────────────────────────────────────
@@ -375,9 +560,7 @@ def profile_import_latex(
     config = load_config()
     source = tex_path or config.legacy_cv_path
     if source is None:
-        err_console.print(
-            "[red]Provide a .tex path or set paths.legacy_cv in .jobbot.toml[/red]"
-        )
+        err_console.print("[red]Provide a .tex path or set paths.legacy_cv in .jobbot.toml[/red]")
         raise typer.Exit(GENERIC_FAILURE)
 
     source = source.expanduser().resolve()
@@ -566,9 +749,7 @@ def profile_suggest_from_market(
 
     confirmed: list[str] = []
     if ask and suggestion.missing_suspected:
-        console.print(
-            "\nConfirm skills you [bold]actually have[/bold] (never invent):"
-        )
+        console.print("\nConfirm skills you [bold]actually have[/bold] (never invent):")
         for gap in suggestion.missing_suspected:
             if typer.confirm(f"Add skill to baseline: {gap.term}?", default=False):
                 confirmed.append(gap.term)
@@ -1182,10 +1363,26 @@ def jobs_add(
     if file is not None:
         text = file.read_text(encoding="utf-8")
     elif stdin:
+        if sys.stdin.isatty():
+            err_console.print(
+                "Waiting for a job description on stdin. Paste the text, then press Ctrl-D."
+            )
         text = typer.get_text_stream("stdin").read()
     else:
         err_console.print("Provide --file or --stdin (prefer: jobbot jobs search)")
         raise typer.Exit(GENERIC_FAILURE)
+
+    from jobbot.jobs.closure import closure_evidence, fetch_posting_text
+
+    filled = closure_evidence(text)
+    if filled is None and url:
+        try:
+            filled = closure_evidence(fetch_posting_text(url))
+        except OSError:
+            filled = None
+    if filled:
+        err_console.print(f"[red]Vacancy is filled[/red] ({filled}). Not stored.")
+        raise _QuietExit(VALIDATION_FAILURE)
 
     repo = JobRepository(session)
     job = repo.add_from_text(text, url=url)
@@ -1363,9 +1560,7 @@ def jobs_backfill_dates() -> None:
     updated = backfill_posted_at(repo)
     console.print(f"Dated [bold]{updated}[/bold] stored jobs from their post URL.")
     stale = [
-        job
-        for job in repo.list_all()
-        if job.posted_at is not None and not is_fresh(job.posted_at)
+        job for job in repo.list_all() if job.posted_at is not None and not is_fresh(job.posted_at)
     ]
     if stale:
         console.print("Older than the freshness window:")
@@ -1391,12 +1586,54 @@ def jobs_note(
 # ── application(s) ───────────────────────────────────────────────────────────
 
 
-def _build_job_cv(config: JobbotConfig, candidate: Candidate, job: JobPosting) -> None:
-    """Build the CV adapted to this job, unless it is already there."""
-    job_dir = config.output_dir / "jobs" / job.id
-    if (job_dir / "cv.pdf").is_file() or (job_dir / "cv_ats.txt").is_file():
+def _filled_vacancy(job: JobPosting) -> str | None:
+    """Phrase that says this posting is gone, from the stored text or the live page."""
+    from jobbot.jobs.closure import closure_evidence_for_job, fetch_posting_text
+
+    return closure_evidence_for_job(job, fetch=fetch_posting_text)
+
+
+def _stop_if_filled(session: Session, job: JobPosting) -> None:
+    """Refuse to open or mark applied when the vacancy itself says it is filled."""
+    evidence = _filled_vacancy(job)
+    if evidence is None:
         return
-    console.print(f"Building CV adapted to {job.id}…")
+    url = job.ats_url or job.url or job.id
+    err_console.print(f"[red]Vacancy is filled[/red] ({evidence}). Not opening {url}.")
+    err_console.print("No portal receipt — status stays unknown, not applied.")
+    existing = ApplicationRepository(session).get_for_job(job.id)
+    if existing is not None:
+        ApplicationRepository(session).add_event(existing.id, "closed", f"{evidence} | {url}")
+    raise _QuietExit(VALIDATION_FAILURE)
+
+
+def _note_no_receipt(session: Session, job_id: str, package_dir: str, url: str) -> None:
+    """Opening a portal is not a submission. Record the URL and leave status prepared."""
+    repo = ApplicationRepository(session)
+    app = repo.upsert_for_job(
+        job_id,
+        status=ApplicationStatus.PREPARED,
+        package_dir=package_dir,
+    )
+    repo.add_event(app.id, "no_receipt", url)
+    console.print(
+        f"[yellow]No portal receipt[/yellow] for {url}. "
+        "Status stays prepared — unknown whether it was submitted."
+    )
+
+
+def _build_job_cv(config: JobbotConfig, candidate: Candidate, job: JobPosting) -> None:
+    """Build the CV adapted to this job, unless the one on disk is still current."""
+    from jobbot.cv.build import should_rebuild_job_cv
+
+    job_dir = config.output_dir / "jobs" / job.id
+    if not should_rebuild_job_cv(job_dir, config.profile_path):
+        return
+    stale = (job_dir / "cv.pdf").is_file() or (job_dir / "cv_ats.txt").is_file()
+    if stale:
+        console.print(f"Profile is newer than the CV for {job.id} — rebuilding…")
+    else:
+        console.print(f"Building CV adapted to {job.id}…")
     match = RuleBasedJobAnalyzer().analyze(candidate, job)
     try:
         build_cv(
@@ -1465,6 +1702,7 @@ def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
         raise typer.Exit(GENERIC_FAILURE)
     from jobbot.adapters.ats.apply import open_ats_in_browser, resolve_ats_url
 
+    _stop_if_filled(session, job)
     ats_url, _kind = resolve_ats_url(job)
     target = ats_url or job.url
     if not target:
@@ -1498,7 +1736,11 @@ def application_apply(
     ] = None,
 ) -> None:
     """Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers)."""
-    from jobbot.adapters.ats.apply import build_apply_plan, prefill_field_map
+    from jobbot.adapters.ats.apply import (
+        build_apply_plan,
+        prefill_field_map,
+        prefill_sheet_fields,
+    )
     from jobbot.adapters.ats.email_apply import build_email_draft, open_gmail_compose
     from jobbot.adapters.ats.registry import adapter_for_job
     from jobbot.adapters.base import ApplyMethod
@@ -1509,6 +1751,7 @@ def application_apply(
     if job is None:
         err_console.print(f"[red]Job not found: {job_id}[/red]")
         raise typer.Exit(GENERIC_FAILURE)
+    _stop_if_filled(session, job)
     try:
         candidate = load_profile(config.profile_path)
     except ProfileLoadError as exc:
@@ -1602,23 +1845,7 @@ def application_apply(
         app_dir = prepare_application_package(
             job, config.output_dir, job_dir=job_dir, candidate=candidate
         )
-        ApplicationRepository(session).upsert_for_job(
-            job.id,
-            status=ApplicationStatus.PREPARED,
-            package_dir=str(app_dir),
-        )
-        if yes:
-            console.print(
-                "[dim]Status stays prepared — --yes skips the applied prompt; "
-                "confirm after you actually send.[/dim]"
-            )
-        elif typer.confirm("Mark application as applied after you send?", default=False):
-            ApplicationRepository(session).upsert_for_job(
-                job.id,
-                status=ApplicationStatus.APPLIED,
-                package_dir=str(app_dir),
-            )
-            console.print("[green]Status → applied[/green]")
+        _note_no_receipt(session, job.id, str(app_dir), plan.ats_url or draft.to)
         return
 
     console.print("Known fields to inject:")
@@ -1659,12 +1886,7 @@ def application_apply(
         from jobbot.adapters.ats.apply import open_ats_in_browser
 
         open_ats_in_browser(plan.ats_url)
-    ApplicationRepository(session).upsert_for_job(
-        job.id,
-        status=ApplicationStatus.PREPARED,
-        package_dir=str(app_dir),
-    )
-    # Write prefill cheat-sheet next to package
+    # Write prefill cheat-sheet next to package. Contact stays in profile.yaml.
     cheat = app_dir / "ats_prefill.yaml"
     import yaml
 
@@ -1673,9 +1895,13 @@ def application_apply(
             {
                 "ats_url": plan.ats_url,
                 "ats_kind": plan.ats_kind.value,
-                "fields": prefill_field_map(candidate),
+                "fields": prefill_sheet_fields(candidate),
+                "omitted_contact": ["email", "phone"],
                 "needs_review": prefill_review,
-                "note": "Fill only known fields; leave blank rather than inventing.",
+                "note": (
+                    "Fill only known fields; leave blank rather than inventing. "
+                    "Email and phone are not copied here — read them from profile.yaml."
+                ),
             },
             allow_unicode=True,
             sort_keys=False,
@@ -1686,18 +1912,7 @@ def application_apply(
     console.print(f"Prefill sheet: {cheat}")
     console.print("Submit manually after reviewing HITL fields.")
     _learn_form_from_apply(config, plan.ats_url, job.company)
-    if yes:
-        console.print(
-            "[dim]Status stays prepared — --yes skips the applied prompt; "
-            "confirm after you actually submit.[/dim]"
-        )
-    elif typer.confirm("Mark application as applied?", default=False):
-        ApplicationRepository(session).upsert_for_job(
-            job.id,
-            status=ApplicationStatus.APPLIED,
-            package_dir=str(app_dir),
-        )
-        console.print("[green]Status → applied[/green]")
+    _note_no_receipt(session, job.id, str(app_dir), plan.ats_url)
 
 
 @application_app.command("show")
@@ -1715,6 +1930,8 @@ def application_show(job_id: Annotated[str, typer.Argument()]) -> None:
         console.print(f"Application: {app.id}  status={app.status.value}")
         pkg = app.package_dir or str(config.output_dir / "jobs" / job_id / "application")
         console.print(f"Package: {pkg}")
+        for event in ApplicationRepository(session).events_for(app.id):
+            console.print(f"  event {event.event_type}: {event.detail or '—'}")
     else:
         console.print("No application record yet. Run: jobbot application prepare " + job_id)
 
@@ -2174,7 +2391,6 @@ def linkedin_sweep(
             )
         )
 
-
     if not found:
         console.print("No relevant posts found.")
         raise typer.Exit(SUCCESS)
@@ -2325,12 +2541,8 @@ def getonboard_show_profile() -> None:
         raise typer.Exit(SUCCESS)
     console.print(f"Markdown: {md}")
     console.print(f"YAML:     {yml}")
-    console.print(
-        f"experiencia_y_perfil: {len(fields.experiencia_y_perfil)} / {EXPERIENCE_MAX}"
-    )
-    console.print(
-        f"formacion_academica:  {len(fields.formacion_academica)} / {EDUCATION_MAX}"
-    )
+    console.print(f"experiencia_y_perfil: {len(fields.experiencia_y_perfil)} / {EXPERIENCE_MAX}")
+    console.print(f"formacion_academica:  {len(fields.formacion_academica)} / {EDUCATION_MAX}")
     console.print(f"headline: {fields.headline}")
     console.print(f"skills: {', '.join(fields.skills)}")
 
@@ -2346,10 +2558,7 @@ def getonboard_open_profile() -> None:
     client.prepare_package()
     url = client.open_profile_edit()
     console.print(f"Opened {url}")
-    console.print(
-        "Reemplaza textos viejos con "
-        "output/getonboard/profile_permanent.md"
-    )
+    console.print("Reemplaza textos viejos con output/getonboard/profile_permanent.md")
 
 
 @getonboard_app.command("open-cvs")
@@ -2365,15 +2574,13 @@ def getonboard_open_cvs() -> None:
     url = GetOnBoardProfileClient.from_config(config).open_resumes()
     console.print(f"Opened {url}")
     console.print(
-        "En la UI: ve a [bold]Tus CVs / Your resumes[/bold], "
-        "sube el PDF y márcalo default."
+        "En la UI: ve a [bold]Tus CVs / Your resumes[/bold], sube el PDF y márcalo default."
     )
     if cv_pdf.is_file():
         console.print(f"PDF local: {cv_pdf}")
     else:
         console.print(
-            "No hay PDF — genera con [bold]jobbot cv build[/bold] "
-            "(queda en output/base/cv.pdf)."
+            "No hay PDF — genera con [bold]jobbot cv build[/bold] (queda en output/base/cv.pdf)."
         )
     console.print(f"(Misma base que editar perfil: {PROFILE_EDIT_URL})")
 
@@ -2407,9 +2614,7 @@ def getonboard_sync(
     console.print(client.open_profile_edit())
     console.print("Abriendo zona profesional (navega a Tus CVs)…")
     console.print(client.open_resumes())
-    console.print(
-        "HITL: reemplaza textos viejos, sube CV default, guarda. Luego postula."
-    )
+    console.print("HITL: reemplaza textos viejos, sube CV default, guarda. Luego postula.")
 
 
 @getonboard_app.command("search")
@@ -3123,8 +3328,7 @@ def companies_promote(
     targets = [
         s
         for s in record.career_sites
-        if s.status != KnowledgeStatus.REJECTED
-        and (site is None or s.key == canonical_key(site))
+        if s.status != KnowledgeStatus.REJECTED and (site is None or s.key == canonical_key(site))
     ]
     if not targets:
         console.print("Nothing to promote.")
@@ -3219,7 +3423,7 @@ def companies_discover(
         limit=limit,
         on_company=on_company,
     )
-    target = (out.expanduser().resolve() if out else generated_candidates_path(config.output_dir))
+    target = out.expanduser().resolve() if out else generated_candidates_path(config.output_dir)
     write_candidates(report.candidates, target)
     narrator.phase(Phase.SURFACING, f"{len(report.candidates)} portal(s)")
     narrator.outcome(
@@ -3250,8 +3454,7 @@ def companies_discover(
         )
     if report.companies_without_portal:
         console.print(
-            "No public portal found for: "
-            + ", ".join(report.companies_without_portal[:10])
+            "No public portal found for: " + ", ".join(report.companies_without_portal[:10])
         )
     if report.companies_blocked:
         console.print(
@@ -3642,15 +3845,11 @@ def ops_loop(
 
     def _hitl(reason: str) -> None:
         err_console.print(f"[bold red]{reason}[/bold red]")
-        err_console.print(
-            "Auth/challenge — fix manually, then restart loop. "
-            "No CAPTCHA bypass."
-        )
+        err_console.print("Auth/challenge — fix manually, then restart loop. No CAPTCHA bypass.")
         raise typer.Exit(AUTH_REQUIRED if "exit 3" in reason else MANUAL_CHALLENGE)
 
     console.print(
-        f"Loop [bold]{cmd}[/bold] every {interval}s "
-        f"(fail_fast={fail_fast}, max_ticks={max_ticks})"
+        f"Loop [bold]{cmd}[/bold] every {interval}s (fail_fast={fail_fast}, max_ticks={max_ticks})"
     )
     code = run_loop(
         cmd,
@@ -3902,8 +4101,10 @@ def recruiters_export(
     config = load_config()
     sources, _ = _recruiters_state(config)
     payload = export_payload(sources)
-    target = out.expanduser().resolve() if out else (
-        config.output_dir / "recruiters" / "hiring_practice.yaml"
+    target = (
+        out.expanduser().resolve()
+        if out
+        else (config.output_dir / "recruiters" / "hiring_practice.yaml")
     )
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(

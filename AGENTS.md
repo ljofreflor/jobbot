@@ -31,6 +31,8 @@ data/profile.yaml  →  Candidate (domain)
 jobbot jobs search "Senior Data Scientist" --location Santiago
 # or LinkedIn recruiter posts → ATS:
 jobbot linkedin sweep [QUERY] [--country CL] [--fixture PATH] [--cdp URL]
+# or a hard job URL you already have (Get on Board today):
+jobbot get https://www.getonbrd.com/empleos/.../slug
 jobbot jobs match J0001
 jobbot jobs shortlist
 jobbot cv build --job J0001
@@ -43,7 +45,10 @@ jobbot application apply J0001 --apply # open ATS + prefill sheet (you submit)
 jobbot profile suggest-from-market     # market language + ask gaps
 ```
 
-Job descriptions are pulled from **Indeed** (`jobs search`) or **LinkedIn recruiter posts** (`linkedin sweep`). Manual `jobs add --file` is a fallback.
+Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
+(`linkedin sweep`), or a **hard link** (`jobbot get URL` — portal must be in local
+`portals.yaml`, the tracked seed `portals.example.yaml`, or built-in ATS host rules).
+Manual `jobs add --file` is a fallback.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
 
@@ -62,7 +67,7 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
 - **Freshness:** `[search].max_age_days` (default 30) descarta posts viejos usando la fecha real que
  trae el activity id del link (`id >> 22` = ms epoch); `--max-age-days N` / `--any-age` por corrida.
  Sin fecha conocida no se descarta. `jobbot jobs backfill-dates` fecha lo ya guardado, offline.
-- **ATS apply depth:** discover + store + detect portal + **prefill known fields**; user submits (`application apply --apply`). No auto-submit, no CAPTCHA bypass.
+- **ATS apply depth:** discover + store + detect portal + **prefill known fields**; user submits (`application apply --apply`). No auto-submit, no CAPTCHA bypass. A yes at a prompt is not a receipt: without portal evidence, status stays `prepared` (unknown whether it was submitted) and the URL is recorded on an `ApplicationEvent`. A posting whose text or page says the vacancy is filled is not stored as open and is not opened.
 - **Email-only apply:** posts whose only apply route is an address become `ats_kind=email`
  (`mailto:`), with the post body as JD. `application apply --apply` builds the CV adapted to the
  job, opens Gmail compose and **uploads the PDF** (Playwright; `--cdp` to reuse your logged-in
@@ -314,6 +319,8 @@ uv run jobbot cv advise --apply            # confirma una por una → profile.ya
 uv run jobbot cv advise --llm --dry-run    # qué se enviaría y cuánto, sin gastar
 uv run jobbot cv advise --llm --max-llm-calls 3
 uv run jobbot jobs add --file tests/fixtures/jobs/senior_ds_retail.txt
+uv run jobbot get https://www.getonbrd.com/empleos/.../slug   # hard link → CV + package
+uv run jobbot get URL --apply --cdp http://127.0.0.1:9224     # + open ATS (HITL)
 uv run jobbot jobs match J0001
 uv run jobbot application prepare J0001
 uv run jobbot indeed login|pull|diff|sync --section headline

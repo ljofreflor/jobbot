@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-79 commands, 109 modules, 495 public symbols.
+80 commands, 112 modules, 513 public symbols.
 
 ## Commands
 
@@ -33,6 +33,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
+- `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board profile area for 'Tus CVs' (HITL upload).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
 - `jobbot getonboard prepare` — Maintain permanent GoB profile: cumulative refine by default (not cold replace).
@@ -109,7 +110,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `adapters/ats`
 
-- `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `prefill_field_map`, `describe_prefill`
+- `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `split_personal_name`, `prefill_field_map`, `prefill_sheet_fields`, `describe_prefill`
 - `ashby.py` — Ashby ATS adapter — open + known-field map only (HITL submit). · `AshbyAdapter`
 - `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`
 - `getonboard.py` — Get on Board adapter — open job page + known-field map (HITL submit). · `GetOnBoardAdapter`
@@ -122,7 +123,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 - `client.py` — Get on Board profile HITL client — permanent profile maintainer. · `GetOnBoardProfileClient`
 - `draft.py` — Permanent Get on Board profile fields from Candidate (facts only; Spanish). · `PermanentProfileFields`, `build_permanent_profile_fields`, `draft_getonboard_fields`, `render_permanent_profile_markdown`, `render_getonboard_markdown`, `permanent_profile_dir`, `permanent_profile_yaml_path`, `permanent_profile_md_path`, `save_permanent_profile`, `fields_from_seed_text`, `load_permanent_profile`
-- `jobs.py` — Get on Board job source (LATAM/ES) via public search API. · `GetOnBoardJobSource`, `search_jobs_api`, `job_from_api_item`, `remember_portal`, `remember_portal_from_url`
+- `jobs.py` — Get on Board job source (LATAM/ES) via public search API + hard-link pages. · `GetOnBoardJobSource`, `search_jobs_api`, `slug_from_url`, `fetch_job_html`, `parse_job_html`, `job_from_hard_link`, `job_from_api_item`, `remember_portal`, `remember_portal_from_url`
 - `package.py` — Get on Board profile + CV sync package from Candidate (facts only). · `GetOnBoardSyncPackage`, `build_getonboard_sync_package`, `render_getonboard_sync_markdown`
 - `profile_edit.py` — Write the permanent Get on Board profile through its own edit form. · `GobField`, `FieldWrite`, `ElementLike`, `PageLike`, `read_current`, `plan_writes`, `apply_writes`, `desired_from_fields`
 
@@ -182,7 +183,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 - `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
-- `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `build_job_cv_bundle`
+- `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `build_job_cv_bundle`
 - `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_multiline`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
@@ -197,7 +198,9 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `jobs`
 
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
+- `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
+- `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `GetFromUrlResult`, `ingest_hard_link`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `normalize_many`
@@ -244,6 +247,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `detect_ats_in_html`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
+- `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `follow_redirect_url`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
 

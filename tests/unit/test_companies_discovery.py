@@ -77,6 +77,15 @@ def test_corporate_posting_collapses_to_parent_path() -> None:
     assert career_root_url(url) == "https://empresa.cl/trabaja-con-nosotros/vacantes"
 
 
+def test_job_id_plus_title_slug_is_not_stored_as_the_portal() -> None:
+    """Regression: dropping only the last segment left /job/<id>, still the vacancy."""
+    url = "https://careers.example.com/global/en/job/fe3426f378a7100/Data-Scientist-Senior"
+    root = career_root_url(url)
+    assert root == "https://careers.example.com/global/en"
+    assert "fe3426f378a7100" not in root
+    assert not root.rstrip("/").endswith("/job")
+
+
 def test_redirect_to_external_ats_is_recorded() -> None:
     """LinkedIn post → corporate page → Workday: keep both ends of the chain."""
 
