@@ -126,10 +126,11 @@ def test_help_does_not_promise_greenhouse(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     from jobbot.cli import run_cli
+    from tests.conftest import plain_cli_text
 
     code = run_cli(["get", "--help"], standalone_mode=False)
     assert code == SUCCESS
-    text = capsys.readouterr().out
+    text = plain_cli_text(capsys.readouterr().out)
     assert "Get on Board" in text
     assert "Greenhouse" not in text
     assert "--fixture" in text

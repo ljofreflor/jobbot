@@ -44,7 +44,9 @@ def test_dry_run_prints_the_hash_and_does_not_open_a_browser(
     monkeypatch.setattr("jobbot.cli._getonboard_session", _no_session)
 
     assert run_cli(["getonboard", "upload-cv"], standalone_mode=False) == SUCCESS
-    out = capsys.readouterr().out
+    from tests.conftest import plain_cli_text
+
+    out = plain_cli_text(capsys.readouterr().out)
 
     assert opened == []
     assert "sha256:" in out

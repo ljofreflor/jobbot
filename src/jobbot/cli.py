@@ -1614,7 +1614,7 @@ def _propagate_getonboard_cv(
     path = resolve_base_cv(config.output_dir)
     check = validate_cv_for_upload(path)
     for line in check.summary_lines():
-        console.print(f"  {line}")
+        console.print(f"  {line}", soft_wrap=False, overflow="ignore")
     if not check.ok:
         err_console.print("[yellow]CV not uploaded: local validation failed.[/yellow]")
         return
@@ -2932,7 +2932,8 @@ def getonboard_upload_cv(
     check = validate_cv_for_upload(path)
     console.print("[bold]Local CV check[/bold] (before any upload)")
     for line in check.summary_lines():
-        console.print(f"  {line}")
+        # Paths must stay one token: soft-wrap mid-filename breaks copy/paste and tests.
+        console.print(f"  {line}", soft_wrap=False, overflow="ignore")
     if not check.ok:
         err_console.print("[red]Validation failed — nothing was uploaded.[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
@@ -2980,7 +2981,7 @@ def getonboard_open_cvs() -> None:
     console.print(f"Opened {url}")
     console.print("[bold]Local CV check[/bold]")
     for line in check.summary_lines():
-        console.print(f"  {line}")
+        console.print(f"  {line}", soft_wrap=False, overflow="ignore")
     if check.ok:
         console.print(
             "Prefer: [bold]jobbot getonboard upload-cv --apply --cdp URL[/bold] "
