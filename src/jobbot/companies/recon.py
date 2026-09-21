@@ -234,5 +234,5 @@ def _hint(
     elif need != AccountNeed.NOT_NEEDED:
         parts.append("next: companies signup NOMBRE (fill --apply is #44)")
     else:
-        parts.append("no standing account needed — company writer is #43")
+        parts.append("no standing account needed — jobbot cv sync --apply (HITL fill; #43)")
     return "; ".join(parts)

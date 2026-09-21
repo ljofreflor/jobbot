@@ -96,8 +96,9 @@ def parse_targets(raw: str) -> list[PropagationTarget]:
                 f"{name!r} is not a `cv propagate` target. "
                 "`cv propagate` updates permanent profiles only "
                 "(all|permanent|cv,getonboard,indeed,linkedin). "
-                "For active company portals use `jobbot cv sync` (plan today; #43) "
-                "or `jobbot companies signup NOMBRE` / `jobbot application apply Jxxxx` (#44)."
+                "For active company portals use `jobbot cv sync` "
+                "(HITL --apply for active sites; signup sheet is #44) "
+                "or `jobbot companies signup NOMBRE` / `jobbot application apply Jxxxx`."
             )
             raise UnknownTargetError(msg)
         try:

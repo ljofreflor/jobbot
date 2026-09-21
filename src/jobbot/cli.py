@@ -255,7 +255,7 @@ def version_cmd() -> None:
 def status_cmd(
     as_json: Annotated[bool, typer.Option("--json", help="Machine-readable rows")] = False,
 ) -> None:
-    """Show which permanent CVs / profiles are up (local evidence only)."""
+    """Show which permanent CVs / profiles and active company portals are up."""
     _print_cv_status(as_json=as_json)
 
 
@@ -268,7 +268,7 @@ def _print_cv_status(*, as_json: bool) -> None:
     if as_json:
         console.print_json(data=report.to_dict())
         return
-    table = Table(title="Permanent CV / profile presence")
+    table = Table(title="CV / profile presence (evidence only)")
     table.add_column("Destination")
     table.add_column("Artifact")
     table.add_column("State")
@@ -285,6 +285,7 @@ def _print_cv_status(*, as_json: bool) -> None:
     console.print(table)
     console.print(
         "[dim]Evidence only — missing receipt means unknown, not absent on the portal. "
+        "Active company portals need page evidence; a yes is never a receipt. "
         "Per-job apply stages: jobbot applications list[/dim]"
     )
 
@@ -901,7 +902,7 @@ def profile_diff(
 def cv_status(
     as_json: Annotated[bool, typer.Option("--json", help="Machine-readable rows")] = False,
 ) -> None:
-    """Alias for `jobbot status`: permanent CV / profile presence."""
+    """Alias for `jobbot status`: permanent + active company presence."""
     _print_cv_status(as_json=as_json)
 
 
@@ -1251,7 +1252,10 @@ def cv_propagate(
 def cv_sync(
     apply_changes: Annotated[
         bool,
-        typer.Option("--apply", help="Write permanent portals (default: dry-run plan)"),
+        typer.Option(
+            "--apply",
+            help="Write permanent portals and active company fill/signup (default: dry-run)",
+        ),
     ] = False,
     section: Annotated[
         str,
@@ -1270,10 +1274,10 @@ def cv_sync(
         typer.Option("--cdp", help="Attach to your logged-in Chrome (browser chrome-debug)"),
     ] = None,
 ) -> None:
-    """Standing presence: permanent profiles + active company plan (issue #43)."""
+    """Standing presence: permanent profiles + active company portals (issue #43)."""
     from jobbot.browser.sessions import inspect_sessions
     from jobbot.cv.propagate import PropagationTarget, summarize_plans
-    from jobbot.cv.sync import plan_sync
+    from jobbot.cv.sync import page_urls_from_cdp, plan_sync
 
     config = load_config()
     candidate = _load_valid_candidate(config)
@@ -1287,12 +1291,13 @@ def cv_sync(
         section=section,
         sessions=sessions,
         cdp_url=cdp,
+        page_urls=page_urls_from_cdp(cdp),
     )
     narrator = _narrator()
     narrator.phase(Phase.PROPAGATING_CV, summarize_plans(plan.permanent))
     _print_permanent_plan_table(plan.permanent, title="CV sync — permanent profiles")
 
-    company_table = Table(title="CV sync — active company portals (plan only)")
+    company_table = Table(title="CV sync — active company portals")
     company_table.add_column("Company")
     company_table.add_column("ATS")
     company_table.add_column("Action")
@@ -1315,16 +1320,12 @@ def cv_sync(
     if not apply_changes:
         console.print(
             "Dry-run. Re-run with [bold]--apply[/bold] to write permanent destinations "
-            "(HITL). Company rows stay plan-only until #43 writers land; use "
-            "[bold]companies signup[/bold] / [bold]application apply[/bold] meanwhile."
+            "and handle active company portals one by one (HITL). "
+            "Needs-account rows show the signup sheet (#44); fill rows open the career "
+            "URL and type only profile facts — you submit. A yes is not a receipt."
         )
         raise typer.Exit(SUCCESS)
 
-    if plan.companies:
-        console.print(
-            f"[yellow]Skipping {len(plan.companies)} company portal write(s)[/yellow] "
-            "(plan-only today; #43)."
-        )
     _apply_permanent_plans(
         plan.permanent,
         config=config,
@@ -1335,6 +1336,103 @@ def cv_sync(
         yes=yes,
         apply_changes=apply_changes,
     )
+    _apply_company_sync_rows(plan.companies, config=config, candidate=candidate, cdp=cdp, yes=yes)
+
+
+def _apply_company_sync_rows(
+    rows: Sequence[Any],
+    *,
+    config: JobbotConfig,
+    candidate: Candidate,
+    cdp: str | None,
+    yes: bool,
+) -> None:
+    from jobbot.adapters.getonboard.cv_upload import resolve_base_cv
+    from jobbot.cv.company_apply import company_apply_intent
+    from jobbot.cv.sync import CompanySyncRow
+
+    for row in rows:
+        assert isinstance(row, CompanySyncRow)
+        intent = company_apply_intent(row, candidate, cv_path=resolve_base_cv(config.output_dir))
+        if intent.mode == "skip":
+            console.print(f"{row.company_name}: skipped — {intent.note}")
+            continue
+        if intent.mode == "signup_sheet":
+            if not yes and not typer.confirm(
+                f"Show signup sheet for {row.company_name} (no account created)?",
+                default=True,
+            ):
+                console.print(f"{row.company_name}: skipped.")
+                continue
+            _print_company_signup_sheet(intent)
+            continue
+        if not yes and not typer.confirm(
+            f"Open {row.company_name} career site and fill known profile fields "
+            "(you submit; a yes is not a receipt)?",
+            default=False,
+        ):
+            console.print(f"{row.company_name}: skipped.")
+            continue
+        _run_company_fill(intent, config=config, candidate=candidate, cdp=cdp)
+
+
+def _print_company_signup_sheet(intent: Any) -> None:
+    console.print(
+        Panel(
+            f"[bold]{intent.company_name}[/bold] ({intent.company_id})\n"
+            f"{intent.url}\n\n{intent.note}",
+            title="Registration (you complete it)",
+        )
+    )
+    table = Table(title="Have this at hand")
+    table.add_column("The portal asks")
+    table.add_column("Your profile answers")
+    table.add_column("From")
+    for item in intent.sheet:
+        value = item.value or "[yellow]you decide[/yellow]"
+        table.add_row(item.label[:40], value[:46], item.source[:34])
+    console.print(table)
+    console.print(
+        "[dim]JobBot does not create the account, does not invent a password, "
+        "does not accept terms, and does not solve CAPTCHA/2FA.[/dim]"
+    )
+
+
+def _run_company_fill(
+    intent: Any,
+    *,
+    config: JobbotConfig,
+    candidate: Candidate,
+    cdp: str | None,
+) -> None:
+    from jobbot.browser.cdp import resolve_cdp_url
+    from jobbot.browser.session import BrowserSession
+    from jobbot.cv.company_apply import perform_company_apply
+
+    cdp_url = resolve_cdp_url(cdp)
+    with BrowserSession(
+        profile_dir=config.root / "browser-data" / "companies-sync-cdp",
+        headless=False,
+        cdp_url=cdp_url,
+        debug_root=config.output_dir / "debug",
+    ) as browser:
+        result = perform_company_apply(
+            intent,
+            candidate,
+            page=browser.page,
+            output_dir=config.output_dir,
+        )
+    console.print(
+        f"[green]Opened[/green] {intent.url} · filled {len(result.filled)} field(s)"
+        + (" · CV attached" if result.attached else "")
+    )
+    if result.receipt_path is not None:
+        console.print(f"Page receipt: {result.receipt_path}")
+    else:
+        console.print(
+            "[yellow]No page receipt[/yellow] — status stays unknown until the portal "
+            "shows a profile fact. Submit yourself; JobBot does not click submit."
+        )
 
 
 def _load_valid_candidate(config: JobbotConfig) -> Candidate:

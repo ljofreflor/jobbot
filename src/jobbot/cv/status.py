@@ -2,7 +2,9 @@
 
 Evidence only: a destination is never reported as uploaded without a local
 receipt or snapshot. ``jobbot status`` is a read-only view; writes stay in
-``cv build``, ``cv propagate``, and portal ``--apply`` commands.
+``cv build``, ``cv propagate``, ``cv sync --apply``, and portal ``--apply``
+commands. Active company portals appear only from page evidence — a missing
+receipt is unknown, never ready.
 """
 
 from __future__ import annotations
@@ -21,7 +23,15 @@ from jobbot.adapters.getonboard.draft import (
     load_permanent_profile,
     permanent_profile_md_path,
 )
+from jobbot.companies.registry import (
+    CompanyRegistry,
+    active_career_sites,
+    default_companies_path,
+    load_companies,
+)
+from jobbot.companies.urls import canonical_key
 from jobbot.config import JobbotConfig
+from jobbot.cv.company_apply import load_company_receipts
 from jobbot.cv.propagate import plan_getonboard, plan_indeed, plan_linkedin
 from jobbot.models.candidate import Candidate
 
@@ -62,7 +72,7 @@ class PresenceRow:
 
 @dataclass(frozen=True)
 class CvStatusReport:
-    """All permanent destinations JobBot maintains."""
+    """Permanent destinations plus active company portals (evidence only)."""
 
     rows: list[PresenceRow]
 
@@ -70,7 +80,12 @@ class CvStatusReport:
         return {"rows": [row.to_dict() for row in self.rows]}
 
 
-def build_cv_status(config: JobbotConfig, candidate: Candidate) -> CvStatusReport:
+def build_cv_status(
+    config: JobbotConfig,
+    candidate: Candidate,
+    *,
+    registry: CompanyRegistry | None = None,
+) -> CvStatusReport:
     """Assemble presence rows without writing files or opening a browser."""
     rows = [
         _local_pdf(config),
@@ -78,8 +93,47 @@ def build_cv_status(config: JobbotConfig, candidate: Candidate) -> CvStatusRepor
         _getonboard_profile(config, candidate),
         _indeed(config, candidate),
         _linkedin(config, candidate),
+        *_company_portal_rows(config, registry=registry),
     ]
     return CvStatusReport(rows=rows)
+
+
+def _company_portal_rows(
+    config: JobbotConfig,
+    *,
+    registry: CompanyRegistry | None,
+) -> list[PresenceRow]:
+    reg = registry if registry is not None else load_companies(default_companies_path(config.root))
+    receipts = load_company_receipts(config.output_dir)
+    rows: list[PresenceRow] = []
+    for record, site in active_career_sites(reg, include_candidates=False):
+        receipt = receipts.get(canonical_key(site.url))
+        if receipt is None:
+            rows.append(
+                PresenceRow(
+                    destination=record.id,
+                    artifact=site.url,
+                    state=PresenceState.UNKNOWN,
+                    evidence="no page receipt — not recorded locally",
+                    hint="jobbot cv sync --apply",
+                )
+            )
+            continue
+        when = (
+            receipt.observed_at.date().isoformat()
+            if receipt.observed_at is not None
+            else "—"
+        )
+        rows.append(
+            PresenceRow(
+                destination=record.id,
+                artifact=site.url,
+                state=PresenceState.PRESENT,
+                evidence=f"{receipt.evidence} · {when}",
+                hint=None,
+            )
+        )
+    return rows
 
 
 def _local_pdf(config: JobbotConfig) -> PresenceRow:

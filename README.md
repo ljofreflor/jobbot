@@ -58,7 +58,7 @@ the second loop (`match` → package → `application apply`, HITL submit).
 Working today:
 
 - Profile validate / import-latex / import-pdf / promote
-- `cv build` base and `--job Jxxxx`; `cv advise`; `cv sync` (permanent writes + active-company plan)
+- `cv build` base and `--job Jxxxx`; `cv advise`; `cv sync` (permanent + active company HITL)
 - `cv propagate` — permanent profiles only (subset of sync)
 - `jobs add|show|match|shortlist|note`
 - `get URL` — hard link → known portal → JD → CV + package (`--apply` opens ATS, you submit)
@@ -223,9 +223,13 @@ Recruiter posts → external ATS URL → portal registry → assisted apply (HIT
 ## Propagate / sync the CV (standing presence)
 
 **Preferred command:** `jobbot cv sync` ([#43](https://github.com/ljofreflor/jobbot/issues/43)).
-Plan = permanent profiles ∪ *active* company career sites. `--apply` today writes permanent
-destinations only (GoB / Indeed / LinkedIn + local CV); company rows stay plan-only until the
-rest of #43 lands. Assisted account fill is [#44](https://github.com/ljofreflor/jobbot/issues/44).
+Plan = permanent profiles ∪ *active* company career sites. Dry-run by default (writes nothing,
+opens no browser). `--apply` confirms one destination at a time: permanent writers plus, for
+active companies, either the assisted signup sheet when an account is needed and none is
+evidenced ([#44](https://github.com/ljofreflor/jobbot/issues/44)), or open + fill known
+`profile.yaml` fields and attach the built CV when no account is required or a session is
+evidenced. The human submits. A yes is not a receipt; `jobbot status` shows company portals
+from page evidence only.
 
 **Today also:** `cv propagate` rebuilds the base CV and pushes **permanent** profiles only
 (`--targets all` / `permanent` = local CV + GoB + Indeed + LinkedIn) — same writers as sync,
@@ -235,7 +239,7 @@ Dry-run by default; `--apply` confirms destination by destination:
 
 ```bash
 jobbot cv sync                             # plan: permanentes + companies active
-jobbot cv sync --apply                     # write permanentes (HITL); companies plan-only
+jobbot cv sync --apply                     # HITL: permanentes + company fill/signup sheet
 jobbot cv propagate                        # plan only, permanentes
 jobbot cv propagate --apply                # rebuild CV, then Get on Board / Indeed / LinkedIn
 jobbot cv propagate --targets permanent --apply

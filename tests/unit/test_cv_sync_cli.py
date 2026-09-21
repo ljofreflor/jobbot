@@ -84,3 +84,30 @@ def test_cv_sync_dry_run_lists_active_only_and_opens_no_browser(
     assert "Buk" not in out
     assert "permanent" in out.casefold() or "CV sync" in out
     assert "Dry-run" in out
+
+
+def test_apply_signup_row_shows_the_sheet_and_opens_no_browser(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    _write_companies(tmp_path)
+    from jobbot.cli import run_cli
+
+    opened: list[str] = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr("jobbot.cli._apply_permanent_plans", lambda *args, **kwargs: None)
+
+    def _boom(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("browser session started")
+
+    monkeypatch.setattr("jobbot.browser.session.BrowserSession", _boom)
+
+    assert run_cli(["cv", "sync", "--apply", "--yes"], standalone_mode=False) == SUCCESS
+    out = capsys.readouterr().out
+    assert opened == []
+    assert "Betterfly" in out
+    assert "password" in out.casefold() or "does not create" in out.casefold()
+    assert not list((tmp_path / "output").rglob("*receipt*"))
