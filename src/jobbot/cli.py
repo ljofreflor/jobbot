@@ -1165,6 +1165,70 @@ def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> 
 # ── jobs ─────────────────────────────────────────────────────────────────────
 
 
+@jobs_app.command("get")
+def jobs_get(
+    url: Annotated[str, typer.Argument(help="Direct job posting URL (e.g. Indeed viewjob)")],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Store the job (dry-run shows summary only)"),
+    ] = False,
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Parse from saved HTML instead of fetching live"),
+    ] = None,
+    cdp_url: Annotated[
+        str | None,
+        typer.Option("--cdp", help="CDP endpoint URL for browser automation"),
+    ] = None,
+) -> None:
+    """Fetch a job from a direct URL (hard link).
+    
+    Dry-run (no --apply): fetch and show summary, nothing written.
+    --apply: store in jobs repository and print Jxxxx ID.
+    """
+    from jobbot.jobs.from_url import UnsupportedPortalFetchError, ingest_hard_link
+    from jobbot.jobs.ids import next_job_id
+    from jobbot.jobs.repository import JobRepository, write_job_json
+    
+    config = load_config()
+    
+    try:
+        job = ingest_hard_link(url, fixture_path=fixture, cdp_url=cdp_url)
+    except UnsupportedPortalFetchError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    except ValueError as exc:
+        err_console.print(f"[red]Invalid URL: {exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    
+    # Show summary
+    table = Table(title=f"Job from {job.source}")
+    table.add_column("Field", style="cyan")
+    table.add_column("Value")
+    table.add_row("Title", job.title)
+    table.add_row("Company", job.company)
+    table.add_row("Location", job.location or "—")
+    table.add_row("URL", job.url or "—")
+    table.add_row("Source ID", job.source_job_id or "—")
+    console.print(table)
+    
+    if not apply:
+        console.print("\n[dim]Dry-run: nothing written. Use --apply to store.[/dim]")
+        return
+    
+    # Store job
+    job.id = next_job_id(config.db_path)
+    repo = JobRepository(config.db_path)
+    repo.add(job)
+    
+    # Write JSON
+    jobs_dir = config.output_dir / "jobs" / job.id
+    write_job_json(job, jobs_dir)
+    
+    console.print(f"\n[bold green]Stored as {job.id}[/bold green]")
+    console.print(f"Next: [bold]jobbot jobs match {job.id}[/bold]")
+
+
 @jobs_app.command("add")
 def jobs_add(
     file: Annotated[
