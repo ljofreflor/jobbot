@@ -169,12 +169,12 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   `cv advise` usa para saber qué preguntan realmente las empresas.
 - **Registro de cuenta (asistido, HITL):** el endgame es que un portal *active* de la base
   colaborativa pueda quedar con cuenta + perfil/CV al día para este candidato. Hoy
-  `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`. La
-  automatización permitida es **rellenar campos que el perfil ya responde** y adjuntar el
-  PDF construido; **prohibido** inventar contraseña, aceptar términos solo, resolver
+  `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`.
+  Con `--apply` rellena campos que el perfil ya responde y puede adjuntar el PDF;
+  **prohibido** inventar contraseña, aceptar términos solo, resolver
   CAPTCHA/2FA o pulsar crear/enviar sin confirmación. El módulo de sheet
   (`jobbot.companies.signup`) sigue sin cliente HTTP propio (la hoja es pura); el driver
-  de relleno vive en adapters de portal, detrás de `--apply` + confirm. ATS sin cuenta
+  de relleno vive en `adapters/ats/signup_fill.py`, detrás de `--apply` + confirm. ATS sin cuenta
   (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
 - **Asesor de presentación:** `cv advise` propone **pocas** mejoras por corrida en tres ejes
   (legibilidad de máquina, lenguaje, puesta en página) usando JD guardados, formularios observados y
@@ -385,7 +385,7 @@ uv run jobbot cv propagate                 # alias permanente-only de sync (sin 
 uv run jobbot cv propagate --targets permanent --apply
 uv run jobbot status                       # permanentes + active company portals (evidencia)
 # Signup fill beyond the sheet: issue #44
-uv run jobbot companies signup NOMBRE      # hoja + open; fill --apply es #44
+uv run jobbot companies signup NOMBRE --apply [--cdp URL]  # fill known fields; HITL create
 uv run jobbot cv advise                    # determinista, sin tokens
 uv run jobbot cv advise --apply            # confirma una por una → profile.yaml (con backup)
 uv run jobbot cv advise --llm --dry-run    # qué se enviaría y cuánto, sin gastar
@@ -435,7 +435,7 @@ uv run jobbot companies learn URL --company NAME --country CL
 uv run jobbot companies list|show|promote|reject|sites|export
 uv run jobbot companies discover data/companies-cl.example.yaml   # oneshot → candidatos
 uv run jobbot companies import output/discovery/company_portals.generated.yaml
-uv run jobbot companies signup NOMBRE                 # hoja + open; fill --apply = #44
+uv run jobbot companies signup NOMBRE --apply [--cdp URL] # fill known; HITL create (#44)
 uv run jobbot companies recon NOMBRE --fixture PATH   # aprender ATS/form desde HTML (#45)
 uv run jobbot companies recon NOMBRE --cdp URL --apply
 uv run jobbot application apply J0001
