@@ -1165,6 +1165,75 @@ def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> 
 # ── jobs ─────────────────────────────────────────────────────────────────────
 
 
+@jobs_app.command("get")
+def jobs_get(
+    url: Annotated[str, typer.Argument(help="Job URL (Indeed viewjob, GetOnBoard, etc.)")],
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="HTML fixture for offline testing"),
+    ] = None,
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Store the job (dry-run without this)"),
+    ] = False,
+) -> None:
+    """Fetch and store a job from a hard link (Indeed, GetOnBoard, etc.).
+    
+    Dry-run (no --apply): fetch, parse, show summary. Nothing written.
+    --apply: store the job in the repository and print the assigned ID.
+    """
+    from jobbot.jobs.hard_link import (
+        HardLinkFetchError,
+        UnsupportedPortalError,
+        fetch_from_url,
+    )
+    from jobbot.jobs.indeed_url import IndeedUrlError
+
+    try:
+        result = fetch_from_url(url, fixture=fixture)
+    except IndeedUrlError as exc:
+        err_console.print(f"[red]Invalid Indeed URL:[/red] {exc}")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    except UnsupportedPortalError as exc:
+        err_console.print(f"[yellow]{exc}[/yellow]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    except HardLinkFetchError as exc:
+        err_console.print(f"[red]Failed to fetch job:[/red] {exc}")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    job = result.job
+    
+    table = Table(title=f"Fetched from {result.portal}")
+    table.add_column("Field", style="cyan")
+    table.add_column("Value")
+    table.add_row("Title", job.title or "—")
+    table.add_row("Company", job.company or "—")
+    table.add_row("Location", job.location or "—")
+    table.add_row("URL", result.canonical_url)
+    table.add_row("Source ID", job.source_job_id or "—")
+    console.print(table)
+
+    if job.description:
+        desc_preview = job.description[:200] + "..." if len(job.description) > 200 else job.description
+        console.print(f"\n[dim]Description preview:[/dim]\n{desc_preview}")
+
+    if not apply:
+        console.print("\n[dim]Dry-run complete. Nothing written.[/dim]")
+        console.print("[dim]Use --apply to store this job.[/dim]")
+        return
+
+    session, config = _session()
+    repo = JobRepository(session)
+    
+    stored = repo.upsert_external(job)
+    path = write_job_json(stored, config.output_dir)
+    
+    console.print(f"\n[green]✓ Stored[/green] {stored.id}  {stored.company}  {stored.title}")
+    console.print(f"Wrote {path}")
+    
+    _learn_company_knowledge(config, stored)
+
+
 @jobs_app.command("add")
 def jobs_add(
     file: Annotated[
