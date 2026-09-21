@@ -4,25 +4,56 @@ Instructions for AI agents and humans working on this repository.
 
 ## Product / endgame
 
-JobBot is a **local terminal-only** tool. The endgame is **job matching to apply**:
+JobBot is a **local terminal-only** tool. Two loops, one source of truth
+(`data/profile.yaml`; never invent experience):
 
 ```text
-profile.yaml (Candidate)
-      → match / shortlist
-      → CV derivado + application package
-      → portal adapters (Indeed, GetOnBoard, Greenhouse, …)
+1) Standing presence (collaborative portals)
+   LaTeX / PDF / profile.yaml
+     → improve CV (advise)
+     → every *active* portal in the shared company↔portal base
+        has this candidate registered (when automatable) and up to date
+     → jobbot status shows evidence of what is up
+
+2) Apply to a vacancy
+   profile.yaml → match / shortlist → package → application apply (HITL submit)
 ```
 
-No web frontend. Facts live only in `data/profile.yaml`. Never invent experience to fit a job.
+**Collaboration is the map, not the traveller.** Shared knowledge is who hires where
+and what forms ask (companies / portals / form questions). Each person's CV, sessions,
+passwords and applications stay on their machine.
+
+**New candidate surface (target: two or three commands).** Someone arrives with a LaTeX
+CV (often outside the repo: `paths.legacy_cv`, a private path — never commit real
+`latex/cv.tex`). JobBot imports facts, helps present them, then syncs standing presence
+against the collaborative portal base:
+
+```bash
+jobbot profile import-latex          # or import-pdf; promote-generated after review
+jobbot cv advise --apply             # presentation only; confirms one by one
+jobbot cv sync --apply               # rebuild CV + permanent portals; plan active companies (#43)
+# Company portal writes + signup --apply fill: still landing (#43 / #44)
+```
+
+**Accounts, as far as automatable.** If an active portal in the base needs an account and
+this workspace has none, JobBot may open the registration and **fill fields the profile
+already answers** (and attach the built CV). It never invents a password, never accepts
+terms alone, never solves CAPTCHA/2FA, and never clicks the final create/submit without
+HITL confirmation. Irreversible steps stay human. Own accounts only.
+
+**Oneshot ≠ presence.** `companies discover` only seeds *candidate* career URLs. It does
+not create accounts or upload CVs. Presence is `cv sync` / propagate + assisted signup
+against portals that were reviewed and `promote`d.
 
 ## Source of truth
 
 ```text
 data/profile.yaml  →  Candidate (domain)
         │
-   ┌────┼────┬─────────┐
-   ▼    ▼    ▼         ▼
- LaTeX Indeed LinkedIn  future apply portals
+   ┌────┼────┬─────────┬──────────────────────┐
+   ▼    ▼    ▼         ▼                      ▼
+ LaTeX Indeed LinkedIn  permanent portals   active company portals
+                                              (collaborative base)
 ```
 
 ## Cargo lifecycle (primary loop)
@@ -31,19 +62,25 @@ data/profile.yaml  →  Candidate (domain)
 jobbot jobs search "Senior Data Scientist" --location Santiago
 # or LinkedIn recruiter posts → ATS:
 jobbot linkedin sweep [QUERY] [--country CL] [--fixture PATH] [--cdp URL]
+# or a hard job URL you already have (Get on Board today):
+jobbot get https://www.getonbrd.com/empleos/.../slug
 jobbot jobs match J0001
 jobbot jobs shortlist
 jobbot cv build --job J0001
 jobbot cv advise # mejoras de presentación (determinista; --apply confirma una por una)
-jobbot cv propagate # CV base → perfiles permanentes (dry-run; --apply es HITL)
+jobbot cv sync # presencia: permanentes + plan de companies active (#43); hoy escribe solo permanentes
+jobbot status # CVs/perfiles permanentes arriba (evidencia local; alias: cv status)
 jobbot application prepare J0001
 jobbot application open J0001          # opens ATS/job URL; no auto-submit
 jobbot application apply J0001         # dry-run prefill plan
 jobbot application apply J0001 --apply # open ATS + prefill sheet (you submit)
-jobbot profile suggest-from-market     # market language + ask gaps
+jobbot profile suggest-from-market     # market language (no stdin; --ask for gaps)
 ```
 
-Job descriptions are pulled from **Indeed** (`jobs search`) or **LinkedIn recruiter posts** (`linkedin sweep`). Manual `jobs add --file` is a fallback.
+Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
+(`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
+today; `--fixture` also ingests saved career-page HTML for unknown hosts). Known ATS hosts
+without a fetcher are recognized then refused. Manual `jobs add --file` is a fallback.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
 
@@ -62,12 +99,14 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
 - **Freshness:** `[search].max_age_days` (default 30) descarta posts viejos usando la fecha real que
  trae el activity id del link (`id >> 22` = ms epoch); `--max-age-days N` / `--any-age` por corrida.
  Sin fecha conocida no se descarta. `jobbot jobs backfill-dates` fecha lo ya guardado, offline.
-- **ATS apply depth:** discover + store + detect portal + **prefill known fields**; user submits (`application apply --apply`). No auto-submit, no CAPTCHA bypass.
+- **ATS apply depth:** discover + store + detect portal + **prefill known fields**; user submits (`application apply --apply`). No auto-submit, no CAPTCHA bypass. A yes at a prompt is not a receipt: without portal evidence, status stays `prepared` (unknown whether it was submitted) and the URL is recorded on an `ApplicationEvent`. A posting whose text or page says the vacancy is filled is not stored as open and is not opened.
 - **Email-only apply:** posts whose only apply route is an address become `ats_kind=email`
  (`mailto:`), with the post body as JD. `application apply --apply` builds the CV adapted to the
  job, opens Gmail compose and **uploads the PDF** (Playwright; `--cdp` to reuse your logged-in
  Chrome, `--no-attach` for compose URL only). JobBot never clicks Send.
-- **Market feedback:** `profile suggest-from-market` proposes rephrases and asks gap questions; `--promote` only after user confirms. Never invent; never delete baseline facts.
+- **Market feedback:** `profile suggest-from-market` writes suggestions with no stdin by
+  default (`--no-ask`). Gap prompts only with `--ask`; `--promote` still confirms before
+  writing `profile.yaml`. Never invent; never delete baseline facts.
 - **Domain-agnostic by rule:** the candidate may be a nurse, a journalist or an engineer, so **no
  module may gate behaviour on one field's vocabulary**, and none may hold a real employer, city or
  person. Enforced by `tests/unit/test_domain_agnostic.py`, one test per module.
@@ -115,6 +154,12 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  es un **oneshot** que escribe candidatos en `output/discovery/` y nunca toca `data/companies.yaml`;
  HTTP 200 no es evidencia y un sitio que nos rechaza (403/conexión cortada) se reporta como
  desconocido, no como ausencia. Compartir siempre vía `companies export` (solo activos, sin PII).
+- **Recon por dentro ([#45](https://github.com/ljofreflor/jobbot/issues/45)):** el oneshot mira
+  **desde fuera**; la verdad de componentes (ATS, campos de registro, dónde se sube el CV) se
+  aprende **entrando**. `companies recon NOMBRE` captura el HTML de la página (fixture o CDP
+  tras login HITL), corre `detect_ats_in_html` + `form-learn`, y con `--apply` guarda observación
+  técnica + preguntas del formulario. No crea la cuenta, no inventa ATS desde el hostname, y
+  alimenta [#43](https://github.com/ljofreflor/jobbot/issues/43) / [#44](https://github.com/ljofreflor/jobbot/issues/44).
 - **Qué pide un formulario:** `portals form-learn URL --fetch|--fixture PATH` lee un formulario de
   postulación y guarda **solo las preguntas**: etiqueta, tipo, obligatoriedad, opciones de un select
   y qué archivos acepta. Nunca guarda un valor tipeado, un token oculto ni el teléfono de ejemplo de
@@ -122,11 +167,15 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   postulación si la página no se puede leer (queda como `unknown`, no como formulario vacío).
   `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el insumo que
   `cv advise` usa para saber qué preguntan realmente las empresas.
-- **Registro de cuenta:** `companies signup NOMBRE` abre el portal y lista qué datos pedirá, con lo
-  que `profile.yaml` ya responde y lo que queda a tu criterio. No crea la cuenta, no fija contraseña
-  y no acepta términos; `jobbot.companies.signup` no tiene cliente HTTP ni driver de navegador, y un
-  test lo verifica leyendo su propio código. Los ATS que no requieren cuenta lo dicen (Greenhouse,
-  Lever, Ashby); si no hay evidencia, es `unknown`, no una suposición.
+- **Registro de cuenta (asistido, HITL):** el endgame es que un portal *active* de la base
+  colaborativa pueda quedar con cuenta + perfil/CV al día para este candidato. Hoy
+  `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`. La
+  automatización permitida es **rellenar campos que el perfil ya responde** y adjuntar el
+  PDF construido; **prohibido** inventar contraseña, aceptar términos solo, resolver
+  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. El módulo de sheet
+  (`jobbot.companies.signup`) sigue sin cliente HTTP propio (la hoja es pura); el driver
+  de relleno vive en adapters de portal, detrás de `--apply` + confirm. ATS sin cuenta
+  (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
 - **Asesor de presentación:** `cv advise` propone **pocas** mejoras por corrida en tres ejes
   (legibilidad de máquina, lenguaje, puesta en página) usando JD guardados, formularios observados y
   prácticas de reclutamiento que promoviste. Dos invariantes se **verifican**, no se prometen: una
@@ -189,7 +238,11 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
 ## Safety / platform
 
 - Own accounts only. No CAPTCHA solving, 2FA bypass, stealth, proxies, telemetry.
-- Failures: local `ops_failures` in SQLite + `output/ops/failures/`; GitHub issues only via HITL `jobbot ops failure issue` (never auto on crash).
+- Failures: local `ops_failures` in SQLite + `output/ops/failures/`; GitHub issues only via HITL
+  `jobbot ops failure issue` (never auto on crash). Maintainer lane is bash:
+  `jobbot ops failure work Fxxxx` prints (or with `--apply` opens) issue → `git fetch` →
+  branch → PR → triage → re-run ([#46](https://github.com/ljofreflor/jobbot/issues/46)); never
+  auto-commit / push / merge.
 - **PII:** never commit `data/profile.yaml`, `data/portals.yaml`, `data/companies.yaml`, SQLite, `browser-data/`, `sandboxes/`, or `output/`. Track only `*.example.yaml` templates.
 - **PII guard:** `make hooks` enables `.githooks/pre-commit` (`jobbot.ops.pii_guard`) — blocked paths + real-looking email/phone/RUT/home-path detection. Fixtures and examples allowlisted. `pii_guard.redact()` is the one place that defines what counts as contact data, reused wherever text leaves your files (learned form labels, LLM prompts).
 - **Which commits run the suite:** `jobbot.ops.precommit.tests_needed()` decides, and it is unit-tested instead of living as a shell regex. Policy counts as behaviour: editing **this file** runs the tests, because for an agent working from a clone this file is the whole policy.
@@ -202,6 +255,10 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
   (`ready` needs an open signed-in page; a live port proves nothing). JobBot never auto-attaches:
   it suggests `--cdp`. A persistent profile held by another Chrome is `profile_busy` and blocks
   that destination up front (`BrowserSession` also refuses to launch over it).
+  `jobbot browser login` is the first pass over permanent sites plus company portals that are
+  `active` or `candidate` and may need an account ([#56](https://github.com/ljofreflor/jobbot/issues/56)):
+  dry-run by default; `--apply` opens the next gap and stops. The password, CAPTCHA and 2FA stay
+  human. A company tab is `unknown`, never `ready`. Visiting a candidate does not promote it.
 - Removals ignored by default.
 
 ## Regression tests (mandatory)
@@ -251,6 +308,21 @@ with a test attached, the same waste wearing a convincing costume.
 This is not only about tokens. The deterministic path is the auditable one: never inventing
 experience, and stopping for HITL, are guarantees that live in code and its tests — not in the
 memory of a conversation.
+
+## Planning (before a plan or feature branch)
+
+Product work is tracked in GitHub issues. Agents re-deriving the same endgame in chat while
+an issue already holds acceptance tests wastes everyone's time.
+
+1. Before drafting a plan or opening a feature branch for product work, run
+   `gh issue list --state open` (and search by keyword if needed).
+2. Prefer **extending or closing an existing issue** over a parallel design that re-describes
+   the same endgame (e.g. standing presence → [#43](https://github.com/ljofreflor/jobbot/issues/43)
+   / assisted signup → [#44](https://github.com/ljofreflor/jobbot/issues/44)
+   / portal recon inside → [#45](https://github.com/ljofreflor/jobbot/issues/45)).
+3. If the work is genuinely new, open or update an issue first (HITL), then plan against that
+   number.
+4. Cite issue numbers in the plan and in PR bodies.
 
 ## Remote agents (issues, cloud, CI)
 
@@ -307,13 +379,20 @@ uv run jobbot profile import-pdf /path/to/cv.pdf # PDF con capa de texto; sin OC
 uv run jobbot cv build
 uv run jobbot cv build --job J0001            # moderncv (tu diseño) por defecto
 uv run jobbot cv build --job J0001 --style plain
-uv run jobbot cv propagate                 # plan: CV base + perfiles permanentes
-uv run jobbot cv propagate --apply         # HITL por destino (GoB, Indeed, LinkedIn)
+uv run jobbot cv sync                      # plan: permanentes + companies active (#43)
+uv run jobbot cv sync --apply              # escribe permanentes (HITL); companies aún plan-only
+uv run jobbot cv propagate                 # alias permanente-only de sync (sin filas companies)
+uv run jobbot cv propagate --targets permanent --apply
+uv run jobbot status                       # CVs/perfiles permanentes arriba (evidencia local)
+# Company writes + signup --apply fill: issues #43 / #44
+uv run jobbot companies signup NOMBRE      # hoja + open; fill --apply es #44
 uv run jobbot cv advise                    # determinista, sin tokens
 uv run jobbot cv advise --apply            # confirma una por una → profile.yaml (con backup)
 uv run jobbot cv advise --llm --dry-run    # qué se enviaría y cuánto, sin gastar
 uv run jobbot cv advise --llm --max-llm-calls 3
 uv run jobbot jobs add --file tests/fixtures/jobs/senior_ds_retail.txt
+uv run jobbot get https://www.getonbrd.com/empleos/.../slug   # hard link → CV + package
+uv run jobbot get URL --apply --cdp http://127.0.0.1:9224     # + open ATS (HITL)
 uv run jobbot jobs match J0001
 uv run jobbot application prepare J0001
 uv run jobbot indeed login|pull|diff|sync --section headline
@@ -334,6 +413,8 @@ uv run jobbot getonboard prepare --cold       # solo si quieres partir de cero
 uv run jobbot getonboard show-profile
 uv run jobbot getonboard open-profile
 uv run jobbot getonboard open-cvs
+uv run jobbot getonboard upload-cv              # valida PDF (tamaño/magic/hash)
+uv run jobbot getonboard upload-cv --apply --cdp http://127.0.0.1:9224  # sube + default
 uv run jobbot getonboard sync --apply
 uv run jobbot getonboard search                 # query desde personal.headline
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
@@ -341,6 +422,8 @@ uv run jobbot ops failures
 uv run jobbot ops failure show F0001
 uv run jobbot ops failure triage F0001 --status fixed
 uv run jobbot ops failure issue F0001          # HITL → gh issue
+uv run jobbot ops failure work F0001           # bash lane: issue→branch→PR→retry (#46)
+uv run jobbot ops failure work F0001 --apply   # HITL: issue + fetch + checkout -b
 uv run jobbot ops loop --cmd getonboard-prepare --interval 300
 uv run jobbot portals list|add|detect
 uv run jobbot portals form-learn URL --fetch          # qué pide un formulario (solo lee)
@@ -352,10 +435,14 @@ uv run jobbot companies learn URL --company NAME --country CL
 uv run jobbot companies list|show|promote|reject|sites|export
 uv run jobbot companies discover data/companies-cl.example.yaml   # oneshot → candidatos
 uv run jobbot companies import output/discovery/company_portals.generated.yaml
-uv run jobbot companies signup NOMBRE                 # abre el registro; no crea la cuenta
+uv run jobbot companies signup NOMBRE                 # hoja + open; fill --apply = #44
+uv run jobbot companies recon NOMBRE --fixture PATH   # aprender ATS/form desde HTML (#45)
+uv run jobbot companies recon NOMBRE --cdp URL --apply
 uv run jobbot application apply J0001
 uv run jobbot application apply J0001 --apply           # email: adapted CV attached in Gmail
 uv run jobbot browser sessions # preflight: ready | needs_login | unknown | profile_busy
+uv run jobbot browser login            # permanentes + active + candidate; sin credenciales (#56)
+uv run jobbot browser login --apply    # abre el siguiente portal sin sesión probada; tú entras
 uv run jobbot browser chrome-debug --site gmail --port 9223
 uv run jobbot application apply J0001 --apply --cdp http://127.0.0.1:9223
 uv run jobbot profile suggest-from-market

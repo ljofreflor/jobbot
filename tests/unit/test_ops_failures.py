@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from jobbot.config import JobbotConfig, PathsConfig
 from jobbot.db.engine import make_engine, make_session_factory
-from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, UI_CHANGED
+from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, UI_CHANGED, USER_CANCEL
 from jobbot.ops.failures import (
     capture_cli_failure,
     failure_fingerprint,
@@ -154,6 +154,7 @@ def test_should_not_record_success_or_ops() -> None:
     assert not should_record_cli_failure(["jobbot", "profile", "validate"], SUCCESS)
     assert not should_record_cli_failure(["jobbot", "ops", "failures"], GENERIC_FAILURE)
     assert should_record_cli_failure(["jobbot", "probe-exit", "5"], UI_CHANGED)
+    assert not should_record_cli_failure(["jobbot", "jobs", "add"], USER_CANCEL)
 
 
 def test_capture_cli_failure_ui_changed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

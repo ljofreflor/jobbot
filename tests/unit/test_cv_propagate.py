@@ -46,9 +46,25 @@ def test_parse_targets_defaults_to_all_in_canonical_order() -> None:
     assert parse_targets("linkedin, cv") == [PropagationTarget.CV, PropagationTarget.LINKEDIN]
 
 
+def test_permanent_is_the_same_as_all() -> None:
+    """`--targets all` means permanent profiles, not every company ATS in the registry."""
+    assert parse_targets("permanent") == list(DEFAULT_TARGETS)
+    assert parse_targets("permanent") == parse_targets("all")
+
+
 def test_parse_targets_rejects_unknown_destination() -> None:
     with pytest.raises(UnknownTargetError):
         parse_targets("cv,twitter")
+
+
+def test_company_portals_are_not_propagation_targets() -> None:
+    """Greenhouse/Workday/etc. belong to cv sync / signup, not propagate --targets."""
+    for name in ("companies", "greenhouse", "workday", "all-companies", "portals"):
+        with pytest.raises(UnknownTargetError, match="cv sync") as exc:
+            parse_targets(name)
+        text = str(exc.value).casefold()
+        assert "cv sync" in text
+        assert "permanent" in text
 
 
 def test_cv_plan_lists_local_artifacts(tmp_path: Path, project_root: Path) -> None:

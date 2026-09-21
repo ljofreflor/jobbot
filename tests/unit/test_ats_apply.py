@@ -25,9 +25,52 @@ def test_build_apply_plan_from_ats_url() -> None:
     plan = build_apply_plan(cand, job)
     assert plan.method == ApplyMethod.EXTERNAL_ATS
     assert plan.ats_kind.value == "greenhouse"
+    assert "prefill" in plan.message.casefold()
     fields = prefill_field_map(cand)
     assert fields["email"] == "leo@example.com"
+    assert fields["first_name"] == "Leonardo"
+    assert fields["last_name"] == "Jofré"
     assert "full_name" in fields
+
+
+def test_unknown_ats_plan_does_not_claim_prefill() -> None:
+    cand = Candidate(personal=PersonalInfo(name="Ana", headline="Editor"))
+    job = JobPosting(
+        id="J1",
+        title="Editor",
+        company="Northwind",
+        ats_url="https://careers.example-corp.test/job/1",
+        ats_kind="unknown",
+    )
+    plan = build_apply_plan(cand, job)
+    assert plan.method == ApplyMethod.EXTERNAL_ATS
+    assert "prefill" not in plan.message.casefold()
+    assert "cheat sheet" in plan.message.casefold()
+
+
+def test_four_part_name_keeps_both_surnames() -> None:
+    """Regression: the first space used to swallow the second given name."""
+    from jobbot.adapters.ats.apply import prefill_sheet_fields, split_personal_name
+
+    given, surnames = split_personal_name("Ada María López Soto")
+    assert given == "Ada María"
+    assert surnames == "López Soto"
+    cand = Candidate(
+        personal=PersonalInfo(
+            name="Ada María López Soto",
+            headline="Editor",
+            email="ada@example.com",
+            phone="+56 9 1234 5678",
+        )
+    )
+    fields = prefill_field_map(cand)
+    assert fields["first_name"] == "Ada María"
+    assert fields["last_name"] == "López Soto"
+    sheet = prefill_sheet_fields(cand)
+    assert "email" not in sheet
+    assert "phone" not in sheet
+    assert "ada@example.com" not in sheet.values()
+    assert sheet["last_name"] == "López Soto"
 
 
 def test_lever_adapter_detects() -> None:

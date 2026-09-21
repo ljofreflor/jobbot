@@ -63,6 +63,68 @@ def test_candidate_urls_start_with_official_domain_paths() -> None:
     assert len(urls) == len(set(urls))
 
 
+def test_known_portal_url_is_stored_as_hint_and_probed_first() -> None:
+    """Once a portal URL is known, save it — do not rediscover via path patterns alone."""
+    seed = CompanySeed(
+        name="SQM",
+        domain="sqm.com",
+        country="CL",
+        career_url_hints=["https://www.trabajaensqm.com/"],
+    )
+    urls = candidate_urls(seed)
+    assert urls[0] == "https://trabajaensqm.com"
+    assert "https://sqm.com/careers" in urls
+
+
+def test_load_seeds_reads_career_url_hints(tmp_path: Path) -> None:
+    path = tmp_path / "seeds.yaml"
+    path.write_text(
+        "companies:\n"
+        "  - name: SQM\n"
+        "    domain: sqm.com\n"
+        "    career_url_hints:\n"
+        "      - https://www.trabajaensqm.com/\n",
+        encoding="utf-8",
+    )
+    seeds = load_seeds(path)
+    assert seeds[0].career_url_hints == ["https://www.trabajaensqm.com/"]
+
+
+def test_rejected_false_positive_stays_rejected_on_reimport() -> None:
+    """companies reject is the FP fix; a later oneshot import must not revive it."""
+    registry = CompanyRegistry()
+    bad = "https://sqm.com/noticia/carreras-e-karts"
+    registry.observe(
+        company="SQM",
+        company_id="sqm",
+        url=bad,
+        source=DiscoverySource.OFFICIAL_SITE,
+        site_type=CareerSiteType.COMPANY_CAREER_PORTAL,
+        status=KnowledgeStatus.CANDIDATE,
+    )
+    registry.reject("sqm", url=bad)
+    from jobbot.companies.oneshot import CompanyPortalCandidate
+
+    import_candidates(
+        registry,
+        [
+            CompanyPortalCandidate(
+                company="SQM",
+                company_id="sqm",
+                career_url=bad,
+                site_type=CareerSiteType.COMPANY_CAREER_PORTAL,
+                ats=AtsKind.UNKNOWN,
+                source=DiscoverySource.OFFICIAL_SITE,
+                status=KnowledgeStatus.CANDIDATE,
+            )
+        ],
+    )
+    site = registry.find_company("sqm")
+    assert site is not None
+    assert site.find_site(bad) is not None
+    assert site.find_site(bad).status == KnowledgeStatus.REJECTED
+
+
 def test_oneshot_produces_candidates_and_reports_gaps(project_root: Path) -> None:
     html = (project_root / FIXTURES / "career_page_greenhouse.html").read_text(encoding="utf-8")
     fetcher = FakeFetcher(

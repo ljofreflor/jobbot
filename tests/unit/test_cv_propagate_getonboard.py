@@ -117,6 +117,8 @@ def _run(monkeypatch: pytest.MonkeyPatch, *args: str) -> FakeSession:
     session = FakeSession()
     monkeypatch.setattr(cli, "build_cv", lambda **_k: [Path("output/base/cv.tex")])
     monkeypatch.setattr(cli, "_getonboard_session", lambda *_a, **_k: session)
+    # Profile-write tests stub the CV upload; that path has its own unit suite.
+    monkeypatch.setattr(cli, "_propagate_getonboard_cv", lambda *_a, **_k: None)
 
     assert run_cli(list(args), standalone_mode=False) == SUCCESS
     return session

@@ -115,3 +115,20 @@ def test_learn_from_url_keeps_corporate_portal_type() -> None:
     assert outcome.site.ats == AtsKind.UNKNOWN
     assert outcome.company.country == "CL"
     assert "trabajaenbci.cl" in outcome.company.domains
+
+
+def test_opaque_job_url_is_stored_as_the_career_section(tmp_path: Path) -> None:
+    config = JobbotConfig(root=tmp_path)
+    result = learn_from_job(
+        config,
+        _job(
+            company="Empresa Ejemplo",
+            source="manual",
+            url="https://careers.example.com/global/en/job/fe3426f378a7100/Data-Scientist-Senior",
+            ats_url="https://careers.example.com/global/en/job/fe3426f378a7100/Data-Scientist-Senior",
+        ),
+    )
+    assert result is not None
+    assert result.url == "https://careers.example.com/global/en"
+    assert result.ats == "unknown"
+    assert "fe3426f378a7100" not in result.url

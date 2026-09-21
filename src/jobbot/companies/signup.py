@@ -1,10 +1,13 @@
-"""Prepare a portal registration for the candidate to complete themselves.
+"""Assemble what a portal registration will ask — and what the profile already answers.
 
-Creating an account is the candidate's act: it accepts terms, sets a credential and
-starts a relationship with an employer. So this module only assembles what the
-portal will ask and what the profile already answers. It has no writer, no browser
-driver and no HTTP client, which is what makes the guarantee checkable rather than
-promised.
+Creating an account is still the candidate's irreversible act: password, terms acceptance
+and the final create/submit click. This module builds the **sheet** only (no HTTP, no
+browser driver), which is what makes that purity checkable in tests.
+
+Allowed automation (issue #44) lives in portal adapters behind ``companies signup --apply``:
+fill fields ``profile.yaml`` already answers and attach the built CV. Never invent a
+password, never accept terms alone, never solve CAPTCHA/2FA, never click create without
+HITL confirmation.
 """
 
 from __future__ import annotations
@@ -44,7 +47,8 @@ _NOTES: dict[AccountNeed, str] = {
     ),
     AccountNeed.NEEDED: (
         "This platform keeps a candidate profile, so it will ask you to register. "
-        "JobBot fills nothing and creates nothing: you type the password."
+        "JobBot may fill fields the profile already answers and attach the CV "
+        "(signup --apply); you type the password, accept terms, and confirm create."
     ),
     AccountNeed.UNKNOWN: (
         "Unknown whether it needs an account. Open the portal and look for "
