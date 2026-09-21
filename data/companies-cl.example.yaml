@@ -2,9 +2,15 @@
 #
 #   uv run jobbot companies discover data/companies-cl.example.yaml
 #
-# Only name + official domain + sector are asserted here. Career URLs are NOT listed:
-# the oneshot probes public paths and records whatever it can actually verify.
-# Use career_url_hints only when you already know a public career URL.
+# Only name + official domain + sector are asserted here. Career URLs are NOT required:
+# the oneshot probes common public paths on the domain and records what it can verify.
+#
+# Three ways to resolve wrong guesses (false positive / false negative):
+#   1. career_url_hints — hard URL when you already know it (preferred; no pattern needed)
+#   2. path/subdomain probes — cheap when the portal lives on the corporate domain
+#   3. companies learn URL --company NAME — once found, store it; reject FP with companies reject
+# Once a real portal URL is known, put it in career_url_hints (and/or learn it). Do not
+# rediscover it from scratch every run.
 companies:
   # ── banca ────────────────────────────────────────────────────────────────
   - name: Banco de Chile
@@ -101,6 +107,9 @@ companies:
     country: CL
     sector: mining
     domain: sqm.com
+    # Official apply channel is off the corporate domain; /carreras on sqm.com is karting news.
+    career_url_hints:
+      - https://www.trabajaensqm.com/
   - name: Anglo American
     country: CL
     sector: mining

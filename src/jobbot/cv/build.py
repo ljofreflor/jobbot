@@ -114,6 +114,21 @@ def build_cv(
     return written
 
 
+def should_rebuild_job_cv(job_dir: Path, profile_path: Path) -> bool:
+    """True when the adapted CV is missing or older than profile.yaml.
+
+    An existing `cv.pdf` / `cv_ats.txt` is not evidence that it still matches
+    the profile. If the profile file is newer than either artifact, rebuild.
+    """
+    artifacts = [path for path in (job_dir / "cv.pdf", job_dir / "cv_ats.txt") if path.is_file()]
+    if not artifacts:
+        return True
+    if not profile_path.is_file():
+        return False
+    profile_mtime = profile_path.stat().st_mtime
+    return any(profile_mtime > artifact.stat().st_mtime for artifact in artifacts)
+
+
 def build_job_cv_bundle(
     candidate: Candidate,
     job: JobPosting,
