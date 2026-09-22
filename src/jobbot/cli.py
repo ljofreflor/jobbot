@@ -298,6 +298,7 @@ def _ingest_with_progress(
     candidate: Candidate,
     html: str | None,
     ingest_hard_link: Any,
+    cdp_url: str | None = None,
 ) -> Any:
     """Download a Get on Board page with a progress bar. Fixtures and other ATS skip it."""
     from jobbot.portals.detect import AtsKind
@@ -310,6 +311,7 @@ def _ingest_with_progress(
             portal.url,
             candidate=candidate,
             html=html,
+            cdp_url=cdp_url,
         )
     from rich.progress import (
         BarColumn,
@@ -340,6 +342,7 @@ def _ingest_with_progress(
             candidate=candidate,
             html=html,
             on_chunk=on_chunk,
+            cdp_url=cdp_url,
         )
 
 
@@ -348,8 +351,10 @@ def get_hard_link(
     url: Annotated[
         str,
         typer.Argument(
-            help="Hard job URL. Live download: Get on Board only. "
-            "With --fixture, also reads saved career-page HTML (unknown hosts ok).",
+            help=(
+                "Hard job URL. Live download: Get on Board or Indeed. "
+                "With --fixture, also reads saved career-page HTML (unknown hosts ok)."
+            ),
         ),
     ],
     apply_changes: Annotated[
@@ -370,7 +375,7 @@ def get_hard_link(
             "--fixture",
             help=(
                 "Saved HTML instead of a live download. "
-                "Get on Board or generic career pages (e.g. Phenom)."
+                "Get on Board, Indeed viewjob, or generic career pages (e.g. Phenom)."
             ),
             exists=True,
             dir_okay=False,
@@ -379,6 +384,8 @@ def get_hard_link(
     ] = None,
 ) -> None:
     """Ingest a hard job link: know the portal → JD → CV → package (HITL apply)."""
+    from jobbot.adapters.indeed.jobs import IndeedUrlError
+    from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.jobs.from_url import (
         ClosedPostingError,
         UnknownPortalError,
@@ -420,12 +427,16 @@ def get_hard_link(
             candidate=candidate,
             html=html,
             ingest_hard_link=ingest_hard_link,
+            cdp_url=resolve_cdp_url(cdp),
         )
     except ClosedPostingError as exc:
         err_console.print(
             f"[red]Vacancy looks filled[/red] ({exc.evidence}). Not stored."
         )
         raise _QuietExit(VALIDATION_FAILURE) from exc
+    except IndeedUrlError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
     except UnknownPortalError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc

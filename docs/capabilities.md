@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 120 modules, 563 public symbols.
+87 commands, 120 modules, 568 public symbols.
 
 ## Commands
 
@@ -143,7 +143,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `adapters/indeed`
 
 - `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`
-- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobSource`, `parse_indeed_search_html`, `parse_indeed_job_detail_html`, `card_to_job_posting`
+- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobSource`, `parse_indeed_search_html`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `IndeedUrlError`, `canonical_indeed_job_url`, `indeed_apply_target`, `job_from_indeed_hard_link`, `fetch_indeed_viewjob_html`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
 - `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `parse_resume_page_text`

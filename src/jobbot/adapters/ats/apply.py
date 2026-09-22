@@ -73,10 +73,10 @@ def build_apply_plan(candidate: Candidate, job: JobPosting) -> AtsApplyPlan:
                 "attach CV, press Send yourself."
             ),
         )
-    if kind == AtsKind.UNKNOWN:
+    if kind in {AtsKind.UNKNOWN, AtsKind.INDEED, AtsKind.LINKEDIN}:
         message = (
             "Open the URL and use the cheat sheet. "
-            "JobBot does not fill fields on this host."
+            "JobBot does not fill fields on this host; you submit."
         )
     else:
         message = f"Open {kind.value} and prefill known Candidate fields only."

@@ -66,6 +66,7 @@ def ingest_hard_link(
     build: bool = True,
     prepare: bool = True,
     on_chunk: Callable[[int, int | None], None] | None = None,
+    cdp_url: str | None = None,
 ) -> GetFromUrlResult:
     """Know the portal → fetch → store → match → CV + application package.
 
@@ -73,8 +74,8 @@ def ingest_hard_link(
     (or the CLI ``get --apply``) for HITL send.
 
     Unknown hosts need ``html`` (a saved career page). Without a fixture they
-    stay refused. Known Get on Board URLs fetch live; other known ATS hosts
-    still need a fetcher or a parseable career fixture.
+    stay refused. Get on Board and Indeed fetch live (Indeed may need ``cdp_url``);
+    other known ATS hosts still need a fetcher or a parseable career fixture.
     """
     portal = lookup_portal(config, url)
     if not portal.known and html is None:
@@ -86,11 +87,17 @@ def ingest_hard_link(
         )
         raise UnknownPortalError(msg)
 
-    job = _fetch_job(portal, html=html, on_chunk=on_chunk)
+    job = _fetch_job(
+        portal,
+        html=html,
+        on_chunk=on_chunk,
+        config=config,
+        cdp_url=cdp_url,
+    )
     if portal.known:
         remember_portal(
             config,
-            url=portal.url,
+            url=job.url or portal.url,
             ats_kind=portal.ats_kind,
             notes=f"hard link ({portal.source.value})",
         )
@@ -132,9 +139,32 @@ def _fetch_job(
     *,
     html: str | None,
     on_chunk: Callable[[int, int | None], None] | None = None,
+    config: JobbotConfig | None = None,
+    cdp_url: str | None = None,
 ) -> JobPosting:
     if portal.ats_kind == AtsKind.GETONBOARD:
         return job_from_hard_link(portal.url, html=html, on_chunk=on_chunk)
+    if portal.ats_kind == AtsKind.INDEED:
+        from jobbot.adapters.indeed.jobs import (
+            IndeedJobSource,
+            IndeedUrlError,
+            fetch_indeed_viewjob_html,
+            job_from_indeed_hard_link,
+        )
+
+        try:
+            if html is not None:
+                return job_from_indeed_hard_link(portal.url, html=html)
+            if config is None:
+                msg = "Indeed live fetch needs config"
+                raise UnsupportedPortalFetchError(msg)
+            source = IndeedJobSource(config, cdp_url=cdp_url)
+            page = fetch_indeed_viewjob_html(source, portal.url)
+            return job_from_indeed_hard_link(portal.url, html=page)
+        except IndeedUrlError:
+            raise
+        except ClosedPostingError:
+            raise
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)
@@ -153,8 +183,8 @@ def _fetch_job(
             ) from exc
     msg = (
         f"No hard-link fetcher for {portal.ats_kind.value} yet "
-        f"({portal.domain}). Use `jobbot jobs add --file`, a Get on Board URL, "
-        "or pass --fixture with saved career HTML."
+        f"({portal.domain}). Use `jobbot jobs add --file`, a Get on Board or "
+        "Indeed URL, or pass --fixture with saved career HTML."
     )
     raise UnsupportedPortalFetchError(msg)
 

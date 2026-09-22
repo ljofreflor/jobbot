@@ -116,19 +116,8 @@ class IndeedJobSource:
     def get_job(self, job_id: str) -> JobPosting:
         """Fetch a single Indeed job by jk / URL fragment."""
         url = job_id if job_id.startswith("http") else f"{self.base}/viewjob?jk={job_id}"
-        with self._session() as browser:
-            browser.page.goto(url, wait_until="domcontentloaded")
-            self._clear_challenge(browser, context="job detail")
-            html = browser.page.content()
-            card = {
-                "source_job_id": _extract_jk(url) or job_id,
-                "url": url,
-                "title": "",
-                "company": "",
-                "location": None,
-                "snippet": "",
-            }
-            return card_to_job_posting(card, detail_html=html, placeholder_id="TMP")
+        html = fetch_indeed_viewjob_html(self, url)
+        return job_from_indeed_hard_link(url, html=html)
 
     def _clear_challenge(self, browser: BrowserSession, *, context: str) -> bool:
         if not _looks_like_challenge(browser.page):
@@ -358,6 +347,100 @@ def _looks_like_challenge_html(html: str) -> bool:
 def _extract_jk(url: str) -> str | None:
     match = re.search(r"[?&]jk=([a-f0-9]+)", url, flags=re.I)
     return match.group(1) if match else None
+
+
+class IndeedUrlError(ValueError):
+    """Indeed hard link is missing ``jk`` or is not an indeed.com host."""
+
+
+def canonical_indeed_job_url(url: str) -> str:
+    """Keep country host + ``jk`` only; drop mail/tracking query noise."""
+    from urllib.parse import urlparse
+
+    raw = url.strip()
+    if not raw:
+        raise IndeedUrlError("Empty Indeed URL")
+    if not re.match(r"^https?://", raw, flags=re.I):
+        raw = "https://" + raw
+    parsed = urlparse(raw)
+    host = (parsed.hostname or "").lower()
+    if not host or "indeed.com" not in host:
+        raise IndeedUrlError(f"Not an Indeed job URL: {url}")
+    jk = _extract_jk(raw)
+    if not jk:
+        raise IndeedUrlError("Indeed job URL needs jk=… (viewjob identity)")
+    return f"https://{parsed.hostname}/viewjob?jk={jk}"
+
+
+def indeed_apply_target(html: str, *, canonical_viewjob: str) -> tuple[str, str]:
+    """Return (ats_url, ats_kind value) for the viewjob page.
+
+    Prefer a real external ATS link on the page; otherwise Indeed Apply
+    (``/applystart?jk=``). Never invent a host.
+    """
+    from jobbot.portals.detect import JOB_BOARD_KINDS, AtsKind, detect_ats, extract_http_urls
+
+    for href in extract_http_urls(html or ""):
+        kind = detect_ats(href)
+        if kind in JOB_BOARD_KINDS or kind == AtsKind.UNKNOWN:
+            continue
+        return href, kind.value
+
+    # Relative applystart on the same host
+    rel = re.search(r'href="([^"]*applystart[^"]*)"', html or "", flags=re.I)
+    from urllib.parse import urlparse
+
+    host = urlparse(canonical_viewjob).hostname or "www.indeed.com"
+    jk = _extract_jk(canonical_viewjob) or ""
+    if rel:
+        href = rel.group(1)
+        if href.startswith("http"):
+            return href.split("#", 1)[0], AtsKind.INDEED.value
+        return f"https://{host}{href if href.startswith('/') else '/' + href}", AtsKind.INDEED.value
+    return f"https://{host}/applystart?jk={jk}", AtsKind.INDEED.value
+
+
+def job_from_indeed_hard_link(url: str, *, html: str) -> JobPosting:
+    """Parse a saved (or already-fetched) Indeed viewjob into a JobPosting."""
+    from jobbot.jobs.career_page import ClosedPostingError
+    from jobbot.jobs.closure import closure_evidence
+
+    canonical = canonical_indeed_job_url(url)
+    jk = _extract_jk(canonical)
+    assert jk is not None  # canonical_indeed_job_url guarantees jk
+    evidence = closure_evidence(html)
+    if evidence:
+        raise ClosedPostingError(evidence)
+    card = {
+        "source_job_id": jk,
+        "url": canonical,
+        "title": "",
+        "company": "",
+        "location": None,
+        "snippet": "",
+    }
+    job = card_to_job_posting(card, detail_html=html, placeholder_id="TMP")
+    ats_url, ats_kind = indeed_apply_target(html, canonical_viewjob=canonical)
+    return job.model_copy(
+        update={
+            "url": canonical,
+            "source_job_id": jk,
+            "ats_url": ats_url,
+            "ats_kind": ats_kind,
+        }
+    )
+
+
+def fetch_indeed_viewjob_html(
+    source: IndeedJobSource,
+    url: str,
+) -> str:
+    """Open the canonical viewjob in the Indeed browser session (HITL challenges)."""
+    canonical = canonical_indeed_job_url(url)
+    with source._session() as browser:
+        browser.page.goto(canonical, wait_until="domcontentloaded")
+        source._clear_challenge(browser, context="job detail")
+        return str(browser.page.content())
 
 
 def _first(text: str, patterns: list[str]) -> str | None:
