@@ -1,97 +1,74 @@
-"""Indeed ATS adapter - open apply page (HITL submit)."""
+"""Indeed apply handoff — open the right page and stop before submit."""
 
 from __future__ import annotations
 
-import logging
+import re
 from urllib.parse import urlparse
 
-from jobbot.adapters.base import ApplicationPortalAdapter, ApplyMethod, PrefillResult
+from jobbot.adapters.ats.apply import describe_prefill, open_ats_in_browser
+from jobbot.adapters.base import ApplicationPackage, ApplyMethod, PrefillResult
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 
-logger = logging.getLogger("jobbot.ats.indeed")
+
+class IndeedApplyAdapter:
+    """Open Indeed Apply or the external ATS. Never submits."""
+
+    name = "indeed"
+
+    def detect_method(self, job: JobPosting) -> ApplyMethod:
+        if apply_target(job):
+            return ApplyMethod.EXTERNAL_ATS
+        return ApplyMethod.UNKNOWN
+
+    def prefill(
+        self,
+        candidate: Candidate,
+        job: JobPosting,
+        package: ApplicationPackage,
+    ) -> PrefillResult:
+        _ = package
+        return describe_prefill(candidate, job)
+
+    def attach_cv(self, package: ApplicationPackage) -> None:
+        """CV attach stays in the Indeed or ATS UI."""
+        _ = package
+
+    def open(self, job: JobPosting) -> str | None:
+        url = apply_target(job)
+        if not url:
+            return None
+        open_ats_in_browser(url)
+        return url
 
 
-class IndeedApplyAdapter(ApplicationPortalAdapter):
-    """Indeed Apply adapter - opens apply page, stops before submit."""
+def apply_target(job: JobPosting) -> str | None:
+    """External ATS when the posting leaves Indeed; otherwise Indeed Apply."""
+    if job.ats_url and not _is_indeed_url(job.ats_url):
+        return job.ats_url
+    return _applystart(job)
 
-    @property
-    def ats_kind(self) -> str:
-        return "indeed"
 
-    def can_handle(self, job: JobPosting) -> bool:
-        """Can handle if job has Indeed URL or Indeed as source."""
-        if job.source == "indeed":
-            return True
-        if job.ats_url and "indeed.com" in job.ats_url:
-            return True
-        return bool(job.url and "indeed.com" in job.url)
-
-    def describe_prefill(self, candidate: Candidate, job: JobPosting) -> PrefillResult:
-        """Indeed Apply has its own form fields."""
-        # Indeed may prefill from resume on file
-        return PrefillResult(
-            filled=["Resume from Indeed profile (if exists)"],
-            needs_review=[
-                "Complete any required fields",
-                "Answer screening questions",
-                "Review and submit",
-            ],
-        )
-
-    def get_apply_url(self, job: JobPosting) -> str:
-        """Get the Indeed apply URL.
-        
-        If ats_url is external (Greenhouse, Lever, etc.), return that.
-        Otherwise return Indeed Apply URL.
-        """
-        # If job has external ATS URL, use that
-        if job.ats_url and not self._is_indeed_url(job.ats_url):
-            return job.ats_url
-        
-        # If job has Indeed ATS URL already, use it
-        if job.ats_url and self._is_indeed_url(job.ats_url):
-            return job.ats_url
-        
-        # Otherwise construct Indeed Apply URL from job URL or source_job_id
-        if job.url and "jk=" in job.url:
-            # Extract jk from URL
-            import re
-            match = re.search(r"jk=([a-f0-9]+)", job.url, re.IGNORECASE)
+def _applystart(job: JobPosting) -> str | None:
+    jk = job.source_job_id
+    host: str | None = None
+    scheme = "https"
+    for candidate in (job.url, job.ats_url):
+        if not candidate or not _is_indeed_url(candidate):
+            continue
+        parsed = urlparse(candidate)
+        host = parsed.hostname
+        scheme = parsed.scheme or "https"
+        if not jk:
+            match = re.search(r"[?&]jk=([a-f0-9]+)", candidate, flags=re.I)
             if match:
                 jk = match.group(1)
-                host = urlparse(job.url).hostname or "www.indeed.com"
-                return f"https://{host}/applystart?jk={jk}"
-        
-        if job.source_job_id:
-            # Use source_job_id as jk
-            return f"https://www.indeed.com/applystart?jk={job.source_job_id}"
-        
-        # Fallback to job URL
-        return job.url or ""
+        break
+    if not host or not jk:
+        return None
+    return f"{scheme}://{host}/applystart?jk={jk}"
 
-    def _is_indeed_url(self, url: str) -> bool:
-        """Check if URL is an Indeed URL."""
-        parsed = urlparse(url)
-        if not parsed.hostname:
-            return False
-        host = parsed.hostname.lower()
-        return "indeed.com" in host
 
-    def open_apply_page(self, candidate: Candidate, job: JobPosting) -> tuple[str, ApplyMethod]:
-        """Open Indeed apply page (or external ATS if detected).
-        
-        Returns (url, method) where method indicates the apply route.
-        """
-        import webbrowser
-        
-        url = self.get_apply_url(job)
-        
-        # Determine if this is external ATS or Indeed Apply
-        if job.ats_url and not self._is_indeed_url(job.ats_url):
-            method = ApplyMethod.EXTERNAL_ATS
-        else:
-            method = ApplyMethod.EXTERNAL_ATS  # Indeed Apply is still external form
-        
-        webbrowser.open(url)
-        return url, method
+def _is_indeed_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").casefold()
+    return host == "indeed.com" or host.endswith(".indeed.com")
