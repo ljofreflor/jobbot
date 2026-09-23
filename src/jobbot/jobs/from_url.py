@@ -65,6 +65,7 @@ def ingest_hard_link(
     html: str | None = None,
     build: bool = True,
     prepare: bool = True,
+    cdp_url: str | None = None,
     on_chunk: Callable[[int, int | None], None] | None = None,
 ) -> GetFromUrlResult:
     """Know the portal → fetch → store → match → CV + application package.
@@ -73,8 +74,9 @@ def ingest_hard_link(
     (or the CLI ``get --apply``) for HITL send.
 
     Unknown hosts need ``html`` (a saved career page). Without a fixture they
-    stay refused. Known Get on Board URLs fetch live; other known ATS hosts
-    still need a fetcher or a parseable career fixture.
+    stay refused. Known Get on Board and Indeed URLs can fetch live; Indeed
+    also accepts a saved viewjob ``html``. Other known ATS hosts still need a
+    fetcher or a parseable career fixture.
     """
     portal = lookup_portal(config, url)
     if not portal.known and html is None:
@@ -86,7 +88,7 @@ def ingest_hard_link(
         )
         raise UnknownPortalError(msg)
 
-    job = _fetch_job(portal, html=html, on_chunk=on_chunk)
+    job = _fetch_job(portal, html=html, cdp_url=cdp_url, on_chunk=on_chunk)
     if portal.known:
         remember_portal(
             config,
@@ -131,10 +133,13 @@ def _fetch_job(
     portal: PortalKnowledge,
     *,
     html: str | None,
+    cdp_url: str | None = None,
     on_chunk: Callable[[int, int | None], None] | None = None,
 ) -> JobPosting:
     if portal.ats_kind == AtsKind.GETONBOARD:
         return job_from_hard_link(portal.url, html=html, on_chunk=on_chunk)
+    if portal.ats_kind == AtsKind.INDEED:
+        return _fetch_indeed_job(portal, html=html, cdp_url=cdp_url)
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)
@@ -157,6 +162,50 @@ def _fetch_job(
         "or pass --fixture with saved career HTML."
     )
     raise UnsupportedPortalFetchError(msg)
+
+
+def _fetch_indeed_job(
+    portal: PortalKnowledge,
+    *,
+    html: str | None,
+    cdp_url: str | None = None,
+) -> JobPosting:
+    """Parse an Indeed viewjob (fixture or live). Tracking params are stripped."""
+    from jobbot.adapters.indeed.jobs import (
+        IndeedJobClosed,
+        IndeedJobSource,
+        card_to_job_posting,
+    )
+    from jobbot.jobs.indeed_url import (
+        IndeedUrlError,
+        canonical_indeed_job_url,
+        extract_indeed_jk,
+    )
+
+    try:
+        canonical = canonical_indeed_job_url(portal.url)
+        jk = extract_indeed_jk(canonical)
+    except IndeedUrlError as exc:
+        raise UnsupportedPortalFetchError(str(exc)) from exc
+
+    card = {
+        "source_job_id": jk,
+        "url": canonical,
+        "title": "",
+        "company": "",
+        "location": None,
+        "snippet": "",
+    }
+    try:
+        if html is not None:
+            job = card_to_job_posting(card, detail_html=html, placeholder_id="TMP")
+        else:
+            job = IndeedJobSource(cdp_url=cdp_url).get_job(jk)
+    except IndeedJobClosed as exc:
+        raise ClosedPostingError(str(exc)) from exc
+    job.url = canonical
+    job.source_job_id = jk
+    return job
 
 
 def _build_adapted_cv(

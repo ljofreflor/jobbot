@@ -62,8 +62,13 @@ data/profile.yaml  →  Candidate (domain)
 jobbot jobs search "Senior Data Scientist" --location Santiago
 # or LinkedIn recruiter posts → ATS:
 jobbot linkedin sweep [QUERY] [--country CL] [--fixture PATH] [--cdp URL]
-# or a hard job URL you already have (Get on Board today):
+# or a hard job URL you already have (Get on Board / Indeed):
 jobbot get https://www.getonbrd.com/empleos/.../slug
+# jobbot get 'https://cl.indeed.com/viewjob?jk=...' [--fixture PATH]
+# From a phone (no CAPTCHA): park the share link, drain later on desktop
+jobbot get 'https://cl.indeed.com/viewjob?jk=...' --park
+jobbot browser chrome-debug --site indeed
+jobbot get --parked --cdp http://127.0.0.1:9222
 jobbot jobs match J0001
 jobbot jobs shortlist
 jobbot cv build --job J0001
@@ -79,7 +84,9 @@ jobbot profile suggest-from-market     # market language (no stdin; --ask for ga
 
 Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
 (`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
-today; `--fixture` also ingests saved career-page HTML for unknown hosts). Known ATS hosts
+or Indeed; `--fixture` also ingests Indeed viewjob or career-page HTML). From a phone,
+`--park` queues the share URL under `data/hard-link-inbox.txt` with no fetch; on a desktop
+with Chrome CDP, `jobbot get --parked` drains it (CAPTCHA stays HITL). Known ATS hosts
 without a fetcher are recognized then refused. Manual `jobs add --file` is a fallback.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.

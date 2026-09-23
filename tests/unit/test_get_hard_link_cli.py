@@ -132,6 +132,7 @@ def test_help_does_not_promise_greenhouse(
     assert code == SUCCESS
     text = plain_cli_text(capsys.readouterr().out)
     assert "Get on Board" in text
+    assert "Indeed" in text
     assert "Greenhouse" not in text
     assert "--fixture" in text
 

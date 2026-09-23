@@ -82,6 +82,9 @@ uv run jobbot application prepare J0003
 
 # Hard link you already have (portal must be known — seed/local/builtin):
 # uv run jobbot get https://www.getonbrd.com/empleos/.../slug
+# uv run jobbot get 'https://cl.indeed.com/viewjob?jk=...' [--fixture PATH]
+# uv run jobbot get URL --park          # phone: queue URL, no fetch / no CAPTCHA
+# uv run jobbot get --parked --cdp http://127.0.0.1:9222
 # uv run jobbot get URL --apply --cdp http://127.0.0.1:9224
 
 # Manual fallback (paste JD file) still available:
