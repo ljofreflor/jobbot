@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 123 modules, 576 public symbols.
+87 commands, 123 modules, 577 public symbols.
 
 ## Commands
 
@@ -47,7 +47,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot getonboard upload-cv` — Validate the local CV PDF, then upload it to Get on Board Tus CVs.
 - `jobbot indeed diff` — Diff local profile vs Indeed snapshot.
 - `jobbot indeed inspect` — Inspect Indeed page roles/labels for selector development.
-- `jobbot indeed login` — Open Indeed login with persistent browser profile.
+- `jobbot indeed login` — Open Indeed login (HITL). Prefer email/magic link; optional --continue-url.
 - `jobbot indeed prepare` — Write Indeed sync package markdown from profile.yaml (no portal write).
 - `jobbot indeed pull` — Pull Indeed profile snapshot (read).
 - `jobbot indeed status` — Check whether an Indeed session appears valid.
@@ -143,7 +143,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `adapters/indeed`
 
-- `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`
+- `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `normalize_indeed_continue_url`
 - `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`

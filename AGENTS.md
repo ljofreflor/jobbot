@@ -68,6 +68,8 @@ jobbot get https://www.getonbrd.com/empleos/.../slug
 # From a phone (no CAPTCHA): park the share link, drain later on desktop
 jobbot get 'https://cl.indeed.com/viewjob?jk=...' --park
 jobbot browser chrome-debug --site indeed
+# Prefer email / magic link in that Chrome; if the mail hits your phone:
+# jobbot indeed login --continue-url 'PEGAR_LINK_DEL_MAIL'
 jobbot get --parked --cdp http://127.0.0.1:9222
 jobbot jobs match J0001
 jobbot jobs shortlist

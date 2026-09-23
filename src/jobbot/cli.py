@@ -2431,12 +2431,31 @@ def indeed_login(
         str | None,
         typer.Option("--cdp", help="Attach to Chrome CDP (e.g. http://127.0.0.1:9222)"),
     ] = None,
+    continue_url: Annotated[
+        str | None,
+        typer.Option(
+            "--continue-url",
+            help=(
+                "Magic / verify link from Indeed's email (paste from phone). "
+                "JobBot opens it in the persistent Chrome profile; never types a password."
+            ),
+        ),
+    ] = None,
 ) -> None:
-    """Open Indeed login with persistent browser profile."""
-    from jobbot.adapters.indeed.client import IndeedAdapter
+    """Open Indeed login (HITL). Prefer email/magic link; optional --continue-url."""
+    from jobbot.adapters.indeed.client import IndeedAdapter, normalize_indeed_continue_url
     from jobbot.browser.cdp import resolve_cdp_url
 
-    IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).login()
+    if continue_url is not None:
+        try:
+            continue_url = normalize_indeed_continue_url(continue_url)
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).login(
+        continue_url=continue_url
+    )
 
 
 @indeed_app.command("status")
