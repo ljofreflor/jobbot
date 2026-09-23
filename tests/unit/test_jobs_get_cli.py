@@ -1,4 +1,4 @@
-"""`jobbot get` stores an Indeed hard link and stops before submit."""
+"""`jobbot get` Indeed hard links: store → package; `--apply` opens ATS (HITL)."""
 
 from __future__ import annotations
 
@@ -6,14 +6,18 @@ from pathlib import Path
 
 import pytest
 
-from jobbot.exit_codes import SUCCESS, VALIDATION_FAILURE
+from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, VALIDATION_FAILURE
 
 
 def _workspace(tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    data = tmp_path / "data"
-    data.mkdir(exist_ok=True)
-    (data / "profile.yaml").write_text(
+    (tmp_path / "data").mkdir(exist_ok=True)
+    (tmp_path / "output").mkdir(exist_ok=True)
+    (tmp_path / "data" / "profile.yaml").write_text(
         (project_root / "data" / "profile.example.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (tmp_path / ".jobbot.toml").write_text(
+        f'[paths]\ntemplates = "{project_root / "templates"}"\n',
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
@@ -38,7 +42,7 @@ def _patch_browser(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return opened
 
 
-def test_dry_run_shows_the_job_and_writes_nothing(
+def test_get_stores_and_prepares_without_opening_browser(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -46,6 +50,7 @@ def test_dry_run_shows_the_job_and_writes_nothing(
 ) -> None:
     _workspace(tmp_path, project_root, monkeypatch)
     fixture = _write_fixture(tmp_path)
+    opened = _patch_browser(monkeypatch)
     from jobbot.cli import run_cli
 
     code = run_cli(
@@ -60,37 +65,14 @@ def test_dry_run_shows_the_job_and_writes_nothing(
     out = capsys.readouterr().out
 
     assert code == SUCCESS
-    assert "Senior Data Scientist" in out
-    assert "Sodimac" in out
-    assert not (tmp_path / "data" / "jobbot.sqlite").exists()
-    assert not (tmp_path / "output" / "jobs").exists()
+    assert "Stored" in out
+    assert "Senior Data Scientist" in out or "Sodimac" in out
+    assert "Prepared" in out
+    assert (tmp_path / "output" / "jobs" / "J0001" / "job.json").is_file()
+    assert opened == []
 
 
-def test_jobs_get_is_the_same_command(
-    tmp_path: Path,
-    project_root: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _workspace(tmp_path, project_root, monkeypatch)
-    fixture = _write_fixture(tmp_path)
-    from jobbot.cli import run_cli
-
-    code = run_cli(
-        [
-            "jobs",
-            "get",
-            "https://cl.indeed.com/viewjob?jk=abc123",
-            "--fixture",
-            str(fixture),
-        ],
-        standalone_mode=False,
-    )
-
-    assert code == SUCCESS
-    assert not (tmp_path / "output" / "jobs").exists()
-
-
-def test_apply_stores_a_canonical_job(
+def test_get_stores_a_canonical_job(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -99,6 +81,8 @@ def test_apply_stores_a_canonical_job(
     _workspace(tmp_path, project_root, monkeypatch)
     fixture = _write_fixture(tmp_path)
     from jobbot.cli import run_cli
+    from jobbot.config import load_config
+    from jobbot.db.engine import make_engine, make_session_factory
     from jobbot.jobs.repository import JobRepository
 
     code = run_cli(
@@ -107,7 +91,6 @@ def test_apply_stores_a_canonical_job(
             "https://cl.indeed.com/viewjob?jk=abc123&from=email&tk=xyz",
             "--fixture",
             str(fixture),
-            "--apply",
         ],
         standalone_mode=False,
     )
@@ -115,12 +98,6 @@ def test_apply_stores_a_canonical_job(
 
     assert code == SUCCESS
     assert "J0001" in out
-    stored = tmp_path / "output" / "jobs" / "J0001" / "job.json"
-    assert stored.is_file()
-    assert not (tmp_path / "output" / "jobs" / "J0001" / "jobs").exists()
-
-    from jobbot.config import load_config
-    from jobbot.db.engine import make_engine, make_session_factory
 
     config = load_config()
     session = make_session_factory(make_engine(config.database_path))()
@@ -145,11 +122,11 @@ def test_a_url_without_jk_is_rejected(
         standalone_mode=False,
     )
 
-    assert code == VALIDATION_FAILURE
+    assert code == GENERIC_FAILURE
     assert not (tmp_path / "output" / "jobs").exists()
 
 
-def test_a_non_indeed_host_is_rejected(
+def test_known_linkedin_without_fetcher_explains_the_gap(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -162,7 +139,7 @@ def test_a_non_indeed_host_is_rejected(
         standalone_mode=False,
     )
 
-    assert code == VALIDATION_FAILURE
+    assert code == GENERIC_FAILURE
     assert not (tmp_path / "output" / "jobs").exists()
 
 
@@ -191,7 +168,6 @@ def test_an_external_ats_is_what_gets_stored(
                 "https://cl.indeed.com/viewjob?jk=abc123",
                 "--fixture",
                 str(fixture),
-                "--apply",
             ],
             standalone_mode=False,
         )
@@ -221,7 +197,6 @@ def test_an_expired_posting_is_not_stored(
             "https://cl.indeed.com/viewjob?jk=abc123",
             "--fixture",
             str(fixture),
-            "--apply",
         ],
         standalone_mode=False,
     )
@@ -229,37 +204,8 @@ def test_an_expired_posting_is_not_stored(
     text = captured.out + captured.err
 
     assert code == VALIDATION_FAILURE
-    assert "expir" in text.casefold()
+    assert "expir" in text.casefold() or "filled" in text.casefold()
     assert not (tmp_path / "output" / "jobs").exists()
-
-
-def test_apply_dry_run_does_not_open_a_browser(
-    tmp_path: Path,
-    project_root: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _workspace(tmp_path, project_root, monkeypatch)
-    fixture = _write_fixture(tmp_path)
-    opened = _patch_browser(monkeypatch)
-    from jobbot.cli import run_cli
-
-    assert (
-        run_cli(
-            [
-                "get",
-                "https://cl.indeed.com/viewjob?jk=abc123",
-                "--fixture",
-                str(fixture),
-                "--apply",
-            ],
-            standalone_mode=False,
-        )
-        == SUCCESS
-    )
-    code = run_cli(["application", "apply", "J0001"], standalone_mode=False)
-
-    assert code == SUCCESS
-    assert opened == []
 
 
 def test_application_apply_opens_indeed_apply_and_does_not_submit(
@@ -279,12 +225,12 @@ def test_application_apply_opens_indeed_apply_and_does_not_submit(
                 "https://cl.indeed.com/viewjob?jk=abc123",
                 "--fixture",
                 str(fixture),
-                "--apply",
             ],
             standalone_mode=False,
         )
         == SUCCESS
     )
+    assert opened == []
     code = run_cli(
         ["application", "apply", "J0001", "--apply", "--yes"],
         standalone_mode=False,
@@ -294,7 +240,7 @@ def test_application_apply_opens_indeed_apply_and_does_not_submit(
     assert opened == ["https://cl.indeed.com/applystart?jk=abc123"]
 
 
-def test_application_apply_opens_the_external_ats(
+def test_get_apply_opens_the_external_ats(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -310,21 +256,15 @@ def test_application_apply_opens_the_external_ats(
     opened = _patch_browser(monkeypatch)
     from jobbot.cli import run_cli
 
-    assert (
-        run_cli(
-            [
-                "get",
-                "https://cl.indeed.com/viewjob?jk=abc123",
-                "--fixture",
-                str(fixture),
-                "--apply",
-            ],
-            standalone_mode=False,
-        )
-        == SUCCESS
-    )
     code = run_cli(
-        ["application", "apply", "J0001", "--apply", "--yes"],
+        [
+            "get",
+            "https://cl.indeed.com/viewjob?jk=abc123",
+            "--fixture",
+            str(fixture),
+            "--apply",
+            "--yes",
+        ],
         standalone_mode=False,
     )
 

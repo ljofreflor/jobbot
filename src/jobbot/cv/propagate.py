@@ -24,11 +24,31 @@ class PropagationTarget(StrEnum):
 
 
 # Local artifacts first: the portals reuse the CV that this step rebuilds.
+# These are permanent profiles (your standing presence), not company career sites.
 DEFAULT_TARGETS: tuple[PropagationTarget, ...] = (
     PropagationTarget.CV,
     PropagationTarget.GETONBOARD,
     PropagationTarget.INDEED,
     PropagationTarget.LINKEDIN,
+)
+
+# Names that look like "push my CV to every ATS we know". Writes for those land via
+# `cv sync` (issue #43) / `companies signup` (#44), not via `cv propagate --targets`.
+_NOT_PROPAGATION: frozenset[str] = frozenset(
+    {
+        "companies",
+        "company",
+        "portals",
+        "portal",
+        "ats",
+        "greenhouse",
+        "lever",
+        "ashby",
+        "workday",
+        "all-companies",
+        "all_companies",
+        "everywhere",
+    }
 )
 
 
@@ -57,20 +77,38 @@ class UnknownTargetError(ValueError):
 
 
 def parse_targets(raw: str) -> list[PropagationTarget]:
-    """Parse ``all`` or a comma-separated list, keeping the canonical order."""
+    """Parse ``all`` / ``permanent`` or a comma-separated list, in canonical order.
+
+    ``all`` and ``permanent`` are the same thing: the standing profiles (CV, Get on
+    Board, Indeed, LinkedIn). They are not the company career sites in
+    ``data/companies.yaml`` — those are reached per job via ``application apply``.
+    """
     text = (raw or "").strip().casefold()
-    if not text or text == "all":
+    if not text or text in {"all", "permanent"}:
         return list(DEFAULT_TARGETS)
     wanted: set[PropagationTarget] = set()
     for chunk in text.split(","):
         name = chunk.strip()
         if not name:
             continue
+        if name in _NOT_PROPAGATION:
+            msg = (
+                f"{name!r} is not a `cv propagate` target. "
+                "`cv propagate` updates permanent profiles only "
+                "(all|permanent|cv,getonboard,indeed,linkedin). "
+                "For active company portals use `jobbot cv sync` "
+                "(HITL --apply for active sites; signup sheet is #44) "
+                "or `jobbot companies signup NOMBRE` / `jobbot application apply Jxxxx`."
+            )
+            raise UnknownTargetError(msg)
         try:
             wanted.add(PropagationTarget(name))
         except ValueError as exc:
             valid = ", ".join(t.value for t in DEFAULT_TARGETS)
-            msg = f"unknown propagation target {name!r} (use all or: {valid})"
+            msg = (
+                f"unknown propagation target {name!r} "
+                f"(use all|permanent or: {valid})"
+            )
             raise UnknownTargetError(msg) from exc
     return [target for target in DEFAULT_TARGETS if target in wanted]
 

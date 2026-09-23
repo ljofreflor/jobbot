@@ -8,8 +8,7 @@ from dataclasses import dataclass
 from jobbot.models.candidate import Candidate
 
 PROFILE_EDIT_URL = "https://www.getonbrd.com/webpros/edit"
-# Resumes live under the professional profile area (HITL: open edit, then "Tus CVs").
-RESUMES_HINT_URL = "https://www.getonbrd.com/webpros/edit"
+RESUMES_HINT_URL = "https://www.getonbrd.com/resumes"
 
 
 @dataclass(frozen=True)
@@ -115,8 +114,10 @@ def render_getonboard_sync_markdown(package: GetOnBoardSyncPackage) -> str:
             "",
             "## Tus CVs",
             "1. Genera el PDF: `jobbot cv build` → `output/base/cv.pdf`",
-            "2. En Get on Board → Tus CVs: sube ese PDF (≤ 5 MB).",
-            f"3. Renombra (ej. `{_cv_file_hint(package)}`) y márcalo como default.",
+            "2. Sube con `jobbot getonboard upload-cv --apply` "
+            "(valida tamaño/PDF/hash antes de adjuntar; ≤ 5 MB).",
+            f"3. O a mano en {package.resumes_url} "
+            f"(ej. etiqueta `{_cv_file_hint(package)}`, marcar default).",
             "4. Luego postula con Quick Apply usando ese CV.",
             "",
         ]
