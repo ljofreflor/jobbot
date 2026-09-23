@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from jobbot.adapters.indeed.client import normalize_indeed_continue_url
@@ -34,8 +36,6 @@ def test_cli_continue_url_rejects_foreign_host(
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from pathlib import Path
-
     (tmp_path / "data").mkdir(exist_ok=True)
     (tmp_path / "output").mkdir(exist_ok=True)
     (tmp_path / "data" / "profile.yaml").write_text(
