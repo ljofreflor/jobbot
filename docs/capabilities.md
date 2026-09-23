@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 123 modules, 576 public symbols.
+88 commands, 124 modules, 585 public symbols.
 
 ## Commands
 
@@ -20,6 +20,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot browser chrome-debug` — Open a normal Chrome with CDP so challenges can be completed by hand.
 - `jobbot browser login` — List permanent, active and candidate portals that still need you to sign in.
 - `jobbot browser sessions` — Report which browser sessions JobBot can reach (read-only; never attaches).
+- `jobbot capture` — Keep a share URL as a candidate — no fetch, no CAPTCHA (phone-friendly).
 - `jobbot companies detect` — Classify a URL (posting / career portal / ATS / redirect). Writes nothing.
 - `jobbot companies discover` — One-shot: seed candidate career portals for a company list (never canonical).
 - `jobbot companies export` — Write a shareable snapshot: active entries only, no candidate PII.
@@ -47,7 +48,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot getonboard upload-cv` — Validate the local CV PDF, then upload it to Get on Board Tus CVs.
 - `jobbot indeed diff` — Diff local profile vs Indeed snapshot.
 - `jobbot indeed inspect` — Inspect Indeed page roles/labels for selector development.
-- `jobbot indeed login` — Open Indeed login with persistent browser profile.
+- `jobbot indeed login` — Open Indeed login (HITL). Prefer email/magic link; optional --continue-url.
 - `jobbot indeed prepare` — Write Indeed sync package markdown from profile.yaml (no portal write).
 - `jobbot indeed pull` — Pull Indeed profile snapshot (read).
 - `jobbot indeed status` — Check whether an Indeed session appears valid.
@@ -143,7 +144,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `adapters/indeed`
 
-- `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`
+- `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `normalize_indeed_continue_url`
 - `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
@@ -212,6 +213,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `jobs`
 
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
+- `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
 - `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `visible_soup`, `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`

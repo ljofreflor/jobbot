@@ -66,8 +66,12 @@ jobbot linkedin sweep [QUERY] [--country CL] [--fixture PATH] [--cdp URL]
 jobbot get https://www.getonbrd.com/empleos/.../slug
 # jobbot get 'https://cl.indeed.com/viewjob?jk=...' [--fixture PATH]
 # From a phone (no CAPTCHA): park the share link, drain later on desktop
+jobbot capture 'https://…'   # always: leave as candidate (hard link / portal / unrecognized)
+jobbot capture --list
 jobbot get 'https://cl.indeed.com/viewjob?jk=...' --park
 jobbot browser chrome-debug --site indeed
+# Prefer email / magic link in that Chrome; if the mail hits your phone:
+# jobbot indeed login --continue-url 'PEGAR_LINK_DEL_MAIL'
 jobbot get --parked --cdp http://127.0.0.1:9222
 jobbot jobs match J0001
 jobbot jobs shortlist
@@ -85,8 +89,10 @@ jobbot profile suggest-from-market     # market language (no stdin; --ask for ga
 Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
 (`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
 or Indeed; `--fixture` also ingests Indeed viewjob or career-page HTML). From a phone,
-`--park` queues the share URL under `data/hard-link-inbox.txt` with no fetch; on a desktop
-with Chrome CDP, `jobbot get --parked` drains it (CAPTCHA stays HITL). Known ATS hosts
+`jobbot capture URL` keeps the share as a **candidate** (hard-link inbox, company portal
+candidate, or unrecognized list) with no fetch; `--park` remains the hard-link-only shortcut.
+On a desktop with Chrome CDP, `jobbot get --parked` / `companies recon` finish the work
+(CAPTCHA stays HITL). Known ATS hosts
 without a fetcher are recognized then refused. Manual `jobs add --file` is a fallback.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
