@@ -349,12 +349,13 @@ def _ingest_with_progress(
 @app.command("get")
 def get_hard_link(
     url: Annotated[
-        str,
+        str | None,
         typer.Argument(
             help="Hard job URL. Live download: Get on Board / Indeed. "
-            "With --fixture, also reads saved career-page or Indeed viewjob HTML.",
+            "With --fixture, also reads saved career-page or Indeed viewjob HTML. "
+            "With --park, only queues the URL (phone-friendly; no fetch).",
         ),
-    ],
+    ] = None,
     apply_changes: Annotated[
         bool,
         typer.Option(
@@ -380,8 +381,128 @@ def get_hard_link(
             readable=True,
         ),
     ] = None,
+    park: Annotated[
+        bool,
+        typer.Option(
+            "--park",
+            help=(
+                "Queue the URL under data/hard-link-inbox.txt without fetching "
+                "(use from a phone / when CAPTCHA would block). Drain later with --parked."
+            ),
+        ),
+    ] = False,
+    parked: Annotated[
+        bool,
+        typer.Option(
+            "--parked",
+            help=(
+                "Ingest every URL parked in data/hard-link-inbox.txt "
+                "(desktop + Chrome CDP for Indeed challenges)."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Ingest a hard job link: know the portal → JD → CV → package (HITL apply)."""
+    if park and parked:
+        err_console.print("[red]Use either --park or --parked, not both.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    if parked:
+        if url is not None:
+            err_console.print("[red]--parked does not take a URL argument.[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        if fixture is not None:
+            err_console.print("[red]--parked cannot combine with --fixture.[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        _drain_parked_hard_links(apply_changes=apply_changes, yes=yes, cdp=cdp)
+        return
+    if url is None:
+        err_console.print(
+            "[red]Provide a hard job URL[/red], or pass [bold]--parked[/bold] "
+            "to drain data/hard-link-inbox.txt."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+    if park:
+        _park_hard_link(url)
+        return
+    _ingest_one_hard_link(
+        url,
+        apply_changes=apply_changes,
+        yes=yes,
+        cdp=cdp,
+        fixture=fixture,
+    )
+
+
+def _park_hard_link(url: str) -> None:
+    """Save a share link for later (no Indeed fetch, no CAPTCHA)."""
+    from jobbot.jobs.inbox import inbox_path, park_url
+
+    _, config = _session()
+    try:
+        stored, existed = park_url(config, url)
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    path = inbox_path(config)
+    if existed:
+        console.print(f"[dim]Already parked[/dim] {stored}")
+    else:
+        console.print(f"[green]Parked[/green] {stored}")
+    console.print(f"Inbox: {path}")
+    console.print(
+        "On a desktop with Chrome: "
+        "[bold]jobbot browser chrome-debug --site indeed[/bold], then "
+        "[bold]jobbot get --parked --cdp http://127.0.0.1:9222[/bold]"
+    )
+
+
+def _drain_parked_hard_links(
+    *,
+    apply_changes: bool,
+    yes: bool,
+    cdp: str | None,
+) -> None:
+    from jobbot.jobs.inbox import inbox_path, list_parked, remove_parked
+
+    _, config = _session()
+    urls = list_parked(config)
+    if not urls:
+        console.print(f"Inbox empty ({inbox_path(config)}).")
+        return
+    console.print(f"Draining {len(urls)} parked URL(s)…")
+    failures = 0
+    for item in urls:
+        console.print(f"\n[bold]→[/bold] {item}")
+        try:
+            _ingest_one_hard_link(
+                item,
+                apply_changes=apply_changes,
+                yes=yes,
+                cdp=cdp,
+                fixture=None,
+            )
+        except (_QuietExit, typer.Exit) as exc:
+            failures += 1
+            if isinstance(exc, _QuietExit):
+                code = exc.code
+            else:
+                code = exc.exit_code if isinstance(exc.exit_code, int) else 1
+            err_console.print(f"[yellow]Left in inbox[/yellow] (exit {code}): {item}")
+            continue
+        remove_parked(config, item)
+        console.print(f"[dim]Removed from inbox:[/dim] {item}")
+    if failures:
+        raise typer.Exit(GENERIC_FAILURE if failures == len(urls) else SUCCESS)
+
+
+def _ingest_one_hard_link(
+    url: str,
+    *,
+    apply_changes: bool,
+    yes: bool,
+    cdp: str | None,
+    fixture: Path | None,
+) -> None:
     from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.jobs.from_url import (
         ClosedPostingError,
@@ -389,10 +510,9 @@ def get_hard_link(
         UnsupportedPortalFetchError,
         ingest_hard_link,
     )
-
-    session, config = _session()
     from jobbot.portals.knowledge import lookup_portal
 
+    session, config = _session()
     portal = lookup_portal(config, url)
     console.print(
         f"portal: [bold]{portal.domain or '(none)'}[/bold]  "

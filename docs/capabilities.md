@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 122 modules, 571 public symbols.
+87 commands, 123 modules, 576 public symbols.
 
 ## Commands
 
@@ -218,6 +218,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `GetFromUrlResult`, `ingest_hard_link`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`
+- `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `normalize_many`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
