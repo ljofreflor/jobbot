@@ -588,6 +588,93 @@ def _ingest_one_hard_link(
     application_apply(job.id, apply_changes=True, yes=yes, cdp=cdp)
 
 
+@app.command("capture")
+def capture_share_url(
+    url: Annotated[
+        str | None,
+        typer.Argument(
+            help="Share URL from phone (Indeed vacancy, company career portal, or unknown).",
+        ),
+    ] = None,
+    list_all: Annotated[
+        bool,
+        typer.Option(
+            "--list",
+            help="Show unfinished candidates (parked hard links, company portals, unrecognized)",
+        ),
+    ] = False,
+    company: Annotated[
+        str | None,
+        typer.Option("--company", help="Company name when capturing a career portal"),
+    ] = None,
+    country: Annotated[
+        str | None,
+        typer.Option("--country", help="ISO country, e.g. CL"),
+    ] = None,
+) -> None:
+    """Keep a share URL as a candidate — no fetch, no CAPTCHA (phone-friendly)."""
+    from jobbot.jobs.capture import (
+        CaptureKind,
+        capture_paths,
+        capture_url,
+        list_candidates,
+    )
+
+    _, config = _session()
+    if list_all:
+        inv = list_candidates(config)
+        paths = capture_paths(config)
+        console.print("[bold]Candidate URLs (not finished yet)[/bold]")
+        console.print(f"Hard links ({paths['hard_links']}):")
+        if inv.hard_links:
+            for item in inv.hard_links:
+                console.print(f"  · {item}")
+        else:
+            console.print("  (none)")
+        console.print(f"Company portals ({paths['companies']}):")
+        if inv.company_portals:
+            for company_id, site_url, status in inv.company_portals:
+                console.print(f"  · {company_id}  {site_url}  [{status}]")
+        else:
+            console.print("  (none)")
+        console.print(f"Unrecognized ({paths['unrecognized']}):")
+        if inv.unrecognized:
+            for item in inv.unrecognized:
+                console.print(f"  · {item}")
+        else:
+            console.print("  (none)")
+        return
+
+    if url is None:
+        err_console.print(
+            "[red]Provide a URL[/red], or [bold]jobbot capture --list[/bold]."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    try:
+        result = capture_url(config, url, company=company, country=country)
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    label = {
+        CaptureKind.HARD_LINK: "Hard link candidate",
+        CaptureKind.COMPANY_PORTAL: "Company portal candidate",
+        CaptureKind.UNRECOGNIZED: "Unrecognized candidate",
+    }[result.kind]
+    verb = "Already had" if result.already_present else "Captured"
+    console.print(f"[green]{verb}[/green] {label}: {result.url}")
+    if result.company_id:
+        console.print(f"company_id={result.company_id}")
+    console.print(result.detail)
+    console.print(
+        "Later on desktop: "
+        "[bold]jobbot get --parked[/bold] (hard links) · "
+        "[bold]jobbot companies recon …[/bold] (portals) · "
+        "[bold]jobbot capture --list[/bold]"
+    )
+
+
 # ── workspace ────────────────────────────────────────────────────────────────
 
 

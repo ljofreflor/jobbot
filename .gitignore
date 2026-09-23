@@ -14,6 +14,7 @@ data/companies.yaml
 # What application forms ask, observed locally. Questions only, but not shared.
 data/form_knowledge.yaml
 data/hard-link-inbox.txt
+data/url-candidates.txt
 # Hiring-practice sources you read; share the practices via `recruiters export`.
 data/recruiters.yaml
 
