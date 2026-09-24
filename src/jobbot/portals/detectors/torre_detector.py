@@ -2,8 +2,19 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from jobbot.portals.detect import AtsKind
-from jobbot.portals.learning_interfaces import PortalDetectionResult
+
+
+@dataclass
+class PortalDetectionResult:
+    """Result of portal detection."""
+
+    is_job_portal: bool
+    confidence: float
+    evidence: str
+    ats_kind: str | None
 
 
 class TorrePortalDetector:
