@@ -324,3 +324,26 @@ def test_recruiter_practices_are_extracted_without_a_field_s_words() -> None:
     blob = " ".join(practice.text for practice in practices).casefold()
     for word in ("python", "enfermer", "periodis", "ingenier"):
         assert word not in blob
+
+
+def test_career_page_reads_any_field_s_vacancy() -> None:
+    """Career HTML is structure, so a clinic posting parses like a studio's."""
+    from jobbot.jobs.career_page import job_from_career_html
+
+    html = (
+        "<html><body>"
+        '<h1 data-ph-at-id="job-title">Enfermera Clínica</h1>'
+        '<div data-ph-at-id="job-company">Clínica Cordillera</div>'
+        '<div data-ph-at-id="job-description">'
+        "<p>Requisitos: ventilación mecánica y registro clínico en ficha electrónica. "
+        "Experiencia en fármacos vasoactivos.</p>"
+        "</div>"
+        '<div class="hide job-expired-view">the job you are trying to apply for '
+        "has been filled.</div>"
+        "</body></html>"
+    )
+
+    job = job_from_career_html(html, url="https://careers.clinic.example/job/1")
+    assert job.title == "Enfermera Clínica"
+    assert job.company == "Clínica Cordillera"
+    assert "ventilación mecánica" in job.description.casefold()

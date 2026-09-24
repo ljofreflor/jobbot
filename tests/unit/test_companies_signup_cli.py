@@ -54,8 +54,8 @@ def test_it_lists_what_registering_will_ask_without_opening_anything(
     assert code == SUCCESS
     assert opened == [], "--no-open must not open a browser"
     assert "Email" in out
-    # It says who sets the credential instead of offering one.
     assert "you type the password" in out
+    assert "fill fields the profile already answers" in out or "signup --apply" in out
 
 
 def test_opening_is_the_only_side_effect(

@@ -177,6 +177,13 @@ def _install_fakes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     monkeypatch.setattr(cli, "build_cv", fake_build_cv)
     monkeypatch.setattr(cli, "_getonboard_session", lambda *_a, **_k: FakeGobSession())
+
+    def fake_gob_cv(*_a: Any, **_k: Any) -> None:
+        gob = _REGISTRY.get("getonboard")
+        if gob is not None:
+            gob.calls.append("upload_cv")
+
+    monkeypatch.setattr(cli, "_propagate_getonboard_cv", fake_gob_cv)
     return built
 
 
@@ -316,7 +323,12 @@ def test_apply_delegates_to_every_destination_after_confirming(
     built = _install_fakes(monkeypatch)
     asked = _answers(
         monkeypatch,
-        {"Propagate to": True, "Apply these": True, "Write these": True},
+        {
+            "Propagate to": True,
+            "Apply these": True,
+            "Write these": True,
+            "Upload this PDF": True,
+        },
     )
 
     assert _run(["cv", "propagate", "--apply", "--section", "headline"]) == SUCCESS
@@ -329,8 +341,8 @@ def test_apply_delegates_to_every_destination_after_confirming(
     assert len(destinations) == 4
     assert any("Apply these" in text for text in asked)
 
-    # GoB writes the profile fields itself; only "Tus CVs" stays manual.
-    assert _REGISTRY["getonboard"].calls == ["prepare_package", "open_resumes"]
+    # GoB writes profile fields, then uploads the validated PDF.
+    assert _REGISTRY["getonboard"].calls == ["prepare_package", "upload_cv"]
     assert _REGISTRY["indeed"].calls == ["build_sync_plan:headline", "apply_sync_plan:1"]
     assert _REGISTRY["linkedin"].calls == [
         "fetch_remote_publication_titles",

@@ -5,6 +5,7 @@ from __future__ import annotations
 from jobbot.adapters.ats.ashby import AshbyAdapter
 from jobbot.adapters.ats.getonboard import GetOnBoardAdapter
 from jobbot.adapters.ats.greenhouse import GreenhouseAdapter
+from jobbot.adapters.ats.indeed_apply import IndeedApplyAdapter
 from jobbot.adapters.ats.lever import LeverAdapter
 from jobbot.adapters.ats.workday import WorkdayAdapter
 from jobbot.adapters.base import ApplicationPortalAdapter
@@ -18,6 +19,7 @@ _ADAPTERS: dict[AtsKind, ApplicationPortalAdapter] = {
     AtsKind.ASHBY: AshbyAdapter(),
     AtsKind.GETONBOARD: GetOnBoardAdapter(),
     AtsKind.WORKDAY: WorkdayAdapter(),
+    AtsKind.INDEED: IndeedApplyAdapter(),
     AtsKind.TORRE: TorreApplicationAdapter(),
 }
 

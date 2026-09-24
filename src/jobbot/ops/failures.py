@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from jobbot.config import JobbotConfig, load_config
 from jobbot.db.engine import make_engine, make_session_factory
 from jobbot.db.models import OpsFailureRow
-from jobbot.exit_codes import SUCCESS
+from jobbot.exit_codes import SUCCESS, USER_CANCEL
 from jobbot.jobs.ids import next_failure_id
 from jobbot.ops.redact import redact_context, redact_text
 
@@ -76,6 +76,23 @@ def infer_component(argv: Sequence[str]) -> str:
     return parts[0]
 
 
+def _stabilize_command_url(arg: str) -> str:
+    """Keep identity for hard-link re-runs; drop tracking query noise."""
+    if not arg.startswith(("http://", "https://")):
+        return arg
+    try:
+        from jobbot.jobs.indeed_url import IndeedUrlError, canonical_indeed_job_url
+
+        return canonical_indeed_job_url(arg)
+    except IndeedUrlError:
+        pass
+    except Exception:  # noqa: BLE001 — never break failure recording on URL parse
+        pass
+    from jobbot.ops.redact import host_only_url
+
+    return host_only_url(arg)
+
+
 def normalize_command(argv: Sequence[str]) -> str:
     cleaned: list[str] = []
     skip_next = False
@@ -91,7 +108,7 @@ def normalize_command(argv: Sequence[str]) -> str:
         if arg.startswith("--cdp="):
             cleaned.append("--cdp=<redacted>")
             continue
-        cleaned.append(arg)
+        cleaned.append(_stabilize_command_url(arg))
     # Drop absolute interpreter / script noise: keep jobbot-ish argv
     if cleaned and Path(cleaned[0]).name.startswith("python"):
         cleaned = cleaned[1:]
@@ -196,8 +213,10 @@ def record_failure(
 
 
 def should_record_cli_failure(argv: Sequence[str], exit_code: int) -> bool:
-    """Skip success and ops/version commands (avoid noise / recursion)."""
-    if exit_code == SUCCESS:
+    """Skip success, user cancel (Ctrl-C), help probes, and ops/version commands."""
+    if exit_code in {SUCCESS, USER_CANCEL}:
+        return False
+    if any(flag in {"--help", "-h"} for flag in argv):
         return False
     parts = [a for a in argv if a and not a.startswith("-")]
     if parts and Path(parts[0]).name in {"jobbot", "python", "python3"}:

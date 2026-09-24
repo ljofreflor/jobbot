@@ -15,6 +15,14 @@ reusable knowledge. `data/companies.yaml` records company↔portal facts, `data/
 platforms, and `companies export` produces a shareable snapshot so the next candidate does not pay
 that cost again.
 
+The product endgame for that map is **standing presence**: after you improve your CV, the active
+portals in the shared base are kept up to date for *you* (assisted account + fill from
+`profile.yaml` as far as automatable; password, terms, CAPTCHA and final submit stay HITL).
+`companies discover` only finds candidate URLs — it does not register you or upload your CV.
+When an active portal still has `ats=unknown`, `companies recon` learns ATS markers and form
+questions from a page you entered ([#45](https://github.com/ljofreflor/jobbot/issues/45)) —
+not by guessing from the hostname. `jobbot status` is how you see what is actually up on your machine.
+
 What is shared is public knowledge about who hires where and how. What is never shared is you:
 your profile, your sessions, your applications and your CV stay on your machine, enforced by the
 PII guard (`make hooks`). The collaboration is on the map, not on the traveller.
@@ -24,29 +32,40 @@ PII guard (`make hooks`). The collaboration is on the map, not on the traveller.
 ```text
                          profile.yaml
                               │
-              ┌───────────────┼────────────────┐
-              │               │                │
-              ▼               ▼                ▼
-            LaTeX           Indeed          LinkedIn
-              │               │                │
-              ▼               ▼                ▼
-             PDF       IndeedAdapter     LinkedInAdapter
+     ┌────────────┬───────────┼───────────┬──────────────────┐
+     ▼            ▼           ▼           ▼                  ▼
+   LaTeX        Indeed     LinkedIn   permanent         active company
+     │            │           │       portals           portals (shared
+     ▼            ▼           ▼       (GoB, …)          companies base)
+    PDF      IndeedAdapter  LinkedInAdapter
+                              │
+                              ▼
+                     cv sync / propagate (#43)
+                     + assisted signup (#44)
 ```
 
-`data/profile.yaml` is the single source of professional truth. LaTeX, PDF, Indeed, and LinkedIn
-are views or adapters. Facts are never invented to fit a job posting.
+`data/profile.yaml` is the single source of professional truth. LaTeX, PDF, Indeed, LinkedIn,
+and company career portals are views or adapters. Facts are never invented to fit a job posting.
+Collaboration shares who hires where; each person's CV and accounts stay local.
 
 ## Status
 
-**Endgame:** match → decide → CV derivado → application package → postular (portales futuros).
+**Endgame (standing presence first):** improve CV → keep this candidate registered and up to date
+on every *active* portal in the collaborative company↔portal base (`cv sync` [#43](https://github.com/ljofreflor/jobbot/issues/43);
+assisted signup fill [#44](https://github.com/ljofreflor/jobbot/issues/44)). Apply to a vacancy is
+the second loop (`match` → package → `application apply`, HITL submit).
 
 Working today:
 
 - Profile validate / import-latex / import-pdf / promote
-- `cv build` base and `--job Jxxxx`
+- `cv build` base and `--job Jxxxx`; `cv advise`; `cv sync` (permanent + active company HITL)
+- `cv propagate` — permanent profiles only (subset of sync)
 - `jobs add|show|match|shortlist|note`
+- `get URL` — hard link → known portal → JD → CV + package (`--apply` opens ATS, you submit)
 - `application prepare|show|open` + `applications list`
 - Indeed/LinkedIn: `login|status|inspect|pull|diff`; Indeed `sync --section headline` (dry-run default, `--apply`)
+- `companies signup` sheet + open (browser fill behind `--apply` is #44)
+- `companies recon` — inside HTML → ATS observation + form questions (#45)
 - Protocols for future portals: `ApplicationPortalAdapter`, `JobSourceAdapter`
 
 ## Match → apply (happy path)
@@ -61,10 +80,16 @@ uv run jobbot jobs match J0003
 uv run jobbot cv build --job J0003
 uv run jobbot application prepare J0003
 
+# Hard link you already have (portal must be known — seed/local/builtin):
+# uv run jobbot get https://www.getonbrd.com/empleos/.../slug
+# uv run jobbot get 'https://cl.indeed.com/viewjob?jk=...' [--fixture PATH]
+# uv run jobbot get URL --park          # phone: queue URL, no fetch / no CAPTCHA
+# uv run jobbot get --parked --cdp http://127.0.0.1:9222
+# uv run jobbot get URL --apply --cdp http://127.0.0.1:9224
+
 # Manual fallback (paste JD file) still available:
 # uv run jobbot jobs add --file path/to/jd.txt
 ```
-
 ## Requirements
 
 - Python 3.12+
@@ -183,6 +208,7 @@ jobbot getonboard search [QUERY]   # sin QUERY usa el rol de tu perfil
 jobbot torre search [QUERY] [--remote]   # LATAM/remoto; requisitos vienen estructurados
 jobbot portals list | add | detect
 jobbot portals form-learn URL --fetch      # what a form asks (reads only, never submits)
+jobbot companies recon NOMBRE [--fixture|--cdp] [--apply]  # truth from inside (#45)
 jobbot companies signup NOMBRE             # opens the registration; you create the account
 jobbot recruiters discover URL             # public hiring practice → candidate knowledge
 jobbot recruiters promote URL              # only then does it reach cv advise
@@ -197,16 +223,32 @@ jobbot profile suggest-from-market [--ask] [--promote]
 
 Recruiter posts → external ATS URL → portal registry → assisted apply (HITL). Market feedback suggests baseline wording; gaps require confirmation before `--promote`.
 
-## Propagate the CV (permanent profiles)
+## Propagate / sync the CV (standing presence)
 
-One command rebuilds the base CV and pushes it outward to the profiles that live beyond a
-single vacancy. Dry-run by default; `--apply` confirms destination by destination:
+**Preferred command:** `jobbot cv sync` ([#43](https://github.com/ljofreflor/jobbot/issues/43)).
+Plan = permanent profiles ∪ *active* company career sites. Dry-run by default (writes nothing,
+opens no browser). `--apply` confirms one destination at a time: permanent writers plus, for
+active companies, either the assisted signup sheet when an account is needed and none is
+evidenced ([#44](https://github.com/ljofreflor/jobbot/issues/44)), or open + fill known
+`profile.yaml` fields and attach the built CV when no account is required or a session is
+evidenced. The human submits. A yes is not a receipt; `jobbot status` shows company portals
+from page evidence only.
+
+**Today also:** `cv propagate` rebuilds the base CV and pushes **permanent** profiles only
+(`--targets all` / `permanent` = local CV + GoB + Indeed + LinkedIn) — same writers as sync,
+without the company plan rows.
+
+Dry-run by default; `--apply` confirms destination by destination:
 
 ```bash
-jobbot cv propagate                        # plan only (no browser, no writes)
+jobbot cv sync                             # plan: permanentes + companies active
+jobbot cv sync --apply                     # HITL: permanentes + company fill/signup sheet
+jobbot cv propagate                        # plan only, permanentes
 jobbot cv propagate --apply                # rebuild CV, then Get on Board / Indeed / LinkedIn
+jobbot cv propagate --targets permanent --apply
 jobbot cv propagate --targets cv,indeed --section headline --apply
 jobbot cv propagate --apply --cdp http://127.0.0.1:9222   # reuse your logged-in Chrome
+jobbot status                              # what is up (local evidence)
 ```
 
 Planning is read-only and browser-free: Indeed diffs against the stored snapshot (it asks for
