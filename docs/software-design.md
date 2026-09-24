@@ -333,6 +333,14 @@ When adding a portal or job board:
 4. Dry-run default; `--apply` for irreversible steps; never invent answers.
 5. If SQLite shape changes beyond nullable columns on `jobs`, plan Alembic (#7).
 
+When the user sends recurring natural language (draft text, classify, advise):
+
+1. Do **not** solve it only in the Cursor transcript.
+2. Promote a function in the owning package; wire CLI if humans will run it.
+3. Use `run_optional_llm` (`nlp/gateway.py`): deterministic default, `--llm` opt-in,
+   fallback on failure, facts grounded via `FACTS_ONLY_RULES`.
+4. Ship a failing-first unit test (no live API key required for the default path).
+
 ## 8. Related documents
 
 - [README.md](../README.md) — product overview and commands

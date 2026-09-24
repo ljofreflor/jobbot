@@ -21,6 +21,7 @@ matching, adapted CVs, and assisted applications. **No web UI** — everything r
 are views or adapters. Facts are never invented to fit a job posting.
 
 Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
+Natural-language work is promoted into functions (`nlp/gateway`: deterministic first, `--llm` optional) so Cursor does not re-derive it in chat.
 
 ## Status
 
