@@ -1,0 +1,118 @@
+site_name: JobBot
+site_description: >-
+  Herramienta local de terminal para la búsqueda de trabajo: CV estructurado como
+  fuente de verdad, descubrimiento de vacantes, matching y postulaciones asistidas.
+site_url: https://ljofreflor.github.io/jobbot/
+site_author: JobBot
+repo_url: https://github.com/ljofreflor/jobbot
+repo_name: ljofreflor/jobbot
+edit_uri: edit/main/docs/
+copyright: Documentación de JobBot — uso personal
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: es
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.action.edit
+    - content.code.copy
+    - navigation.footer
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Usar preferencia del sistema
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Cambiar a modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Cambiar a modo claro
+
+plugins:
+  - search:
+      lang:
+        - es
+        - en
+  # One blog instance, Spanish by default. English posts live in the same
+  # instance under the "English" category until a second language is wired up.
+  - blog:
+      blog_dir: blog
+      blog_toc: true
+      post_url_format: "{date}/{slug}"
+      post_date_format: long
+      archive_date_format: yyyy
+      authors: false
+      categories_allowed:
+        - Mediciones
+        - Measurements
+        - Ensayos
+        - Ética
+      pagination_per_page: 10
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ljofreflor/jobbot
+      name: JobBot en GitHub
+  # Language switcher. The site is Spanish-first; English pages live under /en/.
+  alternate:
+    - name: Español
+      link: /jobbot/
+      lang: es
+    - name: English
+      link: /jobbot/en/
+      lang: en
+
+nav:
+  - Inicio: index.md
+  - Instalación: instalacion.md
+  - Comandos: comandos.md
+  - Prior art: prior-art.md
+  - Blog:
+      - blog/index.md
+  - English:
+      - en/index.md
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
