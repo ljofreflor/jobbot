@@ -76,6 +76,23 @@ def infer_component(argv: Sequence[str]) -> str:
     return parts[0]
 
 
+def _stabilize_command_url(arg: str) -> str:
+    """Keep identity for hard-link re-runs; drop tracking query noise."""
+    if not arg.startswith(("http://", "https://")):
+        return arg
+    try:
+        from jobbot.jobs.indeed_url import IndeedUrlError, canonical_indeed_job_url
+
+        return canonical_indeed_job_url(arg)
+    except IndeedUrlError:
+        pass
+    except Exception:  # noqa: BLE001 — never break failure recording on URL parse
+        pass
+    from jobbot.ops.redact import host_only_url
+
+    return host_only_url(arg)
+
+
 def normalize_command(argv: Sequence[str]) -> str:
     cleaned: list[str] = []
     skip_next = False
@@ -91,7 +108,7 @@ def normalize_command(argv: Sequence[str]) -> str:
         if arg.startswith("--cdp="):
             cleaned.append("--cdp=<redacted>")
             continue
-        cleaned.append(arg)
+        cleaned.append(_stabilize_command_url(arg))
     # Drop absolute interpreter / script noise: keep jobbot-ish argv
     if cleaned and Path(cleaned[0]).name.startswith("python"):
         cleaned = cleaned[1:]

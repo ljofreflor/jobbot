@@ -270,3 +270,82 @@ def test_get_apply_opens_the_external_ats(
 
     assert code == SUCCESS
     assert opened == ["https://boards.greenhouse.io/acme/jobs/4001"]
+
+
+def test_get_url_gap_records_ops_failure_for_autopoiesis(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Novel hard-link shapes must land in ops_failures with a real fingerprint.
+
+    Autopoietic lane: exception → observability → ops failure work → issue → PR.
+    A bare typer.Exit with empty message collapses every get gap into one useless
+    fingerprint and breaks that loop.
+    """
+    _workspace(tmp_path, project_root, monkeypatch)
+    from jobbot.cli import run_cli
+    from jobbot.config import load_config
+    from jobbot.db.engine import make_engine, make_session_factory
+    from jobbot.ops.failure_work import work_script
+    from jobbot.ops.failures import list_failures
+
+    code = run_cli(
+        ["get", "https://www.linkedin.com/jobs/view/123"],
+        standalone_mode=False,
+    )
+    err = capsys.readouterr().err
+
+    assert code == GENERIC_FAILURE
+    assert "Recorded failure" in err
+
+    config = load_config()
+    session = make_session_factory(make_engine(config.database_path))()
+    try:
+        rows = list_failures(session, status="new")
+        assert len(rows) == 1
+        rec = rows[0]
+        assert rec.error_class == "UnsupportedPortalFetchError"
+        assert rec.message
+        assert "fetcher" in rec.message.casefold()
+        script = work_script(rec)
+        assert f"ops failure issue {rec.id}" in script
+        assert "gh pr create" in script
+        assert "jobbot get" in script
+    finally:
+        session.close()
+
+
+def test_indeed_url_shape_failures_share_fingerprint_across_tracking(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Tracking params must not split one URL-shape gap into many fingerprints."""
+    _workspace(tmp_path, project_root, monkeypatch)
+    from jobbot.cli import run_cli
+    from jobbot.config import load_config
+    from jobbot.db.engine import make_engine, make_session_factory
+    from jobbot.ops.failures import list_failures
+
+    urls = [
+        "https://cl.indeed.com/viewjob?foo=bar&tk=aaa",
+        "https://cl.indeed.com/viewjob?from=email&tk=bbb&xpse=1",
+    ]
+    for url in urls:
+        assert run_cli(["get", url], standalone_mode=False) == GENERIC_FAILURE
+
+    config = load_config()
+    session = make_session_factory(make_engine(config.database_path))()
+    try:
+        rows = list_failures(session, status="new")
+        assert len(rows) == 2
+        assert rows[0].error_class == "UnsupportedPortalFetchError"
+        assert rows[0].fingerprint == rows[1].fingerprint
+        assert "jk" in rows[0].message.casefold()
+        # Command keeps a stable host+path (no tracking noise) for the re-run lane.
+        assert "tk=" not in rows[0].command
+        assert "tk=" not in rows[1].command
+    finally:
+        session.close()
