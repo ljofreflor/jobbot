@@ -2173,7 +2173,17 @@ def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
 
 @application_app.command("apply")
 def application_apply(
-    job_id: Annotated[str, typer.Argument()],
+    job_id: Annotated[
+        str | None,
+        typer.Argument(help="Job id (omit with --all)"),
+    ] = None,
+    all_jobs: Annotated[
+        bool,
+        typer.Option(
+            "--all",
+            help="Assist every eligible stored job, one at a time (HITL between jobs)",
+        ),
+    ] = False,
     apply_changes: Annotated[
         bool,
         typer.Option(
@@ -2193,8 +2203,139 @@ def application_apply(
         str | None,
         typer.Option("--cdp", help="Attach to your logged-in Chrome (see browser chrome-debug)"),
     ] = None,
+    limit: Annotated[
+        int | None,
+        typer.Option("--limit", help="With --all, open at most N jobs"),
+    ] = None,
 ) -> None:
-    """Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers)."""
+    """Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
+
+    ``--all`` queues eligible jobs (URL present, not already applied) and assists
+    one by one. Portal Next/Submit stays human; between jobs JobBot asks before
+    opening the next.
+    """
+    if all_jobs and job_id:
+        err_console.print("[red]Pass a job id or --all, not both.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    if all_jobs:
+        _application_apply_all(
+            apply_changes=apply_changes,
+            yes=yes,
+            attach=attach,
+            cdp=cdp,
+            limit=limit,
+        )
+        return
+    if not job_id:
+        err_console.print("[red]Job id required (or pass --all).[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    _application_apply_one(
+        job_id,
+        apply_changes=apply_changes,
+        yes=yes,
+        attach=attach,
+        cdp=cdp,
+    )
+
+
+def _application_apply_all(
+    *,
+    apply_changes: bool,
+    yes: bool,
+    attach: bool,
+    cdp: str | None,
+    limit: int | None,
+) -> None:
+    """Dry-run lists the queue; --apply opens one job at a time with a pause between."""
+    from jobbot.applications.batch import select_batch_apply_jobs
+
+    session, config = _session()
+    try:
+        load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    items = select_batch_apply_jobs(
+        JobRepository(session).list_all(),
+        ApplicationRepository(session).list_all(),
+        limit=limit,
+    )
+    if not items:
+        console.print("No eligible jobs (need a URL; skip applied/rejected/…).")
+        return
+
+    console.print(f"[bold]Batch apply[/bold] — {len(items)} job(s)")
+    console.print(
+        "[dim]JobBot opens the portal and stops. Next/Submit are yours. "
+        "Between jobs it asks before opening the next.[/dim]"
+    )
+    for item in items:
+        console.print(f"  {item.label}")
+
+    if not apply_changes:
+        console.print(
+            "Dry-run only. Re-run with [bold]--all --apply[/bold] "
+            "to open one at a time (you submit each)."
+        )
+        return
+
+    opened = 0
+    for index, item in enumerate(items):
+        console.print()
+        console.print(
+            f"[bold]({index + 1}/{len(items)})[/bold] {item.label}"
+        )
+        if not yes and not typer.confirm(
+            f"Open assisted apply for {item.job.id}? "
+            "(finish Next/Submit yourself before continuing)",
+            default=True,
+        ):
+            console.print("Skipped.")
+            if not typer.confirm("Continue with the remaining jobs?", default=True):
+                console.print("Stopped.")
+                break
+            continue
+        try:
+            _application_apply_one(
+                item.job.id,
+                apply_changes=True,
+                yes=True,
+                attach=attach,
+                cdp=cdp,
+            )
+            opened += 1
+        except _QuietExit:
+            console.print(f"[yellow]Skipped[/yellow] {item.job.id} (filled or refused).")
+        if index + 1 >= len(items):
+            break
+        if yes:
+            console.print(
+                "[dim]Next job — finish any open wizard first "
+                "(JobBot does not click Next/Submit).[/dim]"
+            )
+            continue
+        if not typer.confirm(
+            "Ready for the next job? (only after you finished Next/Submit here)",
+            default=False,
+        ):
+            console.print("Stopped.")
+            break
+    console.print(
+        f"Opened assist for [bold]{opened}[/bold] job(s). "
+        "Status stays prepared without a portal receipt."
+    )
+
+
+def _application_apply_one(
+    job_id: str,
+    *,
+    apply_changes: bool,
+    yes: bool,
+    attach: bool,
+    cdp: str | None,
+) -> None:
+    """Assist apply for a single job id (same behaviour as before --all)."""
     from jobbot.adapters.ats.apply import (
         build_apply_plan,
         prefill_field_map,
