@@ -45,17 +45,17 @@ class CvApi:
         self,
         *,
         job: JobPosting | None = None,
-        style: str = "modern",
+        style: str = "moderncv",
         output_path: Path | str | None = None,
-        target: BuildTarget = BuildTarget.LOCAL_REVIEW,
+        target: BuildTarget = BuildTarget.CV,
     ) -> Path:
         """Build a CV, optionally tailored for a specific job.
 
         Args:
             job: Job posting to tailor CV for (None for generic CV)
-            style: CV style ("modern", "classic", "ats-optimized")
+            style: CV style ("moderncv", "classic", etc.)
             output_path: Custom output path (None for default)
-            target: Build target (LOCAL_REVIEW, ATS_SUBMISSION, etc.)
+            target: Build target (CV or ATS)
 
         Returns:
             Path to generated PDF
@@ -65,30 +65,38 @@ class CvApi:
         """
         # Convert style string to CvStyle enum
         try:
-            cv_style = CvStyle[style.upper().replace("-", "_")]
+            cv_style = CvStyle[style.upper()]
         except KeyError:
-            valid_styles = [s.name.lower().replace("_", "-") for s in CvStyle]
+            valid_styles = [s.name.lower() for s in CvStyle]
             msg = f"Unsupported style: {style}. Valid styles: {', '.join(valid_styles)}"
             raise ValueError(msg) from None
 
         # Build CV
-        result = build_cv(
+        paths = build_cv(
             candidate=self.candidate,
-            job=job,
-            config=self.config,
-            style=cv_style,
+            templates_dir=self.config.paths.templates,
+            output_dir=self.config.paths.output,
             target=target,
-            rebuild=True,  # Always rebuild when called via SDK
+            job=job,
+            style=cv_style,
         )
+
+        # Find PDF in returned paths
+        pdf_path = next((p for p in paths if p.suffix == ".pdf"), None)
+        if pdf_path is None:
+            msg = "PDF not found in build output"
+            raise RuntimeError(msg)
 
         # Move to custom output path if specified
         if output_path:
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            result.pdf_path.rename(output_path)
+            # Copy instead of rename to avoid cross-device link issues
+            import shutil
+            shutil.copy2(pdf_path, output_path)
             return output_path
 
-        return result.pdf_path
+        return pdf_path
 
     def build_for_job_id(
         self,

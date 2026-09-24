@@ -98,6 +98,9 @@ recruiters_app = typer.Typer(
     help="Public hiring practice that feeds cv advise (practices only, never people)",
     no_args_is_help=True,
 )
+
+# Import SDK demo commands
+from jobbot.cli_sdk_demo import app as sdk_demo_app
 ops_app = typer.Typer(
     help="Local ops: failure observability + continuous loops (no telemetry)",
     no_args_is_help=True,
@@ -122,6 +125,7 @@ app.add_typer(browser_app, name="browser")
 app.add_typer(portals_app, name="portals")
 app.add_typer(companies_app, name="companies")
 app.add_typer(recruiters_app, name="recruiters")
+app.add_typer(sdk_demo_app, name="sdk-demo")
 app.add_typer(ops_app, name="ops")
 ops_app.add_typer(ops_failure_app, name="failure")
 
