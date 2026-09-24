@@ -21,7 +21,10 @@ matching, adapted CVs, and assisted applications. **No web UI** — everything r
 are views or adapters. Facts are never invented to fit a job posting.
 
 Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
-Natural-language work is promoted into functions (`nlp/gateway`: deterministic first, `--llm` optional) so Cursor does not re-derive it in chat.
+Natural-language work follows *Thinking, Fast and Slow*: vibecode discovers
+expensive rules (System 2); those rules compress into cheap features (System 1)
+via `nlp/gateway` / `ops/compile` — Cursor must not replay the expensive chat.
+See [docs/software-design.md](docs/software-design.md) §3.8.
 
 ## Status
 

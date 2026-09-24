@@ -117,38 +117,70 @@ Same idea for applications: `prepare` → `apply` (plan) → `apply --apply` (op
 `JobAnalyzer` protocol with `RuleBasedJobAnalyzer` as the default implementation
 (`matching/analyzer.py`). Scoring stays swappable without touching the CLI.
 
-### 3.8 Natural language offload (Cursor → functions)
+### 3.8 Thinking fast / slow → knowledge compilation
 
-Cursor must not carry recurring NL reasoning in chat. When the user sends natural
-language that will repeat (match a JD, refine a blurb, draft a cover letter,
-classify a portal), **promote** that work into a function/CLI and call it next time.
+JobBot assumes you will keep **vibecoding** (Cursor chat, exploratory prompts,
+one-off judgment). That is Kahneman's *System 2*: slow, expensive, high compute —
+and that is fine for discovery. What must not happen is paying System 2 again for
+the same insight.
+
+The engineering job is to **compress** what vibecode discovered into a *System 1*
+feature: cheap, repeatable, testable, offline by default.
 
 ```text
-user NL in chat
+  vibecode (pensar despacio)              feature (pensar rápido)
+  ─────────────────────────               ──────────────────────
+  chat / agent transcript                 function + test + optional CLI
+  high tokens, high judgment              low tokens, deterministic path
+  rules still mushy                       rules explicit in code
+  may call an LLM to explore              may call an LLM *inside* the feature
+                                          only when presentation needs it
+```
+
+Lifecycle (always the same shape):
+
+1. **Vibecode** — explore in chat; learn the rule the hard way (edge cases, HITL,
+   “this employer wording means X”).
+2. **Name the rule** — one sentence a test can falsify (“foreign country beats
+   remote when the post names a city”).
+3. **Compress** — promote into the owning package: heuristics/templates first;
+   optional LLM behind `run_optional_llm` / `--llm` if prose quality still needs
+   a model.
+4. **Call, don't re-derive** — next time the user asks in NL, Cursor invokes the
+   feature (or writes the one-line call), it does not replay the expensive chat.
+
+```text
+user NL / vibecode
       │
       ▼
- Cursor writes / extends a function   ← one-time cost
-      │
-      ├── deterministic path (default)   heuristics, templates, rules
-      └── optional LLM path (--llm)      only when presentation needs a model
-               │
-               └── grounded on Candidate facts; on failure → deterministic
+ discover rule (System 2, once) ──► promote function (System 1 forever)
+                                          │
+                             ┌────────────┴────────────┐
+                             ▼                         ▼
+                    deterministic default         optional LLM inside
+                    (rules, fixtures, YAML)      (grounded; fallback → rules)
 ```
 
 Contract:
 
-1. **Promote, don't re-derive.** Third time (or first if obviously a cargo step) →
-   code under the owning package + test + CLI if a human will run it.
-2. **Deterministic first.** LLM is never the only path; `run_optional_llm` in
-   `nlp/gateway.py` encodes dry default / `--llm` opt-in / fallback.
-3. **LLM lives inside the function**, not in the agent transcript. Chat may sketch
-   the call; the callable owns prompts, grounding, and fallbacks.
-4. **Facts only.** Prompts reuse `FACTS_ONLY_RULES`; reject or fall back if the
-   model invents employers, metrics, or skills.
-5. **Extras stay optional.** `uv sync --extra llm` + `OPENAI_API_KEY`; MVP works offline.
+1. **Vibecode is allowed; unpaid replay is not.** The transcript is a lab notebook,
+   not the runtime.
+2. **Promote by the rule of three** (or earlier if it is clearly a cargo-loop step):
+   owning module + failing-first test + CLI only if a human will run it.
+3. **Compression means low cost at call time.** Prefer pure functions and fixtures
+   over re-prompting Cursor. LLM, when used, lives *inside* the feature via
+   `nlp/gateway.py`, never as “the agent will remember”.
+4. **Facts only.** `FACTS_ONLY_RULES`; never invent employers, metrics, or skills.
+5. **Extras optional.** `uv sync --extra llm` + `OPENAI_API_KEY`; MVP stays offline.
 
-Existing example: `refine_permanent_profile(..., use_llm=False|True)` behind
-`jobbot getonboard prepare [--llm]`.
+Existing compression examples:
+
+| Once expensive (System 2) | Cheap feature (System 1) |
+| --- | --- |
+| Judging GoB blurb quality in chat | `refine_permanent_profile` + `getonboard prepare [--llm]` |
+| “Does this post look foreign?” | `jobs/geo.py` country markers + search filters |
+| “Is this ATS Greenhouse or Workday?” | `portals/detect.py` + registry |
+| PII almost committed | `ops/pii_guard` + pre-commit hook |
 
 ### 3.9 Patterns we deliberately avoid
 
@@ -159,7 +191,7 @@ Existing example: `refine_permanent_profile(..., use_llm=False|True)` behind
 | Service locator / DI container | Explicit constructors + Typer wiring are enough |
 | Microservices / message bus | One process, one SQLite file |
 | Auto-submit / stealth browser | Product and safety constraint |
-| Solving recurring NL only in Cursor chat | Unverifiable, unpaid twice; promote to code |
+| Leaving System 2 insights only in chat | High compute unpaid twice; compress into a feature |
 
 ## 4. Persistence model
 
@@ -333,13 +365,14 @@ When adding a portal or job board:
 4. Dry-run default; `--apply` for irreversible steps; never invent answers.
 5. If SQLite shape changes beyond nullable columns on `jobs`, plan Alembic (#7).
 
-When the user sends recurring natural language (draft text, classify, advise):
+When the user vibecodes recurring natural language (draft text, classify, advise):
 
-1. Do **not** solve it only in the Cursor transcript.
-2. Promote a function in the owning package; wire CLI if humans will run it.
+1. Treat the chat as System 2 discovery — allowed once, not as runtime.
+2. Name a falsifiable rule; promote a function in the owning package (`ops/compile`).
 3. Use `run_optional_llm` (`nlp/gateway.py`): deterministic default, `--llm` opt-in,
    fallback on failure, facts grounded via `FACTS_ONLY_RULES`.
 4. Ship a failing-first unit test (no live API key required for the default path).
+5. Next time: call the feature; do not re-derive in Cursor.
 
 ## 8. Related documents
 
