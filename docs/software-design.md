@@ -58,7 +58,7 @@ Packages under `src/jobbot/` map to bounded contexts:
 | `db/` | Engine, SQLite migrations helper, ORM tables |
 | `browser/` | Playwright session helpers |
 | `ops/` | Failures, PII guard, redaction |
-| `nlp/` | Optional refine (LangChain behind `jobbot[llm]`) |
+| `nlp/` | NL offload: deterministic refine + optional LLM via `gateway` |
 
 ## 3. Design patterns in use
 
@@ -117,7 +117,40 @@ Same idea for applications: `prepare` → `apply` (plan) → `apply --apply` (op
 `JobAnalyzer` protocol with `RuleBasedJobAnalyzer` as the default implementation
 (`matching/analyzer.py`). Scoring stays swappable without touching the CLI.
 
-### 3.8 Patterns we deliberately avoid
+### 3.8 Natural language offload (Cursor → functions)
+
+Cursor must not carry recurring NL reasoning in chat. When the user sends natural
+language that will repeat (match a JD, refine a blurb, draft a cover letter,
+classify a portal), **promote** that work into a function/CLI and call it next time.
+
+```text
+user NL in chat
+      │
+      ▼
+ Cursor writes / extends a function   ← one-time cost
+      │
+      ├── deterministic path (default)   heuristics, templates, rules
+      └── optional LLM path (--llm)      only when presentation needs a model
+               │
+               └── grounded on Candidate facts; on failure → deterministic
+```
+
+Contract:
+
+1. **Promote, don't re-derive.** Third time (or first if obviously a cargo step) →
+   code under the owning package + test + CLI if a human will run it.
+2. **Deterministic first.** LLM is never the only path; `run_optional_llm` in
+   `nlp/gateway.py` encodes dry default / `--llm` opt-in / fallback.
+3. **LLM lives inside the function**, not in the agent transcript. Chat may sketch
+   the call; the callable owns prompts, grounding, and fallbacks.
+4. **Facts only.** Prompts reuse `FACTS_ONLY_RULES`; reject or fall back if the
+   model invents employers, metrics, or skills.
+5. **Extras stay optional.** `uv sync --extra llm` + `OPENAI_API_KEY`; MVP works offline.
+
+Existing example: `refine_permanent_profile(..., use_llm=False|True)` behind
+`jobbot getonboard prepare [--llm]`.
+
+### 3.9 Patterns we deliberately avoid
 
 | Pattern | Why not |
 | --- | --- |
@@ -126,6 +159,7 @@ Same idea for applications: `prepare` → `apply` (plan) → `apply --apply` (op
 | Service locator / DI container | Explicit constructors + Typer wiring are enough |
 | Microservices / message bus | One process, one SQLite file |
 | Auto-submit / stealth browser | Product and safety constraint |
+| Solving recurring NL only in Cursor chat | Unverifiable, unpaid twice; promote to code |
 
 ## 4. Persistence model
 
@@ -232,7 +266,7 @@ Do not expand the hand-rolled dict into a second migration framework.
 | HTML | beautifulsoup4 (declared) | Prefer over regex for markup |
 | i18n helpers | babel | Dates / units / territories where CLDR wins |
 | Email validation | email-validator | Used via Pydantic `EmailStr` |
-| Optional LLM | LangChain + OpenAI (`jobbot[llm]`) | Explicit opt-in; never invent facts |
+| Optional LLM | LangChain + OpenAI (`jobbot[llm]`) via `nlp/gateway` | Opt-in inside promoted functions; never invent facts |
 
 ### 5.2 Quality tooling
 

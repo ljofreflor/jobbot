@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from typing import Any
 
@@ -15,6 +14,7 @@ from jobbot.adapters.getonboard.draft import (
     build_permanent_profile_fields,
 )
 from jobbot.models.candidate import Candidate
+from jobbot.nlp.gateway import FACTS_ONLY_RULES
 
 logger = logging.getLogger("jobbot.nlp.langchain")
 
@@ -23,8 +23,7 @@ _SYSTEM = (
     "Reglas:\n"
     "- El texto PREVIO es capital computacional: mejóralo, no lo reescribas "
     "desde cero.\n"
-    "- Solo puedes afirmar hechos presentes en FACTS (Candidate). "
-    "Nunca inventes cargos, empresas, métricas ni skills.\n"
+    f"- {FACTS_ONLY_RULES}\n"
     "- Si PREVIO menciona tecnologías/empresas obsoletas que no están en "
     "FACTS, reescríbelas o elimínalas.\n"
     "- Integra hechos nuevos de FACTS que falten en PREVIO.\n"
@@ -75,19 +74,9 @@ class LangChainProfileRefiner:
 
 
 def _build_chat_model() -> Any:
-    try:
-        from langchain_openai import ChatOpenAI
-    except ImportError as exc:
-        msg = (
-            "LangChain LLM extras not installed. "
-            "Run: uv sync --extra llm   (or pip install 'jobbot[llm]')"
-        )
-        raise RuntimeError(msg) from exc
-    if not os.environ.get("OPENAI_API_KEY"):
-        msg = "OPENAI_API_KEY not set; cannot run LangChain refine"
-        raise RuntimeError(msg)
-    model = os.environ.get("JOBBOT_LLM_MODEL", "gpt-4o-mini")
-    return ChatOpenAI(model=model, temperature=0.2)
+    from jobbot.nlp.gateway import build_chat_model
+
+    return build_chat_model(temperature=0.2)
 
 
 def _facts_payload(candidate: Candidate) -> dict[str, Any]:
