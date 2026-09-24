@@ -20,6 +20,8 @@ matching, adapted CVs, and assisted applications. **No web UI** — everything r
 `data/profile.yaml` is the single source of professional truth. LaTeX, PDF, Indeed, and LinkedIn
 are views or adapters. Facts are never invented to fit a job posting.
 
+Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
+
 ## Status
 
 **Endgame:** match → decide → CV derivado → application package → postular (portales futuros).
