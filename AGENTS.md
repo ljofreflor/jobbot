@@ -87,7 +87,9 @@ Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruite
 or Indeed; `--fixture` also ingests Indeed viewjob or career-page HTML). From a phone,
 `--park` queues the share URL under `data/hard-link-inbox.txt` with no fetch; on a desktop
 with Chrome CDP, `jobbot get --parked` drains it (CAPTCHA stays HITL). Known ATS hosts
-without a fetcher are recognized then refused. Manual `jobs add --file` is a fallback.
+without a fetcher (or Indeed URL shapes we do not yet parse) are refused and recorded
+as ops failures with class+message — tracking stripped from the stored command — so
+`ops failure work` can open the issue→branch→PR lane. Manual `jobs add --file` is a fallback.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
 

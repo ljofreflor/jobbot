@@ -137,6 +137,21 @@ class _QuietExit(Exception):
         self.code = code
 
 
+class _RecordedExit(Exception):
+    """Non-zero exit that must land in ops_failures with a real fingerprint.
+
+    Autopoietic lane for product gaps (novel URL shapes, missing fetchers):
+    exception → observability → ``ops failure work`` → issue → PR. A bare
+    ``typer.Exit`` drops the message and collapses every gap into one useless
+    ``Exit:`` fingerprint.
+    """
+
+    def __init__(self, code: int, *, error_class: str, message: str) -> None:
+        self.code = code
+        self.error_class = error_class
+        self.message = message
+
+
 def run_cli(
     argv: Sequence[str] | None = None,
     *,
@@ -148,6 +163,8 @@ def run_cli(
     exit_code = SUCCESS
     caught: BaseException | None = None
     aborted = False
+    recorded_class: str | None = None
+    recorded_message: str | None = None
     try:
         result = app(args, prog_name=prog_name, standalone_mode=False)
         if isinstance(result, int):
@@ -182,6 +199,11 @@ def run_cli(
         if standalone_mode:
             raise SystemExit(exc.code) from exc
         return exc.code
+    except _RecordedExit as exc:
+        exit_code = exc.code
+        recorded_class = exc.error_class
+        recorded_message = exc.message
+        caught = exc.__cause__ if isinstance(exc.__cause__, BaseException) else None
     except Exception as exc:  # noqa: BLE001 — CLI boundary capture
         exit_code = GENERIC_FAILURE
         caught = exc
@@ -194,8 +216,16 @@ def run_cli(
             exit_code,
             argv=["jobbot", *args],
             exc=caught if not isinstance(caught, typer.Exit) else None,
-            error_class="Abort" if aborted else None,
-            message=ABORT_MESSAGE if aborted else None,
+            error_class=(
+                recorded_class
+                if recorded_class is not None
+                else ("Abort" if aborted else None)
+            ),
+            message=(
+                recorded_message
+                if recorded_message is not None
+                else (ABORT_MESSAGE if aborted else None)
+            ),
             context=runtime_context(),
         )
         if record is not None:
@@ -481,6 +511,27 @@ def _drain_parked_hard_links(
                 cdp=cdp,
                 fixture=None,
             )
+        except _RecordedExit as exc:
+            failures += 1
+            from jobbot.ops.failures import capture_cli_failure, runtime_context
+
+            record = capture_cli_failure(
+                exc.code,
+                argv=["jobbot", "get", item],
+                exc=exc.__cause__ if isinstance(exc.__cause__, BaseException) else None,
+                error_class=exc.error_class,
+                message=exc.message,
+                context=runtime_context(),
+            )
+            if record is not None:
+                err_console.print(
+                    f"[yellow]Recorded failure[/yellow] {record.id} "
+                    f"(fingerprint={record.fingerprint})"
+                )
+            err_console.print(
+                f"[yellow]Left in inbox[/yellow] (exit {exc.code}): {item}"
+            )
+            continue
         except (_QuietExit, typer.Exit) as exc:
             failures += 1
             if isinstance(exc, _QuietExit):
@@ -492,7 +543,9 @@ def _drain_parked_hard_links(
         remove_parked(config, item)
         console.print(f"[dim]Removed from inbox:[/dim] {item}")
     if failures:
-        raise typer.Exit(GENERIC_FAILURE if failures == len(urls) else SUCCESS)
+        # Per-URL gaps already landed in ops_failures; the drain summary is not a
+        # new defect (avoid a second empty Exit fingerprint).
+        raise _QuietExit(GENERIC_FAILURE if failures == len(urls) else SUCCESS)
 
 
 def _ingest_one_hard_link(
@@ -557,10 +610,18 @@ def _ingest_one_hard_link(
         raise typer.Exit(VALIDATION_FAILURE) from exc
     except UnsupportedPortalFetchError as exc:
         err_console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+        raise _RecordedExit(
+            GENERIC_FAILURE,
+            error_class=type(exc).__name__,
+            message=str(exc),
+        ) from exc
     except OSError as exc:
         err_console.print(f"[red]Could not fetch job page:[/red] {exc}")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+        raise _RecordedExit(
+            GENERIC_FAILURE,
+            error_class=type(exc).__name__,
+            message=f"Could not fetch job page: {exc}",
+        ) from exc
 
     job = result.job
     _learn_company_knowledge(config, job, narrator=narrator)
