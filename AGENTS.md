@@ -79,6 +79,8 @@ jobbot application prepare J0001
 jobbot application open J0001          # opens ATS/job URL; no auto-submit
 jobbot application apply J0001         # dry-run prefill plan
 jobbot application apply J0001 --apply # open ATS + prefill sheet (you submit)
+jobbot application apply --all         # queue of eligible jobs (dry-run)
+jobbot application apply --all --apply # open one by one; HITL between jobs / Next
 jobbot profile suggest-from-market     # market language (no stdin; --ask for gaps)
 ```
 
@@ -447,6 +449,8 @@ uv run jobbot companies recon NOMBRE --fixture PATH   # aprender ATS/form desde 
 uv run jobbot companies recon NOMBRE --cdp URL --apply
 uv run jobbot application apply J0001
 uv run jobbot application apply J0001 --apply           # email: adapted CV attached in Gmail
+uv run jobbot application apply --all                   # dry-run queue (#75)
+uv run jobbot application apply --all --apply --cdp http://127.0.0.1:9222
 uv run jobbot browser sessions # preflight: ready | needs_login | unknown | profile_busy
 uv run jobbot browser login            # permanentes + active + candidate; sin credenciales (#56)
 uv run jobbot browser login --apply    # abre el siguiente portal sin sesión probada; tú entras

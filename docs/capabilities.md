@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 123 modules, 576 public symbols.
+87 commands, 125 modules, 584 public symbols.
 
 ## Commands
 
@@ -165,6 +165,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `applications`
 
+- `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
 
 ### `browser`
@@ -264,6 +265,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 - `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `detect_ats_in_html`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
+- `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `follow_redirect_url`, `expand_urls`
