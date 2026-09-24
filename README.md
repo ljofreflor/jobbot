@@ -3,6 +3,8 @@
 Local terminal tool for managing a job search: structured CV as source of truth, portal sync,
 matching, adapted CVs, and assisted applications. **No web UI** — everything runs from the CLI.
 
+Docs and blog: <https://ljofreflor.github.io/jobbot/> (source in `docs/`, `make docs-serve`).
+
 ## Architecture
 
 ```text
