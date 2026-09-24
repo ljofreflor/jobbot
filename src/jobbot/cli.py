@@ -82,7 +82,7 @@ linkedin_app = typer.Typer(
     no_args_is_help=True,
 )
 browser_app = typer.Typer(
-    help="Browser helpers (HITL Chrome / CDP — no CAPTCHA bypass)",
+    help="Browser helpers (HITL Chrome/Edge/Brave via CDP — no CAPTCHA bypass)",
     no_args_is_help=True,
 )
 getonboard_app = typer.Typer(
