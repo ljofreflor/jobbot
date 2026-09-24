@@ -14,6 +14,7 @@ from jobbot.adapters.getonboard.draft import (
     PermanentProfileFields,
     build_permanent_profile_fields,
 )
+from jobbot.branding import stamp_description
 from jobbot.models.candidate import Candidate
 
 logger = logging.getLogger("jobbot.nlp.langchain")
@@ -66,7 +67,7 @@ class LangChainProfileRefiner:
         edu = str(parsed.get("formacion_academica") or previous.formacion_academica).strip()
         exp, edu = _ground_or_fallback(exp, edu, candidate, previous, cold)
         return PermanentProfileFields(
-            experiencia_y_perfil=exp[:EXPERIENCE_MAX],
+            experiencia_y_perfil=stamp_description(exp, max_len=EXPERIENCE_MAX),
             formacion_academica=edu[:EDUCATION_MAX],
             headline=candidate.personal.headline,
             skills=list(candidate.skills.all_skills())[:10],
