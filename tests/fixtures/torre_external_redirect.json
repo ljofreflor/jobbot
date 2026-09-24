@@ -1,0 +1,42 @@
+{
+  "id": "dE1fG2hI",
+  "slug": "global-healthcare-clinical-specialist",
+  "objective": "Clinical Specialist",
+  "tagline": "Join our healthcare team to improve patient outcomes.",
+  "type": "full-time-employment",
+  "commitment": "full-time",
+  "opportunity": "employee",
+  "remote": false,
+  "status": "open",
+  "created": "2026-09-10T08:00:00.000Z",
+  "external": "https://boards.greenhouse.io/globalhealthcare/jobs/7788",
+  "quickApply": false,
+  "locations": ["New York, USA"],
+  "place": {
+    "remote": false,
+    "anywhere": false,
+    "locationType": "on_site",
+    "location": ["New York, USA"]
+  },
+  "organizations": [
+    {
+      "id": 666,
+      "name": "Global Healthcare Inc",
+      "status": "approved",
+      "size": 500,
+      "publicId": "GlobalHealthcare"
+    }
+  ],
+  "skills": [
+    {"name": "Clinical Care", "experience": "5-plus-years", "proficiency": "expert"},
+    {"name": "Patient Management", "experience": "3-plus-years", "proficiency": "proficient"}
+  ],
+  "members": [
+    {
+      "subjectId": "5678",
+      "name": "HR Director",
+      "username": "hr.director",
+      "professionalHeadline": "Talent Acquisition Lead"
+    }
+  ]
+}
