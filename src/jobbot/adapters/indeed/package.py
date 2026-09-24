@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from jobbot.branding import stamp_description
 from jobbot.models.candidate import Candidate
 from jobbot.models.targets import DEFAULT_CONSTRAINTS, ProfileTarget
 
@@ -27,7 +28,7 @@ def truncate(text: str, max_len: int | None) -> str:
 def build_indeed_sync_package(candidate: Candidate) -> IndeedSyncPackage:
     cons = DEFAULT_CONSTRAINTS[ProfileTarget.INDEED]
     headline = truncate(candidate.personal.headline, cons.headline_max)
-    summary = truncate(candidate.summary or "", cons.summary_max)
+    summary = stamp_description(candidate.summary or "", max_len=cons.summary_max)
     skills = list(candidate.skills.all_skills())
     blocks: list[str] = []
     for exp in candidate.experience:
