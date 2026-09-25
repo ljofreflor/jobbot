@@ -77,7 +77,7 @@ uv run jobbot indeed login           # once; persist session
 uv run jobbot jobs search "Senior Data Scientist" --location Santiago --limit 20
 uv run jobbot jobs shortlist
 uv run jobbot jobs match J0003
-# Optional: BETO (BERT español) — uv sync --extra bert; free, no API key
+# Optional: local BERT (MiniLM) — uv sync --extra bert; free, no API key
 # uv run jobbot jobs match J0003 --bert
 # uv run jobbot cv fit J0003 [--bert]   # base vs adapted vs JD
 uv run jobbot cv build --job J0003
@@ -112,7 +112,7 @@ cp data/portals.example.yaml data/portals.yaml       # optional ATS seed
 cp data/companies.example.yaml data/companies.yaml   # optional company↔portal seed
 
 # Optional extras (not required for the default offline path):
-# uv sync --extra bert   # BETO (BERT español) for `jobs match --bert` / `cv fit` (free; downloads once)
+# uv sync --extra bert   # local MiniLM for `jobs match --bert` / `cv fit` (free; downloads once)
 # uv sync --extra llm    # only for optional --llm / chat-first LLM extract (needs OPENAI_API_KEY)
 ```
 

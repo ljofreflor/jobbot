@@ -268,10 +268,12 @@ def _optional_bert_embedder(bert: bool) -> TextEmbedder | None:
         )
         raise typer.Exit(GENERIC_FAILURE)
     try:
-        return build_local_bert_embedder()
+        embedder = build_local_bert_embedder()
     except RuntimeError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
+    console.print("[dim]document fit: local BERT[/dim]")
+    return embedder
 
 
 def _print_adaptation_fit(fit: AdaptationFit, job_dir: Path) -> None:
@@ -2181,8 +2183,8 @@ def jobs_match(
         typer.Option(
             "--bert/--no-bert",
             help=(
-                "Local BETO (BERT español) for document fit "
-                "(uv sync --extra bert; free; downloads once)"
+                "Local BERT-family embeddings for document fit "
+                "(uv sync --extra bert; free, no API key; downloads model once)"
             ),
         ),
     ] = False,
