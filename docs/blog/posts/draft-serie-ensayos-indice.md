@@ -21,6 +21,12 @@ razona el diseño de JobBot desde sus condiciones de posibilidad. Cada pieza tom
 decisión técnica del proyecto y la sigue hasta su raíz (fenomenológica, estadística,
 económica o política), en vez de justificarla por conveniencia.
 
+**Columna vertebral teórica.** Si hay que leer un solo ensayo para entender el resto,
+es [Disolver la necesidad: software que elimina condiciones de
+posibilidad](draft-disolver-necesidades-condiciones.md): define la operación (descomponer
+la necesidad en condiciones y **eliminarlas** en vez de satisfacerlas) de la que todos
+los demás posts son aplicaciones.
+
 ## El arco narrativo (8 partes)
 
 El proyecto se cuenta como un arco de ocho movimientos. Los ensayos son el
@@ -63,7 +69,8 @@ El proyecto se cuenta como un arco de ocho movimientos. Los ensayos son el
   [fenomenología del software](draft-fenomenologia-software-ideenkleid.md) →
   [convivencialidad](draft-convivencialidad-fantasma-stata.md) →
   [mercancía ficticia](draft-trabajo-mercancia-ficticia.md) →
-  [el método](draft-metodo-ficcion-requerimientos.md).
+  [el método](draft-metodo-ficcion-requerimientos.md) →
+  [disolver la necesidad](draft-disolver-necesidades-condiciones.md).
 
 ## Nota
 

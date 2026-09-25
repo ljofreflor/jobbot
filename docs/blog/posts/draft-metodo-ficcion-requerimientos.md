@@ -146,6 +146,9 @@ requerimientos** que alcanza una capa que el empirismo no puede tocar.
 
 ## Enlaces internos
 
+- **La operación central** que este método alimenta (qué se hace con la condición una
+  vez detectada: **disolverla**, no satisfacerla): [Disolver la necesidad: software que
+  elimina condiciones de posibilidad](draft-disolver-necesidades-condiciones.md).
 - Cierra la serie. Índice: [La serie de ensayos de
   JobBot](draft-serie-ensayos-indice.md).
 - La bifurcación que este método resolvió: [Invertir la mirada: el trabajo como
