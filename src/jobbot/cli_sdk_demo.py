@@ -17,7 +17,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS
-from jobbot.matching.models import JobMatch
+from jobbot.matching.models import JobMatch  # type: ignore[import-untyped]
 from jobbot.models.job import JobPosting
 from jobbot.sdk import JobBotClient
 
@@ -94,6 +94,9 @@ def match_command(
             if job is None:
                 console.print(f"[red]Job {job_id} not found[/red]")
                 return GENERIC_FAILURE
+            
+            # Type narrowing: job is guaranteed not None after the check above
+            assert job is not None
 
             # Presentation
             if detailed:
