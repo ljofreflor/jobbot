@@ -27,7 +27,7 @@ class JobMatch(BaseModel):
     # Optional document-level CV↔JD fit (bag or embedding); None = rules-only.
     document_score: float | None = Field(default=None, ge=0, le=100)
     lexical_score: float | None = Field(default=None, ge=0, le=100)
-    fit_mode: str = "rules"  # rules | bag | embedding
+    fit_mode: str = "rules"  # rules | bag | bert
 
     def by_strength(self, strength: MatchStrength) -> list[MatchItem]:
         return [i for i in self.items if i.strength == strength]

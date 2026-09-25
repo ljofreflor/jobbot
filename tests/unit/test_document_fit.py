@@ -67,19 +67,32 @@ def test_noisy_skills_do_not_own_the_score() -> None:
     assert any(i.label.startswith("document:") for i in blended.items)
 
 
-def test_mocked_embedder_sets_fit_mode_embedding() -> None:
+def test_mocked_bert_embedder_sets_fit_mode_bert() -> None:
     candidate = Candidate.model_validate(sample_profile_dict())
     job = parse_job_text(_ALIGNED_JD, job_id="J0902")
 
     class _Fake:
         def embed(self, text: str) -> list[float]:
-            # Same vector → perfect cosine; proves the embedding path is wired.
+            # Same vector → perfect cosine; proves the local BERT path is wired.
             return [1.0, 0.0, 0.0]
 
     match = RuleBasedJobAnalyzer(document_fit=True, embedder=_Fake()).analyze(candidate, job)
-    assert match.fit_mode == "embedding"
+    assert match.fit_mode == "bert"
     assert match.document_score == 100.0
     assert match.score > 50
+
+
+def test_build_local_bert_requires_extra() -> None:
+    from jobbot.matching.similarity import bert_available, build_local_bert_embedder
+
+    if bert_available():
+        return  # optional extra present in this environment
+    try:
+        build_local_bert_embedder()
+    except RuntimeError as exc:
+        assert "bert" in str(exc).casefold()
+        return
+    raise AssertionError("expected RuntimeError without sentence-transformers")
 
 
 def test_ecos_document_fit_beats_noisy_lexical() -> None:

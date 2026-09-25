@@ -230,7 +230,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `matching`
 
 - `analyzer.py` — Rule-based job matching — never invents candidate skills; blends document CV↔JD cosine when the JD is rich. · `JobAnalyzer`, `RuleBasedJobAnalyzer`
-- `similarity.py` — Offline bag(+synonym) or optional OpenAI embedding cosine for CV↔JD documents. · `TextEmbedder`, `bag_cosine`, `document_similarity`, `embeddings_available`, `build_openai_embedder`
+- `similarity.py` — Offline bag(+synonym) or optional **local BERT** (sentence-transformers) cosine for CV↔JD documents — no paid API. · `TextEmbedder`, `bag_cosine`, `document_similarity`, `bert_available`, `build_local_bert_embedder`
 - `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `format_match_report`
 
 ### `models`

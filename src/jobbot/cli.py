@@ -2060,13 +2060,13 @@ def jobs_match(
             ),
         ),
     ] = True,
-    embed: Annotated[
+    bert: Annotated[
         bool,
         typer.Option(
-            "--embed",
+            "--bert/--no-bert",
             help=(
-                "Use OpenAI embeddings for document fit "
-                "(needs jobbot[llm] + OPENAI_API_KEY; not Cursor tokens)"
+                "Local BERT-family embeddings for document fit "
+                "(uv sync --extra bert; free, no API key; downloads model once)"
             ),
         ),
     ] = False,
@@ -2086,16 +2086,18 @@ def jobs_match(
         raise typer.Exit(GENERIC_FAILURE)
 
     embedder = None
-    if embed:
-        from jobbot.matching.similarity import build_openai_embedder, embeddings_available
+    if bert:
+        from jobbot.matching.similarity import bert_available, build_local_bert_embedder
 
-        if not embeddings_available():
+        if not bert_available():
             err_console.print(
-                "[red]--embed needs uv sync --extra llm and OPENAI_API_KEY[/red]"
+                "[red]--bert needs: uv sync --extra bert[/red] "
+                "(local sentence-transformers; no paid API)"
             )
             raise typer.Exit(GENERIC_FAILURE)
         try:
-            embedder = build_openai_embedder()
+            embedder = build_local_bert_embedder()
+            console.print("[dim]document fit: local BERT[/dim]")
         except RuntimeError as exc:
             err_console.print(f"[red]{exc}[/red]")
             raise typer.Exit(GENERIC_FAILURE) from exc

@@ -77,8 +77,8 @@ uv run jobbot indeed login           # once; persist session
 uv run jobbot jobs search "Senior Data Scientist" --location Santiago --limit 20
 uv run jobbot jobs shortlist
 uv run jobbot jobs match J0003
-# Optional: OpenAI embeddings for CV↔JD document fit (jobbot[llm] + OPENAI_API_KEY)
-# uv run jobbot jobs match J0003 --embed
+# Optional: local BERT document fit (uv sync --extra bert; free, no API key)
+# uv run jobbot jobs match J0003 --bert
 uv run jobbot cv build --job J0003
 uv run jobbot application prepare J0003
 

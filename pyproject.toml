@@ -30,7 +30,10 @@ dev = [
 llm = [
     "langchain>=0.3",
     "langchain-openai>=0.2",
-    "openai>=1.40",
+]
+# Local BERT-family embeddings for match (free; no API). Heavy (torch).
+bert = [
+    "sentence-transformers>=3.0",
 ]
 
 [project.scripts]
@@ -72,7 +75,12 @@ packages = ["jobbot"]
 
 # Optional LLM extra: only installed with `uv sync --extra llm`
 [[tool.mypy.overrides]]
-module = ["langchain_openai.*", "langchain_core.*", "langchain.*", "openai.*"]
+module = ["langchain_openai.*", "langchain_core.*", "langchain.*"]
+ignore_missing_imports = true
+
+# Optional [bert] extra: sentence-transformers + torch
+[[tool.mypy.overrides]]
+module = ["sentence_transformers.*", "torch.*", "transformers.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

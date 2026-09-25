@@ -1,8 +1,9 @@
 """Document-level CV↔JD similarity — less dependent on parsed skill lists.
 
 Chat-first cleans structured fields (title, company, skills for CV adaptation).
-Match % can still use the raw/preprocessed description as a bag or embedding,
-so a noisy skill list no longer dominates the score alone.
+Match % uses the JD description as a bag(+synonyms) by default, or a **local
+BERT-family** sentence embedding when ``jobbot[bert]`` is installed — no paid
+API, no OpenAI key.
 """
 
 from __future__ import annotations
@@ -21,14 +22,14 @@ from jobbot.ops.pii_guard import redact
 
 logger = logging.getLogger("jobbot.matching.similarity")
 
-DEFAULT_EMBED_MODEL = "text-embedding-3-small"
-EMBED_MODEL_ENV = "JOBBOT_EMBED_MODEL"
+# Multilingual MiniLM (BERT-family), free, runs on CPU once downloaded.
+DEFAULT_BERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+BERT_MODEL_ENV = "JOBBOT_BERT_MODEL"
 # Prefer description over a long raw paste that still has LinkedIn chrome.
 _MAX_DOC_CHARS = 8000
 _MIN_RICH_CHARS = 180
 
-# Offline stand-in for embedding neighborhoods: expand each hit to a synthetic
-# feature shared across ES/EN AI↔DS wording. Real embeddings still beat this.
+# Offline stand-in for embedding neighborhoods when BERT is not installed.
 _SYNONYM_GROUPS: tuple[frozenset[str], ...] = (
     frozenset(
         {
@@ -80,7 +81,7 @@ _SYNONYM_GROUPS: tuple[frozenset[str], ...] = (
 
 
 class TextEmbedder(Protocol):
-    """Embeds one text; injectable so tests never hit the network."""
+    """Embeds one text; injectable so tests never download a model."""
 
     def embed(self, text: str) -> list[float]: ...
 
@@ -127,9 +128,7 @@ def bag_cosine(a: str, b: str) -> float:
     """Offline content-word cosine in [0, 1], boosted by synonym coverage.
 
     Plain bag-of-words fails across ES/EN (``LLMs`` vs ``PyTorch``). Synonym
-    groups act as a cheap embedding neighborhood without an API. ``a`` is the
-    candidate document and ``b`` the job document: we score how much of the
-    JD's themes the CV covers (asymmetric), then mix with lexical cosine.
+    groups bridge that gap without a model. Prefer ``--bert`` when installed.
     """
     va, vb = _bow(a), _bow(b)
     if not va or not vb:
@@ -147,7 +146,6 @@ def bag_cosine(a: str, b: str) -> float:
 
 def _synonym_coverage(candidate_words: set[str], job_words: set[str]) -> float:
     """Weighted fraction of JD synonym themes also present in the CV (0–1)."""
-    # Core AI/ML neighborhood counts more than peripheral themes (mining, scrum).
     weights = {0: 3.0}
     job_hits = [i for i, g in enumerate(_SYNONYM_GROUPS) if job_words & g]
     if not job_hits:
@@ -170,69 +168,53 @@ def document_similarity(
     *,
     embedder: TextEmbedder | None = None,
 ) -> tuple[float, str]:
-    """Return (score 0–100, mode label: bag|embedding)."""
+    """Return (score 0–100, mode label: bag|bert)."""
     left = candidate_document(candidate)
     right = job_document(job)
     if embedder is not None:
         try:
-            return round(100.0 * embedding_cosine(left, right, embedder), 1), "embedding"
+            return round(100.0 * embedding_cosine(left, right, embedder), 1), "bert"
         except Exception as exc:  # noqa: BLE001 — fall back offline
-            logger.warning("embedding similarity failed, using bag cosine: %s", exc)
+            logger.warning("local BERT similarity failed, using bag cosine: %s", exc)
     return round(100.0 * bag_cosine(left, right), 1), "bag"
 
 
-def embeddings_available() -> bool:
-    if not os.environ.get("OPENAI_API_KEY"):
-        return False
+def bert_available() -> bool:
+    """True when the optional local sentence-transformers stack is importable."""
     try:
-        import openai  # noqa: F401
+        import sentence_transformers  # noqa: F401
     except ImportError:
-        try:
-            import langchain_openai  # noqa: F401
-        except ImportError:
-            return False
+        return False
     return True
 
 
-def build_openai_embedder() -> TextEmbedder:
-    """OpenAI embeddings via the same key path as chat-first / cv advise."""
-    if not os.environ.get("OPENAI_API_KEY"):
-        msg = "OPENAI_API_KEY not set"
-        raise RuntimeError(msg)
-    model = os.environ.get(EMBED_MODEL_ENV, DEFAULT_EMBED_MODEL)
+def build_local_bert_embedder(*, model_name: str | None = None) -> TextEmbedder:
+    """Load a free local BERT-family sentence model (downloads once to HF cache)."""
     try:
-        from openai import OpenAI
-    except ImportError:
-        return _LangChainEmbedder(model)
-    return _OpenAIEmbedder(OpenAI(), model)
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        msg = "Local BERT not installed. Run: uv sync --extra bert"
+        raise RuntimeError(msg) from exc
+    name = model_name or os.environ.get(BERT_MODEL_ENV, DEFAULT_BERT_MODEL)
+    logger.info("loading local BERT embedder: %s", name)
+    model = SentenceTransformer(name)
+    return _SentenceTransformerEmbedder(model, name)
 
 
-class _OpenAIEmbedder:
-    def __init__(self, client: object, model: str) -> None:
-        self._client = client
+class _SentenceTransformerEmbedder:
+    """Wraps sentence-transformers; runs on CPU; no network after first download."""
+
+    def __init__(self, model: object, name: str) -> None:
         self._model = model
+        self.name = name
 
     def embed(self, text: str) -> list[float]:
-        response = self._client.embeddings.create(  # type: ignore[attr-defined]
-            model=self._model,
-            input=text,
+        vector = self._model.encode(  # type: ignore[attr-defined]
+            text,
+            normalize_embeddings=True,
+            show_progress_bar=False,
         )
-        return list(response.data[0].embedding)
-
-
-class _LangChainEmbedder:
-    """Fallback when `openai` is not installed but `langchain_openai` is."""
-
-    def __init__(self, model: str) -> None:
-        try:
-            from langchain_openai import OpenAIEmbeddings
-        except ImportError as exc:
-            msg = "Install jobbot[llm] (langchain-openai) or the openai package"
-            raise RuntimeError(msg) from exc
-        self._emb = OpenAIEmbeddings(model=model)
-
-    def embed(self, text: str) -> list[float]:
-        return list(self._emb.embed_query(text))
+        return [float(x) for x in vector]
 
 
 def _clip(text: str) -> str:
@@ -300,5 +282,4 @@ def _vector_cosine(a: list[float], b: list[float]) -> float:
     if na == 0.0 or nb == 0.0:
         return 0.0
     raw = dot / (na * nb)
-    # Embeddings are usually already non-negative cosine for similar docs; clamp.
     return max(0.0, min(1.0, (raw + 1.0) / 2.0)) if raw < 0 else max(0.0, min(1.0, raw))

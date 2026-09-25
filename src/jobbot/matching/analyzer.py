@@ -1,10 +1,9 @@
 """Rule-based job matching — never invents candidate skills.
 
 When the JD has a rich description, the final % blends lexical skill/requirement
-hits with a document-level CV↔JD cosine (bag-of-words offline, or an optional
-embedding). That way a noisy/incomplete `job.skills` list from a paste no longer
-owns the score alone — chat-first still helps structured fields, but match %
-does not depend on it as hard.
+hits with a document-level CV↔JD cosine (bag-of-words offline, or optional local
+BERT via ``jobbot[bert]`` — no paid API). Noisy/incomplete ``job.skills`` from a
+paste no longer own the score alone.
 """
 
 from __future__ import annotations
@@ -107,7 +106,8 @@ class RuleBasedJobAnalyzer:
     """Deterministic matcher using skills, tags, keywords, seniority, role family.
 
     ``document_fit`` (default True) blends in CV↔JD document cosine when the
-    posting has a rich description — bag-of-words offline, or ``embedder`` if set.
+    posting has a rich description — bag-of-words offline, or a local BERT
+    ``embedder`` when ``--bert`` / ``build_local_bert_embedder()`` is used.
     """
 
     def __init__(
