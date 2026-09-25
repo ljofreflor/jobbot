@@ -5,7 +5,9 @@ from __future__ import annotations
 from jobbot.ops.pii_guard import (
     format_report,
     is_allowed_content_path,
+    is_binary_path,
     is_blocked_path,
+    looks_binary,
     redact,
     scan_text,
 )
@@ -118,3 +120,11 @@ def test_redaction_leaves_ordinary_text_alone() -> None:
 def test_the_recruiter_reading_list_never_reaches_git() -> None:
     """Which sources you read reflects your own search, so it stays local."""
     assert is_blocked_path("data/recruiters.yaml")
+
+def test_png_paths_are_treated_as_binary() -> None:
+    """Architecture diagrams are binary; the guard must not UTF-8-decode them."""
+    assert is_binary_path("docs/images/architecture.png")
+    assert is_binary_path("docs/images/architecture-detail.png")
+    assert not is_binary_path("README.md")
+    assert looks_binary(b"\x89PNG\r\n\x1a\n\0rest")
+    assert not looks_binary(b"# JobBot\n")
