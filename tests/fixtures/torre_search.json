@@ -115,6 +115,31 @@
       },
       "organizations": [{"id": 333, "name": "Empresa Remota", "status": "approved"}],
       "skills": [{"name": "Python", "experience": "3-plus-years"}]
+    },
+    {
+      "id": "pH9yS1cA",
+      "slug": "oficina-asia-cientifico-de-datos",
+      "objective": "Científico de Datos Senior",
+      "tagline": "Personalización en oficina; el API a veces lo devuelve pese a remote=true.",
+      "opportunity": "employee",
+      "remote": false,
+      "status": "open",
+      "created": "2026-09-12T08:00:00.000Z",
+      "locations": ["3 Media Close, Singapore 138498"],
+      "place": {
+        "remote": false,
+        "anywhere": false,
+        "locationType": "physical_location",
+        "location": [
+          {"id": "3 Media Close, Singapore 138498", "timezone": 8.0, "countryCode": "SG"}
+        ]
+      },
+      "organizations": [{"id": 444, "name": "Oficina Asia", "status": "approved"}],
+      "skills": [
+        {"name": "Python", "experience": "3-plus-years"},
+        {"name": "Deep learning", "experience": "potential-to-develop"}
+      ],
+      "members": [{"subjectId": "777", "name": "Persona Oficina", "username": "persona.oficina"}]
     }
   ]
 }

@@ -248,7 +248,9 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
 
 - Own accounts only. No CAPTCHA solving, 2FA bypass, stealth, proxies, telemetry.
 - Failures: local `ops_failures` in SQLite + `output/ops/failures/`; GitHub issues only via HITL
-  `jobbot ops failure issue` (never auto on crash). Maintainer lane is bash:
+  `jobbot ops failure issue` (never auto on crash). Every issue opened that way (and any
+  `gh issue create`) must be assigned to Cursor — login `cursoragent` — so it is never left
+  unassigned; see Planning. Maintainer lane is bash:
   `jobbot ops failure work Fxxxx` prints (or with `--apply` opens) issue → `git fetch` →
   branch → PR → triage → re-run ([#46](https://github.com/ljofreflor/jobbot/issues/46)); never
   auto-commit / push / merge.
@@ -332,6 +334,15 @@ an issue already holds acceptance tests wastes everyone's time.
 3. If the work is genuinely new, open or update an issue first (HITL), then plan against that
    number.
 4. Cite issue numbers in the plan and in PR bodies.
+5. **Assign every GitHub issue to Cursor.** On `gh issue create` and on
+   `jobbot ops failure issue`, pass `--assignee cursoragent` (or
+   `gh issue edit N --add-assignee cursoragent` right after create). Agents must not leave
+   issues unassigned. Login is `cursoragent` (GitHub User “Cursor Agent”); the App bot
+   `cursor[bot]` **cannot** be an issue assignee. `cursoragent` needs **write** on the repo
+   to appear in assignable users (read via the Cursor GitHub App is not enough). Until that
+   write collaborator is in place, apply the `cursor` label as the ownership signal and keep
+   a write invite open — then retry `--add-assignee cursoragent`. Prefer the real assignee
+   over the label alone.
 
 ## Remote agents (issues, cloud, CI)
 
@@ -347,6 +358,8 @@ So, when working on an issue without the local machine:
   ship the code plus fixture tests and say in the PR which check the human has to run locally.
 - Never add a fixture with real PII. `*.example.yaml` and `latex/cv.tex.demo` are the templates.
 - `.cursor/` is local, so this file is the whole policy: read it before touching anything.
+- Product and ops issues are Cursor-owned: assignee `cursoragent` (fallback label `cursor`).
+  Do not open or leave an issue without that ownership signal.
 
 ## Verify
 
