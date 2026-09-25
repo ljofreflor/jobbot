@@ -1,27 +1,47 @@
 # JobBot
 
-Local terminal tool for managing a job search: structured CV as source of truth, portal sync,
-matching, adapted CVs, and assisted applications. **No web UI** — everything runs from the CLI.
+A job-search tool you use in **chat** (Cursor or another coding agent), backed by a local CLI the
+agent calls for you. Structured CV as source of truth, portal sync, matching, adapted CVs, and
+assisted applications. **No web UI.** Humans *can* run the terminal themselves — that is secondary.
 
 ## Why
 
 Job search tooling usually optimizes *you* as a market commodity. JobBot points the other way:
-make employers, portals, and postings **observable** — ghost jobs, silence, salary opacity,
-career-site topology — and keep you in the loop.
+keep candidate data on your machine, make employers and postings **observable**, and grow a shared
+commons of market knowledge — without ever pooling CVs.
+
+- **Privacy first.** Candidate data stays local. There is no central candidate DB. Profile,
+  sessions, SQLite, and outputs are gitignored; a PII pre-commit guard blocks accidental commits.
+  AI runs on your client (e.g. inside Cursor). JobBot does not host models or your CV.
+- **Collaboration without CVs.** The shareable layer is public employer/market knowledge:
+  company↔ATS maps, career-site topology, observations. Contribute and merge that via files and
+  git — never your résumé. Federated: if the maintainer disappears, forks keep working.
+- **Chat-first, not terminal-first.** Meant to be used via natural language in a coding-agent
+  chat. The CLI exists so the agent can call it. Direct terminal use is supported and secondary.
+- **Distributed client tokens strengthen the commons.** Each user runs AI on their own machine.
+  That distributed inference and exploration hardens shared employer knowledge and surfaces new
+  use cases — without pooling candidate data. Token cost stays with you.
+- **Self-reporting use cases → issues.** When chat or the agent hits a new need or a failure,
+  turn it into a GitHub issue so the tool improves from distributed use. Shipping today:
+  `jobbot ops failure issue` creates an issue from a stored ops failure (HITL; never auto-fires
+  on crash). Broader “novel use case → issue from chat” is product direction, not finished
+  automation.
+
+Still true under that spine:
 
 - **`data/profile.yaml` is the source of truth.** LaTeX, PDF, Indeed, LinkedIn, and GetOnBoard are
   views or adapters. Facts are never invented to fit a posting.
-- **Nothing to enclose.** AI runs on your machine (e.g. inside Cursor). JobBot does not host models
-  or a central candidate DB. The shareable artifact is public employer knowledge (company↔ATS map),
-  not your CV. Federated via files and git — if the maintainer disappears, forks keep working.
 - **HITL by default.** Never auto-submits, no CAPTCHA bypass, dry-run unless you pass `--apply`.
 - **A posting is not the job.** The public ad conflates the work, the requisition, the marketing
   text, and your observation of it. Flat “one URL = one truth” models hide ghosts and reposts.
   JobBot records observation and evidence (see `companies`) instead. Posted requirements often
   ration the applicant queue more than they specify the work.
-- **Distributed AI load.** Designed to be driven by a coding agent calling the CLI; token cost stays
-  with you. Agent-friendly structured output (`--json` on a few commands today) is a direction, not
-  a finished surface.
+
+## Usage in Cursor
+
+Talk to the agent in Spanish or English about your job search. It runs `uv run jobbot …` for you
+(match, build CVs, learn company portals, file ops failures as issues). You rarely need the
+terminal yourself.
 
 ## Architecture
 
