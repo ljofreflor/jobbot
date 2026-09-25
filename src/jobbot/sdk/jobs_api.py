@@ -137,12 +137,12 @@ class JobsApi:
         Returns:
             JobMatch or list of JobMatch objects with scores and analysis
         """
-        analyzer = RuleBasedJobAnalyzer(self.candidate)
+        analyzer = RuleBasedJobAnalyzer()
 
         if isinstance(jobs, JobPosting):
-            return analyzer.analyze(jobs)
+            return analyzer.analyze(self.candidate, jobs)
 
-        return [analyzer.analyze(job) for job in jobs]
+        return [analyzer.analyze(self.candidate, job) for job in jobs]
 
     def match_by_id(self, job_id: str) -> JobMatch | None:
         """Match a stored job by ID against candidate profile.
@@ -156,4 +156,7 @@ class JobsApi:
         job = self.get(job_id)
         if job is None:
             return None
-        return self.match(job)
+        # match() with single JobPosting returns single JobMatch
+        result = self.match(job)
+        assert isinstance(result, JobMatch)
+        return result

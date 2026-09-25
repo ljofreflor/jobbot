@@ -9,12 +9,16 @@ the architectural improvements.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS
+from jobbot.matching.models import JobMatch
+from jobbot.models.job import JobPosting
 from jobbot.sdk import JobBotClient
 
 console = Console()
@@ -147,7 +151,7 @@ def cv_command(
 # These could be extracted to a shared cli_helpers module
 
 
-def _display_job_matches(jobs, matches) -> None:
+def _display_job_matches(jobs: Sequence[JobPosting], matches: Sequence[JobMatch]) -> None:
     """Display jobs with match scores in a table."""
     table = Table(title="Job Search Results")
     table.add_column("ID", style="cyan")
@@ -168,7 +172,7 @@ def _display_job_matches(jobs, matches) -> None:
     console.print(table)
 
 
-def _display_simple_match(job, match) -> None:
+def _display_simple_match(job: JobPosting, match: JobMatch) -> None:
     """Display simple match summary."""
     color = "green" if match.score >= 70 else "yellow" if match.score >= 50 else "red"
 
@@ -181,7 +185,7 @@ def _display_simple_match(job, match) -> None:
     ))
 
 
-def _display_detailed_match(job, match) -> None:
+def _display_detailed_match(job: JobPosting, match: JobMatch) -> None:
     """Display detailed match analysis."""
     color = "green" if match.score >= 70 else "yellow" if match.score >= 50 else "red"
 
