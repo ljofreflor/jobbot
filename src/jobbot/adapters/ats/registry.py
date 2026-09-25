@@ -9,6 +9,7 @@ from jobbot.adapters.ats.indeed_apply import IndeedApplyAdapter
 from jobbot.adapters.ats.lever import LeverAdapter
 from jobbot.adapters.ats.workday import WorkdayAdapter
 from jobbot.adapters.base import ApplicationPortalAdapter
+from jobbot.adapters.torre.apply import TorreApplicationAdapter
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind, detect_ats
 
@@ -19,6 +20,7 @@ _ADAPTERS: dict[AtsKind, ApplicationPortalAdapter] = {
     AtsKind.GETONBOARD: GetOnBoardAdapter(),
     AtsKind.WORKDAY: WorkdayAdapter(),
     AtsKind.INDEED: IndeedApplyAdapter(),
+    AtsKind.TORRE: TorreApplicationAdapter(),
 }
 
 

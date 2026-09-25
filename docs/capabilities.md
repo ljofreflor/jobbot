@@ -17,7 +17,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot application show` — Show application package path and status for a job.
 - `jobbot applications list` — List tracked applications.
 - `jobbot applications status` — Alias for applications list.
-- `jobbot browser chrome-debug` — Open a normal Chrome with CDP so challenges can be completed by hand.
+- `jobbot browser chrome-debug` — Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
 - `jobbot browser login` — List permanent, active and candidate portals that still need you to sign in.
 - `jobbot browser sessions` — Report which browser sessions JobBot can reach (read-only; never attaches).
 - `jobbot companies detect` — Classify a URL (posting / career portal / ATS / redirect). Writes nothing.
@@ -104,6 +104,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `jobbot`
 
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
+- `cli_sdk_demo.py` — CLI SDK Integration Demo.
 - `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `JobbotConfig`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`
@@ -270,6 +271,10 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `follow_redirect_url`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
 
+### `portals/detectors`
+
+- `torre_detector.py` — Torre.ai job board portal detector. · `PortalDetectionResult`, `TorrePortalDetector`
+
 ### `profile`
 
 - `diff.py` — Lightweight structural diff helpers for profiles. · `summarize_profile`, `compare_summaries`
@@ -290,3 +295,9 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `discover.py` — Read public pages about hiring practice, politely and without logging in. · `DiscoveryReport`, `discover_sources`, `asks_for_login`, `page_title`
 - `playbook.py` — Turn a public page about hiring into practices the CV advisor can use. · `PracticeKind`, `Practice`, `extract_practices`, `advisor_notes`
 - `sources.py` — Registry of public sources about hiring practice, with the same lifecycle as companies. · `RecruiterSource`, `default_recruiters_path`, `load_sources`, `save_sources`, `upsert_source`, `promote_source`, `reject_source`, `active_sources`, `export_payload`
+
+### `sdk`
+
+- `client.py` — JobBot SDK client: unified entry point for all SDK operations. · `JobBotClient`
+- `cv_api.py` — CV API: build tailored CVs for job applications. · `CvApi`
+- `jobs_api.py` — Jobs API: search, retrieve, and match job opportunities. · `JobsApi`
