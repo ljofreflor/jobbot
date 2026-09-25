@@ -73,12 +73,45 @@ def test_opening_is_the_only_side_effect(
     assert opened == ["https://acme.wd3.myworkdayjobs.com/careers"]
 
 
-def test_an_unknown_company_is_refused_with_the_command_that_teaches_it(
-    tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
+def test_apply_without_confirm_skips_browser_and_does_not_submit(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
+    """`--apply` without confirm must not open a browser or submit."""
     _workspace(tmp_path, project_root, monkeypatch)
+    _learn_company(tmp_path)
+    from jobbot import cli
     from jobbot.cli import run_cli
 
-    code = run_cli(["companies", "signup", "Nadie", "--no-open"], standalone_mode=False)
+    opened: list[str] = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(cli.typer, "confirm", lambda *_a, **_k: False)
 
-    assert code != SUCCESS
+    sessions: list[object] = []
+
+    class BoomSession:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            sessions.append((args, kwargs))
+            raise AssertionError("BrowserSession must not start without confirm")
+
+        def __enter__(self) -> object:
+            raise AssertionError("unreachable")
+
+        def __exit__(self, *_a: object) -> None:
+            return None
+
+    monkeypatch.setattr("jobbot.browser.session.BrowserSession", BoomSession)
+
+    code = run_cli(
+        ["companies", "signup", "Acme", "--apply", "--no-open"],
+        standalone_mode=False,
+    )
+    out = " ".join(capsys.readouterr().out.split())
+
+    assert code == SUCCESS
+    assert sessions == []
+    assert opened == []
+    assert "fill plan" in out.casefold() or "will fill" in out.casefold()
+    assert "skipped" in out.casefold()

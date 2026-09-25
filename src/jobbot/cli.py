@@ -3961,8 +3961,28 @@ def companies_signup(
         str | None,
         typer.Option("--site", help="Which career site, when the company has several"),
     ] = None,
+    apply_fill: Annotated[
+        bool,
+        typer.Option(
+            "--apply",
+            help="Fill known fields from profile.yaml (stops before password/terms/submit)",
+        ),
+    ] = False,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to Chrome via CDP (e.g. http://127.0.0.1:9222)"),
+    ] = None,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Skip the fill confirmation (with --apply)"),
+    ] = False,
 ) -> None:
-    """Open a company portal and list what registering will ask. Creates nothing."""
+    """Sheet of what registering asks; --apply fills known fields (HITL create).
+
+    With --apply, fills fields profile.yaml already answers and may attach the built
+    CV. Stops before password, terms, CAPTCHA/2FA, and final create/submit.
+    Never creates the account.
+    """
     from jobbot.companies.signup import (
         AccountNeed,
         screening_to_prepare,
@@ -4023,11 +4043,92 @@ def companies_signup(
     )
     if target.need is AccountNeed.NOT_NEEDED:
         console.print("You may not need an account at all — check before registering.")
+
+    if apply_fill:
+        _companies_signup_apply(
+            config=config,
+            candidate=candidate,
+            target_url=target.url,
+            need=target.need,
+            form=form,
+            cdp=cdp,
+            yes=yes,
+        )
+        return
+
     if open_page:
         from jobbot.adapters.ats.apply import open_ats_in_browser
 
         open_ats_in_browser(target.url)
         console.print(f"Opened {target.url}")
+
+
+def _companies_signup_apply(
+    *,
+    config: JobbotConfig,
+    candidate: Candidate,
+    target_url: str,
+    need: Any,
+    form: Any,
+    cdp: str | None,
+    yes: bool,
+) -> None:
+    from jobbot.adapters.ats.signup_fill import build_fill_plan, fill_signup_with_session
+    from jobbot.adapters.getonboard.cv_upload import resolve_base_cv
+    from jobbot.browser.cdp import resolve_cdp_url
+    from jobbot.browser.session import BrowserSession
+
+    cv_path = resolve_base_cv(config.output_dir)
+    plan = build_fill_plan(candidate, target_url, need, form=form, cv_path=cv_path)
+
+    console.print("\n[bold]Fill plan[/bold] (will not create/submit):")
+    fillable = ", ".join(plan.fields_to_fill) if plan.fields_to_fill else "none"
+    console.print(f"  • Will fill: {fillable}")
+    manual = ", ".join(plan.needs_manual[:4])
+    if len(plan.needs_manual) > 4:
+        manual += "…"
+    console.print(f"  • Requires you: {manual}")
+    if plan.can_attach_cv:
+        console.print(f"  • Will attach CV: {plan.cv_path}")
+    else:
+        console.print("  • CV: not attached (build one with [bold]jobbot cv build[/bold])")
+
+    if not yes and not typer.confirm(
+        "Fill known profile fields now? (password, terms, CAPTCHA/2FA and create "
+        "stay with you — JobBot does not submit)",
+        default=False,
+    ):
+        console.print("Skipped fill. Sheet above still stands.")
+        raise typer.Exit(SUCCESS)
+
+    cdp_url = resolve_cdp_url(cdp)
+    with BrowserSession(
+        profile_dir=config.root / "browser-data" / "signup",
+        headless=False,
+        cdp_url=cdp_url,
+        debug_root=config.output_dir / "debug",
+    ) as session:
+        result = fill_signup_with_session(
+            session,
+            target_url,
+            candidate,
+            form=form,
+            cv_path=cv_path,
+            need=need,
+            confirm_submit=False,
+        )
+
+    console.print(
+        f"\n[green]Filled[/green] {len(result.filled_fields)} field(s)"
+        + (" · CV attached" if result.attached else "")
+    )
+    for field in result.filled_fields:
+        console.print(f"  • {field}")
+    console.print(f"[bold]Stopped at:[/bold] {result.stopped_at}")
+    console.print(
+        "[yellow]Complete password, terms, CAPTCHA/2FA and create/submit yourself.[/yellow]"
+    )
+    assert result.submitted is False
 
 
 @companies_app.command("promote")
