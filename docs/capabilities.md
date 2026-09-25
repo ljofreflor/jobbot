@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 124 modules, 584 public symbols.
+87 commands, 132 modules, 597 public symbols.
 
 ## Commands
 
@@ -163,6 +163,8 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `adapters/torre`
 
+- `apply.py` — Torre application adapter - delegates to external ATS or manual Torre profile. · `TorreApplicationAdapter`
+- `field_extraction.py` — Extract structured fields from Torre API responses for portal learning. · `extract_torre_fields`
 - `jobs.py` — Torre job source (LATAM / remote-first) via its public opportunity search. · `Fetcher`, `UrllibFetcher`, `TorreJobSource`, `search_opportunities`, `is_remote_opportunity`, `job_from_api_item`
 
 ### `applications`
