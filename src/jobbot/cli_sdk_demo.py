@@ -55,6 +55,8 @@ def search_command(
                 return SUCCESS
 
             matches = client.jobs.match(jobs)
+            # match() with list returns list
+            assert isinstance(matches, list)
 
             # Presentation logic in CLI
             _display_job_matches(jobs, matches)
