@@ -109,6 +109,10 @@ cp .jobbot.toml.example .jobbot.toml   # optional
 cp data/profile.example.yaml data/profile.yaml
 cp data/portals.example.yaml data/portals.yaml       # optional ATS seed
 cp data/companies.example.yaml data/companies.yaml   # optional company↔portal seed
+
+# Optional extras (not required for the default offline path):
+# uv sync --extra bert   # local MiniLM/BERT document fit for `jobs match --bert` (free; downloads model once)
+# uv sync --extra llm    # only for optional --llm / chat-first LLM extract (needs OPENAI_API_KEY)
 ```
 
 **PII:** `data/profile.yaml` (and `portals.yaml`, `companies.yaml`, SQLite, `browser-data/`, `output/`) are
