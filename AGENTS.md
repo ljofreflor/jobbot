@@ -72,6 +72,7 @@ jobbot get --parked --cdp http://127.0.0.1:9222
 jobbot jobs match J0001
 jobbot jobs shortlist
 jobbot cv build --job J0001
+jobbot cv fit J0001                # base vs adapted ATS vs JD (adapted should win)
 jobbot cv advise # mejoras de presentación (determinista; --apply confirma una por una)
 jobbot cv sync # presencia: permanentes + companies active (#43); --apply HITL por destino
 jobbot status # CVs/perfiles + active company portals (evidencia local; alias: cv status)
@@ -246,11 +247,17 @@ file names, silently.
 - **Match % vs chat-first:** scoring blends lexical skill hits with a **document-level
   CV↔JD cosine** when the posting has a rich description (default on; offline bag +
   synonym neighborhoods). Noisy `job.skills` from a paste no longer own the %. Optional
-  `jobbot jobs match Jxxxx --bert` uses a **local** multilingual MiniLM (BERT-family)
-  via `uv sync --extra bert` — free, no API key; model downloads once to the HF cache.
-  Matching must not call paid embedding APIs. Chat-first still helps structured fields
-  (title/company/skills for CV adaptation); it is no longer the only gate for a usable
-  match score. `--no-document-fit` restores pure lexical rules.
+  `jobbot jobs match Jxxxx --bert` uses **BETO** (`dccuchile/bert-base-spanish-wwm-uncased`,
+  BERT en español) via `uv sync --extra bert` — free, no API key; model downloads once.
+  Override with `JOBBOT_BERT_MODEL`. Matching must not call paid embedding APIs.
+- **Adapted CV ≥ base:** `jobs match` / `cv build --job` / `cv fit Jxxxx` compare base vs
+  job-adapted ATS text against the same JD. Expectation: adapted similarity ≥ base
+  (`adapted_beats_base`). Writes `output/jobs/<id>/adaptation_fit.json`.
+- **Adapted CV should beat base:** after `jobbot cv build --job Jxxxx` (or
+  `jobbot jobs match Jxxxx` / `jobbot cv fit Jxxxx`), JobBot scores **base ATS** vs
+  **job-adapted ATS** against the same JD (bag by default, `--bert` when installed).
+  The adapted CV should score closer / higher (`adapted_beats_base`). Writes
+  `output/jobs/<id>/adaptation_fit.json`.
 
 ## Portal adapters
 
@@ -439,6 +446,8 @@ uv run jobbot jobs add --file tests/fixtures/jobs/ecos_ai_multiagent_linkedin.tx
 uv run jobbot get https://www.getonbrd.com/empleos/.../slug   # hard link → CV + package
 uv run jobbot get URL --apply --cdp http://127.0.0.1:9224     # + open ATS (HITL)
 uv run jobbot jobs match J0001
+uv run jobbot jobs match J0001 --bert          # local MiniLM if installed
+uv run jobbot cv fit J0001                     # base vs adapted ATS vs JD
 uv run jobbot application prepare J0001
 uv run jobbot indeed login|pull|diff|sync --section headline
 uv run jobbot linkedin login|pull|diff

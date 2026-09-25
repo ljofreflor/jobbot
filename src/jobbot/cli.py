@@ -27,6 +27,7 @@ from jobbot.companies.models import DiscoverySource
 from jobbot.companies.registry import CompanyRegistry
 from jobbot.config import JobbotConfig, load_config
 from jobbot.cv.build import BuildTarget, build_cv
+from jobbot.cv.fit import compare_base_vs_adapted_cv, load_ats_pair
 from jobbot.cv.renderer import CvStyle
 from jobbot.db.engine import make_engine, make_session_factory
 from jobbot.exit_codes import (
@@ -41,7 +42,8 @@ from jobbot.jobs.freshness import age_label, is_fresh
 from jobbot.jobs.geo import detect_country, resolve_countries
 from jobbot.jobs.repository import JobRepository, write_job_json
 from jobbot.matching.analyzer import RuleBasedJobAnalyzer
-from jobbot.matching.scoring import format_match_report
+from jobbot.matching.scoring import format_adaptation_fit_report, format_match_report
+from jobbot.matching.similarity import AdaptationFit, TextEmbedder
 from jobbot.models.application import ApplicationStatus
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
@@ -251,6 +253,39 @@ def _session() -> tuple[Session, JobbotConfig]:
     config = load_config()
     engine = make_engine(config.database_path)
     return make_session_factory(engine)(), config
+
+
+def _optional_bert_embedder(bert: bool) -> TextEmbedder | None:
+    """Load local BERT when ``--bert``; exit with a clear message if missing."""
+    if not bert:
+        return None
+    from jobbot.matching.similarity import bert_available, build_local_bert_embedder
+
+    if not bert_available():
+        err_console.print(
+            "[red]--bert needs: uv sync --extra bert[/red] "
+            "(local sentence-transformers; no paid API)"
+        )
+        raise typer.Exit(GENERIC_FAILURE)
+    try:
+        return build_local_bert_embedder()
+    except RuntimeError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+
+def _print_adaptation_fit(fit: AdaptationFit, job_dir: Path) -> None:
+    """Print base vs adapted CV↔JD report and persist JSON beside match artifacts."""
+    job_dir.mkdir(parents=True, exist_ok=True)
+    (job_dir / "adaptation_fit.json").write_text(
+        json.dumps(fit.to_dict(), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    console.print(format_adaptation_fit_report(fit))
+    if not fit.adapted_beats_base:
+        err_console.print(
+            "[yellow]Expected: job-adapted ATS closer to the JD than base CV.[/yellow]"
+        )
 
 
 @app.callback()
@@ -1107,6 +1142,23 @@ def cv_build(
         CvStyle,
         typer.Option("--style", help="moderncv (your CV design) or plain (portable article)"),
     ] = CvStyle.MODERNCV,
+    compare_fit: Annotated[
+        bool,
+        typer.Option(
+            "--compare-fit/--no-compare-fit",
+            help=(
+                "After a job build, compare base vs adapted ATS similarity to the JD "
+                "(adapted should score closer)"
+            ),
+        ),
+    ] = True,
+    bert: Annotated[
+        bool,
+        typer.Option(
+            "--bert/--no-bert",
+            help="Local BERT for --compare-fit (uv sync --extra bert)",
+        ),
+    ] = False,
 ) -> None:
     """Build CV from profile.yaml (base or job-specific)."""
     config = load_config()
@@ -1151,6 +1203,70 @@ def cv_build(
 
     for path in outputs:
         console.print(f"[green]Wrote[/green] {path}")
+
+    if job is not None and compare_fit:
+        embedder = _optional_bert_embedder(bert)
+        fit = compare_base_vs_adapted_cv(
+            candidate,
+            job,
+            config.templates_dir,
+            match=match,
+            embedder=embedder,
+        )
+        _print_adaptation_fit(fit, config.output_dir / "jobs" / job.id)
+
+
+@cv_app.command("fit")
+def cv_fit(
+    job_id: Annotated[str, typer.Argument(help="Job id Jxxxx")],
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+    bert: Annotated[
+        bool,
+        typer.Option(
+            "--bert/--no-bert",
+            help="Local BERT-family embeddings (uv sync --extra bert)",
+        ),
+    ] = False,
+    from_files: Annotated[
+        bool,
+        typer.Option(
+            "--from-files/--rebuild",
+            help="Prefer written output/base and output/jobs/<id> ATS files when present",
+        ),
+    ] = True,
+) -> None:
+    """Compare base vs job-adapted ATS text against the JD (adapted should win)."""
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    repo = JobRepository(session)
+    job = repo.get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+
+    embedder = _optional_bert_embedder(bert)
+    base_ats = adapted_ats = None
+    if from_files:
+        base_ats, adapted_ats = load_ats_pair(config.output_dir, job.id)
+
+    fit = compare_base_vs_adapted_cv(
+        candidate,
+        job,
+        config.templates_dir,
+        embedder=embedder,
+        base_ats=base_ats,
+        adapted_ats=adapted_ats,
+    )
+    job_dir = config.output_dir / "jobs" / job.id
+    if as_json:
+        console.print_json(data=fit.to_dict())
+        return
+    _print_adaptation_fit(fit, job_dir)
 
 
 @cv_app.command("advise")
@@ -2065,11 +2181,21 @@ def jobs_match(
         typer.Option(
             "--bert/--no-bert",
             help=(
-                "Local BERT-family embeddings for document fit "
-                "(uv sync --extra bert; free, no API key; downloads model once)"
+                "Local BETO (BERT español) for document fit "
+                "(uv sync --extra bert; free; downloads once)"
             ),
         ),
     ] = False,
+    compare_adaptation: Annotated[
+        bool,
+        typer.Option(
+            "--compare-adaptation/--no-compare-adaptation",
+            help=(
+                "Also score base vs job-adapted ATS text against the JD "
+                "(adapted should beat base)"
+            ),
+        ),
+    ] = True,
 ) -> None:
     """Match a job against the local profile (decision aid)."""
     session, config = _session()
@@ -2085,22 +2211,7 @@ def jobs_match(
         err_console.print(f"[red]Job not found: {job_id}[/red]")
         raise typer.Exit(GENERIC_FAILURE)
 
-    embedder = None
-    if bert:
-        from jobbot.matching.similarity import bert_available, build_local_bert_embedder
-
-        if not bert_available():
-            err_console.print(
-                "[red]--bert needs: uv sync --extra bert[/red] "
-                "(local sentence-transformers; no paid API)"
-            )
-            raise typer.Exit(GENERIC_FAILURE)
-        try:
-            embedder = build_local_bert_embedder()
-            console.print("[dim]document fit: local BERT[/dim]")
-        except RuntimeError as exc:
-            err_console.print(f"[red]{exc}[/red]")
-            raise typer.Exit(GENERIC_FAILURE) from exc
+    embedder = _optional_bert_embedder(bert)
 
     match = RuleBasedJobAnalyzer(
         document_fit=document_fit,
@@ -2113,10 +2224,37 @@ def jobs_match(
         json.dumps(match.to_dict(), indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
+
+    adaptation = None
+    if compare_adaptation:
+        base_ats, adapted_ats = load_ats_pair(config.output_dir, job.id)
+        adaptation = compare_base_vs_adapted_cv(
+            candidate,
+            job,
+            config.templates_dir,
+            match=match,
+            embedder=embedder,
+            base_ats=base_ats,
+            adapted_ats=adapted_ats,
+        )
+        (job_dir / "adaptation_fit.json").write_text(
+            json.dumps(adaptation.to_dict(), indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
     if as_json:
-        console.print_json(data=match.to_dict())
+        payload = match.to_dict()
+        if adaptation is not None:
+            payload["adaptation_fit"] = adaptation.to_dict()
+        console.print_json(data=payload)
         return
     console.print(format_match_report(match))
+    if adaptation is not None:
+        console.print(format_adaptation_fit_report(adaptation))
+        if not adaptation.adapted_beats_base:
+            err_console.print(
+                "[yellow]Expected: job-adapted ATS closer to the JD than base CV.[/yellow]"
+            )
 
 
 @jobs_app.command("shortlist")

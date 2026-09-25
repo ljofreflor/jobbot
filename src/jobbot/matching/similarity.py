@@ -4,6 +4,9 @@ Chat-first cleans structured fields (title, company, skills for CV adaptation).
 Match % uses the JD description as a bag(+synonyms) by default, or a **local
 BERT-family** sentence embedding when ``jobbot[bert]`` is installed — no paid
 API, no OpenAI key.
+
+Also compares **base vs job-adapted ATS text** against the same JD: the adapted
+CV should score closer (higher similarity) than the full base CV.
 """
 
 from __future__ import annotations
@@ -13,6 +16,7 @@ import math
 import os
 import re
 from collections import Counter
+from dataclasses import dataclass
 from typing import Protocol
 
 from jobbot.jobs.normalization import fold_text
@@ -169,14 +173,80 @@ def document_similarity(
     embedder: TextEmbedder | None = None,
 ) -> tuple[float, str]:
     """Return (score 0–100, mode label: bag|bert)."""
-    left = candidate_document(candidate)
-    right = job_document(job)
+    return text_similarity(
+        candidate_document(candidate),
+        job_document(job),
+        embedder=embedder,
+    )
+
+
+def text_similarity(
+    left: str,
+    right: str,
+    *,
+    embedder: TextEmbedder | None = None,
+) -> tuple[float, str]:
+    """Compare two free-text documents. Return (score 0–100, mode: bag|bert)."""
+    a, b = _clip(left), _clip(right)
     if embedder is not None:
         try:
-            return round(100.0 * embedding_cosine(left, right, embedder), 1), "bert"
+            return round(100.0 * embedding_cosine(a, b, embedder), 1), "bert"
         except Exception as exc:  # noqa: BLE001 — fall back offline
             logger.warning("local BERT similarity failed, using bag cosine: %s", exc)
-    return round(100.0 * bag_cosine(left, right), 1), "bag"
+    return round(100.0 * bag_cosine(a, b), 1), "bag"
+
+
+@dataclass(frozen=True)
+class AdaptationFit:
+    """Base ATS vs job-adapted ATS similarity to the same JD (0–100 each)."""
+
+    base_score: float
+    adapted_score: float
+    mode: str
+    job_id: str | None = None
+
+    @property
+    def delta(self) -> float:
+        return round(self.adapted_score - self.base_score, 1)
+
+    @property
+    def adapted_beats_base(self) -> bool:
+        """True when the job-adapted CV is at least as close to the JD as base."""
+        return self.adapted_score >= self.base_score
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "base_score": self.base_score,
+            "adapted_score": self.adapted_score,
+            "delta": self.delta,
+            "mode": self.mode,
+            "adapted_beats_base": self.adapted_beats_base,
+            "job_id": self.job_id,
+        }
+
+
+def compare_adaptation_fit(
+    base_ats: str,
+    adapted_ats: str,
+    job: JobPosting,
+    *,
+    embedder: TextEmbedder | None = None,
+) -> AdaptationFit:
+    """Score base and job-adapted ATS text against the same JD.
+
+    Condition of interest: the CV adapted to the job should score **closer /
+    higher** than the base CV (``adapted_beats_base``).
+    """
+    jd = job_document(job)
+    base_score, mode_a = text_similarity(base_ats, jd, embedder=embedder)
+    adapted_score, mode_b = text_similarity(adapted_ats, jd, embedder=embedder)
+    mode = mode_b if mode_b == mode_a else f"{mode_a}/{mode_b}"
+    return AdaptationFit(
+        base_score=base_score,
+        adapted_score=adapted_score,
+        mode=mode,
+        job_id=job.id,
+    )
 
 
 def bert_available() -> bool:

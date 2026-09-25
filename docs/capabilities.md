@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 126 modules, 587 public symbols.
+88 commands, 128 modules, 602 public symbols.
 
 ## Commands
 
@@ -34,6 +34,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot companies sites` — Career portals reusable by later job discovery.
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
+- `jobbot cv fit` — Compare base vs job-adapted ATS text against the JD (adapted should win).
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
@@ -196,6 +197,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
 - `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `build_job_cv_bundle`
 - `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `write_company_receipt`
+- `fit.py` — Compare base vs job-adapted ATS text against a job description. · `compare_base_vs_adapted_cv`, `load_ats_pair`
 - `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_multiline`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
@@ -229,9 +231,9 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `matching`
 
-- `analyzer.py` — Rule-based job matching — never invents candidate skills; blends document CV↔JD cosine when the JD is rich. · `JobAnalyzer`, `RuleBasedJobAnalyzer`
-- `similarity.py` — Offline bag(+synonym) or optional **local BERT** (sentence-transformers) cosine for CV↔JD documents — no paid API. · `TextEmbedder`, `bag_cosine`, `document_similarity`, `bert_available`, `build_local_bert_embedder`
-- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `format_match_report`
+- `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`
+- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `format_match_report`, `format_adaptation_fit_report`
+- `similarity.py` — Document-level CV↔JD similarity — less dependent on parsed skill lists. · `TextEmbedder`, `job_document`, `candidate_document`, `description_is_rich`, `bag_cosine`, `embedding_cosine`, `document_similarity`, `text_similarity`, `AdaptationFit`, `compare_adaptation_fit`, `bert_available`, `build_local_bert_embedder`
 
 ### `models`
 
