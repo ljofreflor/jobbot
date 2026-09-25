@@ -90,8 +90,8 @@ def test_raw_compare_adaptation_fit_unit() -> None:
     assert "base" in report.casefold()
 
 
-def test_default_bert_model_is_local_minilm() -> None:
-    from jobbot.matching.similarity import DEFAULT_BERT_MODEL
+def test_default_bert_model_is_spanish_beto() -> None:
+    from jobbot.matching.similarity import DEFAULT_BERT_MODEL, SPANISH_BERT_MODEL
 
-    assert "minilm" in DEFAULT_BERT_MODEL.casefold()
-    assert "sentence-transformers" in DEFAULT_BERT_MODEL
+    assert DEFAULT_BERT_MODEL == SPANISH_BERT_MODEL
+    assert "spanish" in DEFAULT_BERT_MODEL.casefold() or "dccuchile" in DEFAULT_BERT_MODEL

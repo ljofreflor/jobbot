@@ -107,7 +107,7 @@ class RuleBasedJobAnalyzer:
 
     ``document_fit`` (default True) blends in CV↔JD document cosine when the
     posting has a rich description — bag-of-words offline, or a local BERT
-    ``embedder`` when ``--bert`` / ``build_local_bert_embedder()`` is used.
+    ``embedder`` when ``--bert`` / language-aware ``build_local_bert_embedder()`` is used.
     """
 
     def __init__(

@@ -247,8 +247,9 @@ file names, silently.
 - **Match % vs chat-first:** scoring blends lexical skill hits with a **document-level
   CV↔JD cosine** when the posting has a rich description (default on; offline bag +
   synonym neighborhoods). Noisy `job.skills` from a paste no longer own the %. Optional
-  `jobbot jobs match Jxxxx --bert` uses a **local** multilingual MiniLM (BERT-family)
-  via `uv sync --extra bert` — free, no API key; model downloads once to the HF cache.
+  `jobbot jobs match Jxxxx --bert` picks a **local** embedder by JD language: **BETO**
+  (`dccuchile/bert-base-spanish-wwm-uncased`) for Spanish JDs, multilingual MiniLM
+  otherwise — via `uv sync --extra bert` (free, no API key; downloads once).
   Override with `JOBBOT_BERT_MODEL`. Matching must not call paid embedding APIs.
   Chat-first still helps structured fields (title/company/skills for CV adaptation);
   it is no longer the only gate for a usable match score. `--no-document-fit` restores
@@ -445,7 +446,7 @@ uv run jobbot jobs add --file tests/fixtures/jobs/ecos_ai_multiagent_linkedin.tx
 uv run jobbot get https://www.getonbrd.com/empleos/.../slug   # hard link → CV + package
 uv run jobbot get URL --apply --cdp http://127.0.0.1:9224     # + open ATS (HITL)
 uv run jobbot jobs match J0001
-uv run jobbot jobs match J0001 --bert          # local MiniLM if installed
+uv run jobbot jobs match J0001 --bert          # BETO (ES) / MiniLM (other) if installed
 uv run jobbot cv fit J0001                     # base vs adapted ATS vs JD
 uv run jobbot application prepare J0001
 uv run jobbot indeed login|pull|diff|sync --section headline

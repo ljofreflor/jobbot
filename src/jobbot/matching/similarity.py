@@ -3,7 +3,8 @@
 Chat-first cleans structured fields (title, company, skills for CV adaptation).
 Match % uses the JD description as a bag(+synonyms) by default, or a **local
 BERT-family** sentence embedding when ``jobbot[bert]`` is installed — no paid
-API, no OpenAI key.
+API, no OpenAI key. Spanish JDs use BETO; other languages use multilingual
+MiniLM (override with ``JOBBOT_BERT_MODEL``).
 
 Also compares **base vs job-adapted ATS text** against the same JD: the adapted
 CV should score closer (higher similarity) than the full base CV.
@@ -26,12 +27,146 @@ from jobbot.ops.pii_guard import redact
 
 logger = logging.getLogger("jobbot.matching.similarity")
 
-# Multilingual MiniLM (BERT-family), free, runs on CPU once downloaded.
-DEFAULT_BERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+# Language-aware local embedders (free; download once to HF cache).
+# Spanish JDs → BETO; other languages → multilingual MiniLM.
+SPANISH_BERT_MODEL = "dccuchile/bert-base-spanish-wwm-uncased"
+MULTILINGUAL_BERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+DEFAULT_BERT_MODEL = SPANISH_BERT_MODEL  # Spanish-first default when no JD text
 BERT_MODEL_ENV = "JOBBOT_BERT_MODEL"
 # Prefer description over a long raw paste that still has LinkedIn chrome.
 _MAX_DOC_CHARS = 8000
 _MIN_RICH_CHARS = 180
+
+# Offline Spanish vs other detection for embedder selection (no paid API).
+_SPANISH_CHAR_RE = re.compile(r"[ñáéíóúü¿¡]", re.IGNORECASE)
+# Folded (accent-stripped) function / JD words that lean Spanish.
+_SPANISH_MARKERS = frozenset(
+    {
+        "el",
+        "la",
+        "los",
+        "las",
+        "un",
+        "una",
+        "unos",
+        "unas",
+        "del",
+        "al",
+        "por",
+        "para",
+        "con",
+        "que",
+        "como",
+        "mas",
+        "muy",
+        "tambien",
+        "esta",
+        "este",
+        "estos",
+        "estas",
+        "esa",
+        "ese",
+        "esos",
+        "esas",
+        "buscamos",
+        "requisitos",
+        "experiencia",
+        "conocimientos",
+        "deseable",
+        "excluyente",
+        "anos",
+        "trabajo",
+        "equipo",
+        "empleo",
+        "puesto",
+        "vacante",
+        "oferta",
+        "desarrollador",
+        "ingeniero",
+        "ingeniera",
+        "cientifico",
+        "cientifica",
+        "habilidades",
+        "responsabilidades",
+        "funciones",
+        "contrato",
+        "jornada",
+        "presencial",
+        "hibrido",
+        "nuestra",
+        "nuestro",
+        "empresa",
+        "candidato",
+        "candidata",
+        "perfil",
+        "se",
+        "su",
+        "sus",
+        "le",
+        "les",
+        "nos",
+        "tiene",
+        "tener",
+        "debe",
+        "deben",
+        "sera",
+        "seran",
+        "ubicacion",
+        "remoto",
+        "remota",
+    }
+)
+_ENGLISH_MARKERS = frozenset(
+    {
+        "the",
+        "and",
+        "with",
+        "for",
+        "your",
+        "you",
+        "our",
+        "we",
+        "are",
+        "is",
+        "will",
+        "must",
+        "should",
+        "have",
+        "has",
+        "this",
+        "that",
+        "from",
+        "about",
+        "who",
+        "what",
+        "into",
+        "requirements",
+        "experience",
+        "responsibilities",
+        "looking",
+        "role",
+        "team",
+        "company",
+        "skills",
+        "preferred",
+        "required",
+        "hiring",
+        "join",
+        "across",
+        "within",
+        "using",
+        "strong",
+        "ability",
+        "years",
+        "remote",
+        "location",
+        "opportunity",
+        "position",
+        "engineer",
+        "scientist",
+        "developer",
+    }
+)
 
 # Offline stand-in for embedding neighborhoods when BERT is not installed.
 _SYNONYM_GROUPS: tuple[frozenset[str], ...] = (
@@ -249,6 +384,42 @@ def compare_adaptation_fit(
     )
 
 
+def is_spanish_text(text: str) -> bool:
+    """Heuristic: True when title+description lean Spanish (offline, deterministic).
+
+    Uses Spanish orthography (ñ, accents, ¿¡) plus stopword/JD-marker counts
+    against English markers. Ties and empty text → not Spanish (use MiniLM).
+    """
+    sample = (text or "").strip()
+    if not sample:
+        return False
+    char_hits = len(_SPANISH_CHAR_RE.findall(sample))
+    tokens = re.findall(r"[a-z0-9]+", fold_text(sample))
+    if not tokens and char_hits == 0:
+        return False
+    es = sum(1 for t in tokens if t in _SPANISH_MARKERS) + 2 * char_hits
+    en = sum(1 for t in tokens if t in _ENGLISH_MARKERS)
+    return es > en
+
+
+def resolve_bert_model_name(
+    *,
+    model_name: str | None = None,
+    text: str | None = None,
+) -> str:
+    """Pick embedder: explicit name → env force → Spanish BETO / multilingual MiniLM."""
+    if model_name:
+        return model_name
+    forced = (os.environ.get(BERT_MODEL_ENV) or "").strip()
+    if forced:
+        return forced
+    if text is None:
+        return DEFAULT_BERT_MODEL
+    if is_spanish_text(text):
+        return SPANISH_BERT_MODEL
+    return MULTILINGUAL_BERT_MODEL
+
+
 def bert_available() -> bool:
     """True when the optional local sentence-transformers stack is importable."""
     try:
@@ -258,14 +429,23 @@ def bert_available() -> bool:
     return True
 
 
-def build_local_bert_embedder(*, model_name: str | None = None) -> TextEmbedder:
-    """Load a free local BERT-family sentence model (downloads once to HF cache)."""
+def build_local_bert_embedder(
+    *,
+    model_name: str | None = None,
+    text: str | None = None,
+) -> TextEmbedder:
+    """Load a free local BERT-family sentence model (downloads once to HF cache).
+
+    When ``model_name`` and ``JOBBOT_BERT_MODEL`` are unset, chooses BETO for
+    Spanish JD text and multilingual MiniLM otherwise. Pass ``text`` (title +
+    description) so language-aware selection can run.
+    """
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
         msg = "Local BERT not installed. Run: uv sync --extra bert"
         raise RuntimeError(msg) from exc
-    name = model_name or os.environ.get(BERT_MODEL_ENV, DEFAULT_BERT_MODEL)
+    name = resolve_bert_model_name(model_name=model_name, text=text)
     logger.info("loading local BERT embedder: %s", name)
     model = SentenceTransformer(name)
     return _SentenceTransformerEmbedder(model, name)

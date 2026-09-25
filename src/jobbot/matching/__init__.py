@@ -9,6 +9,8 @@ from jobbot.matching.similarity import (
     build_local_bert_embedder,
     compare_adaptation_fit,
     document_similarity,
+    is_spanish_text,
+    resolve_bert_model_name,
     text_similarity,
 )
 
@@ -22,5 +24,7 @@ __all__ = [
     "build_local_bert_embedder",
     "compare_adaptation_fit",
     "document_similarity",
+    "is_spanish_text",
+    "resolve_bert_model_name",
     "text_similarity",
 ]

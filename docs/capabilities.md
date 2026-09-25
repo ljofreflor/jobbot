@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-88 commands, 128 modules, 602 public symbols.
+88 commands, 128 modules, 604 public symbols.
 
 ## Commands
 
@@ -233,7 +233,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 - `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`
 - `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `format_match_report`, `format_adaptation_fit_report`
-- `similarity.py` — Document-level CV↔JD similarity — less dependent on parsed skill lists. · `TextEmbedder`, `job_document`, `candidate_document`, `description_is_rich`, `bag_cosine`, `embedding_cosine`, `document_similarity`, `text_similarity`, `AdaptationFit`, `compare_adaptation_fit`, `bert_available`, `build_local_bert_embedder`
+- `similarity.py` — Document-level CV↔JD similarity — less dependent on parsed skill lists. · `TextEmbedder`, `job_document`, `candidate_document`, `description_is_rich`, `bag_cosine`, `embedding_cosine`, `document_similarity`, `text_similarity`, `AdaptationFit`, `compare_adaptation_fit`, `is_spanish_text`, `resolve_bert_model_name`, `bert_available`, `build_local_bert_embedder`
 
 ### `models`
 

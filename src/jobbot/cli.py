@@ -255,11 +255,23 @@ def _session() -> tuple[Session, JobbotConfig]:
     return make_session_factory(engine)(), config
 
 
-def _optional_bert_embedder(bert: bool) -> TextEmbedder | None:
-    """Load local BERT when ``--bert``; exit with a clear message if missing."""
+def _optional_bert_embedder(
+    bert: bool,
+    *,
+    job: JobPosting | None = None,
+) -> TextEmbedder | None:
+    """Load local BERT when ``--bert``; exit with a clear message if missing.
+
+    Uses JD title+description for language-aware model selection (BETO vs MiniLM)
+    unless ``JOBBOT_BERT_MODEL`` forces a model.
+    """
     if not bert:
         return None
-    from jobbot.matching.similarity import bert_available, build_local_bert_embedder
+    from jobbot.matching.similarity import (
+        bert_available,
+        build_local_bert_embedder,
+        job_document,
+    )
 
     if not bert_available():
         err_console.print(
@@ -267,12 +279,14 @@ def _optional_bert_embedder(bert: bool) -> TextEmbedder | None:
             "(local sentence-transformers; no paid API)"
         )
         raise typer.Exit(GENERIC_FAILURE)
+    text = job_document(job) if job is not None else None
     try:
-        embedder = build_local_bert_embedder()
+        embedder = build_local_bert_embedder(text=text)
     except RuntimeError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
-    console.print("[dim]document fit: local BERT[/dim]")
+    model_label = getattr(embedder, "name", "local")
+    console.print(f"[dim]document fit: local BERT ({model_label})[/dim]")
     return embedder
 
 
@@ -1207,7 +1221,7 @@ def cv_build(
         console.print(f"[green]Wrote[/green] {path}")
 
     if job is not None and compare_fit:
-        embedder = _optional_bert_embedder(bert)
+        embedder = _optional_bert_embedder(bert, job=job)
         fit = compare_base_vs_adapted_cv(
             candidate,
             job,
@@ -1251,7 +1265,7 @@ def cv_fit(
         err_console.print(f"[red]Job not found: {job_id}[/red]")
         raise typer.Exit(GENERIC_FAILURE)
 
-    embedder = _optional_bert_embedder(bert)
+    embedder = _optional_bert_embedder(bert, job=job)
     base_ats = adapted_ats = None
     if from_files:
         base_ats, adapted_ats = load_ats_pair(config.output_dir, job.id)
@@ -2213,7 +2227,7 @@ def jobs_match(
         err_console.print(f"[red]Job not found: {job_id}[/red]")
         raise typer.Exit(GENERIC_FAILURE)
 
-    embedder = _optional_bert_embedder(bert)
+    embedder = _optional_bert_embedder(bert, job=job)
 
     match = RuleBasedJobAnalyzer(
         document_fit=document_fit,
