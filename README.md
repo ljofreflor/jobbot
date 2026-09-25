@@ -3,34 +3,56 @@
 Local terminal tool for managing a job search: structured CV as source of truth, portal sync,
 matching, adapted CVs, and assisted applications. **No web UI** — everything runs from the CLI.
 
+## Why
+
+Job search tooling usually optimizes *you* as a market commodity. JobBot points the other way:
+make employers, portals, and postings **observable** — ghost jobs, silence, salary opacity,
+career-site topology — and keep you in the loop.
+
+- **`data/profile.yaml` is the source of truth.** LaTeX, PDF, Indeed, LinkedIn, and GetOnBoard are
+  views or adapters. Facts are never invented to fit a posting.
+- **Nothing to enclose.** AI runs on your machine (e.g. inside Cursor). JobBot does not host models
+  or a central candidate DB. The shareable artifact is public employer knowledge (company↔ATS map),
+  not your CV. Federated via files and git — if the maintainer disappears, forks keep working.
+- **HITL by default.** Never auto-submits, no CAPTCHA bypass, dry-run unless you pass `--apply`.
+- **A posting is not the job.** The public ad conflates the work, the requisition, the marketing
+  text, and your observation of it. Flat “one URL = one truth” models hide ghosts and reposts.
+  JobBot records observation and evidence (see `companies`) instead. Posted requirements often
+  ration the applicant queue more than they specify the work.
+- **Distributed AI load.** Designed to be driven by a coding agent calling the CLI; token cost stays
+  with you. Agent-friendly structured output (`--json` on a few commands today) is a direction, not
+  a finished surface.
+
 ## Architecture
 
 ```text
-                         profile.yaml
-                              │
-              ┌───────────────┼────────────────┐
-              │               │                │
-              ▼               ▼                ▼
-            LaTeX           Indeed          LinkedIn
-              │               │                │
-              ▼               ▼                ▼
-             PDF       IndeedAdapter     LinkedInAdapter
+     profile.yaml (SoT, private)          companies.yaml (public knowledge)
+              │                                      │
+  ┌───────────┼──────────────┐                       │
+  │           │              │                       ▼
+  ▼           ▼              ▼                 company ↔ ATS map
+LaTeX       Indeed        LinkedIn / GOB        (shareable, no PII)
+  │           │              │
+  ▼           ▼              ▼
+ PDF    IndeedAdapter   portal adapters
 ```
 
-`data/profile.yaml` is the single source of professional truth. LaTeX, PDF, Indeed, and LinkedIn
-are views or adapters. Facts are never invented to fit a job posting.
+`data/profile.yaml` stays local and gitignored. `data/companies.yaml` is the opposite kind of
+artifact: reusable employer topology, safe to share or fork.
 
 ## Status
 
-**Endgame:** match → decide → CV derivado → application package → postular (portales futuros).
+**Endgame:** match → decide → derived CV → application package → apply (more portals over time).
 
 Working today:
 
 - Profile validate / import-latex / promote
-- `cv build` base and `--job Jxxxx`
+- `cv build` base and `--job Jxxxx`; `cv propagate` (dry-run default)
 - `jobs add|show|match|shortlist|note`
-- `application prepare|show|open` + `applications list`
-- Indeed/LinkedIn: `login|status|inspect|pull|diff`; Indeed `sync --section headline` (dry-run default, `--apply`)
+- `application prepare|show|open|apply` + `applications list`
+- Indeed/LinkedIn: `login|status|inspect|pull|diff`; Indeed `sync --section headline`; LinkedIn Publications sync + `sweep`
+- GetOnBoard: `search` + permanent-profile sync via `cv propagate`
+- `companies` registry (detect / learn / promote / discover / export)
 - Protocols for future portals: `ApplicationPortalAdapter`, `JobSourceAdapter`
 
 ## Match → apply (happy path)
