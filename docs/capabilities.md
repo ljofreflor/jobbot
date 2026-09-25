@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 124 modules, 582 public symbols.
+87 commands, 124 modules, 583 public symbols.
 
 ## Commands
 
@@ -161,7 +161,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `adapters/torre`
 
-- `jobs.py` — Torre job source (LATAM / remote-first) via its public opportunity search. · `Fetcher`, `UrllibFetcher`, `TorreJobSource`, `search_opportunities`, `job_from_api_item`
+- `jobs.py` — Torre job source (LATAM / remote-first) via its public opportunity search. · `Fetcher`, `UrllibFetcher`, `TorreJobSource`, `search_opportunities`, `is_remote_opportunity`, `job_from_api_item`
 
 ### `applications`
 
