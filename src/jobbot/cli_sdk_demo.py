@@ -91,6 +91,9 @@ def match_command(
                 return GENERIC_FAILURE
 
             job = client.jobs.get(job_id)
+            if job is None:
+                console.print(f"[red]Job {job_id} not found[/red]")
+                return GENERIC_FAILURE
 
             # Presentation
             if detailed:
