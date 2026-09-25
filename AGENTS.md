@@ -229,6 +229,20 @@ file names, silently.
   would otherwise reach into the real profile from inside a sandbox.
 - **`sandboxes/` is somebody else's PII:** gitignored and blocked by the PII guard.
   Delete a test CV's workspace when you are done with it.
+- **`J0001` is per database, not global:** IDs increment inside one SQLite (`next_job_id`).
+  The same external job (`source`+`source_job_id` or URL) **updates** the same `Jxxxx`
+  (`upsert_external`) — it does not allocate a second row. A wiped DB or a fresh cloud
+  agent always restart at `J0001`; that looks like “overwrite” but it is an empty store.
+  Keep person data under a stable root (see `JOBBOT_HOME` below) so IDs persist.
+- **`JOBBOT_HOME`:** optional. When set and there is no local `.jobbot.toml`, JobBot uses
+  that directory as root (`data/`, `output/`, sqlite) so a globally installed CLI does not
+  write PII into the package checkout. Absolute paths in `~/.config/jobbot/config.toml`
+  work the same way. Templates stay with the install/checkout (code, not data).
+- **Chat-first JD parse:** LinkedIn/email pastes are too varied for regex alone.
+  `jobbot jobs add --file JD.txt --chat-first` preprocesses chrome, then optionally calls
+  an LLM (`uv sync --extra llm` + `OPENAI_API_KEY` — **not** Cursor IDE subscription
+  tokens) to extract title/company/skills grounded in the JD; falls back to deterministic
+  parse. Same token accounting idea as `cv advise --llm`.
 
 ## Portal adapters
 
@@ -413,6 +427,7 @@ uv run jobbot cv advise --apply            # confirma una por una → profile.ya
 uv run jobbot cv advise --llm --dry-run    # qué se enviaría y cuánto, sin gastar
 uv run jobbot cv advise --llm --max-llm-calls 3
 uv run jobbot jobs add --file tests/fixtures/jobs/senior_ds_retail.txt
+uv run jobbot jobs add --file tests/fixtures/jobs/ecos_ai_multiagent_linkedin.txt --chat-first
 uv run jobbot get https://www.getonbrd.com/empleos/.../slug   # hard link → CV + package
 uv run jobbot get URL --apply --cdp http://127.0.0.1:9224     # + open ATS (HITL)
 uv run jobbot jobs match J0001

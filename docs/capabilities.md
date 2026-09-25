@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 124 modules, 582 public symbols.
+87 commands, 126 modules, 587 public symbols.
 
 ## Commands
 
@@ -213,6 +213,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
+- `chat_first.py` — Chat-first JD parse: optional LLM structured extract, grounded in the text. · `ChatModelLike`, `ChatFirstResult`, `parse_job_chat_first`, `llm_available`
 - `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `visible_soup`, `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `GetFromUrlResult`, `ingest_hard_link`
@@ -222,6 +223,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `normalize_many`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
+- `preprocess.py` — Deterministic cleanup before parsing a pasted / LinkedIn / email JD. · `preprocess_job_text`
 - `repository.py` — Job persistence repository. · `JobRepository`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
 

@@ -78,6 +78,22 @@ def _user_config_path() -> Path:
     return Path.home() / ".config" / "jobbot" / "config.toml"
 
 
+def _default_data_home() -> Path:
+    """Personal data root when JobBot is run outside a checkout with .jobbot.toml.
+
+    Override with JOBBOT_HOME. Prefer XDG on Linux; fall back to ~/.jobbot.
+    """
+    import os
+
+    override = os.environ.get("JOBBOT_HOME")
+    if override:
+        return Path(override).expanduser().resolve()
+    xdg = os.environ.get("XDG_DATA_HOME")
+    if xdg:
+        return Path(xdg).expanduser().resolve() / "jobbot"
+    return (Path.home() / ".local" / "share" / "jobbot").resolve()
+
+
 def _find_config_file(start: Path, *, workspace: str | None) -> Path | None:
     """A workspace reads only its own file: the global one may point at another candidate."""
     local = start / ".jobbot.toml"
@@ -97,12 +113,34 @@ def _default_templates(workspace: str | None) -> Path:
 
 
 def load_config(root: Path | None = None) -> JobbotConfig:
-    """Load config for the active workspace, else for the current directory."""
+    """Load config for the active workspace, else for the current directory.
+
+    Personal data can live outside the checkout: set ``JOBBOT_HOME`` (or put
+    absolute paths in ``~/.config/jobbot/config.toml``). When ``JOBBOT_HOME`` is
+    set and there is no local ``.jobbot.toml``, that directory is the root so a
+    global ``jobbot`` on PATH does not write PII into the package tree.
+    """
+    import os
+
     if root is None:
         base, workspace = resolve_root(Path.cwd())
     else:
         base, workspace = root.resolve(), None
     config_path = _find_config_file(base, workspace=workspace)
+    home_override = os.environ.get("JOBBOT_HOME")
+    if (
+        config_path is None
+        and workspace is None
+        and root is None
+        and home_override
+        and not (base / ".jobbot.toml").is_file()
+    ):
+        base = Path(home_override).expanduser().resolve()
+        base.mkdir(parents=True, exist_ok=True)
+        (base / "data").mkdir(exist_ok=True)
+        (base / "output").mkdir(exist_ok=True)
+        config_path = _find_config_file(base, workspace=None)
+
     if config_path is None:
         config = JobbotConfig(
             paths=PathsConfig(templates=_default_templates(workspace)),

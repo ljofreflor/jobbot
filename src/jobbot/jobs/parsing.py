@@ -15,8 +15,19 @@ _HEADER_FIELD_RE = re.compile(
 _SECTION_HEADING_RE = re.compile(
     r"(?i)^(requirements?|requisitos|qualifications|calificaciones|skills|habilidades|"
     r"competencias|conocimientos|herramientas|tecnolog[ií]as|stack|nice to have|"
-    r"deseable|responsabilidades|responsibilities|beneficios|benefits|about\b.*)"
+    r"deseable|responsabilidades|responsibilities|beneficios|benefits|about\b.*|"
+    r"principales?\s+desaf[ií]os|desaf[ií]os|buscamos|looking\s+for|what\s+we(?:'ll| will)?\s+need|"
+    r"about\s+the\s+role|sobre\s+(?:el\s+)?(?:rol|puesto))"
     r"(?:\s+\w+){0,2}\s*:?\s*$"
+)
+_TITLE_COMPANY_RE = re.compile(
+    r"^\s*(.+?)\s+[—–\-|]\s+(.+?)\s*$"
+)
+_META_SKILL_LINE_RE = re.compile(
+    r"(?i)^(?:"
+    r"publicado\b|hace\s+\d+|postulaci[oó]n\b|enviar\s+cv\b|#"
+    r"|[\w.+-]+@[\w.-]+\.\w+"
+    r")"
 )
 
 # A requirement line names the skill after a lead-in: 'Experiencia en X', 'Manejo de Y'.
@@ -37,7 +48,12 @@ _LEAD_IN_RE = re.compile(
 # A fragment that ends on a preposition or starts on a conjunction is a cut phrase.
 _DANGLING_RE = re.compile(
     r"(?i)(^(?:y|e|o|u|and|or|el|la|los|las|un|una|unos|unas|the)\s+"
-    r"|\s+(?:de|del|en|con|para|of|in|with|for|a|al)$)"
+    r"|\s+(?:de|del|en|con|para|of|in|with|for|a|al|la|el|los|las|un|una)$)"
+)
+_RESPONSIBILITY_START_RE = re.compile(
+    r"(?i)^(diseñar|desarrollar|liderar|contribuir|definir|implementar|"
+    r"construir|crear|gestionar|coordinar|apoyar|asegurar|capacidad\s+para|"
+    r"t[ií]tulo\s+profesional|al\s+menos\s+\d+)\b"
 )
 _TRAILING_NOISE_RE = re.compile(
     r"(?i)[\s,;]*\b(preferred|preferible|deseable|excluyente|requerido|required|"
@@ -92,6 +108,20 @@ _ITEM_STOPWORDS = frozenset(
         "otras",
         "afin",
         "similar",
+        "similares",
+        "area",
+        "área",
+        "plataforma",
+        "trabajar",
+        "roles",
+        "desafios",
+        "desafíos",
+        "publicado",
+        "computacion",
+        "computación",
+        "ciencias",
+        "ingenieria",
+        "ingeniería",
     }
 )
 
@@ -105,12 +135,23 @@ def parse_job_text(
 ) -> JobPosting:
     """Best-effort parse of a pasted JD into a JobPosting."""
     lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip()]
-    title = _field(lines, "title", "role", "cargo", "puesto") or (lines[0] if lines else "Untitled")
-    company = _field(lines, "company", "empresa", "organization") or "Unknown"
+    title = _field(lines, "title", "role", "cargo", "puesto")
+    company = _field(lines, "company", "empresa", "organization")
+    if title is None and lines:
+        title, company_from_title = _split_title_company(lines[0])
+        if company is None and company_from_title:
+            company = company_from_title
+    if title is None:
+        title = lines[0] if lines else "Untitled"
+    if company is None:
+        company = _infer_company_from_body(text) or "Unknown"
     location = _field(lines, "location", "ubicacion", "ubicación", "city")
     seniority = _infer_seniority(text)
     remote_type = _infer_remote(text)
     skills = _extract_skills(text)
+    if company and company != "Unknown":
+        company_fold = fold_text(company)
+        skills = [s for s in skills if fold_text(s) != company_fold]
     requirements = _extract_requirements(text)
     languages = _extract_languages(text)
 
@@ -142,6 +183,29 @@ def _field(lines: list[str], *keys: str) -> str | None:
             match = re.match(rf"(?i)^{re.escape(key)}\s*[:\-]\s*(.+)$", line)
             if match:
                 return match.group(1).strip()
+    return None
+
+
+def _split_title_company(line: str) -> tuple[str, str | None]:
+    """'AI & Multi-Agent Lead — ECOS Chile' → title + company."""
+    match = _TITLE_COMPANY_RE.match(line.strip())
+    if not match:
+        return line.strip(), None
+    left, right = match.group(1).strip(), match.group(2).strip()
+    if not left or not right or len(right.split()) > 6:
+        return line.strip(), None
+    return left, right
+
+
+def _infer_company_from_body(text: str) -> str | None:
+    """'En ECOS Chile estamos buscando' → ECOS Chile."""
+    match = re.search(
+        r"(?i)\ben\s+([A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&]*(?:\s+[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&]*){0,3})"
+        r"\s+estamos\s+buscando\b",
+        text,
+    )
+    if match:
+        return match.group(1).strip()
     return None
 
 
@@ -181,7 +245,8 @@ def _extract_skills(text: str) -> list[str]:
     seen: set[str] = set()
 
     for block in _text_blocks(text):
-        if len(block.split()) >= _PROSE_MIN_WORDS:
+        if len(block.split()) >= _PROSE_MIN_WORDS or _RESPONSIBILITY_START_RE.match(block):
+            # Prose and duty bullets: only typography-marked tools, not whole clauses.
             phrases = _TOOL_TOKEN_RE.findall(block)
         elif _LANGUAGE_RE.search(block):
             # Languages have their own field; the rest of that line is not a skill.
@@ -216,7 +281,12 @@ def _text_blocks(text: str) -> list[str]:
 
     for raw in text.splitlines():
         stripped = raw.strip()
-        if not stripped or _HEADER_FIELD_RE.match(stripped) or _SECTION_HEADING_RE.match(stripped):
+        if (
+            not stripped
+            or _HEADER_FIELD_RE.match(stripped)
+            or _SECTION_HEADING_RE.match(stripped)
+            or _META_SKILL_LINE_RE.match(stripped)
+        ):
             flush()
             continue
         bullet = re.match(r"^[-*•·–—]\s*|^\d+[.)]\s+", stripped)
@@ -264,7 +334,10 @@ def _extract_requirements(text: str) -> list[str]:
     in_block = False
     for line in text.splitlines():
         stripped = line.strip()
-        if re.match(r"(?i)^(requirements|requisitos|requirements:|what you.ll need)", stripped):
+        if re.match(
+            r"(?i)^(requirements|requisitos|requirements:|what you.ll need|buscamos)\b",
+            stripped,
+        ):
             in_block = True
             continue
         if in_block:
@@ -272,7 +345,10 @@ def _extract_requirements(text: str) -> list[str]:
                 if reqs:
                     break
                 continue
-            if re.match(r"(?i)^(benefits|beneficios|about us|sobre)", stripped):
+            if re.match(
+                r"(?i)^(benefits|beneficios|about us|sobre|principales?\s+desaf)",
+                stripped,
+            ):
                 break
             bullet = re.sub(r"^[-*•\d.)\s]+", "", stripped)
             if bullet:

@@ -1877,6 +1877,17 @@ def jobs_add(
         bool,
         typer.Option("--stdin", help="Read JD from stdin"),
     ] = False,
+    chat_first: Annotated[
+        bool,
+        typer.Option(
+            "--chat-first/--no-chat-first",
+            help=(
+                "Preprocess + optional LLM structured extract (needs jobbot[llm] + "
+                "OPENAI_API_KEY). Falls back to deterministic parse. "
+                "Does not use Cursor IDE subscription tokens."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Add a job posting from a text file or stdin (manual fallback)."""
     session, config = _session()
@@ -1905,7 +1916,28 @@ def jobs_add(
         raise _QuietExit(VALIDATION_FAILURE)
 
     repo = JobRepository(session)
-    job = repo.add_from_text(text, url=url)
+    if chat_first:
+        from jobbot.jobs.chat_first import llm_available, parse_job_chat_first
+        from jobbot.jobs.ids import next_job_id
+
+        result = parse_job_chat_first(
+            text,
+            job_id=next_job_id(session),
+            source="manual",
+            url=url,
+            use_llm=True,
+        )
+        if result.mode == "deterministic" and not llm_available():
+            console.print(
+                "[dim]chat-first: no LLM (uv sync --extra llm + OPENAI_API_KEY); "
+                "used preprocess + deterministic parse.[/dim]"
+            )
+        else:
+            console.print(f"[dim]chat-first mode={result.mode}[/dim]")
+        repo.save(result.job)
+        job = result.job
+    else:
+        job = repo.add_from_text(text, url=url)
     path = write_job_json(job, config.output_dir)
     console.print(f"[green]Added[/green] {job.id}  {job.company}  {job.title}")
     console.print(f"Wrote {path}")

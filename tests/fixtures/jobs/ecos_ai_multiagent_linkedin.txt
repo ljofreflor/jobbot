@@ -1,0 +1,28 @@
+AI & Multi-Agent Lead — ECOS Chile
+
+Publicado en LinkedIn por Fernanda Fuentes Valdivia (hace ~1 semana).
+
+En ECOS Chile estamos buscando un/a AI & Multi-Agent Lead para un proyecto de
+innovación CORFO de 3 años, orientado a la transformación digital de la industria
+minera mediante inteligencia artificial y tecnologías avanzadas.
+
+Principales desafíos:
+- Diseñar la inteligencia del sistema y definir arquitecturas multiagente.
+- Desarrollar sistemas de razonamiento basados en LLMs.
+- Diseñar mecanismos de coordinación entre agentes especializados.
+- Liderar técnicamente la integración de soluciones de IA en la plataforma.
+- Contribuir al desarrollo de soluciones tecnológicas aplicadas a desafíos reales
+  de la industria minera.
+
+Buscamos:
+- Título profesional en Ingeniería en Inteligencia Artificial, Ciencias de la
+  Computación o afín.
+- Al menos 5 años de experiencia en roles similares.
+- Doctorado o Magíster en área afín.
+- Experiencia en IA, LLMs, arquitecturas multiagente y/o sistemas inteligentes.
+- Capacidad para abordar desafíos tecnológicos complejos y trabajar en equipos
+  multidisciplinarios.
+
+Postulación: enviar CV a fernanda.fuentes@ecos-chile.com
+
+#haypega #haytrabajo #hiring #IA #Inteligenciaartificial #empleo
