@@ -2050,6 +2050,26 @@ def jobs_show(
 def jobs_match(
     job_id: Annotated[str, typer.Argument()],
     as_json: Annotated[bool, typer.Option("--json")] = False,
+    document_fit: Annotated[
+        bool,
+        typer.Option(
+            "--document-fit/--no-document-fit",
+            help=(
+                "Blend CV↔JD document cosine with lexical skills when the JD "
+                "has a rich description (default on; offline bag-of-words)"
+            ),
+        ),
+    ] = True,
+    embed: Annotated[
+        bool,
+        typer.Option(
+            "--embed",
+            help=(
+                "Use OpenAI embeddings for document fit "
+                "(needs jobbot[llm] + OPENAI_API_KEY; not Cursor tokens)"
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Match a job against the local profile (decision aid)."""
     session, config = _session()
@@ -2065,7 +2085,25 @@ def jobs_match(
         err_console.print(f"[red]Job not found: {job_id}[/red]")
         raise typer.Exit(GENERIC_FAILURE)
 
-    match = RuleBasedJobAnalyzer().analyze(candidate, job)
+    embedder = None
+    if embed:
+        from jobbot.matching.similarity import build_openai_embedder, embeddings_available
+
+        if not embeddings_available():
+            err_console.print(
+                "[red]--embed needs uv sync --extra llm and OPENAI_API_KEY[/red]"
+            )
+            raise typer.Exit(GENERIC_FAILURE)
+        try:
+            embedder = build_openai_embedder()
+        except RuntimeError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(GENERIC_FAILURE) from exc
+
+    match = RuleBasedJobAnalyzer(
+        document_fit=document_fit,
+        embedder=embedder,
+    ).analyze(candidate, job)
     repo.update_match_score(job.id, match.score)
     job_dir = config.output_dir / "jobs" / job.id
     job_dir.mkdir(parents=True, exist_ok=True)

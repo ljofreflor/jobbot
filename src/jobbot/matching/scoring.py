@@ -5,6 +5,11 @@ from jobbot.models.match import JobMatch
 
 def format_match_report(match: JobMatch) -> str:
     lines = [f"MATCH: {match.score:.0f}%"]
+    if match.document_score is not None and match.lexical_score is not None:
+        lines.append(
+            f"  (lexical {match.lexical_score:.0f}% · "
+            f"document/{match.fit_mode} {match.document_score:.0f}%)"
+        )
     groups = [
         ("Strong", "strong_match", "✓"),
         ("Partial", "partial_match", "~"),

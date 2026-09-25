@@ -243,6 +243,13 @@ file names, silently.
   an LLM (`uv sync --extra llm` + `OPENAI_API_KEY` — **not** Cursor IDE subscription
   tokens) to extract title/company/skills grounded in the JD; falls back to deterministic
   parse. Same token accounting idea as `cv advise --llm`.
+- **Match % vs chat-first:** scoring blends lexical skill hits with a **document-level
+  CV↔JD cosine** when the posting has a rich description (default on; offline bag +
+  synonym neighborhoods). Noisy `job.skills` from a paste no longer own the %. Optional
+  `jobbot jobs match Jxxxx --embed` uses OpenAI embeddings (`text-embedding-3-small`)
+  instead of the bag — same API key path, not Cursor tokens. Chat-first still helps
+  structured fields (title/company/skills for CV adaptation); it is no longer the only
+  gate for a usable match score. `--no-document-fit` restores pure lexical rules.
 
 ## Portal adapters
 

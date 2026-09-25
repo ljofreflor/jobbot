@@ -1,4 +1,11 @@
-"""Rule-based job matching — never invents candidate skills."""
+"""Rule-based job matching — never invents candidate skills.
+
+When the JD has a rich description, the final % blends lexical skill/requirement
+hits with a document-level CV↔JD cosine (bag-of-words offline, or an optional
+embedding). That way a noisy/incomplete `job.skills` list from a paste no longer
+owns the score alone — chat-first still helps structured fields, but match %
+does not depend on it as hard.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +15,11 @@ from typing import Protocol
 
 from jobbot.jobs.normalization import fold_text, normalize_skill
 from jobbot.jobs.parsing import extract_skills_from_text
+from jobbot.matching.similarity import (
+    TextEmbedder,
+    description_is_rich,
+    document_similarity,
+)
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch, MatchItem, MatchStrength
@@ -15,6 +27,8 @@ from jobbot.models.match import JobMatch, MatchItem, MatchStrength
 # A job whose posting names almost nothing cannot be a perfect fit, whatever it asks.
 _THIN_EVIDENCE_ITEMS = 3
 _THIN_EVIDENCE_CAP = 80.0
+# Weight on document cosine when blending with lexical skill hits.
+_DOCUMENT_FIT_WEIGHT = 0.55
 
 # Requirement sentences are prose: only content words carry evidence.
 _STOPWORDS = frozenset(
@@ -90,7 +104,22 @@ class JobAnalyzer(Protocol):
 
 
 class RuleBasedJobAnalyzer:
-    """Deterministic matcher using skills, tags, keywords, seniority, role family."""
+    """Deterministic matcher using skills, tags, keywords, seniority, role family.
+
+    ``document_fit`` (default True) blends in CV↔JD document cosine when the
+    posting has a rich description — bag-of-words offline, or ``embedder`` if set.
+    """
+
+    def __init__(
+        self,
+        *,
+        document_fit: bool = True,
+        embedder: TextEmbedder | None = None,
+        document_weight: float = _DOCUMENT_FIT_WEIGHT,
+    ) -> None:
+        self.document_fit = document_fit
+        self.embedder = embedder
+        self.document_weight = document_weight
 
     def analyze(self, candidate: Candidate, job: JobPosting) -> JobMatch:
         candidate_tokens = _candidate_tokens(candidate)
@@ -144,8 +173,62 @@ class RuleBasedJobAnalyzer:
         if job.seniority:
             items.append(_seniority_item(candidate, job.seniority))
 
-        score = _score(items, role_cap=role_cap, required_tokens={t for t, _, _ in required})
-        return JobMatch(job_id=job.id, score=score, items=items)
+        lexical = _score(items, role_cap=None, required_tokens={t for t, _, _ in required})
+        document_score: float | None = None
+        fit_mode = "rules"
+        score = lexical
+
+        if self.document_fit and description_is_rich(job):
+            document_score, mode = document_similarity(candidate, job, embedder=self.embedder)
+            fit_mode = mode
+            items.append(_document_fit_item(document_score, mode))
+            w = min(0.85, max(0.15, self.document_weight))
+            # Noisy/incomplete skill lists (bad paste parse) → trust the JD text more.
+            skill_like = [
+                i
+                for i in items
+                if i.strength != MatchStrength.UNKNOWN
+                and not i.label.startswith("document:")
+                and not i.label.startswith("role:")
+                and not i.label.startswith("seniority:")
+            ]
+            if skill_like:
+                missing_n = sum(1 for i in skill_like if i.strength == MatchStrength.MISSING)
+                if missing_n / len(skill_like) >= 0.6:
+                    w = max(w, 0.72)
+            blended = (1.0 - w) * lexical + w * document_score
+            # Document fit rescues noisy parses; it must not dilute a clean lexical hit
+            # (nurse/journalist JDs share little bag vocabulary with synonym tables).
+            score = max(lexical, blended)
+
+        score = _apply_caps(
+            score,
+            role_cap=role_cap,
+            required_tokens={t for t, _, _ in required},
+            description_rich=description_is_rich(job) and self.document_fit,
+        )
+        return JobMatch(
+            job_id=job.id,
+            score=score,
+            items=items,
+            document_score=document_score,
+            lexical_score=lexical if document_score is not None else None,
+            fit_mode=fit_mode,
+        )
+
+
+def _document_fit_item(score: float, mode: str) -> MatchItem:
+    label = f"document:{mode}"
+    if score >= 55:
+        strength = MatchStrength.STRONG
+        detail = f"CV↔JD {mode} cosine {score:.0f}%"
+    elif score >= 30:
+        strength = MatchStrength.PARTIAL
+        detail = f"CV↔JD {mode} cosine {score:.0f}%"
+    else:
+        strength = MatchStrength.MISSING
+        detail = f"CV↔JD {mode} cosine {score:.0f}% — weak overlap"
+    return MatchItem(label=label, strength=strength, detail=detail)
 
 
 def _candidate_tokens(candidate: Candidate) -> set[str]:
@@ -255,11 +338,7 @@ def _requirement_evidence(
 
 def _keyword_candidates(text: str) -> set[str]:
     """Content words of the candidate's own prose — no vocabulary to belong to."""
-    return {
-        word
-        for word in fold_text(text).split()
-        if len(word) >= 4 and word not in _STOPWORDS
-    }
+    return {word for word in fold_text(text).split() if len(word) >= 4 and word not in _STOPWORDS}
 
 
 def _partial_token(token: str, candidate_tokens: set[str]) -> bool:
@@ -362,7 +441,11 @@ def _score(
     required_tokens: set[str],
 ) -> float:
     """Score only on strong/partial/missing skill-like items; unknowns excluded."""
-    relevant = [i for i in items if i.strength != MatchStrength.UNKNOWN]
+    relevant = [
+        i
+        for i in items
+        if i.strength != MatchStrength.UNKNOWN and not i.label.startswith("document:")
+    ]
     if not relevant:
         return 0.0
     points = 0.0
@@ -373,8 +456,23 @@ def _score(
             points += 0.5
         # missing contributes 0
     score = 100.0 * points / len(relevant)
-    # A posting that names almost nothing is thin evidence, not a perfect fit.
-    if len(required_tokens - {""}) < _THIN_EVIDENCE_ITEMS:
+    return _apply_caps(
+        score,
+        role_cap=role_cap,
+        required_tokens=required_tokens,
+        description_rich=False,
+    )
+
+
+def _apply_caps(
+    score: float,
+    *,
+    role_cap: float | None,
+    required_tokens: set[str],
+    description_rich: bool,
+) -> float:
+    # Thin structured skills: cap unless a rich JD description already backed the blend.
+    if not description_rich and len(required_tokens - {""}) < _THIN_EVIDENCE_ITEMS:
         score = min(score, _THIN_EVIDENCE_CAP)
     if role_cap is not None:
         score = min(score, role_cap)

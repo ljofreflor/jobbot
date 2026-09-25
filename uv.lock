@@ -700,6 +700,7 @@ dev = [
 llm = [
     { name = "langchain" },
     { name = "langchain-openai" },
+    { name = "openai" },
 ]
 
 [package.dev-dependencies]
@@ -722,6 +723,7 @@ requires-dist = [
     { name = "langchain", marker = "extra == 'llm'", specifier = ">=0.3" },
     { name = "langchain-openai", marker = "extra == 'llm'", specifier = ">=0.2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
+    { name = "openai", marker = "extra == 'llm'", specifier = ">=1.40" },
     { name = "playwright", specifier = ">=1.62.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pypdf", specifier = ">=5.1" },
