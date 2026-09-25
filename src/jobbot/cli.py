@@ -4289,7 +4289,11 @@ def browser_chrome_debug(
         typer.Option("--launch/--print-only", help="Launch Chrome (default) or only print argv"),
     ] = True,
 ) -> None:
-    """Open a normal Chrome with CDP so challenges can be completed by hand."""
+    """Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
+    
+    Automatically detects and launches any available Chromium-based browser:
+    Chrome, Microsoft Edge, Brave, or Chromium.
+    """
     import subprocess
 
     from jobbot.browser.cdp import cdp_http_url, chrome_debug_argv
