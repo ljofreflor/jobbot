@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.error import HTTPError
+
+import pytest
 
 from jobbot.adapters.getonboard import jobs as gob
 from jobbot.adapters.getonboard.jobs import (
@@ -87,7 +90,18 @@ def test_remember_portal_from_url_learns_host(tmp_path: Any) -> None:
 
 
 def test_search_jobs_api_smoke() -> None:
-    items = search_jobs_api("data scientist", per_page=2)
+    """Smoke test for GetOnBoard API.
+    
+    Skips when API returns 403 (rate limit, IP block, or access restriction).
+    This is expected behavior when the portal's policy changes.
+    """
+    try:
+        items = search_jobs_api("data scientist", per_page=2)
+    except HTTPError as e:
+        if e.code == 403:
+            pytest.skip(f"GetOnBoard API returned 403 Forbidden: {e}")
+        raise
+    
     assert isinstance(items, list)
     assert len(items) >= 1
     assert "attributes" in items[0]

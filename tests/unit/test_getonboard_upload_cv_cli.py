@@ -50,7 +50,7 @@ def test_dry_run_prints_the_hash_and_does_not_open_a_browser(
 
     assert opened == []
     assert "sha256:" in out
-    assert path.name in out or "cv.pdf" in out
+    assert path.name in out
     assert "Dry-run" in out
 
 

@@ -1,0 +1,61 @@
+{
+  "id": "xY9zA0bC",
+  "slug": "techcorp-senior-data-engineer",
+  "objective": "Senior Data Engineer",
+  "tagline": "Build scalable data pipelines for our analytics platform.",
+  "type": "full-time-employment",
+  "commitment": "full-time",
+  "opportunity": "employee",
+  "remote": true,
+  "status": "open",
+  "created": "2026-09-15T14:30:00.000Z",
+  "external": false,
+  "quickApply": true,
+  "locations": [],
+  "place": {
+    "remote": true,
+    "anywhere": true,
+    "timezone": false,
+    "locationType": "remote_anywhere",
+    "location": []
+  },
+  "compensation": {
+    "data": {
+      "code": "range",
+      "currency": "USD$",
+      "minAmount": 5000.0,
+      "maxAmount": 7000.0,
+      "periodicity": "monthly",
+      "negotiable": false
+    },
+    "visible": true
+  },
+  "organizations": [
+    {
+      "id": 555,
+      "name": "TechCorp",
+      "status": "approved",
+      "size": 120,
+      "publicId": "TechCorp"
+    }
+  ],
+  "skills": [
+    {"name": "Apache Spark", "experience": "3-plus-years", "proficiency": "expert"},
+    {"name": "Python", "experience": "5-plus-years", "proficiency": "expert"},
+    {"name": "Kubernetes", "experience": "1-plus-year", "proficiency": "proficient"}
+  ],
+  "details": [
+    {
+      "code": "responsibilities",
+      "content": "Design and implement ETL pipelines. Optimize query performance. Mentor junior engineers."
+    }
+  ],
+  "members": [
+    {
+      "subjectId": "1234",
+      "name": "Engineering Manager",
+      "username": "eng.manager",
+      "professionalHeadline": "Head of Data Engineering"
+    }
+  ]
+}

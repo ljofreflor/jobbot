@@ -82,7 +82,7 @@ linkedin_app = typer.Typer(
     no_args_is_help=True,
 )
 browser_app = typer.Typer(
-    help="Browser helpers (HITL Chrome / CDP — no CAPTCHA bypass)",
+    help="Browser helpers (HITL Chrome/Edge/Brave via CDP — no CAPTCHA bypass)",
     no_args_is_help=True,
 )
 getonboard_app = typer.Typer(
@@ -137,6 +137,21 @@ class _QuietExit(Exception):
         self.code = code
 
 
+class _RecordedExit(Exception):
+    """Non-zero exit that must land in ops_failures with a real fingerprint.
+
+    Autopoietic lane for product gaps (novel URL shapes, missing fetchers):
+    exception → observability → ``ops failure work`` → issue → PR. A bare
+    ``typer.Exit`` drops the message and collapses every gap into one useless
+    ``Exit:`` fingerprint.
+    """
+
+    def __init__(self, code: int, *, error_class: str, message: str) -> None:
+        self.code = code
+        self.error_class = error_class
+        self.message = message
+
+
 def run_cli(
     argv: Sequence[str] | None = None,
     *,
@@ -148,6 +163,8 @@ def run_cli(
     exit_code = SUCCESS
     caught: BaseException | None = None
     aborted = False
+    recorded_class: str | None = None
+    recorded_message: str | None = None
     try:
         result = app(args, prog_name=prog_name, standalone_mode=False)
         if isinstance(result, int):
@@ -182,6 +199,11 @@ def run_cli(
         if standalone_mode:
             raise SystemExit(exc.code) from exc
         return exc.code
+    except _RecordedExit as exc:
+        exit_code = exc.code
+        recorded_class = exc.error_class
+        recorded_message = exc.message
+        caught = exc.__cause__ if isinstance(exc.__cause__, BaseException) else None
     except Exception as exc:  # noqa: BLE001 — CLI boundary capture
         exit_code = GENERIC_FAILURE
         caught = exc
@@ -194,8 +216,16 @@ def run_cli(
             exit_code,
             argv=["jobbot", *args],
             exc=caught if not isinstance(caught, typer.Exit) else None,
-            error_class="Abort" if aborted else None,
-            message=ABORT_MESSAGE if aborted else None,
+            error_class=(
+                recorded_class
+                if recorded_class is not None
+                else ("Abort" if aborted else None)
+            ),
+            message=(
+                recorded_message
+                if recorded_message is not None
+                else (ABORT_MESSAGE if aborted else None)
+            ),
             context=runtime_context(),
         )
         if record is not None:
@@ -298,6 +328,7 @@ def _ingest_with_progress(
     candidate: Candidate,
     html: str | None,
     ingest_hard_link: Any,
+    cdp_url: str | None = None,
 ) -> Any:
     """Download a Get on Board page with a progress bar. Fixtures and other ATS skip it."""
     from jobbot.portals.detect import AtsKind
@@ -310,6 +341,7 @@ def _ingest_with_progress(
             portal.url,
             candidate=candidate,
             html=html,
+            cdp_url=cdp_url,
         )
     from rich.progress import (
         BarColumn,
@@ -339,6 +371,7 @@ def _ingest_with_progress(
             portal.url,
             candidate=candidate,
             html=html,
+            cdp_url=cdp_url,
             on_chunk=on_chunk,
         )
 
@@ -346,12 +379,13 @@ def _ingest_with_progress(
 @app.command("get")
 def get_hard_link(
     url: Annotated[
-        str,
+        str | None,
         typer.Argument(
-            help="Hard job URL. Live download: Get on Board only. "
-            "With --fixture, also reads saved career-page HTML (unknown hosts ok).",
+            help="Hard job URL. Live download: Get on Board / Indeed. "
+            "With --fixture, also reads saved career-page or Indeed viewjob HTML. "
+            "With --park, only queues the URL (phone-friendly; no fetch).",
         ),
-    ],
+    ] = None,
     apply_changes: Annotated[
         bool,
         typer.Option(
@@ -370,25 +404,168 @@ def get_hard_link(
             "--fixture",
             help=(
                 "Saved HTML instead of a live download. "
-                "Get on Board or generic career pages (e.g. Phenom)."
+                "Get on Board, Indeed viewjob, or generic career pages (e.g. Phenom)."
             ),
             exists=True,
             dir_okay=False,
             readable=True,
         ),
     ] = None,
+    park: Annotated[
+        bool,
+        typer.Option(
+            "--park",
+            help=(
+                "Queue the URL under data/hard-link-inbox.txt without fetching "
+                "(use from a phone / when CAPTCHA would block). Drain later with --parked."
+            ),
+        ),
+    ] = False,
+    parked: Annotated[
+        bool,
+        typer.Option(
+            "--parked",
+            help=(
+                "Ingest every URL parked in data/hard-link-inbox.txt "
+                "(desktop + Chrome CDP for Indeed challenges)."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Ingest a hard job link: know the portal → JD → CV → package (HITL apply)."""
+    if park and parked:
+        err_console.print("[red]Use either --park or --parked, not both.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    if parked:
+        if url is not None:
+            err_console.print("[red]--parked does not take a URL argument.[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        if fixture is not None:
+            err_console.print("[red]--parked cannot combine with --fixture.[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        _drain_parked_hard_links(apply_changes=apply_changes, yes=yes, cdp=cdp)
+        return
+    if url is None:
+        err_console.print(
+            "[red]Provide a hard job URL[/red], or pass [bold]--parked[/bold] "
+            "to drain data/hard-link-inbox.txt."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+    if park:
+        _park_hard_link(url)
+        return
+    _ingest_one_hard_link(
+        url,
+        apply_changes=apply_changes,
+        yes=yes,
+        cdp=cdp,
+        fixture=fixture,
+    )
+
+
+def _park_hard_link(url: str) -> None:
+    """Save a share link for later (no Indeed fetch, no CAPTCHA)."""
+    from jobbot.jobs.inbox import inbox_path, park_url
+
+    _, config = _session()
+    try:
+        stored, existed = park_url(config, url)
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    path = inbox_path(config)
+    if existed:
+        console.print(f"[dim]Already parked[/dim] {stored}")
+    else:
+        console.print(f"[green]Parked[/green] {stored}")
+    console.print(f"Inbox: {path}")
+    console.print(
+        "On a desktop with Chrome: "
+        "[bold]jobbot browser chrome-debug --site indeed[/bold], then "
+        "[bold]jobbot get --parked --cdp http://127.0.0.1:9222[/bold]"
+    )
+
+
+def _drain_parked_hard_links(
+    *,
+    apply_changes: bool,
+    yes: bool,
+    cdp: str | None,
+) -> None:
+    from jobbot.jobs.inbox import inbox_path, list_parked, remove_parked
+
+    _, config = _session()
+    urls = list_parked(config)
+    if not urls:
+        console.print(f"Inbox empty ({inbox_path(config)}).")
+        return
+    console.print(f"Draining {len(urls)} parked URL(s)…")
+    failures = 0
+    for item in urls:
+        console.print(f"\n[bold]→[/bold] {item}")
+        try:
+            _ingest_one_hard_link(
+                item,
+                apply_changes=apply_changes,
+                yes=yes,
+                cdp=cdp,
+                fixture=None,
+            )
+        except _RecordedExit as exc:
+            failures += 1
+            from jobbot.ops.failures import capture_cli_failure, runtime_context
+
+            record = capture_cli_failure(
+                exc.code,
+                argv=["jobbot", "get", item],
+                exc=exc.__cause__ if isinstance(exc.__cause__, BaseException) else None,
+                error_class=exc.error_class,
+                message=exc.message,
+                context=runtime_context(),
+            )
+            if record is not None:
+                err_console.print(
+                    f"[yellow]Recorded failure[/yellow] {record.id} "
+                    f"(fingerprint={record.fingerprint})"
+                )
+            err_console.print(
+                f"[yellow]Left in inbox[/yellow] (exit {exc.code}): {item}"
+            )
+            continue
+        except (_QuietExit, typer.Exit) as exc:
+            failures += 1
+            if isinstance(exc, _QuietExit):
+                code = exc.code
+            else:
+                code = exc.exit_code if isinstance(exc.exit_code, int) else 1
+            err_console.print(f"[yellow]Left in inbox[/yellow] (exit {code}): {item}")
+            continue
+        remove_parked(config, item)
+        console.print(f"[dim]Removed from inbox:[/dim] {item}")
+    if failures:
+        # Per-URL gaps already landed in ops_failures; the drain summary is not a
+        # new defect (avoid a second empty Exit fingerprint).
+        raise _QuietExit(GENERIC_FAILURE if failures == len(urls) else SUCCESS)
+
+
+def _ingest_one_hard_link(
+    url: str,
+    *,
+    apply_changes: bool,
+    yes: bool,
+    cdp: str | None,
+    fixture: Path | None,
+) -> None:
+    from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.jobs.from_url import (
         ClosedPostingError,
         UnknownPortalError,
         UnsupportedPortalFetchError,
         ingest_hard_link,
     )
-
-    session, config = _session()
     from jobbot.portals.knowledge import lookup_portal
 
+    session, config = _session()
     portal = lookup_portal(config, url)
     console.print(
         f"portal: [bold]{portal.domain or '(none)'}[/bold]  "
@@ -412,6 +589,7 @@ def get_hard_link(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
+    cdp_url = resolve_cdp_url(cdp)
     try:
         result = _ingest_with_progress(
             config,
@@ -420,6 +598,7 @@ def get_hard_link(
             candidate=candidate,
             html=html,
             ingest_hard_link=ingest_hard_link,
+            cdp_url=cdp_url,
         )
     except ClosedPostingError as exc:
         err_console.print(
@@ -431,10 +610,18 @@ def get_hard_link(
         raise typer.Exit(VALIDATION_FAILURE) from exc
     except UnsupportedPortalFetchError as exc:
         err_console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+        raise _RecordedExit(
+            GENERIC_FAILURE,
+            error_class=type(exc).__name__,
+            message=str(exc),
+        ) from exc
     except OSError as exc:
         err_console.print(f"[red]Could not fetch job page:[/red] {exc}")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+        raise _RecordedExit(
+            GENERIC_FAILURE,
+            error_class=type(exc).__name__,
+            message=f"Could not fetch job page: {exc}",
+        ) from exc
 
     job = result.job
     _learn_company_knowledge(config, job, narrator=narrator)
@@ -1614,7 +1801,7 @@ def _propagate_getonboard_cv(
     path = resolve_base_cv(config.output_dir)
     check = validate_cv_for_upload(path)
     for line in check.summary_lines():
-        console.print(f"  {line}", soft_wrap=False, overflow="ignore")
+        console.print(f"  {line}", soft_wrap=False, overflow="ignore", crop=False)
     if not check.ok:
         err_console.print("[yellow]CV not uploaded: local validation failed.[/yellow]")
         return
@@ -2933,7 +3120,7 @@ def getonboard_upload_cv(
     console.print("[bold]Local CV check[/bold] (before any upload)")
     for line in check.summary_lines():
         # Paths must stay one token: soft-wrap mid-filename breaks copy/paste and tests.
-        console.print(f"  {line}", soft_wrap=False, overflow="ignore")
+        console.print(f"  {line}", soft_wrap=False, overflow="ignore", crop=False)
     if not check.ok:
         err_console.print("[red]Validation failed — nothing was uploaded.[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
@@ -2981,7 +3168,7 @@ def getonboard_open_cvs() -> None:
     console.print(f"Opened {url}")
     console.print("[bold]Local CV check[/bold]")
     for line in check.summary_lines():
-        console.print(f"  {line}", soft_wrap=False, overflow="ignore")
+        console.print(f"  {line}", soft_wrap=False, overflow="ignore", crop=False)
     if check.ok:
         console.print(
             "Prefer: [bold]jobbot getonboard upload-cv --apply --cdp URL[/bold] "
@@ -4203,7 +4390,11 @@ def browser_chrome_debug(
         typer.Option("--launch/--print-only", help="Launch Chrome (default) or only print argv"),
     ] = True,
 ) -> None:
-    """Open a normal Chrome with CDP so challenges can be completed by hand."""
+    """Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
+    
+    Automatically detects and launches any available Chromium-based browser:
+    Chrome, Microsoft Edge, Brave, or Chromium.
+    """
     import subprocess
 
     from jobbot.browser.cdp import cdp_http_url, chrome_debug_argv
