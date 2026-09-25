@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from jobbot.adapters.base import ApplyMethod, ApplicationPackage, PrefillResult
+from jobbot.adapters.base import ApplicationPackage, ApplyMethod, PrefillResult
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind

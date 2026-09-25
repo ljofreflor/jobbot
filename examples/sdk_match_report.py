@@ -64,7 +64,7 @@ def main() -> None:
 
         # Sort by match score
         sorted_results = sorted(
-            zip(jobs, matches),
+            zip(jobs, matches, strict=True),
             key=lambda x: x[1].score,
             reverse=True,
         )

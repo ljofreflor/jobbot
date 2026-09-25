@@ -47,7 +47,7 @@ def main() -> None:
         matches = client.jobs.match(jobs)
 
         print("\n4. Match results:")
-        for job, match in zip(jobs, matches):
+        for job, match in zip(jobs, matches, strict=True):
             print(f"\n   {job.id}: {job.company} - {match.score}%")
             if match.highlights:
                 print(f"   ✓ Highlights: {', '.join(match.highlights[:3])}")
@@ -56,7 +56,7 @@ def main() -> None:
 
         # Build CV for best match
         best_job, best_match = max(
-            zip(jobs, matches),
+            zip(jobs, matches, strict=True),
             key=lambda x: x[1].score,
         )
 

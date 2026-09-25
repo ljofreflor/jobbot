@@ -156,7 +156,7 @@ def _display_job_matches(jobs, matches) -> None:
     table.add_column("Location")
     table.add_column("Match", justify="right", style="green")
 
-    for job, match in zip(jobs, matches):
+    for job, match in zip(jobs, matches, strict=True):
         table.add_row(
             job.id,
             job.company,

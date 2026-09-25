@@ -49,7 +49,7 @@ def main() -> None:
         # Step 3: Filter strong matches
         strong_matches = [
             (job, match)
-            for job, match in zip(jobs, matches)
+            for job, match in zip(jobs, matches, strict=True)
             if match.score >= MIN_MATCH_SCORE
         ]
 
