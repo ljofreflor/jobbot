@@ -1,4 +1,4 @@
-.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities coverage coverage-main
+.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities coverage coverage-main architecture
 
 install:
 	uv sync --group dev
@@ -18,6 +18,11 @@ pre-commit:
 
 capabilities:
 	uv run jobbot ops capabilities --write
+
+architecture:
+	@command -v dot >/dev/null || (echo "Graphviz required: brew install graphviz"; exit 1)
+	uv sync --group docs
+	uv run python scripts/render_architecture.py
 
 test:
 	uv run pytest
