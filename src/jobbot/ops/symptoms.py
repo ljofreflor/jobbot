@@ -1,9 +1,13 @@
-"""Latent requirements (symptoms) from vibecode repetition — local, redacted.
+"""Symptoms: appearances that return — local, redacted; not a requirements backlog.
 
-A *symptom* is what returns: the same NL / judgment still paid with client
-tokens (System 2). Capturing it securely is the bridge to compression into a
-System 1 feature. Nothing here phones home; SQLite stays gitignored; text is
-redacted before write and before any HITL GitHub issue body.
+Phenomenology of software: we do not satisfy needs via tickets. A *symptom* is
+an appearance in vibecode that *returns* (still paid with client tokens). We
+capture it securely so we can analyze the **conditions of possibility** of that
+need-for-a-need and encode them as System 1 code. ``rule_hypothesis`` is that
+structural condition — not a wish to fulfill.
+
+Nothing here phones home; SQLite stays gitignored; text is redacted before write
+and before any HITL GitHub issue body.
 """
 
 from __future__ import annotations
@@ -209,19 +213,24 @@ def mark_symptom_status(
 
 
 def promote_plan(record: SymptomRecord) -> str:
-    """Human-readable compression plan (does not write code)."""
+    """Human-readable plan: conditions of possibility → System 1 (no code written)."""
+    from jobbot.ops.compile import PHENOMENOLOGY_CONTRACT
+
     steps = "\n".join(f"  {i}. {step}" for i, step in enumerate(PROMOTION_STEPS, start=1))
-    rule = record.rule_hypothesis or "(name a falsifiable rule — one sentence a test can break)"
+    rule = record.rule_hypothesis or (
+        "(name the structural condition of possibility — one falsifiable sentence)"
+    )
     return (
-        f"Symptom {record.id} — latent requirement still on client tokens\n"
-        f"Contract: {COMPRESS_CONTRACT}\n"
+        f"Symptom {record.id} — appearance still reconstituting on client tokens\n"
+        f"Phenomenology: {PHENOMENOLOGY_CONTRACT}\n"
+        f"Compress: {COMPRESS_CONTRACT}\n"
         f"Area: {record.area}  sightings: {record.sightings}  status: {record.status}\n"
         f"Title: {record.title}\n"
-        f"Intent (redacted): {record.intent}\n"
-        f"Rule hypothesis: {rule}\n"
+        f"Appearance (redacted): {record.intent}\n"
+        f"Condition of possibility: {rule}\n"
         f"Fingerprint: {record.fingerprint}\n\n"
-        f"Compress to System 1:\n{steps}\n\n"
-        "Do not paste raw chat or PII into the PR. Prefer fixtures.\n"
+        f"Encode conditions as System 1:\n{steps}\n\n"
+        "Do not treat this as a wish-list ticket. Do not paste raw chat or PII.\n"
         f"When done: jobbot ops symptom triage {record.id} --status resolved "
         f"--feature path/to/module.py"
     )
@@ -235,9 +244,9 @@ def issue_body(record: SymptomRecord) -> str:
     """Redacted body only — safe enough for HITL ``gh issue create``."""
     plan = promote_plan(record)
     return (
-        "## Latent requirement (symptom)\n\n"
-        "Repeated vibecode still paid with client tokens (System 2). "
-        "Compress into a System 1 feature.\n\n"
+        "## Symptom (appearance that returns)\n\n"
+        "Not a requirements ticket to satisfy. Analyze the conditions of "
+        "possibility of this need-for-a-need; encode them as System 1.\n\n"
         f"```\n{plan}\n```\n\n"
         "No candidate PII, no raw transcript, no secrets.\n"
     )

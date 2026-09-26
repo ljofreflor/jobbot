@@ -117,79 +117,79 @@ Same idea for applications: `prepare` → `apply` (plan) → `apply --apply` (op
 `JobAnalyzer` protocol with `RuleBasedJobAnalyzer` as the default implementation
 (`matching/analyzer.py`). Scoring stays swappable without touching the CLI.
 
-### 3.8 Thinking fast / slow → symptoms → knowledge compilation
+### 3.8 Phenomenology of software → symptoms → System 1
 
-JobBot assumes you will keep **vibecoding** (Cursor chat, exploratory prompts,
-one-off judgment). That is Kahneman's *System 2*: slow, expensive, paid in
-**client tokens** — fine for discovery. When the same need *returns*, it is no
-longer discovery: it is a **latent requirement**. Lacanian shorthand used here:
-a *symptom* is what keeps coming back. While it lives only in Cursor, every
-recurrence is unpaid System 2.
-
-The engineering job is to **capture the symptom securely** and **compress** it
-into a *System 1* feature: cheap, repeatable, testable, offline by default.
+We do **not** satisfy needs via requirements tickets. We analyze the
+**conditions of possibility** of the *need for a need*: when vibecode makes a
+need appear (and reappear), what structural conditions allow that appearance —
+then we encode those conditions as cheap System 1 code.
 
 ```text
-  vibecode (pensar despacio)     symptom (retorno)        feature (pensar rápido)
-  ──────────────────────────     ─────────────────        ──────────────────────
-  chat / agent transcript        ops_symptoms (local)     function + test + CLI?
-  high client tokens             redacted intent          low tokens at call time
-  rules still mushy              sightings++              rules explicit in code
+  appearance (System 2)     symptom (return)        conditions → feature (System 1)
+  ─────────────────────     ────────────────        ────────────────────────────────
+  vibecode / chat           ops_symptoms (local)    falsifiable structural rule in code
+  client tokens             redacted appearance     call-site is cheap / testable
+  desire still mushy        sightings++             not a fulfilled wish-list item
 ```
 
 Lifecycle:
 
-1. **Vibecode** — explore in chat (System 2).
-2. **Symptom** — the need returns → `jobbot ops symptom note` (redacted, local SQLite).
-3. **Name the rule** — one sentence a test can falsify.
-4. **Compress** — promote into the owning package; optional LLM only *inside* via
-   `run_optional_llm` / `--llm`.
+1. **Appearance** — vibecode (System 2); the need shows up.
+2. **Symptom** — it returns → `jobbot ops symptom note` (redacted, local).
+3. **Conditions of possibility** — `--rule` names *how* this need-for-a-need can arise
+   (one falsifiable structural sentence), not “what the user wants”.
+4. **Compress** — encode those conditions in the owning package; optional LLM only
+   *inside* via `run_optional_llm` / `--llm`.
 5. **Call + triage** — invoke the feature; `symptom triage --status resolved --feature …`.
 
 ```text
-user NL / vibecode
+vibecode appearance
       │
       ▼
-   returns again? ──yes──► ops symptom note (redacted)
-      │                         │
-      │                         ▼
-      │              promote function (System 1)
-      │                         │
-      └──── first time ─────────┘
-                    │
-       ┌────────────┴────────────┐
-       ▼                         ▼
-  deterministic default     optional LLM inside
+   returns? ──yes──► note symptom (redacted)
+      │                    │
+      │                    ▼
+      │         analyze conditions of possibility
+      │                    │
+      │                    ▼
+      │         encode in System 1 feature
+      └──── first time ────┘
 ```
 
-#### Information safety for latent requirements
+| Wrong frame | Right frame |
+| --- | --- |
+| Satisfy the latent requirement | Ask what makes this need-for-a-need possible |
+| Backlog the vibecode wish | Compress the structural condition that lets the wish reappear |
+| “Build cover letters because user asked” | “Prose reconstitutes when prepare has no grounded draft path” |
+
+#### Information safety (appearances often sit next to PII)
 
 | Rule | Mechanism |
 | --- | --- |
 | No telemetry | Local SQLite + gitignored `output/ops/symptoms/` only |
-| No raw chat | Store sanitized intent / rule hypothesis, not transcripts |
+| No raw chat | Sanitized appearance + condition hypothesis, not transcripts |
 | Redact before write | `sanitize_symptom_text` + `ops/redact` |
-| Safe share | HITL `ops symptom issue` uses already-redacted body only |
+| Safe share | HITL `ops symptom issue` — already-redacted body only |
 | PII stays off git | Same as profile/SQLite; never commit symptom mirrors |
 
 Contract:
 
-1. **Vibecode is allowed; unpaid replay is not.** Capture the symptom; compress it.
-2. **Promote by sightings / rule of three** (or earlier if clearly a cargo step).
-3. **Compression means low cost at call time.** LLM, when used, lives inside the
-   feature via `nlp/gateway.py`.
-4. **Facts only.** `FACTS_ONLY_RULES`; never invent employers, metrics, or skills.
-5. **Extras optional.** `jobbot[llm]` + `OPENAI_API_KEY`; MVP stays offline.
+1. **Appearances are allowed; unpaid reconstitution is not.** Capture → analyze
+   conditions → compress.
+2. **Compress by sightings / rule of three** (or earlier if clearly a cargo step).
+3. **`--rule` is structural**, not a product wish.
+4. **Facts only** when an LLM sits inside a feature (`FACTS_ONLY_RULES`).
+5. **Extras optional.** MVP stays offline.
 
-Existing compression examples:
+Examples:
 
-| Once expensive (System 2 / symptom) | Cheap feature (System 1) |
+| Appearance / symptom | Condition of possibility → feature |
 | --- | --- |
-| Judging GoB blurb quality in chat | `refine_permanent_profile` + `getonboard prepare [--llm]` |
-| “Does this post look foreign?” | `jobs/geo.py` country markers + search filters |
-| “Is this ATS Greenhouse or Workday?” | `portals/detect.py` + registry |
-| PII almost committed | `ops/pii_guard` + pre-commit hook |
-| Latent NL need returning in Cursor | `ops symptom note` → feature + `triage resolved` |
+| GoB blurb judged only in chat | Cumulative text is capital → `refine_permanent_profile` |
+| “Foreign?” re-asked every sweep | Country/remote structure → `jobs/geo.py` |
+| ATS kind re-guessed each URL | Host markers → `portals/detect.py` |
+| PII almost committed | Commit path lacks a gate → `ops/pii_guard` |
+| Same NL need returns in Cursor | Conditions noted in `ops symptom` → encoded feature |
 
 ### 3.9 Patterns we deliberately avoid
 
@@ -384,12 +384,13 @@ When adding a portal or job board:
 
 When the user vibecodes recurring natural language (draft text, classify, advise):
 
-1. Treat the chat as System 2 discovery; when it *returns*, it is a symptom / latent
-   requirement still on client tokens.
-2. Capture securely: `jobbot ops symptom note "…" --area … --rule "…"` (redacted, local).
-3. Name a falsifiable rule; promote a function (`ops/compile` steps).
-4. Use `run_optional_llm` when prose needs a model; facts via `FACTS_ONLY_RULES`.
-5. Ship a failing-first unit test; `symptom triage --status resolved --feature …`.
+1. Treat chat as appearance (System 2); when it *returns*, it is a symptom — still on
+   client tokens — **not** a ticket to satisfy.
+2. Analyze the conditions of possibility of that need-for-a-need.
+3. Capture securely: `jobbot ops symptom note "…" --area … --rule "…"` (`--rule` =
+   structural condition).
+4. Encode those conditions (`ops/compile` steps); optional `run_optional_llm` inside.
+5. Failing-first test; `symptom triage --status resolved --feature …`.
 6. Next time: call the feature; do not re-derive in Cursor.
 
 ## 8. Related documents

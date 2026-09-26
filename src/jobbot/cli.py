@@ -82,12 +82,12 @@ companies_app = typer.Typer(
     no_args_is_help=True,
 )
 ops_app = typer.Typer(
-    help="Local ops: failures, latent symptoms, loops (no telemetry)",
+    help="Local ops: failures, symptoms (appearances), loops (no telemetry)",
     no_args_is_help=True,
 )
 ops_failure_app = typer.Typer(help="Inspect / triage stored failures", no_args_is_help=True)
 ops_symptom_app = typer.Typer(
-    help="Latent requirements from vibecode repetition (local, redacted)",
+    help="Symptoms: returning vibecode appearances (local, redacted; not a backlog)",
     no_args_is_help=True,
 )
 
@@ -2736,7 +2736,7 @@ def ops_failure_issue(
 def ops_symptom_note(
     intent: Annotated[
         str,
-        typer.Argument(help="What keeps returning in vibecode (will be redacted)"),
+        typer.Argument(help="Appearance that returns in vibecode (redacted at write)"),
     ],
     area: Annotated[
         str,
@@ -2748,10 +2748,13 @@ def ops_symptom_note(
     ] = None,
     rule: Annotated[
         str,
-        typer.Option("--rule", help="Falsifiable rule hypothesis (redacted)"),
+        typer.Option(
+            "--rule",
+            help="Condition of possibility (structural, falsifiable; not a wish)",
+        ),
     ] = "",
 ) -> None:
-    """Capture a latent requirement. Same fingerprint increments sightings."""
+    """Note a returning appearance. Same fingerprint increments sightings."""
     from jobbot.ops.symptoms import note_symptom
 
     session, config = _session()
@@ -2786,7 +2789,7 @@ def ops_symptom_list(
     ] = None,
     limit: Annotated[int, typer.Option("--limit", min=1, max=200)] = 50,
 ) -> None:
-    """List latent requirements (symptoms), newest first."""
+    """List symptoms (returning appearances), newest first."""
     from jobbot.ops.symptoms import list_symptoms
 
     session, _ = _session()
@@ -2794,7 +2797,7 @@ def ops_symptom_list(
     if not rows:
         console.print("No symptoms stored.")
         raise typer.Exit(SUCCESS)
-    table = Table(title="ops symptoms (latent requirements)")
+    table = Table(title="ops symptoms (appearances that return)")
     table.add_column("id")
     table.add_column("area")
     table.add_column("n")
@@ -2821,8 +2824,8 @@ def ops_symptom_show(
         Panel(
             f"area={record.area}\nsightings={record.sightings}\nstatus={record.status}\n"
             f"fingerprint={record.fingerprint}\n\n"
-            f"title: {record.title}\n\nintent:\n{record.intent}\n\n"
-            f"rule:\n{record.rule_hypothesis or '(none yet)'}\n\n"
+            f"title: {record.title}\n\nappearance:\n{record.intent}\n\n"
+            f"condition of possibility:\n{record.rule_hypothesis or '(none yet)'}\n\n"
             f"feature: {record.feature_path or '(none)'}\n"
             f"issue: {record.issue_url or '(none)'}",
             title=record.id,
@@ -2837,7 +2840,7 @@ def ops_symptom_show(
 def ops_symptom_plan(
     symptom_id: Annotated[str, typer.Argument(help="Symptom id, e.g. S0001")],
 ) -> None:
-    """Print the System 2 → System 1 compression plan (does not write code)."""
+    """Print conditions-of-possibility → System 1 plan (does not write code)."""
     from jobbot.ops.symptoms import get_symptom, promote_plan
 
     session, _ = _session()
@@ -2845,7 +2848,7 @@ def ops_symptom_plan(
     if record is None:
         err_console.print(f"[red]Unknown symptom {symptom_id}[/red]")
         raise typer.Exit(GENERIC_FAILURE)
-    console.print(Panel(promote_plan(record), title="compress to System 1"))
+    console.print(Panel(promote_plan(record), title="phenomenology → System 1"))
 
 
 @ops_symptom_app.command("triage")
@@ -2857,10 +2860,10 @@ def ops_symptom_triage(
     ],
     feature: Annotated[
         str | None,
-        typer.Option("--feature", help="Path of the compressed feature module"),
+        typer.Option("--feature", help="Path where conditions were encoded"),
     ] = None,
 ) -> None:
-    """Update symptom status after review / compression."""
+    """Update symptom status after conditions are encoded (or declined)."""
     from jobbot.ops.symptoms import mark_symptom_status
 
     session, _ = _session()
@@ -2886,7 +2889,7 @@ def ops_symptom_issue(
         typer.Option("--yes", "-y", help="Skip confirmation"),
     ] = False,
 ) -> None:
-    """Create a GitHub issue from a redacted symptom (HITL; uses gh). Never auto."""
+    """HITL GitHub issue from a redacted symptom (conditions, not a wish ticket). Never auto."""
     import subprocess
 
     from jobbot.ops.symptoms import get_symptom, issue_body, issue_title, mark_symptom_status

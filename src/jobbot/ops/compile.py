@@ -1,37 +1,38 @@
-"""Knowledge compilation — vibecode (slow) → feature (fast).
+"""Knowledge compilation — phenomenology of software → System 1.
 
-Maps Kahneman's *Thinking, Fast and Slow* onto JobBot engineering:
+Not classical requirements (“satisfy the need”). We analyze the
+**conditions of possibility** of the *need for a need*:
 
-- **System 2 / vibecode:** Cursor chat, exploratory judgment, high compute.
-  Allowed for discovery. The transcript is a lab notebook.
-- **Symptom / latent requirement:** The same judgment *returns* (Lacanian:
-  what repeats). Still paid entirely with client tokens until compressed.
-- **System 1 / feature:** A callable (+ test, optional CLI) that runs the
-  discovered rule cheaply. This is the compression target.
+- **System 2 / vibecode:** the need *appears* (high client-token cost).
+- **Symptom:** the same appearance *returns* (Lacanian: what repeats).
+- **Conditions of possibility:** structural answer to why that need-for-a-need
+  can arise — falsifiable, not a wish-list item.
+- **System 1 / feature:** those conditions encoded as a cheap callable.
 
-Capture symptoms locally and redacted via ``jobbot ops symptom note``
-(``ops/symptoms.py``). Never store raw chat or PII. Then compress:
-
-1. Name a falsifiable rule (one sentence a unit test can break).
-2. Implement deterministic heuristics first.
-3. If prose still needs a model, wrap with ``jobbot.nlp.gateway.run_optional_llm``.
-4. Next NL request calls the feature — it does not replay System 2.
+Capture appearances locally and redacted via ``jobbot ops symptom note``.
+``--rule`` names the structural condition, not the product desire.
 
 See ``docs/software-design.md`` §3.8 and ``AGENTS.md`` Design economics.
 """
 
 from __future__ import annotations
 
-# One-line contract for greppability and agent checklists.
 COMPRESS_CONTRACT = (
-    "vibecode discovers (System 2) → symptom marks the return → "
-    "feature executes (System 1, forever); "
-    "never unpaid System 2 replay"
+    "appearance (System 2) → symptom marks the return → "
+    "analyze conditions of possibility of the need-for-a-need → "
+    "encode as feature (System 1); never unpaid System 2 replay; "
+    "never confuse compression with satisfying a requirement ticket"
+)
+
+PHENOMENOLOGY_CONTRACT = (
+    "we do not satisfy needs via requirements; "
+    "we analyze the conditions of possibility of the need for a need"
 )
 
 PROMOTION_STEPS: tuple[str, ...] = (
     "capture_symptom_redacted_locally",
-    "name_falsifiable_rule",
+    "analyze_conditions_of_possibility",
+    "name_falsifiable_structural_rule",
     "implement_deterministic",
     "optional_llm_inside_via_gateway",
     "test_first_then_cli_if_human",

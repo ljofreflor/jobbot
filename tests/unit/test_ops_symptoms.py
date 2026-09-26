@@ -87,10 +87,12 @@ def test_promote_plan_includes_promotion_steps(tmp_path: Path) -> None:
         session,
         intent="cover letter still drafted only in Cursor chat",
         area="nlp",
-        rule_hypothesis="cover letter from profile+JD with HITL",
+        rule_hypothesis="prose reconstitutes when prepare has no grounded draft path",
     )
     plan = promote_plan(record)
     assert record.id in plan
+    assert "conditions of possibility" in plan.casefold()
+    assert "wish-list" in plan or "requirement" in plan.casefold()
     assert "capture_symptom_redacted_locally" in PROMOTION_STEPS
     for step in PROMOTION_STEPS:
         assert step in plan

@@ -21,10 +21,10 @@ matching, adapted CVs, and assisted applications. **No web UI** — everything r
 are views or adapters. Facts are never invented to fit a job posting.
 
 Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
-Natural-language work follows *Thinking, Fast and Slow*: vibecode discovers
-(System 2); when the need returns it is a **symptom** / latent requirement still
-on client tokens — capture it redacted with `jobbot ops symptom note`, then
-compress into a System 1 feature (`nlp/gateway`, `ops/compile`). See
+Phenomenology of software (not classical requirements): vibecode makes a need
+*appear* (System 2); when it returns it is a **symptom** — analyze the
+**conditions of possibility** of that need-for-a-need, capture them redacted
+(`jobbot ops symptom note --rule …`), encode as System 1. See
 [docs/software-design.md](docs/software-design.md) §3.8 and [AGENTS.md](AGENTS.md).
 
 ## Status

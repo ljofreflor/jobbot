@@ -2,9 +2,10 @@
 
 Instructions for AI agents and humans working on this repository.
 
-Engineering map (patterns, DB, stack, NL compression):
+Engineering map (patterns, DB, stack, phenomenology → System 1):
 [docs/software-design.md](docs/software-design.md). Design economics below is the
-binding rule: vibecode discovers (System 2); features execute (System 1).
+binding rule: we analyze conditions of possibility of the need-for-a-need; we do
+not satisfy requirements tickets.
 
 ## Product / endgame
 
@@ -286,37 +287,49 @@ library, what we keep ours and why, and which migrations are open issues. Add a 
 decide either way. Dependencies must be light, pure-python and offline — no downloadable models,
 no service that phones home.
 
-## Design economics (pensar despacio una vez → pensar rápido siempre)
+## Design economics (fenomenología del software → pensar rápido)
 
-Kahneman's *Thinking, Fast and Slow* mapped onto this repo:
+We do **not** do classical requirements engineering (“user need → ticket → satisfy it”).
+We answer the **phenomenology of the software**: when a need appears in vibecode, we ask
+what made that *need for a need* possible — and we compress those **conditions of
+possibility** into cheap System 1 code so the expensive appearance does not keep
+reconstituting on client tokens.
+
+Kahneman + symptom (what returns) + phenomenology:
 
 | Mode | What it is here | Cost |
 | --- | --- | --- |
-| **System 2 / vibecode** | Cursor chat, exploratory judgment, discovering a rule the hard way | High compute (client tokens) |
-| **Symptom / latent requirement** | The same judgment *returns* (what repeats). Still System 2 until compressed | Still client tokens |
-| **System 1 / feature** | Function + test (+ CLI if a human runs it) that executes that rule | Cheap forever |
+| **System 2 / vibecode** | Cursor chat: the need *appears* (exploration, judgment) | High (client tokens) |
+| **Symptom** | The same appearance *returns* — not yet a spec to fulfill | Still client tokens |
+| **Conditions of possibility** | Why/how this need-for-a-need can arise (structure, not wish-list) | Analysis (once) |
+| **System 1 / feature** | Code that encodes those conditions; call-site is cheap | Cheap forever |
 
-**Vibecode is expected.** You will keep exploring in chat. That transcript is a lab
-notebook — not the runtime. When the same need returns, it is no longer exploration: it is
-a **latent requirement** (Lacanian: a *symptom* — what keeps coming back). While it lives
-only in Cursor, every recurrence is unpaid System 2 on the client's tokens.
-
-The engineering obligation is to **capture that symptom securely** and **compress** it into
-a System 1 feature so the next agent (or you) never pays the expensive path again.
+**Vibecode is expected.** The transcript is a lab notebook for appearances — not the
+runtime, and not a backlog of desires to satisfy. When the same appearance returns, it is
+a *symptom* (what keeps coming back). The job is not to “implement the requirement”; it is
+to analyze **under what conditions this need must appear**, capture that analysis
+securely, and compress it so System 2 is not unpaid twice.
 
 ```text
-vibecode (System 2)
-    → symptom returns (latent requirement, still on client tokens)
-    → jobbot ops symptom note "…" --area … --rule "…"   # local, redacted
-    → name / refine falsifiable rule
-    → promote into code (System 1 forever)
+appearance in vibecode (System 2)
+    → returns (symptom) — still on client tokens
+    → analyze conditions of possibility of this need-for-a-need
+    → jobbot ops symptom note "…" --area … --rule "…"   # rule = structural condition
+    → compress those conditions into code (System 1)
     → call the feature; triage symptom resolved
 ```
 
+Example of the shift:
+
+| Wrong (satisfy a need) | Right (conditions of possibility) |
+| --- | --- |
+| “User wants better matching → build better matching” | “A perfect skill overlap can *appear* as a match only if seniority is ignored → gate on seniority” |
+| “User wants cover letters in chat” | “Prose advice reconstitutes whenever package prep has no grounded draft path → `run_optional_llm` inside prepare” |
+
 ### Secure capture (information safety)
 
-Latent requirements often appear next to PII (names, emails, JD pastes, home paths).
-The capture path must not become a second leak:
+Symptoms often appear next to PII (names, emails, JD pastes, home paths). Capture must
+not become a second leak — and must not pretend a redacted note *is* the fulfilled need:
 
 - Store only in local SQLite (`ops_symptoms`) + optional mirror under `output/ops/symptoms/`
   — both **gitignored**; no telemetry.
@@ -324,61 +337,57 @@ The capture path must not become a second leak:
   (`ops/symptoms.sanitize_symptom_text`). Never persist a raw chat transcript.
 - Fingerprint the sanitized intent so repetitions increment `sightings` instead of
   duplicating rows.
+- `--rule` holds a **falsifiable structural condition** (how the need can appear), not a
+  product wish.
 - GitHub issues only via HITL `jobbot ops symptom issue Sxxxx` with the already-redacted
   body — never auto, never paste Cursor history into the issue.
 
 ```bash
 jobbot ops symptom note "internship posts score 100% for senior profile" \
-  --area matching --rule "seniority must gate perfect skill overlap"
+  --area matching --rule "perfect skill overlap can appear as a match only if seniority is ignored"
 jobbot ops symptom list
-jobbot ops symptom plan S0001          # compression checklist
+jobbot ops symptom plan S0001          # phenomenology → compression checklist
 jobbot ops symptom triage S0001 --status compressing
-# … implement feature + tests …
+# … encode conditions in feature + tests …
 jobbot ops symptom triage S0001 --status resolved --feature src/jobbot/matching/…
 ```
 
 A model can answer many questions here without writing a file: read a posting, judge a
 match, extract an address. That answer is expensive, unverifiable and gone at the end of
-the chat. The same work as a function is cheap forever and can be tested. So work that
-repeats gets **promoted** into code, and after that it gets **called**, not re-derived.
+the chat. Encoding the *conditions* of that judgment as a function is cheap forever and
+can be tested. So recurring appearances get **compressed** into code, and after that the
+feature gets **called**, not re-derived — and not “satisfied” as a ticket.
 
-The practice is not ours: it is the rule of three (extract at the third duplication) plus
-knowledge compilation (costly deliberate reasoning becomes an automatic procedure), and in
-agent terms the split between making a tool once and using it many times. Contract constants
-live in [`src/jobbot/ops/compile.py`](src/jobbot/ops/compile.py); capture in
-[`src/jobbot/ops/symptoms.py`](src/jobbot/ops/symptoms.py); the longer design map is
+Contract constants: [`src/jobbot/ops/compile.py`](src/jobbot/ops/compile.py). Capture:
+[`src/jobbot/ops/symptoms.py`](src/jobbot/ops/symptoms.py). Design map:
 [`docs/software-design.md`](docs/software-design.md) §3.8.
 
-**When to promote.** At the third sighting of the same symptom, or the first time if the
-repetition is predictable: a step of the cargo loop, or anything another agent would have to
-re-derive from the same inputs. Do not promote on a hunch — a speculative helper is dead code
-with a test attached, the same waste wearing a convincing costume.
+**When to compress.** At the third sighting of the same symptom, or the first time if the
+return is predictable (cargo loop, or anything another agent would re-derive). Do not
+compress on a hunch — a speculative helper is dead code with a test attached.
 
-**What a promotion must ship.**
+**What a compression must ship.**
 
 - The function in the module that owns the subject, not in `cli.py`.
-- Deterministic heuristics first; if prose still needs a model, wrap with
-  `run_optional_llm` in [`src/jobbot/nlp/gateway.py`](src/jobbot/nlp/gateway.py)
-  (`use_llm` / `--llm`, facts grounded, fallback to heuristics).
+- Deterministic encoding of the conditions first; if prose still needs a model, wrap with
+  `run_optional_llm` in [`src/jobbot/nlp/gateway.py`](src/jobbot/nlp/gateway.py).
 - A CLI entry only if a human will run it.
-- A test that fails first (see above). Untested code is not a promotion, it is a draft.
-- Symptom triage → `resolved` with `--feature` path when the compression lands.
+- A test that fails first. Untested code is not compression, it is a draft.
+- Symptom triage → `resolved` with `--feature` path when the conditions live in code.
 - Its line in [docs/capabilities.md](docs/capabilities.md) when that index exists on the
-  branch (`make capabilities` regenerates it; a stale index fails the suite on branches
-  that enforce it).
+  branch.
 
 **What to call instead of re-deriving.**
 
-- `jobbot ops symptom list` — see which latent requirements are still on client tokens.
+- `jobbot ops symptom list` — appearances still reconstituting on client tokens.
 - Read [docs/capabilities.md](docs/capabilities.md) before searching the tree when present.
 - Read [docs/library-audit.md](docs/library-audit.md) before hand-rolling something generic.
 - Read [docs/software-design.md](docs/software-design.md) for patterns, SQLite layout, stack.
-- Run `uv run jobbot …` instead of reasoning out an answer the CLI already prints, and read
-  the command's output instead of pasting whole files into context.
+- Run `uv run jobbot …` instead of reasoning out an answer the CLI already prints.
 
 This is not only about tokens. The deterministic path is the auditable one: never inventing
-experience, and stopping for HITL, are guarantees that live in code and its tests — not in the
-memory of a conversation.
+experience, and stopping for HITL, are guarantees that live in code and its tests — not in
+the memory of a conversation, and not in a fulfilled wish-list.
 
 ## Planning (before a plan or feature branch)
 

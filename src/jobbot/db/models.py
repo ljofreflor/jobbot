@@ -88,7 +88,7 @@ class OpsFailureRow(Base):
 
 
 class OpsSymptomRow(Base):
-    """Latent requirements from vibecode repetition (local only; redacted; no telemetry)."""
+    """Returning vibecode appearances (local; redacted; conditions of possibility, not tickets)."""
 
     __tablename__ = "ops_symptoms"
 
