@@ -939,6 +939,10 @@ def profile_suggest_from_market(
         int,
         typer.Option("--min-count", help="Min JD occurrences for a market term"),
     ] = 2,
+    job_id: Annotated[
+        str | None,
+        typer.Option("--job", help="Limit market read to one stored job (Jxxxx)"),
+    ] = None,
     ask: Annotated[
         bool,
         typer.Option(
@@ -971,13 +975,24 @@ def profile_suggest_from_market(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
-    jobs = JobRepository(session).list_all()
+    repo = JobRepository(session)
+    if job_id:
+        job = repo.get(job_id)
+        if job is None:
+            err_console.print(f"[red]Job not found: {job_id}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        jobs = [job]
+        # One posting: a single occurrence is enough to surface the term.
+        min_count = min(min_count, 1)
+    else:
+        jobs = repo.list_all()
     if not jobs:
         console.print("No stored jobs. Run jobs search or linkedin sweep first.")
         raise typer.Exit(SUCCESS)
 
     narrator = _narrator()
-    narrator.phase(Phase.RECEIVING_WORLD, f"{len(jobs)} job descriptions", may_ask=ask)
+    scope = f"job {jobs[0].id}" if job_id else f"{len(jobs)} job descriptions"
+    narrator.phase(Phase.RECEIVING_WORLD, scope, may_ask=ask)
     suggestion = suggest_from_market(candidate, jobs, min_count=min_count)
     out = config.output_dir / "profile_market_suggestion.md"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -1163,6 +1178,10 @@ def cv_advise(
         bool,
         typer.Option("--apply", help="Confirm each suggestion and write it to profile.yaml"),
     ] = False,
+    job_id: Annotated[
+        str | None,
+        typer.Option("--job", help="Scope suggestions to one stored job (Jxxxx)"),
+    ] = None,
     axis: Annotated[
         str | None,
         typer.Option("--axis", help="machine | language | layout (default: all three)"),
@@ -1192,6 +1211,7 @@ def cv_advise(
         record_decision,
         render_advice_markdown,
     )
+    from jobbot.cv.tune import backup_profile, char_delta_label, prompt_advice_decision
     from jobbot.portals.form_learn import default_form_knowledge_path, load_form_knowledge
     from jobbot.recruiters.playbook import advisor_notes
 
@@ -1202,22 +1222,31 @@ def cv_advise(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
-    jobs = JobRepository(session).list_all()
+    repo = JobRepository(session)
+    if job_id:
+        job = repo.get(job_id)
+        if job is None:
+            err_console.print(f"[red]Job not found: {job_id}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        jobs = [job]
+    else:
+        jobs = repo.list_all()
     forms = load_form_knowledge(default_form_knowledge_path(config.root))
     notes = advisor_notes(config.root)
     log_path = default_advice_log_path(config.output_dir)
 
     narrator = _narrator()
+    scope = f"job {jobs[0].id}" if job_id and jobs else f"{len(jobs)} JD"
     narrator.phase(
         Phase.RECEIVING_WORLD,
-        f"{len(jobs)} JD · {len(forms)} formulario(s) · {len(notes)} práctica(s)",
+        f"{scope} · {len(forms)} formulario(s) · {len(notes)} práctica(s)",
     )
     suggestions = advise(
         candidate,
         jobs=jobs,
         forms=forms,
         playbook=notes,
-        limit=max(1, limit),
+        limit=max(1, min(limit, 5)),
         log_path=log_path,
     )
     if axis:
@@ -1250,6 +1279,7 @@ def cv_advise(
             body.append(f"\nnow:      {item.before}")
         if item.is_rewrite:
             body.append(f"proposed: {item.after}")
+            body.append(f"delta:    {char_delta_label(item.before, item.after)}")
         console.print(Panel("\n".join(body), title=f"{item.axis.value} · {item.id}"))
     console.print(f"[green]Wrote[/green] {out}")
 
@@ -1269,7 +1299,12 @@ def cv_advise(
         console.print(f"\n[bold]{item.what}[/bold]")
         console.print(f"  now:      {item.before}")
         console.print(f"  proposed: {item.after}")
-        if not typer.confirm("Take this wording?", default=False):
+        console.print(f"  delta:    {char_delta_label(item.before, item.after)}")
+        decision = prompt_advice_decision(prompt=lambda msg: typer.prompt(msg, default="N"))
+        if decision == "skip_all":
+            console.print("Stopped — remaining suggestions left untouched.")
+            break
+        if decision != "yes":
             record_decision(log_path, item, "rejected")
             continue
         if apply_advice(raw, item):
@@ -1281,8 +1316,7 @@ def cv_advise(
     if not applied:
         console.print("Nothing written.")
         return
-    backup = config.profile_path.with_suffix(config.profile_path.suffix + ".bak")
-    shutil.copy2(config.profile_path, backup)
+    backup = backup_profile(config.profile_path)
     config.profile_path.write_text(
         yaml.safe_dump(raw, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
@@ -1290,6 +1324,72 @@ def cv_advise(
     console.print(f"Backup: {backup}")
     console.print(f"[green]Applied[/green] {applied} rewording(s) → {config.profile_path}")
     console.print("Next: [bold]jobbot cv build[/bold] then [bold]jobbot cv propagate[/bold]")
+
+
+@cv_app.command("tune-for")
+def cv_tune_for(
+    ref: Annotated[
+        str,
+        typer.Argument(help="Stored job id (Jxxxx) or a hard-link URL to ingest first"),
+    ],
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Confirm each suggestion and write profile.yaml"),
+    ] = False,
+    limit: Annotated[
+        int,
+        typer.Option("--limit", help="Max suggestions this posting may make (cap 5)"),
+    ] = 3,
+) -> None:
+    """Bounded baseline improvement from one posting (~5% delta; #54).
+
+    Stores the URL if needed, then runs density/clarity advise scoped to that job.
+    Never invents; never deletes facts. HITL before any write.
+    """
+    from jobbot.cv.tune import resolve_tune_ref
+
+    try:
+        kind, value = resolve_tune_ref(ref)
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    session, config = _session()
+    job_id = value
+    if kind == "url":
+        try:
+            candidate = load_profile(config.profile_path)
+        except ProfileLoadError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        from jobbot.jobs.from_url import ingest_hard_link
+
+        try:
+            result = ingest_hard_link(
+                config,
+                session,
+                value,
+                candidate=candidate,
+                build=False,
+                prepare=False,
+            )
+        except Exception as exc:  # noqa: BLE001 — surface ingest refusal to the user
+            err_console.print(f"[red]Could not ingest URL:[/red] {exc}")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        job_id = result.job.id
+        console.print(f"[green]Stored[/green] {job_id} from hard link")
+
+    # Reuse advise with the same HITL path; scope via --job.
+    cv_advise(
+        limit=max(1, min(limit, 5)),
+        apply_changes=apply_changes,
+        job_id=job_id,
+        axis=None,
+        llm=False,
+        llm_deep=False,
+        max_llm_calls=3,
+        dry_run=False,
+    )
 
 
 def _reword_with_llm(

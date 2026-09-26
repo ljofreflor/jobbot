@@ -73,6 +73,8 @@ jobbot jobs match J0001
 jobbot jobs shortlist
 jobbot cv build --job J0001
 jobbot cv advise # mejoras de presentación (determinista; --apply confirma una por una)
+jobbot cv advise --job J0001 # scope a un aviso
+jobbot cv tune-for J0001 # ~5% baseline desde un aviso (#54); --apply HITL
 jobbot cv sync # presencia: permanentes + companies active (#43); --apply HITL por destino
 jobbot status # CVs/perfiles + active company portals (evidencia local; alias: cv status)
 jobbot application prepare J0001
@@ -80,6 +82,7 @@ jobbot application open J0001          # opens ATS/job URL; no auto-submit
 jobbot application apply J0001         # dry-run prefill plan
 jobbot application apply J0001 --apply # open ATS + prefill sheet (you submit)
 jobbot profile suggest-from-market     # market language (no stdin; --ask for gaps)
+jobbot profile suggest-from-market --job J0001
 ```
 
 Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
@@ -187,11 +190,16 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
 - **Asesor de presentación:** `cv advise` propone **pocas** mejoras por corrida en tres ejes
   (legibilidad de máquina, lenguaje, puesta en página) usando JD guardados, formularios observados y
-  prácticas de reclutamiento que promoviste. Dos invariantes se **verifican**, no se prometen: una
+  prácticas de reclutamiento que promoviste. El eje de lenguaje empuja **densidad y claridad**
+  (mismo hecho, menos palabras); el gate rechaza floritura (texto más largo sin término de mercado
+  respaldado, o solo intensificadores). Dos invariantes se **verifican**, no se prometen: una
   sugerencia no puede afirmar nada que el perfil no respalde (reusa el detector de invención de
   `nlp/refine.py`) ni perder una cifra o un nombre propio del texto actual; lo que falla se descarta
-  antes de mostrarse. `--apply` confirma una por una y respalda `profile.yaml`; la bitácora
-  (`output/cv/advice_log.yaml`) evita repetir lo que ya rechazaste.
+  antes de mostrarse. `--job Jxxxx` limita el alcance a un aviso; `cv tune-for` (#54) ingiere un
+  hard link si hace falta y corre el mismo advise acotado (presupuesto 3, tope 5). `--apply`
+  confirma una por una (default N, `skip-all` corta) y respalda `profile.yaml` con
+  `profile.yaml.bak.<stamp>`; la bitácora (`output/cv/advice_log.yaml`) evita repetir lo que ya
+  rechazaste.
 - **Economía de tokens:** el nivel determinista es el default y no contacta a nadie. `--llm` manda
   **una línea**, nunca el CV completo, con el contacto redactado del prompt; `--llm-deep` solo entra
   si el nivel barato no produjo algo válido. Caché por hash de contenido más modelo, presupuesto por
@@ -409,7 +417,10 @@ uv run jobbot status                       # permanentes + active company portal
 # Signup fill beyond the sheet: issue #44
 uv run jobbot companies signup NOMBRE --apply [--cdp URL]  # fill known fields; HITL create
 uv run jobbot cv advise                    # determinista, sin tokens
+uv run jobbot cv advise --job J0001        # scope a un aviso
 uv run jobbot cv advise --apply            # confirma una por una → profile.yaml (con backup)
+uv run jobbot cv tune-for J0001            # ~5% baseline desde un aviso (#54)
+uv run jobbot cv tune-for 'https://…' --apply
 uv run jobbot cv advise --llm --dry-run    # qué se enviaría y cuánto, sin gastar
 uv run jobbot cv advise --llm --max-llm-calls 3
 uv run jobbot jobs add --file tests/fixtures/jobs/senior_ds_retail.txt
