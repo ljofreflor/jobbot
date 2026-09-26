@@ -1508,8 +1508,10 @@ def cv_sync(
         console.print(
             "Dry-run. Re-run with [bold]--apply[/bold] to write permanent destinations "
             "and handle active company portals one by one (HITL). "
-            "Needs-account rows show the signup sheet (#44); fill rows open the career "
-            "URL and type only profile facts — you submit. A yes is not a receipt."
+            "Needs-account without local evidence → signup fill (#44); "
+            "with account evidence → login only (#56); "
+            "fill rows open the career URL and type only profile facts — you submit. "
+            "A yes is not a receipt."
         )
         raise typer.Exit(SUCCESS)
 
@@ -1535,29 +1537,41 @@ def _apply_company_sync_rows(
     yes: bool,
 ) -> None:
     from jobbot.adapters.getonboard.cv_upload import resolve_base_cv
-    from jobbot.cv.company_apply import company_apply_intent
+    from jobbot.cv.company_apply import company_apply_intent, has_receipt_for
     from jobbot.cv.sync import CompanySyncRow
 
     for row in rows:
         assert isinstance(row, CompanySyncRow)
-        intent = company_apply_intent(row, candidate, cv_path=resolve_base_cv(config.output_dir))
+        evidenced = row.session_evidenced or has_receipt_for(config.output_dir, row.url)
+        intent = company_apply_intent(
+            row,
+            candidate,
+            cv_path=resolve_base_cv(config.output_dir),
+            has_account_evidence=evidenced,
+        )
         if intent.mode == "skip":
             console.print(f"{row.company_name}: skipped — {intent.note}")
             continue
-        if intent.mode == "signup_sheet":
+        if intent.mode == "login":
             if not yes and not typer.confirm(
-                f"Show signup sheet for {row.company_name} (no account created)?",
-                default=True,
+                f"Open login for {row.company_name}? (you type the password)",
+                default=False,
             ):
                 console.print(f"{row.company_name}: skipped.")
                 continue
-            _print_company_signup_sheet(intent)
+            _run_company_fill(intent, config=config, candidate=candidate, cdp=cdp)
             continue
-        if not yes and not typer.confirm(
-            f"Open {row.company_name} career site and fill known profile fields "
-            "(you submit; a yes is not a receipt)?",
-            default=False,
-        ):
+        if intent.mode == "signup_fill":
+            prompt = (
+                f"Fill known signup fields for {row.company_name} "
+                "(password/terms/create stay with you; gaps become learned issues)?"
+            )
+        else:
+            prompt = (
+                f"Open {row.company_name} career site and fill known profile fields "
+                "(you submit; a yes is not a receipt)?"
+            )
+        if not yes and not typer.confirm(prompt, default=False):
             console.print(f"{row.company_name}: skipped.")
             continue
         _run_company_fill(intent, config=config, candidate=candidate, cdp=cdp)
@@ -1591,28 +1605,79 @@ def _run_company_fill(
     config: JobbotConfig,
     candidate: Candidate,
     cdp: str | None,
+    ats: str = "unknown",
+    open_gap_issue: bool = False,
+    yes: bool = False,
 ) -> None:
     from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.browser.session import BrowserSession
-    from jobbot.cv.company_apply import perform_company_apply
+    from jobbot.cv.company_apply import MissingAdaptedCvError, perform_company_apply
+    from jobbot.portals.field_gap_issue import create_field_gap_issue
+    from jobbot.portals.form_learn import (
+        default_form_knowledge_path,
+        load_form_knowledge,
+        save_form_knowledge,
+        upsert_form,
+    )
 
     cdp_url = resolve_cdp_url(cdp)
-    with BrowserSession(
-        profile_dir=config.root / "browser-data" / "companies-sync-cdp",
-        headless=False,
-        cdp_url=cdp_url,
-        debug_root=config.output_dir / "debug",
-    ) as browser:
-        result = perform_company_apply(
-            intent,
-            candidate,
-            page=browser.page,
-            output_dir=config.output_dir,
+    try:
+        with BrowserSession(
+            profile_dir=config.root / "browser-data" / "companies-sync-cdp",
+            headless=False,
+            cdp_url=cdp_url,
+            debug_root=config.output_dir / "debug",
+        ) as browser:
+            result = perform_company_apply(
+                intent,
+                candidate,
+                page=browser.page,
+                output_dir=config.output_dir,
+                ats=ats,
+            )
+    except MissingAdaptedCvError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    if intent.mode == "login":
+        console.print(
+            f"[green]Opened login[/green] {intent.url} — type the password yourself."
         )
+        return
+
     console.print(
         f"[green]Opened[/green] {intent.url} · filled {len(result.filled)} field(s)"
         + (" · CV attached" if result.attached else "")
     )
+    assert result.submitted is False
+    if result.form is not None and result.form.readable:
+        path = default_form_knowledge_path(config.root)
+        forms = upsert_form(load_form_knowledge(path), result.form)
+        save_form_knowledge(forms, path)
+        console.print(f"Learned form → {path}")
+    if result.gap_labels or result.new_fields:
+        console.print(
+            f"[cyan]Learned {len(result.gap_labels) + len(result.new_fields)} gap(s)[/cyan] "
+            "— not invented. Resolve via GitHub issue (HITL)."
+        )
+        for label in result.gap_labels:
+            console.print(f"  • {label}")
+    if result.gap_issue is not None:
+        console.print(
+            Panel(
+                f"{result.gap_issue.title}\n\n{result.gap_issue.body}",
+                title="field gap issue",
+            )
+        )
+        if open_gap_issue:
+            if yes or typer.confirm("Create GitHub issue with gh?", default=False):
+                try:
+                    url = create_field_gap_issue(result.gap_issue)
+                    console.print(f"[green]Created[/green] {url or '(see gh output)'}")
+                except RuntimeError as exc:
+                    err_console.print(f"[red]gh failed:[/red] {exc}")
+            else:
+                console.print("Issue not created (draft above still stands).")
     if result.receipt_path is not None:
         console.print(f"Page receipt: {result.receipt_path}")
     else:
@@ -3965,7 +4030,7 @@ def companies_signup(
         bool,
         typer.Option(
             "--apply",
-            help="Fill known fields from profile.yaml (stops before password/terms/submit)",
+            help="Fill known fields / open login (stops before password/terms/submit)",
         ),
     ] = False,
     cdp: Annotated[
@@ -3976,19 +4041,41 @@ def companies_signup(
         bool,
         typer.Option("--yes", "-y", help="Skip the fill confirmation (with --apply)"),
     ] = False,
+    job_id: Annotated[
+        str | None,
+        typer.Option(
+            "--job",
+            help="Attach job-adapted CV (output/jobs/Jxxxx/cv.pdf); chat-first build, no API key",
+        ),
+    ] = None,
+    issue_gaps: Annotated[
+        bool,
+        typer.Option(
+            "--issue-gaps/--no-issue-gaps",
+            help="With --apply, open a GitHub issue for unanswered/new fields (HITL)",
+        ),
+    ] = False,
 ) -> None:
-    """Sheet of what registering asks; --apply fills known fields (HITL create).
+    """Sheet of what registering asks; --apply fills or opens login (HITL create).
 
-    With --apply, fills fields profile.yaml already answers and may attach the built
-    CV. Stops before password, terms, CAPTCHA/2FA, and final create/submit.
-    Never creates the account.
+    Account evidence (page receipt) → login only. Otherwise signup fill from
+    profile.yaml + optional job-adapted CV. Unanswered fields are learned gaps
+    (issue HITL). Never invents a password or clicks create/submit.
     """
+    from jobbot.adapters.getonboard.cv_upload import resolve_base_cv
+    from jobbot.companies.models import KnowledgeStatus
     from jobbot.companies.signup import (
         AccountNeed,
         screening_to_prepare,
         signup_sheet,
         signup_target,
     )
+    from jobbot.cv.company_apply import (
+        company_apply_intent,
+        has_receipt_for,
+        resolve_job_adapted_cv,
+    )
+    from jobbot.cv.sync import CompanySyncRow
     from jobbot.portals.form_learn import default_form_knowledge_path, load_form_knowledge
 
     config = load_config()
@@ -4018,12 +4105,14 @@ def companies_signup(
         (f for f in forms if f.url.startswith(site.url) or site.url.startswith(f.url)),
         None,
     )
+    evidenced = has_receipt_for(config.output_dir, site.url)
 
     console.print(
         Panel(
             f"[bold]{record.name}[/bold] ({record.id})\n"
             f"{target.url}\n"
-            f"ats: {site.ats.value}   account: {target.need.value}\n\n{target.note}",
+            f"ats: {site.ats.value}   account: {target.need.value}\n"
+            f"local account evidence: {'yes' if evidenced else 'no'}\n\n{target.note}",
             title="Registration (you complete it)",
         )
     )
@@ -4043,15 +4132,70 @@ def companies_signup(
     )
     if target.need is AccountNeed.NOT_NEEDED:
         console.print("You may not need an account at all — check before registering.")
+        if not apply_fill:
+            if open_page:
+                from jobbot.adapters.ats.apply import open_ats_in_browser
+
+                open_ats_in_browser(target.url)
+                console.print(f"Opened {target.url}")
+            return
+
+    if evidenced and not apply_fill:
+        console.print(
+            "[green]Local account evidence found[/green] — use "
+            "[bold]jobbot browser login --apply[/bold] or "
+            "[bold]companies signup … --apply[/bold] to open login only."
+        )
 
     if apply_fill:
-        _companies_signup_apply(
+        cv_path = resolve_base_cv(config.output_dir)
+        if job_id:
+            adapted = resolve_job_adapted_cv(config.output_dir, job_id)
+            if adapted is not None:
+                cv_path = adapted
+            else:
+                console.print(
+                    f"[yellow]No adapted CV at output/jobs/{job_id}/cv.pdf[/yellow] — "
+                    "adapt in Cursor chat, then "
+                    f"[bold]jobbot cv build --job {job_id}[/bold] (chat-first, no API key)."
+                )
+        row = CompanySyncRow(
+            company_id=record.id,
+            company_name=record.name,
+            url=site.url,
+            ats=site.ats,
+            need=target.need,
+            action="needs_account",
+            hint="signup",
+            status=KnowledgeStatus.ACTIVE,
+            session_evidenced=evidenced,
+        )
+        intent = company_apply_intent(
+            row,
+            candidate,
+            cv_path=cv_path,
+            form=form,
+            has_account_evidence=evidenced,
+            job_id=job_id,
+        )
+        console.print(f"\n[bold]Next action:[/bold] {intent.mode} — {intent.note}")
+        if intent.mode == "login":
+            prompt = "Open login now? (you type the password)"
+        else:
+            prompt = (
+                "Fill known profile fields now? (password, terms, CAPTCHA/2FA and create "
+                "stay with you — JobBot does not submit)"
+            )
+        if not yes and not typer.confirm(prompt, default=False):
+            console.print("Skipped. Sheet above still stands.")
+            raise typer.Exit(SUCCESS)
+        _run_company_fill(
+            intent,
             config=config,
             candidate=candidate,
-            target_url=target.url,
-            need=target.need,
-            form=form,
             cdp=cdp,
+            ats=site.ats.value,
+            open_gap_issue=issue_gaps,
             yes=yes,
         )
         return
@@ -4061,74 +4205,6 @@ def companies_signup(
 
         open_ats_in_browser(target.url)
         console.print(f"Opened {target.url}")
-
-
-def _companies_signup_apply(
-    *,
-    config: JobbotConfig,
-    candidate: Candidate,
-    target_url: str,
-    need: Any,
-    form: Any,
-    cdp: str | None,
-    yes: bool,
-) -> None:
-    from jobbot.adapters.ats.signup_fill import build_fill_plan, fill_signup_with_session
-    from jobbot.adapters.getonboard.cv_upload import resolve_base_cv
-    from jobbot.browser.cdp import resolve_cdp_url
-    from jobbot.browser.session import BrowserSession
-
-    cv_path = resolve_base_cv(config.output_dir)
-    plan = build_fill_plan(candidate, target_url, need, form=form, cv_path=cv_path)
-
-    console.print("\n[bold]Fill plan[/bold] (will not create/submit):")
-    fillable = ", ".join(plan.fields_to_fill) if plan.fields_to_fill else "none"
-    console.print(f"  • Will fill: {fillable}")
-    manual = ", ".join(plan.needs_manual[:4])
-    if len(plan.needs_manual) > 4:
-        manual += "…"
-    console.print(f"  • Requires you: {manual}")
-    if plan.can_attach_cv:
-        console.print(f"  • Will attach CV: {plan.cv_path}")
-    else:
-        console.print("  • CV: not attached (build one with [bold]jobbot cv build[/bold])")
-
-    if not yes and not typer.confirm(
-        "Fill known profile fields now? (password, terms, CAPTCHA/2FA and create "
-        "stay with you — JobBot does not submit)",
-        default=False,
-    ):
-        console.print("Skipped fill. Sheet above still stands.")
-        raise typer.Exit(SUCCESS)
-
-    cdp_url = resolve_cdp_url(cdp)
-    with BrowserSession(
-        profile_dir=config.root / "browser-data" / "signup",
-        headless=False,
-        cdp_url=cdp_url,
-        debug_root=config.output_dir / "debug",
-    ) as session:
-        result = fill_signup_with_session(
-            session,
-            target_url,
-            candidate,
-            form=form,
-            cv_path=cv_path,
-            need=need,
-            confirm_submit=False,
-        )
-
-    console.print(
-        f"\n[green]Filled[/green] {len(result.filled_fields)} field(s)"
-        + (" · CV attached" if result.attached else "")
-    )
-    for field in result.filled_fields:
-        console.print(f"  • {field}")
-    console.print(f"[bold]Stopped at:[/bold] {result.stopped_at}")
-    console.print(
-        "[yellow]Complete password, terms, CAPTCHA/2FA and create/submit yourself.[/yellow]"
-    )
-    assert result.submitted is False
 
 
 @companies_app.command("promote")
