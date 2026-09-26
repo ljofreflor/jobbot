@@ -113,5 +113,5 @@ def test_apply_without_confirm_skips_browser_and_does_not_submit(
     assert code == SUCCESS
     assert sessions == []
     assert opened == []
-    assert "fill plan" in out.casefold() or "will fill" in out.casefold()
+    assert "next action" in out.casefold() or "signup_fill" in out.casefold()
     assert "skipped" in out.casefold()

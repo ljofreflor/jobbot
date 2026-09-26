@@ -177,14 +177,20 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el insumo que
   `cv advise` usa para saber qué preguntan realmente las empresas.
 - **Registro de cuenta (asistido, HITL):** el endgame es que un portal *active* de la base
-  colaborativa pueda quedar con cuenta + perfil/CV al día para este candidato. Hoy
-  `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`.
-  Con `--apply` rellena campos que el perfil ya responde y puede adjuntar el PDF;
-  **prohibido** inventar contraseña, aceptar términos solo, resolver
-  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. El módulo de sheet
-  (`jobbot.companies.signup`) sigue sin cliente HTTP propio (la hoja es pura); el driver
-  de relleno vive en `adapters/ats/signup_fill.py`, detrás de `--apply` + confirm. ATS sin cuenta
-  (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
+  colaborativa pueda quedar con cuenta + perfil/CV al día para este candidato.
+  Ciclo de vida ATS (`jobbot.portals.ats_lifecycle`): conocimiento (`candidate`→`active`…) +
+  cuenta/sesión (`needs_signup` / `needs_login` / `profile_present`) + campos
+  (`gap`→issue HITL). Evidencia local de cuenta (page receipt) → **solo login**
+  (`browser login` / `signup --apply` abre, vos tipás la password). Sin evidencia →
+  signup fill desde `profile.yaml`. Si el form pide CV y pasás `--job Jxxxx`, se adjunta
+  el PDF adaptado (`output/jobs/Jxxxx/cv.pdf`); la adaptación de presentación es
+  **chat-first** (Cursor + `cv build --job`), sin API key. Campos que el perfil no responde
+  se persisten en `form_knowledge` y se cierran abriendo un issue HITL (`--issue-gaps`,
+  assignee `cursoragent`) — nunca se inventan ni se auto-promueven al baseline.
+  **Prohibido** inventar contraseña, aceptar términos solo, resolver CAPTCHA/2FA o pulsar
+  crear/enviar sin confirmación. La hoja (`jobbot.companies.signup`) sigue pura; el fill
+  vive en adapters / `cv.company_apply` detrás de `--apply` + confirm. ATS sin cuenta
+  (Greenhouse, Lever, Ashby) lo declaran; sin evidencia técnica → `unknown`.
 - **Asesor de presentación:** `cv advise` propone **pocas** mejoras por corrida en tres ejes
   (legibilidad de máquina, lenguaje, puesta en página) usando JD guardados, formularios observados y
   prácticas de reclutamiento que promoviste. Dos invariantes se **verifican**, no se prometen: una
