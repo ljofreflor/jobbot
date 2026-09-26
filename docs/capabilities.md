@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 132 modules, 597 public symbols.
+88 commands, 133 modules, 603 public symbols.
 
 ## Commands
 
@@ -37,6 +37,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
+- `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
@@ -196,7 +197,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `cv`
 
-- `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
+- `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `char_delta`, `compress_phrase`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
 - `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `build_job_cv_bundle`
 - `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `write_company_receipt`
@@ -207,6 +208,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
+- `tune.py` — Bounded baseline tune from one job posting (#54). · `resolve_tune_ref`, `char_delta_label`, `prompt_advice_decision`, `backup_profile`
 
 ### `db`
 

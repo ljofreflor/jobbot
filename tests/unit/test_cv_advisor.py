@@ -338,3 +338,142 @@ def test_a_word_glued_to_the_next_one_is_still_caught() -> None:
 
     assert any("yReduje" in what for what in flagged)
     assert any("experienciaClínica" in what for what in flagged)
+
+
+def test_a_shorter_rewrite_that_keeps_facts_is_accepted() -> None:
+    """Density: same numbers and names, fewer words (#54)."""
+    candidate = Candidate.model_validate(nurse_profile_dict())
+    exp = candidate.experience[0]
+    before = (
+        "Coordiné el turno de urgencias con el fin de reducir la espera en 20 minutos "
+        "en el Hospital Central."
+    )
+    after = (
+        "Coordiné el turno de urgencias para reducir la espera en 20 minutos "
+        "en el Hospital Central."
+    )
+
+    reason = validate_advice(
+        Advice(
+            axis=Axis.LANGUAGE,
+            target=Target(
+                kind=TargetKind.ACHIEVEMENT,
+                experience_id=exp.id,
+                achievement_id=exp.achievements[0].id,
+            ),
+            what="same facts, fewer words",
+            before=before,
+            after=after,
+        ),
+        candidate,
+    )
+
+    assert reason is None
+
+
+def test_a_longer_rewrite_without_backed_market_term_is_rejected() -> None:
+    """Lengthening without a market term the profile/JD already backs is fluff."""
+    candidate = Candidate.model_validate(nurse_profile_dict())
+    exp = candidate.experience[0]
+    before = "Coordiné el turno de urgencias con 8 personas."
+    after = (
+        "Coordiné de manera excepcional el turno de urgencias con 8 personas "
+        "en un entorno altamente desafiante."
+    )
+
+    reason = validate_advice(
+        Advice(
+            axis=Axis.LANGUAGE,
+            target=Target(
+                kind=TargetKind.ACHIEVEMENT,
+                experience_id=exp.id,
+                achievement_id=exp.achievements[0].id,
+            ),
+            what="decorate it",
+            before=before,
+            after=after,
+        ),
+        candidate,
+    )
+
+    assert reason is not None
+
+
+def test_intensifier_only_expansion_is_rejected() -> None:
+    candidate = Candidate.model_validate(nurse_profile_dict())
+    exp = candidate.experience[0]
+    before = "Coordiné el turno de urgencias."
+    after = "Coordiné realmente el turno de urgencias de forma altamente efectiva."
+
+    reason = validate_advice(
+        Advice(
+            axis=Axis.LANGUAGE,
+            target=Target(
+                kind=TargetKind.ACHIEVEMENT,
+                experience_id=exp.id,
+                achievement_id=exp.achievements[0].id,
+            ),
+            what="intensify",
+            before=before,
+            after=after,
+        ),
+        candidate,
+    )
+
+    assert reason is not None
+    folded = reason.casefold()
+    assert "fluff" in folded or "intensif" in folded or "longer" in folded
+
+
+def test_compress_redundant_phrases_yields_shorter_advice() -> None:
+    from jobbot.cv.advisor import compress_phrase
+
+    before = "Lideré el proyecto con el fin de mejorar la cobertura en orden de prioridad."
+    after = compress_phrase(before)
+
+    assert after is not None
+    assert len(after) < len(before)
+    assert "con el fin de" not in after.casefold()
+    assert "para" in after.casefold()
+
+
+def test_advise_prefers_shorter_rewrites_first() -> None:
+    raw = nurse_profile_dict()
+    raw["experience"][0]["achievements"][0]["text"] = (
+        "Fui responsable de coordinar el turno con el fin de reducir la espera en 20 minutos."
+    )
+    raw["experience"][0]["achievements"].append(
+        {
+            "id": "nurse-extra-long",
+            "text": (
+                "También fui responsable de documentar los protocolos "
+                "con el fin de estandarizar el turno."
+            ),
+            "tags": [],
+            "metrics": {},
+        }
+    )
+    candidate = Candidate.model_validate(raw)
+
+    advice = advise(candidate, limit=5)
+    rewrites = [a for a in advice if a.is_rewrite]
+    assert rewrites
+    deltas = [len(a.after) - len(a.before) for a in rewrites]
+    assert deltas == sorted(deltas), "shorter (more negative delta) must come first"
+
+
+def test_advise_respects_budget_when_scoped_to_one_job() -> None:
+    candidate = Candidate.model_validate(sample_profile_dict())
+    skill = candidate.skills.all_skills()[0]
+    job = _job(f"Se requiere {skill}. Experiencia en {skill} es clave.", "J0099")
+
+    advice = advise(candidate, jobs=[job], limit=3)
+
+    assert len(advice) <= 3
+
+
+def test_char_delta_reports_how_much_tighter() -> None:
+    from jobbot.cv.advisor import char_delta
+
+    assert char_delta("abcdefghij", "abcd") == -6
+    assert char_delta("hi", "hello") == 3
