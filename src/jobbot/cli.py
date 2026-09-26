@@ -807,6 +807,7 @@ def jobs_search(
     source = IndeedJobSource(config, cdp_url=cdp_url)
     q = JobSearchQuery(query=query, location=location, remote=remote, limit=limit)
 
+
     if cdp_url:
         console.print(f"Using CDP Chrome at [bold]{cdp_url}[/bold]")
     console.print(f"Searching Indeed ({source.base}) for [bold]{query}[/bold]…")
@@ -836,6 +837,62 @@ def jobs_search(
     console.print(table)
     console.print(f"Stored {len(stored)} jobs. Next: [bold]jobbot jobs match {stored[0]}[/bold]")
     console.print("Or: [bold]jobbot jobs shortlist[/bold]")
+
+
+@jobs_app.command("queries")
+def jobs_queries(
+    region: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--region",
+            help="Geo token for the query (repeatable), e.g. Spain, Europe, EMEA, Chile",
+        ),
+    ] = None,
+    remote: Annotated[
+        bool,
+        typer.Option("--remote/--no-remote", help='Include "remote" in the query'),
+    ] = True,
+    ats: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--ats",
+            help="ATS kinds to target (repeatable): ashby, greenhouse, lever",
+        ),
+    ] = None,
+    keyword: Annotated[
+        list[str] | None,
+        typer.Option("--keyword", "-k", help="Extra quoted keyword (repeatable)"),
+    ] = None,
+) -> None:
+    """Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search."""
+    from jobbot.jobs.ats_queries import build_ats_search_queries, format_queries_help
+    from jobbot.portals.detect import AtsKind
+
+    kinds: tuple[AtsKind, ...] | None = None
+    if ats:
+        parsed: list[AtsKind] = []
+        for raw in ats:
+            try:
+                parsed.append(AtsKind(raw.casefold().strip()))
+            except ValueError:
+                err_console.print(
+                    f"[red]Unknown --ats {raw!r}[/red]; use ashby, greenhouse, lever"
+                )
+                raise typer.Exit(VALIDATION_FAILURE) from None
+        kinds = tuple(parsed)
+
+    queries = build_ats_search_queries(
+        kinds=kinds,
+        regions=tuple(region or ()),
+        remote=remote,
+        keywords=tuple(keyword or ()),
+    )
+    if not queries:
+        err_console.print("[red]No queries for the selected ATS kinds[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    console.print(format_queries_help(queries))
+    raise typer.Exit(SUCCESS)
 
 
 @jobs_app.command("show")

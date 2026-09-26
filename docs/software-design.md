@@ -188,6 +188,7 @@ Examples:
 | GoB blurb judged only in chat | Cumulative text is capital → `refine_permanent_profile` |
 | “Foreign?” re-asked every sweep | Country/remote structure → `jobs/geo.py` |
 | ATS kind re-guessed each URL | Host markers → `portals/detect.py` |
+| Viral tip: Google `site:ashby/greenhouse/lever` | Openings appear on ATS hosts before aggregators → `jobs queries` emits dorks; human feeds `--search-results` (JobBot never queries a search engine; no external “ATS rewrite”) |
 | PII almost committed | Commit path lacks a gate → `ops/pii_guard` |
 | Same NL need returns in Cursor | Conditions noted in `ops symptom` → encoded feature |
 

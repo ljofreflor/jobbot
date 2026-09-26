@@ -325,6 +325,7 @@ Example of the shift:
 | --- | --- |
 | “User wants better matching → build better matching” | “A perfect skill overlap can *appear* as a match only if seniority is ignored → gate on seniority” |
 | “User wants cover letters in chat” | “Prose advice reconstitutes whenever package prep has no grounded draft path → `run_optional_llm` inside prepare” |
+| “Add Google dorks / Kickresume from a viral tip” | “Openings can appear on ATS hosts before aggregators → emit `site:` queries (`jobs queries`); human runs search; feed URLs via `--search-results`. Never invent CV facts for an ATS score” |
 
 ### Secure capture (information safety)
 

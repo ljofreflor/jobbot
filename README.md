@@ -35,7 +35,7 @@ Working today:
 
 - Profile validate / import-latex / promote
 - `cv build` base and `--job Jxxxx`
-- `jobs add|show|match|shortlist|note`
+- `jobs add|show|match|shortlist|note|queries` (ATS `site:` query templates; no search-engine calls)
 - `application prepare|show|open` + `applications list`
 - Indeed/LinkedIn: `login|status|inspect|pull|diff`; Indeed `sync --section headline` (dry-run default, `--apply`)
 - Protocols for future portals: `ApplicationPortalAdapter`, `JobSourceAdapter`
