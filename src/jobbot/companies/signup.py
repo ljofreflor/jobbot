@@ -19,6 +19,7 @@ from jobbot.companies.models import CareerSite
 from jobbot.models.candidate import Candidate
 from jobbot.portals.detect import AtsKind
 from jobbot.portals.form_learn import FieldKind, FormKnowledge
+from jobbot.portals.sso import SsoProvider, provider_label
 
 
 class AccountNeed(StrEnum):
@@ -98,8 +99,31 @@ def signup_sheet(
     """
     answers = _profile_answers(candidate)
     if form is not None and form.readable:
-        return [_item_for(field.label, answers) for field in form.fields]
-    return [_item_for(label, answers) for label in _USUAL_FIELDS]
+        items = [_item_for(field.label, answers) for field in form.fields]
+    else:
+        items = [_item_for(label, answers) for label in _USUAL_FIELDS]
+    items.extend(_sso_items(form))
+    return items
+
+
+def _sso_items(form: FormKnowledge | None) -> list[SignupItem]:
+    """Provider buttons are HITL: named so you can click, never started for you."""
+    if form is None or not form.sso_providers:
+        return []
+    items: list[SignupItem] = []
+    for raw in form.sso_providers:
+        try:
+            provider = SsoProvider(raw)
+        except ValueError:
+            continue
+        items.append(
+            SignupItem(
+                label=provider_label(provider),
+                value="",
+                source="portal SSO — you click; JobBot never starts OAuth",
+            )
+        )
+    return items
 
 
 def screening_to_prepare(form: FormKnowledge | None) -> list[str]:

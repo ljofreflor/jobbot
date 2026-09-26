@@ -171,17 +171,21 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   alimenta [#43](https://github.com/ljofreflor/jobbot/issues/43) / [#44](https://github.com/ljofreflor/jobbot/issues/44).
 - **Qué pide un formulario:** `portals form-learn URL --fetch|--fixture PATH` lee un formulario de
   postulación y guarda **solo las preguntas**: etiqueta, tipo, obligatoriedad, opciones de un select
-  y qué archivos acepta. Nunca guarda un valor tipeado, un token oculto ni el teléfono de ejemplo de
-  un placeholder, y no envía nada. `application apply --apply` lo aprende de paso, sin bloquear la
-  postulación si la página no se puede leer (queda como `unknown`, no como formulario vacío).
-  `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el insumo que
-  `cv advise` usa para saber qué preguntan realmente las empresas.
+  y qué archivos acepta. También nombra botones **Sign in with Google/LinkedIn/…** si están en la
+  página (HITL; nunca inicia OAuth). Nunca guarda un valor tipeado, un token oculto ni el teléfono de
+  ejemplo de un placeholder, y no envía nada. `application apply --apply` lo aprende de paso, sin
+  bloquear la postulación si la página no se puede leer (queda como `unknown`, no como formulario
+  vacío). `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el
+  insumo que `cv advise` usa para saber qué preguntan realmente las empresas.
 - **Registro de cuenta (asistido, HITL):** el endgame es que un portal *active* de la base
   colaborativa pueda quedar con cuenta + perfil/CV al día para este candidato. Hoy
   `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`.
   Con `--apply` rellena campos que el perfil ya responde y puede adjuntar el PDF;
   **prohibido** inventar contraseña, aceptar términos solo, resolver
-  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. El módulo de sheet
+  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. Si la página ofrece **Sign in with
+  Google / LinkedIn / Microsoft / Apple**, `form-learn` y la hoja de signup lo **nombran**
+  (`jobbot.portals.sso`); vos clicás el proveedor — JobBot nunca inicia OAuth. Un campo
+  URL de perfil LinkedIn o un enlace de footer no cuentan como SSO. El módulo de sheet
   (`jobbot.companies.signup`) sigue sin cliente HTTP propio (la hoja es pura); el driver
   de relleno vive en `adapters/ats/signup_fill.py`, detrás de `--apply` + confirm. ATS sin cuenta
   (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
