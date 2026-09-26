@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 133 modules, 600 public symbols.
+88 commands, 134 modules, 609 public symbols.
 
 ## Commands
 
