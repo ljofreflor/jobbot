@@ -3504,7 +3504,7 @@ def portals_form_learn(
 
     form = learn_form_html(html, url=url, company=company)
     _print_form_knowledge(form)
-    if save and form.readable:
+    if save and (form.readable or form.sso_providers):
         stored = _store_form_knowledge(config, form)
         console.print(f"Learned (candidate knowledge): {stored}")
     elif save:
@@ -3537,6 +3537,12 @@ def _print_form_knowledge(form: Any) -> None:
     from jobbot.portals.form_learn import FieldKind
 
     console.print(f"[bold]{form.url}[/bold]  ats={form.ats.value}")
+    if form.sso_providers:
+        names = ", ".join(form.sso_providers)
+        console.print(
+            f"Sign in with: {names}  "
+            "[dim](you click; JobBot never starts OAuth)[/dim]"
+        )
     if not form.readable:
         console.print(f"[yellow]{form.evidence}[/yellow]")
         console.print("Tip: open the page, save the HTML, and pass it with --fixture.")

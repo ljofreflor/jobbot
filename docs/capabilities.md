@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 132 modules, 597 public symbols.
+87 commands, 133 modules, 600 public symbols.
 
 ## Commands
 
@@ -273,6 +273,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `follow_redirect_url`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
+- `sso.py` — Identity providers offered on a login or signup page. · `SsoProvider`, `detect_sso_providers`, `provider_label`
 
 ### `portals/detectors`
 

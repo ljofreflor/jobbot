@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Sign In</title></head>
+<body>
+  <h1>Sign In</h1>
+  <p>Use your email or another account.</p>
+  <form action="/wday/auth">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" required>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required>
+    <button type="submit">Sign In</button>
+  </form>
+  <p>Or</p>
+  <button type="button" data-automation-id="googleSignIn">Sign In with Google</button>
+  <a href="https://www.linkedin.com/oauth/v2/authorization?client_id=x">Continue with LinkedIn</a>
+  <footer>
+    <a href="https://www.linkedin.com/company/acme">LinkedIn</a>
+    <a href="https://twitter.com/acme">Twitter</a>
+  </footer>
+</body>
+</html>

@@ -22,6 +22,7 @@ from jobbot.companies.models import KnowledgeStatus, utc_now
 from jobbot.companies.urls import PrivateRouteRejected, canonical_key, public_url
 from jobbot.ops.pii_guard import redact
 from jobbot.portals.detect import AtsKind, detect_ats, detect_ats_in_html
+from jobbot.portals.sso import detect_sso_providers
 
 
 class FieldKind(StrEnum):
@@ -43,7 +44,7 @@ class FieldKind(StrEnum):
 
 # Input types that are page furniture, not a question to the candidate.
 _IGNORED_TYPES: frozenset[str] = frozenset(
-    {"hidden", "submit", "button", "reset", "image", "search"}
+    {"hidden", "submit", "button", "reset", "image", "search", "password"}
 )
 
 _TYPE_KINDS: dict[str, FieldKind] = {
@@ -140,6 +141,7 @@ class FormKnowledge(BaseModel):
     company: str | None = None
     ats: AtsKind = AtsKind.UNKNOWN
     fields: list[FormField] = Field(default_factory=list)
+    sso_providers: list[str] = Field(default_factory=list)
     readable: bool = False
     evidence: str = ""
     observed_at: datetime = Field(default_factory=utc_now)
@@ -172,6 +174,7 @@ def learn_form_html(
     except PrivateRouteRejected:
         stored_url = url
     kind = ats if ats is not None else _ats_of(stored_url, html)
+    sso = [p.value for p in detect_sso_providers(html)]
     soup = BeautifulSoup(html or "", "html.parser")
     form = _application_form(soup)
     if form is None:
@@ -179,6 +182,7 @@ def learn_form_html(
             url=stored_url,
             company=company,
             ats=kind,
+            sso_providers=sso,
             readable=False,
             evidence=(
                 "unknown: no application form in the served HTML "
@@ -191,6 +195,7 @@ def learn_form_html(
             url=stored_url,
             company=company,
             ats=kind,
+            sso_providers=sso,
             readable=False,
             evidence="unknown: a form was found but it does not ask for an application",
         )
@@ -199,6 +204,7 @@ def learn_form_html(
         company=company,
         ats=kind,
         fields=fields,
+        sso_providers=sso,
         readable=True,
         evidence=f"read {len(fields)} field(s) from the served HTML",
     )
