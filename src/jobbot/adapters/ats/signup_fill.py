@@ -271,9 +271,10 @@ def _is_resume_label(label: str) -> bool:
 
 
 def _selector(field: FormField) -> str | None:
+    """CSS for Playwright. Workday often has no name= — only automation-id / id (#92)."""
     name = field.name
     if not name or any(char in name for char in "\"'\\[]"):
         return None
     if field.kind is FieldKind.LONG_TEXT:
-        return f'textarea[name="{name}"]'
-    return f'[name="{name}"]'
+        return f'textarea[name="{name}"], textarea#{name}'
+    return f'[name="{name}"], [data-automation-id="{name}"], #{name}'

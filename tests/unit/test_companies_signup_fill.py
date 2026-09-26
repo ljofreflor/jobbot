@@ -294,3 +294,48 @@ def test_greenhouse_lever_ashby_stay_not_needed() -> None:
         )
         assert plan.need is AccountNeed.NOT_NEEDED
         assert target.need is AccountNeed.NOT_NEEDED
+
+
+def test_workday_create_account_fill_uses_automation_id(tmp_path: Path) -> None:
+    """Workday email has no name= — only data-automation-id / id (#92)."""
+    html = Path("tests/fixtures/forms/workday_create_account.html").read_text(
+        encoding="utf-8"
+    )
+    page = FakePage(
+        html=html,
+        url=(
+            "https://example.wd5.myworkdayjobs.com/en-US/External_Career/"
+            "job/Remote/Role_1/apply/applyManually"
+        ),
+    )
+    result = fill_signup_form(page, _candidate(), cv_path=_pdf(tmp_path))
+
+    assert result.submitted is False
+    assert "Email Address" in result.filled_fields
+    assert not any("password" in f.casefold() for f in result.filled_fields)
+    assert any(
+        "data-automation-id" in sel or sel.startswith("#") for sel in page.filled
+    )
+    assert page.clicked == []
+
+
+def test_bare_name_does_not_fill_middle_or_family_name_fields() -> None:
+    """Substring 'name' must not overwrite Workday's split name fields."""
+    from jobbot.companies.signup import signup_sheet
+
+    form = FormKnowledge(
+        url="https://example.wd5.myworkdayjobs.com/x",
+        readable=True,
+        fields=[
+            FormField(name="middle", label="Middle Name", kind=FieldKind.TEXT),
+            FormField(name="father", label="Father's Family Name", kind=FieldKind.TEXT),
+            FormField(name="email", label="Email Address", kind=FieldKind.EMAIL),
+            FormField(name="city", label="City", kind=FieldKind.TEXT),
+        ],
+    )
+    sheet = {item.label: item for item in signup_sheet(_candidate(), form=form)}
+
+    assert sheet["Middle Name"].value == ""
+    assert sheet["Father's Family Name"].value == ""
+    assert sheet["Email Address"].value == str(_candidate().personal.email)
+    assert sheet["City"].value == (_candidate().personal.city or "")

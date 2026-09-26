@@ -286,13 +286,15 @@ def _field(node: Tag, form: Tag) -> FormField | None:
     node_type = str(node.get("type") or "").lower()
     if tag == "input" and node_type in _IGNORED_TYPES:
         return None
-    name = str(node.get("name") or node.get("id") or "").strip()
+    name = str(
+        node.get("name") or node.get("data-automation-id") or node.get("id") or ""
+    ).strip()
     if not name:
         return None
     label = _label_for(node, form)
     if not label:
         return None
-    kind = _kind(tag, node_type)
+    kind = _kind(tag, node_type, node=node, label=label)
     if kind is FieldKind.RADIO:
         # A radio group is one question; the first member carries it.
         siblings = [
@@ -313,11 +315,16 @@ def _field(node: Tag, form: Tag) -> FormField | None:
             is_screening=_is_screening(label, kind),
         )
     options = _select_options(node) if tag == "select" else []
+    required = (
+        node.has_attr("required")
+        or str(node.get("aria-required") or "").casefold() == "true"
+        or "*" in _raw_label(node, form)
+    )
     return FormField(
         name=name,
         label=label,
         kind=kind,
-        required=node.has_attr("required") or "*" in _raw_label(node, form),
+        required=required,
         options=options,
         max_length=_int_attr(node, "maxlength"),
         accepts=_accepts(node),
@@ -325,12 +332,43 @@ def _field(node: Tag, form: Tag) -> FormField | None:
     )
 
 
-def _kind(tag: str, node_type: str) -> FieldKind:
+def _kind(
+    tag: str,
+    node_type: str,
+    *,
+    node: Tag | None = None,
+    label: str = "",
+) -> FieldKind:
     if tag == "textarea":
         return FieldKind.LONG_TEXT
     if tag == "select":
         return FieldKind.SELECT
-    return _TYPE_KINDS.get(node_type, FieldKind.TEXT if node_type == "" else FieldKind.UNKNOWN)
+    # Workday (and others) often render email as type=text with autocomplete /
+    # data-automation-id / a label that says email (#90). Prefer that over the
+    # generic "text" type.
+    if node is not None and node_type in {"", "text"} and _looks_like_email_control(
+        node, label
+    ):
+        return FieldKind.EMAIL
+    by_type = _TYPE_KINDS.get(node_type)
+    if by_type is not None:
+        return by_type
+    if node_type == "":
+        return FieldKind.TEXT
+    return FieldKind.UNKNOWN
+
+def _looks_like_email_control(node: Tag, label: str) -> bool:
+    hints = " ".join(
+        [
+            label,
+            str(node.get("autocomplete") or ""),
+            str(node.get("name") or ""),
+            str(node.get("id") or ""),
+            str(node.get("data-automation-id") or ""),
+            str(node.get("aria-label") or ""),
+        ]
+    ).casefold()
+    return "email" in hints or "correo" in hints or "e-mail" in hints
 
 
 def _raw_label(node: Tag, form: Tag) -> str:

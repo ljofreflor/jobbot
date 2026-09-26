@@ -12,6 +12,7 @@ HITL confirmation.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -168,7 +169,9 @@ def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
         if len(parts) > 1:
             put("last name", parts[1], "personal.name")
     put("email", personal.email, "personal.email")
+    put("email address", personal.email, "personal.email")
     put("phone", personal.phone, "personal.phone")
+    put("phone number", personal.phone, "personal.phone")
     put("city", personal.city, "personal.city")
     put("country", personal.country, "personal.country")
     put("location", personal.location_line(), "personal.city + country")
@@ -184,5 +187,24 @@ def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
 
 
 def _item_for(label: str, answers: dict[str, tuple[str, str]]) -> SignupItem:
-    value, source = answers.get(label.casefold(), ("", "you decide: not a fact in the profile"))
-    return SignupItem(label=label, value=value, source=source)
+    folded = label.casefold().replace("*", "").strip()
+    if folded in answers:
+        value, source = answers[folded]
+        return SignupItem(label=label, value=value, source=source)
+    # Whole-word alias only. Never let bare "name" fill "Middle Name" / "Father's
+    # Family Name" (Workday My Information).
+    best: tuple[str, str] | None = None
+    best_len = 0
+    for key, pair in answers.items():
+        if len(key) < 5:
+            continue
+        if re.search(rf"\b{re.escape(key)}\b", folded) and len(key) > best_len:
+            best, best_len = pair, len(key)
+    if best is not None:
+        value, source = best
+        return SignupItem(label=label, value=value, source=source)
+    return SignupItem(
+        label=label,
+        value="",
+        source="you decide: not a fact in the profile",
+    )
