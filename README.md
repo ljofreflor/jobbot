@@ -22,9 +22,10 @@ are views or adapters. Facts are never invented to fit a job posting.
 
 Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
 Natural-language work follows *Thinking, Fast and Slow*: vibecode discovers
-expensive rules (System 2); those rules compress into cheap features (System 1)
-via `nlp/gateway` / `ops/compile` — Cursor must not replay the expensive chat.
-See [docs/software-design.md](docs/software-design.md) §3.8.
+(System 2); when the need returns it is a **symptom** / latent requirement still
+on client tokens — capture it redacted with `jobbot ops symptom note`, then
+compress into a System 1 feature (`nlp/gateway`, `ops/compile`). See
+[docs/software-design.md](docs/software-design.md) §3.8 and [AGENTS.md](AGENTS.md).
 
 ## Status
 

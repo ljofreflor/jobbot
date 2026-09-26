@@ -292,19 +292,49 @@ Kahneman's *Thinking, Fast and Slow* mapped onto this repo:
 
 | Mode | What it is here | Cost |
 | --- | --- | --- |
-| **System 2 / vibecode** | Cursor chat, exploratory judgment, discovering a rule the hard way | High compute, once |
+| **System 2 / vibecode** | Cursor chat, exploratory judgment, discovering a rule the hard way | High compute (client tokens) |
+| **Symptom / latent requirement** | The same judgment *returns* (what repeats). Still System 2 until compressed | Still client tokens |
 | **System 1 / feature** | Function + test (+ CLI if a human runs it) that executes that rule | Cheap forever |
 
 **Vibecode is expected.** You will keep exploring in chat. That transcript is a lab
-notebook — not the runtime. The engineering obligation is to **compress** what System 2
-discovered into a System 1 feature so the next agent (or you) never pays the expensive
-path again for the same insight.
+notebook — not the runtime. When the same need returns, it is no longer exploration: it is
+a **latent requirement** (Lacanian: a *symptom* — what keeps coming back). While it lives
+only in Cursor, every recurrence is unpaid System 2 on the client's tokens.
+
+The engineering obligation is to **capture that symptom securely** and **compress** it into
+a System 1 feature so the next agent (or you) never pays the expensive path again.
 
 ```text
-vibecode (System 2, once)
-    → name a falsifiable rule (one sentence a test can break)
+vibecode (System 2)
+    → symptom returns (latent requirement, still on client tokens)
+    → jobbot ops symptom note "…" --area … --rule "…"   # local, redacted
+    → name / refine falsifiable rule
     → promote into code (System 1 forever)
-    → call the feature; do not re-derive in chat
+    → call the feature; triage symptom resolved
+```
+
+### Secure capture (information safety)
+
+Latent requirements often appear next to PII (names, emails, JD pastes, home paths).
+The capture path must not become a second leak:
+
+- Store only in local SQLite (`ops_symptoms`) + optional mirror under `output/ops/symptoms/`
+  — both **gitignored**; no telemetry.
+- **Redact before write:** secrets (`ops/redact`), emails / phones / RUT / home paths
+  (`ops/symptoms.sanitize_symptom_text`). Never persist a raw chat transcript.
+- Fingerprint the sanitized intent so repetitions increment `sightings` instead of
+  duplicating rows.
+- GitHub issues only via HITL `jobbot ops symptom issue Sxxxx` with the already-redacted
+  body — never auto, never paste Cursor history into the issue.
+
+```bash
+jobbot ops symptom note "internship posts score 100% for senior profile" \
+  --area matching --rule "seniority must gate perfect skill overlap"
+jobbot ops symptom list
+jobbot ops symptom plan S0001          # compression checklist
+jobbot ops symptom triage S0001 --status compressing
+# … implement feature + tests …
+jobbot ops symptom triage S0001 --status resolved --feature src/jobbot/matching/…
 ```
 
 A model can answer many questions here without writing a file: read a posting, judge a
@@ -315,10 +345,11 @@ repeats gets **promoted** into code, and after that it gets **called**, not re-d
 The practice is not ours: it is the rule of three (extract at the third duplication) plus
 knowledge compilation (costly deliberate reasoning becomes an automatic procedure), and in
 agent terms the split between making a tool once and using it many times. Contract constants
-live in [`src/jobbot/ops/compile.py`](src/jobbot/ops/compile.py); the longer design map is
+live in [`src/jobbot/ops/compile.py`](src/jobbot/ops/compile.py); capture in
+[`src/jobbot/ops/symptoms.py`](src/jobbot/ops/symptoms.py); the longer design map is
 [`docs/software-design.md`](docs/software-design.md) §3.8.
 
-**When to promote.** At the third time the same analysis is asked, or the first time if the
+**When to promote.** At the third sighting of the same symptom, or the first time if the
 repetition is predictable: a step of the cargo loop, or anything another agent would have to
 re-derive from the same inputs. Do not promote on a hunch — a speculative helper is dead code
 with a test attached, the same waste wearing a convincing costume.
@@ -331,12 +362,14 @@ with a test attached, the same waste wearing a convincing costume.
   (`use_llm` / `--llm`, facts grounded, fallback to heuristics).
 - A CLI entry only if a human will run it.
 - A test that fails first (see above). Untested code is not a promotion, it is a draft.
+- Symptom triage → `resolved` with `--feature` path when the compression lands.
 - Its line in [docs/capabilities.md](docs/capabilities.md) when that index exists on the
   branch (`make capabilities` regenerates it; a stale index fails the suite on branches
   that enforce it).
 
 **What to call instead of re-deriving.**
 
+- `jobbot ops symptom list` — see which latent requirements are still on client tokens.
 - Read [docs/capabilities.md](docs/capabilities.md) before searching the tree when present.
 - Read [docs/library-audit.md](docs/library-audit.md) before hand-rolling something generic.
 - Read [docs/software-design.md](docs/software-design.md) for patterns, SQLite layout, stack.

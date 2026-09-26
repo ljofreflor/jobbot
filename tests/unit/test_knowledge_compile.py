@@ -9,7 +9,12 @@ def test_compress_contract_states_fast_slow_split() -> None:
     assert "vibecode" in COMPRESS_CONTRACT
 
 
-def test_promotion_steps_end_with_call_not_rederive() -> None:
-    assert PROMOTION_STEPS[0] == "name_falsifiable_rule"
-    assert PROMOTION_STEPS[-1] == "call_feature_do_not_rederive"
+def test_compress_contract_mentions_symptom() -> None:
+    assert "symptom" in COMPRESS_CONTRACT
+
+
+def test_promotion_steps_end_with_triage() -> None:
+    assert PROMOTION_STEPS[0] == "capture_symptom_redacted_locally"
+    assert PROMOTION_STEPS[-1] == "triage_symptom_resolved"
+    assert "call_feature_do_not_rederive" in PROMOTION_STEPS
     assert "optional_llm_inside_via_gateway" in PROMOTION_STEPS

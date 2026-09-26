@@ -117,70 +117,79 @@ Same idea for applications: `prepare` → `apply` (plan) → `apply --apply` (op
 `JobAnalyzer` protocol with `RuleBasedJobAnalyzer` as the default implementation
 (`matching/analyzer.py`). Scoring stays swappable without touching the CLI.
 
-### 3.8 Thinking fast / slow → knowledge compilation
+### 3.8 Thinking fast / slow → symptoms → knowledge compilation
 
 JobBot assumes you will keep **vibecoding** (Cursor chat, exploratory prompts,
-one-off judgment). That is Kahneman's *System 2*: slow, expensive, high compute —
-and that is fine for discovery. What must not happen is paying System 2 again for
-the same insight.
+one-off judgment). That is Kahneman's *System 2*: slow, expensive, paid in
+**client tokens** — fine for discovery. When the same need *returns*, it is no
+longer discovery: it is a **latent requirement**. Lacanian shorthand used here:
+a *symptom* is what keeps coming back. While it lives only in Cursor, every
+recurrence is unpaid System 2.
 
-The engineering job is to **compress** what vibecode discovered into a *System 1*
-feature: cheap, repeatable, testable, offline by default.
+The engineering job is to **capture the symptom securely** and **compress** it
+into a *System 1* feature: cheap, repeatable, testable, offline by default.
 
 ```text
-  vibecode (pensar despacio)              feature (pensar rápido)
-  ─────────────────────────               ──────────────────────
-  chat / agent transcript                 function + test + optional CLI
-  high tokens, high judgment              low tokens, deterministic path
-  rules still mushy                       rules explicit in code
-  may call an LLM to explore              may call an LLM *inside* the feature
-                                          only when presentation needs it
+  vibecode (pensar despacio)     symptom (retorno)        feature (pensar rápido)
+  ──────────────────────────     ─────────────────        ──────────────────────
+  chat / agent transcript        ops_symptoms (local)     function + test + CLI?
+  high client tokens             redacted intent          low tokens at call time
+  rules still mushy              sightings++              rules explicit in code
 ```
 
-Lifecycle (always the same shape):
+Lifecycle:
 
-1. **Vibecode** — explore in chat; learn the rule the hard way (edge cases, HITL,
-   “this employer wording means X”).
-2. **Name the rule** — one sentence a test can falsify (“foreign country beats
-   remote when the post names a city”).
-3. **Compress** — promote into the owning package: heuristics/templates first;
-   optional LLM behind `run_optional_llm` / `--llm` if prose quality still needs
-   a model.
-4. **Call, don't re-derive** — next time the user asks in NL, Cursor invokes the
-   feature (or writes the one-line call), it does not replay the expensive chat.
+1. **Vibecode** — explore in chat (System 2).
+2. **Symptom** — the need returns → `jobbot ops symptom note` (redacted, local SQLite).
+3. **Name the rule** — one sentence a test can falsify.
+4. **Compress** — promote into the owning package; optional LLM only *inside* via
+   `run_optional_llm` / `--llm`.
+5. **Call + triage** — invoke the feature; `symptom triage --status resolved --feature …`.
 
 ```text
 user NL / vibecode
       │
       ▼
- discover rule (System 2, once) ──► promote function (System 1 forever)
-                                          │
-                             ┌────────────┴────────────┐
-                             ▼                         ▼
-                    deterministic default         optional LLM inside
-                    (rules, fixtures, YAML)      (grounded; fallback → rules)
+   returns again? ──yes──► ops symptom note (redacted)
+      │                         │
+      │                         ▼
+      │              promote function (System 1)
+      │                         │
+      └──── first time ─────────┘
+                    │
+       ┌────────────┴────────────┐
+       ▼                         ▼
+  deterministic default     optional LLM inside
 ```
+
+#### Information safety for latent requirements
+
+| Rule | Mechanism |
+| --- | --- |
+| No telemetry | Local SQLite + gitignored `output/ops/symptoms/` only |
+| No raw chat | Store sanitized intent / rule hypothesis, not transcripts |
+| Redact before write | `sanitize_symptom_text` + `ops/redact` |
+| Safe share | HITL `ops symptom issue` uses already-redacted body only |
+| PII stays off git | Same as profile/SQLite; never commit symptom mirrors |
 
 Contract:
 
-1. **Vibecode is allowed; unpaid replay is not.** The transcript is a lab notebook,
-   not the runtime.
-2. **Promote by the rule of three** (or earlier if it is clearly a cargo-loop step):
-   owning module + failing-first test + CLI only if a human will run it.
-3. **Compression means low cost at call time.** Prefer pure functions and fixtures
-   over re-prompting Cursor. LLM, when used, lives *inside* the feature via
-   `nlp/gateway.py`, never as “the agent will remember”.
+1. **Vibecode is allowed; unpaid replay is not.** Capture the symptom; compress it.
+2. **Promote by sightings / rule of three** (or earlier if clearly a cargo step).
+3. **Compression means low cost at call time.** LLM, when used, lives inside the
+   feature via `nlp/gateway.py`.
 4. **Facts only.** `FACTS_ONLY_RULES`; never invent employers, metrics, or skills.
-5. **Extras optional.** `uv sync --extra llm` + `OPENAI_API_KEY`; MVP stays offline.
+5. **Extras optional.** `jobbot[llm]` + `OPENAI_API_KEY`; MVP stays offline.
 
 Existing compression examples:
 
-| Once expensive (System 2) | Cheap feature (System 1) |
+| Once expensive (System 2 / symptom) | Cheap feature (System 1) |
 | --- | --- |
 | Judging GoB blurb quality in chat | `refine_permanent_profile` + `getonboard prepare [--llm]` |
 | “Does this post look foreign?” | `jobs/geo.py` country markers + search filters |
 | “Is this ATS Greenhouse or Workday?” | `portals/detect.py` + registry |
 | PII almost committed | `ops/pii_guard` + pre-commit hook |
+| Latent NL need returning in Cursor | `ops symptom note` → feature + `triage resolved` |
 
 ### 3.9 Patterns we deliberately avoid
 
@@ -248,6 +257,14 @@ ops_failures
   ts, command, component, exit_code
   error_class, message, traceback
   context_json, fingerprint, status, issue_url
+
+ops_symptoms
+  id PK (Sxxxx)
+  created_at, updated_at
+  area, title, intent, rule_hypothesis   # redacted at write
+  fingerprint, sightings
+  status (latent|acknowledged|compressing|resolved|wontfix)
+  feature_path, issue_url, context_json
 ```
 
 Logical relationships (no FK constraints today — keep SQLite migrations simple):
@@ -367,12 +384,13 @@ When adding a portal or job board:
 
 When the user vibecodes recurring natural language (draft text, classify, advise):
 
-1. Treat the chat as System 2 discovery — allowed once, not as runtime.
-2. Name a falsifiable rule; promote a function in the owning package (`ops/compile`).
-3. Use `run_optional_llm` (`nlp/gateway.py`): deterministic default, `--llm` opt-in,
-   fallback on failure, facts grounded via `FACTS_ONLY_RULES`.
-4. Ship a failing-first unit test (no live API key required for the default path).
-5. Next time: call the feature; do not re-derive in Cursor.
+1. Treat the chat as System 2 discovery; when it *returns*, it is a symptom / latent
+   requirement still on client tokens.
+2. Capture securely: `jobbot ops symptom note "…" --area … --rule "…"` (redacted, local).
+3. Name a falsifiable rule; promote a function (`ops/compile` steps).
+4. Use `run_optional_llm` when prose needs a model; facts via `FACTS_ONLY_RULES`.
+5. Ship a failing-first unit test; `symptom triage --status resolved --feature …`.
+6. Next time: call the feature; do not re-derive in Cursor.
 
 ## 8. Related documents
 
