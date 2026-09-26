@@ -22,7 +22,6 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"\.sqlite3?$", "local database"),
     (r"\.db$", "local database"),
     (r"^(?!latex/).*\.pdf$", "PDF CV / attachment"),
-    (r"^AGENTS\.md$", "local agent policy, not for remote"),
     (r"^\.cursor/", "local editor/agent config"),
 )
 

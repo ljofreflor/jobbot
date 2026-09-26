@@ -82,10 +82,14 @@ companies_app = typer.Typer(
     no_args_is_help=True,
 )
 ops_app = typer.Typer(
-    help="Local ops: failure observability + continuous loops (no telemetry)",
+    help="Local ops: failures, symptoms (appearances), loops (no telemetry)",
     no_args_is_help=True,
 )
 ops_failure_app = typer.Typer(help="Inspect / triage stored failures", no_args_is_help=True)
+ops_symptom_app = typer.Typer(
+    help="Symptoms: returning vibecode appearances (local, redacted; not a backlog)",
+    no_args_is_help=True,
+)
 
 app.add_typer(profile_app, name="profile")
 app.add_typer(cv_app, name="cv")
@@ -100,6 +104,7 @@ app.add_typer(portals_app, name="portals")
 app.add_typer(companies_app, name="companies")
 app.add_typer(ops_app, name="ops")
 ops_app.add_typer(ops_failure_app, name="failure")
+ops_app.add_typer(ops_symptom_app, name="symptom")
 
 console = Console()
 err_console = Console(stderr=True)
@@ -145,8 +150,7 @@ def run_cli(
         )
         if record is not None:
             err_console.print(
-                f"[yellow]Recorded failure[/yellow] {record.id} "
-                f"(fingerprint={record.fingerprint})"
+                f"[yellow]Recorded failure[/yellow] {record.id} (fingerprint={record.fingerprint})"
             )
 
     if standalone_mode:
@@ -255,9 +259,7 @@ def profile_import_latex(
     config = load_config()
     source = tex_path or config.legacy_cv_path
     if source is None:
-        err_console.print(
-            "[red]Provide a .tex path or set paths.legacy_cv in .jobbot.toml[/red]"
-        )
+        err_console.print("[red]Provide a .tex path or set paths.legacy_cv in .jobbot.toml[/red]")
         raise typer.Exit(GENERIC_FAILURE)
 
     source = source.expanduser().resolve()
@@ -399,9 +401,7 @@ def profile_suggest_from_market(
 
     confirmed: list[str] = []
     if ask and suggestion.missing_suspected:
-        console.print(
-            "\nConfirm skills you [bold]actually have[/bold] (never invent):"
-        )
+        console.print("\nConfirm skills you [bold]actually have[/bold] (never invent):")
         for gap in suggestion.missing_suspected:
             if typer.confirm(f"Add skill to baseline: {gap.term}?", default=False):
                 confirmed.append(gap.term)
@@ -807,6 +807,7 @@ def jobs_search(
     source = IndeedJobSource(config, cdp_url=cdp_url)
     q = JobSearchQuery(query=query, location=location, remote=remote, limit=limit)
 
+
     if cdp_url:
         console.print(f"Using CDP Chrome at [bold]{cdp_url}[/bold]")
     console.print(f"Searching Indeed ({source.base}) for [bold]{query}[/bold]…")
@@ -836,6 +837,62 @@ def jobs_search(
     console.print(table)
     console.print(f"Stored {len(stored)} jobs. Next: [bold]jobbot jobs match {stored[0]}[/bold]")
     console.print("Or: [bold]jobbot jobs shortlist[/bold]")
+
+
+@jobs_app.command("queries")
+def jobs_queries(
+    region: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--region",
+            help="Geo token for the query (repeatable), e.g. Spain, Europe, EMEA, Chile",
+        ),
+    ] = None,
+    remote: Annotated[
+        bool,
+        typer.Option("--remote/--no-remote", help='Include "remote" in the query'),
+    ] = True,
+    ats: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--ats",
+            help="ATS kinds to target (repeatable): ashby, greenhouse, lever",
+        ),
+    ] = None,
+    keyword: Annotated[
+        list[str] | None,
+        typer.Option("--keyword", "-k", help="Extra quoted keyword (repeatable)"),
+    ] = None,
+) -> None:
+    """Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search."""
+    from jobbot.jobs.ats_queries import build_ats_search_queries, format_queries_help
+    from jobbot.portals.detect import AtsKind
+
+    kinds: tuple[AtsKind, ...] | None = None
+    if ats:
+        parsed: list[AtsKind] = []
+        for raw in ats:
+            try:
+                parsed.append(AtsKind(raw.casefold().strip()))
+            except ValueError:
+                err_console.print(
+                    f"[red]Unknown --ats {raw!r}[/red]; use ashby, greenhouse, lever"
+                )
+                raise typer.Exit(VALIDATION_FAILURE) from None
+        kinds = tuple(parsed)
+
+    queries = build_ats_search_queries(
+        kinds=kinds,
+        regions=tuple(region or ()),
+        remote=remote,
+        keywords=tuple(keyword or ()),
+    )
+    if not queries:
+        err_console.print("[red]No queries for the selected ATS kinds[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    console.print(format_queries_help(queries))
+    raise typer.Exit(SUCCESS)
 
 
 @jobs_app.command("show")
@@ -932,9 +989,7 @@ def jobs_backfill_dates() -> None:
     updated = backfill_posted_at(repo)
     console.print(f"Dated [bold]{updated}[/bold] stored jobs from their post URL.")
     stale = [
-        job
-        for job in repo.list_all()
-        if job.posted_at is not None and not is_fresh(job.posted_at)
+        job for job in repo.list_all() if job.posted_at is not None and not is_fresh(job.posted_at)
     ]
     if stale:
         console.print("Older than the freshness window:")
@@ -1722,7 +1777,6 @@ def linkedin_sweep(
             )
         )
 
-
     if not found:
         console.print("No relevant posts found.")
         raise typer.Exit(SUCCESS)
@@ -1873,12 +1927,8 @@ def getonboard_show_profile() -> None:
         raise typer.Exit(SUCCESS)
     console.print(f"Markdown: {md}")
     console.print(f"YAML:     {yml}")
-    console.print(
-        f"experiencia_y_perfil: {len(fields.experiencia_y_perfil)} / {EXPERIENCE_MAX}"
-    )
-    console.print(
-        f"formacion_academica:  {len(fields.formacion_academica)} / {EDUCATION_MAX}"
-    )
+    console.print(f"experiencia_y_perfil: {len(fields.experiencia_y_perfil)} / {EXPERIENCE_MAX}")
+    console.print(f"formacion_academica:  {len(fields.formacion_academica)} / {EDUCATION_MAX}")
     console.print(f"headline: {fields.headline}")
     console.print(f"skills: {', '.join(fields.skills)}")
 
@@ -1894,10 +1944,7 @@ def getonboard_open_profile() -> None:
     client.prepare_package()
     url = client.open_profile_edit()
     console.print(f"Opened {url}")
-    console.print(
-        "Reemplaza textos viejos con "
-        "output/getonboard/profile_permanent.md"
-    )
+    console.print("Reemplaza textos viejos con output/getonboard/profile_permanent.md")
 
 
 @getonboard_app.command("open-cvs")
@@ -1913,15 +1960,13 @@ def getonboard_open_cvs() -> None:
     url = GetOnBoardProfileClient.from_config(config).open_resumes()
     console.print(f"Opened {url}")
     console.print(
-        "En la UI: ve a [bold]Tus CVs / Your resumes[/bold], "
-        "sube el PDF y márcalo default."
+        "En la UI: ve a [bold]Tus CVs / Your resumes[/bold], sube el PDF y márcalo default."
     )
     if cv_pdf.is_file():
         console.print(f"PDF local: {cv_pdf}")
     else:
         console.print(
-            "No hay PDF — genera con [bold]jobbot cv build[/bold] "
-            "(queda en output/base/cv.pdf)."
+            "No hay PDF — genera con [bold]jobbot cv build[/bold] (queda en output/base/cv.pdf)."
         )
     console.print(f"(Misma base que editar perfil: {PROFILE_EDIT_URL})")
 
@@ -1955,9 +2000,7 @@ def getonboard_sync(
     console.print(client.open_profile_edit())
     console.print("Abriendo zona profesional (navega a Tus CVs)…")
     console.print(client.open_resumes())
-    console.print(
-        "HITL: reemplaza textos viejos, sube CV default, guarda. Luego postula."
-    )
+    console.print("HITL: reemplaza textos viejos, sube CV default, guarda. Luego postula.")
 
 
 @getonboard_app.command("search")
@@ -2349,8 +2392,7 @@ def companies_promote(
     targets = [
         s
         for s in record.career_sites
-        if s.status != KnowledgeStatus.REJECTED
-        and (site is None or s.key == canonical_key(site))
+        if s.status != KnowledgeStatus.REJECTED and (site is None or s.key == canonical_key(site))
     ]
     if not targets:
         console.print("Nothing to promote.")
@@ -2444,7 +2486,7 @@ def companies_discover(
         limit=limit,
         on_company=on_company,
     )
-    target = (out.expanduser().resolve() if out else generated_candidates_path(config.output_dir))
+    target = out.expanduser().resolve() if out else generated_candidates_path(config.output_dir)
     write_candidates(report.candidates, target)
     console.print(
         f"Probed {report.companies_seen} companies with {report.requests_made} requests → "
@@ -2452,8 +2494,7 @@ def companies_discover(
     )
     if report.companies_without_portal:
         console.print(
-            "No public portal found for: "
-            + ", ".join(report.companies_without_portal[:10])
+            "No public portal found for: " + ", ".join(report.companies_without_portal[:10])
         )
     console.print(f"Candidates (not truth yet): {target}")
     console.print(f"Next: [bold]jobbot companies import {target}[/bold]")
@@ -2748,6 +2789,198 @@ def ops_failure_issue(
     console.print(f"[green]Created[/green] {url or '(see gh output)'}")
 
 
+@ops_symptom_app.command("note")
+def ops_symptom_note(
+    intent: Annotated[
+        str,
+        typer.Argument(help="Appearance that returns in vibecode (redacted at write)"),
+    ],
+    area: Annotated[
+        str,
+        typer.Option("--area", help="cv|jobs|portals|matching|ops|nlp|companies|profile|other"),
+    ] = "other",
+    title: Annotated[
+        str | None,
+        typer.Option("--title", help="Short label (redacted)"),
+    ] = None,
+    rule: Annotated[
+        str,
+        typer.Option(
+            "--rule",
+            help="Condition of possibility (structural, falsifiable; not a wish)",
+        ),
+    ] = "",
+) -> None:
+    """Note a returning appearance. Same fingerprint increments sightings."""
+    from jobbot.ops.symptoms import note_symptom
+
+    session, config = _session()
+    try:
+        record = note_symptom(
+            session,
+            intent=intent,
+            area=area,
+            title=title,
+            rule_hypothesis=rule,
+            output_dir=config.output_dir,
+        )
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    console.print(
+        f"[green]{record.id}[/green] area={record.area} "
+        f"sightings={record.sightings} status={record.status} fp={record.fingerprint}"
+    )
+    console.print(f"Plan: [bold]jobbot ops symptom plan {record.id}[/bold]")
+
+
+@ops_symptom_app.command("list")
+def ops_symptom_list(
+    status: Annotated[
+        str | None,
+        typer.Option("--status", help="latent|acknowledged|compressing|resolved|wontfix"),
+    ] = None,
+    area: Annotated[
+        str | None,
+        typer.Option("--area", help="Filter by area"),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", min=1, max=200)] = 50,
+) -> None:
+    """List symptoms (returning appearances), newest first."""
+    from jobbot.ops.symptoms import list_symptoms
+
+    session, _ = _session()
+    rows = list_symptoms(session, status=status, area=area, limit=limit)
+    if not rows:
+        console.print("No symptoms stored.")
+        raise typer.Exit(SUCCESS)
+    table = Table(title="ops symptoms (appearances that return)")
+    table.add_column("id")
+    table.add_column("area")
+    table.add_column("n")
+    table.add_column("status")
+    table.add_column("title")
+    for r in rows:
+        table.add_row(r.id, r.area, str(r.sightings), r.status, r.title[:60])
+    console.print(table)
+
+
+@ops_symptom_app.command("show")
+def ops_symptom_show(
+    symptom_id: Annotated[str, typer.Argument(help="Symptom id, e.g. S0001")],
+) -> None:
+    """Show one symptom (already redacted at write time)."""
+    from jobbot.ops.symptoms import get_symptom
+
+    session, config = _session()
+    record = get_symptom(session, symptom_id)
+    if record is None:
+        err_console.print(f"[red]Unknown symptom {symptom_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    console.print(
+        Panel(
+            f"area={record.area}\nsightings={record.sightings}\nstatus={record.status}\n"
+            f"fingerprint={record.fingerprint}\n\n"
+            f"title: {record.title}\n\nappearance:\n{record.intent}\n\n"
+            f"condition of possibility:\n{record.rule_hypothesis or '(none yet)'}\n\n"
+            f"feature: {record.feature_path or '(none)'}\n"
+            f"issue: {record.issue_url or '(none)'}",
+            title=record.id,
+        )
+    )
+    mirror = config.output_dir / "ops" / "symptoms" / f"{record.id}.json"
+    if mirror.is_file():
+        console.print(f"Mirror: {mirror}")
+
+
+@ops_symptom_app.command("plan")
+def ops_symptom_plan(
+    symptom_id: Annotated[str, typer.Argument(help="Symptom id, e.g. S0001")],
+) -> None:
+    """Print conditions-of-possibility → System 1 plan (does not write code)."""
+    from jobbot.ops.symptoms import get_symptom, promote_plan
+
+    session, _ = _session()
+    record = get_symptom(session, symptom_id)
+    if record is None:
+        err_console.print(f"[red]Unknown symptom {symptom_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    console.print(Panel(promote_plan(record), title="phenomenology → System 1"))
+
+
+@ops_symptom_app.command("triage")
+def ops_symptom_triage(
+    symptom_id: Annotated[str, typer.Argument(help="Symptom id, e.g. S0001")],
+    status: Annotated[
+        str,
+        typer.Option("--status", help="latent|acknowledged|compressing|resolved|wontfix"),
+    ],
+    feature: Annotated[
+        str | None,
+        typer.Option("--feature", help="Path where conditions were encoded"),
+    ] = None,
+) -> None:
+    """Update symptom status after conditions are encoded (or declined)."""
+    from jobbot.ops.symptoms import mark_symptom_status
+
+    session, _ = _session()
+    try:
+        record = mark_symptom_status(session, symptom_id, status, feature_path=feature)
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    if record is None:
+        err_console.print(f"[red]Unknown symptom {symptom_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    console.print(
+        f"[green]{record.id}[/green] → status={record.status}"
+        + (f" feature={record.feature_path}" if record.feature_path else "")
+    )
+
+
+@ops_symptom_app.command("issue")
+def ops_symptom_issue(
+    symptom_id: Annotated[str, typer.Argument(help="Symptom id, e.g. S0001")],
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Skip confirmation"),
+    ] = False,
+) -> None:
+    """HITL GitHub issue from a redacted symptom (conditions, not a wish ticket). Never auto."""
+    import subprocess
+
+    from jobbot.ops.symptoms import get_symptom, issue_body, issue_title, mark_symptom_status
+
+    session, _ = _session()
+    record = get_symptom(session, symptom_id)
+    if record is None:
+        err_console.print(f"[red]Unknown symptom {symptom_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    if record.issue_url:
+        console.print(f"Already linked: {record.issue_url}")
+        raise typer.Exit(SUCCESS)
+
+    title = issue_title(record)
+    body = issue_body(record)
+    console.print(Panel(f"{title}\n\n{body}", title="proposed GitHub issue (redacted)"))
+    if not yes and not typer.confirm("Create GitHub issue with gh?"):
+        console.print("Aborted.")
+        raise typer.Exit(SUCCESS)
+
+    proc = subprocess.run(  # noqa: S603
+        ["gh", "issue", "create", "--title", title, "--body", body],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        err_console.print(f"[red]gh failed:[/red] {proc.stderr or proc.stdout}")
+        raise typer.Exit(GENERIC_FAILURE)
+    url = (proc.stdout or "").strip()
+    mark_symptom_status(session, symptom_id, "acknowledged", issue_url=url or None)
+    console.print(f"[green]Created[/green] {url or '(see gh output)'}")
+
+
 @ops_app.command("loop")
 def ops_loop(
     cmd: Annotated[
@@ -2791,15 +3024,11 @@ def ops_loop(
 
     def _hitl(reason: str) -> None:
         err_console.print(f"[bold red]{reason}[/bold red]")
-        err_console.print(
-            "Auth/challenge — fix manually, then restart loop. "
-            "No CAPTCHA bypass."
-        )
+        err_console.print("Auth/challenge — fix manually, then restart loop. No CAPTCHA bypass.")
         raise typer.Exit(AUTH_REQUIRED if "exit 3" in reason else MANUAL_CHALLENGE)
 
     console.print(
-        f"Loop [bold]{cmd}[/bold] every {interval}s "
-        f"(fail_fast={fail_fast}, max_ticks={max_ticks})"
+        f"Loop [bold]{cmd}[/bold] every {interval}s (fail_fast={fail_fast}, max_ticks={max_ticks})"
     )
     code = run_loop(
         cmd,

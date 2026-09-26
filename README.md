@@ -20,6 +20,13 @@ matching, adapted CVs, and assisted applications. **No web UI** — everything r
 `data/profile.yaml` is the single source of professional truth. LaTeX, PDF, Indeed, and LinkedIn
 are views or adapters. Facts are never invented to fit a job posting.
 
+Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
+Phenomenology of software (not classical requirements): vibecode makes a need
+*appear* (System 2); when it returns it is a **symptom** — analyze the
+**conditions of possibility** of that need-for-a-need, capture them redacted
+(`jobbot ops symptom note --rule …`), encode as System 1. See
+[docs/software-design.md](docs/software-design.md) §3.8 and [AGENTS.md](AGENTS.md).
+
 ## Status
 
 **Endgame:** match → decide → CV derivado → application package → postular (portales futuros).
@@ -28,7 +35,7 @@ Working today:
 
 - Profile validate / import-latex / promote
 - `cv build` base and `--job Jxxxx`
-- `jobs add|show|match|shortlist|note`
+- `jobs add|show|match|shortlist|note|queries` (ATS `site:` query templates; no search-engine calls)
 - `application prepare|show|open` + `applications list`
 - Indeed/LinkedIn: `login|status|inspect|pull|diff`; Indeed `sync --section headline` (dry-run default, `--apply`)
 - Protocols for future portals: `ApplicationPortalAdapter`, `JobSourceAdapter`

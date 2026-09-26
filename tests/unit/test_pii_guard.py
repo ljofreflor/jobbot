@@ -18,7 +18,6 @@ def test_blocked_paths_cover_profile_db_and_private_latex() -> None:
     assert is_blocked_path("latex/cv.tex")
     assert is_blocked_path(".jobbot.toml")
     assert is_blocked_path("output/jobs/J0001/application/cv.pdf")
-    assert is_blocked_path("AGENTS.md")
     assert is_blocked_path(".cursor/rules/jobbot.mdc")
 
 
@@ -29,6 +28,7 @@ def test_tracked_templates_are_not_blocked() -> None:
     assert is_blocked_path("templates/cv.tex.j2") is None
     assert is_blocked_path("src/jobbot/cli.py") is None
     assert is_blocked_path("tests/fixtures/moderncv_sample.tex") is None
+    assert is_blocked_path("AGENTS.md") is None
 
 
 def test_scan_text_flags_real_email_and_phone() -> None:

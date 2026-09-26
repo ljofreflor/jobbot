@@ -45,33 +45,45 @@ def refine_permanent_profile(
     *,
     use_llm: bool = False,
 ) -> RefineResult:
-    """Prefer cumulative refine; optional LangChain when use_llm=True."""
-    if use_llm:
-        try:
-            from jobbot.nlp.langchain_refine import LangChainProfileRefiner
+    """Prefer cumulative refine; optional LangChain when use_llm=True.
 
-            fields = LangChainProfileRefiner().refine(candidate, previous)
+    NL work lives here (not in chat): heuristics by default, LLM only if requested.
+    """
+    from jobbot.nlp.gateway import run_optional_llm
+
+    def _deterministic() -> RefineResult:
+        if previous is None:
+            cold = build_permanent_profile_fields(candidate)
             return RefineResult(
-                fields=fields,
-                mode="llm",
+                fields=cold,
+                mode="cold",
                 kept_paragraphs=0,
                 added_paragraphs=0,
                 dropped_paragraphs=0,
             )
-        except Exception as exc:  # noqa: BLE001 — fall back; never invent via LLM failure
-            logger.warning("LLM refine unavailable (%s); using cumulative heuristic", exc)
+        return CumulativeProfileRefiner().refine_with_stats(candidate, previous)
 
-    if previous is None:
-        cold = build_permanent_profile_fields(candidate)
+    def _llm() -> RefineResult:
+        from jobbot.nlp.langchain_refine import LangChainProfileRefiner
+
+        fields = LangChainProfileRefiner().refine(candidate, previous)
         return RefineResult(
-            fields=cold,
-            mode="cold",
+            fields=fields,
+            mode="llm",
             kept_paragraphs=0,
             added_paragraphs=0,
             dropped_paragraphs=0,
         )
 
-    return CumulativeProfileRefiner().refine_with_stats(candidate, previous)
+    outcome = run_optional_llm(
+        deterministic=_deterministic,
+        llm=_llm,
+        use_llm=use_llm,
+        task_name="permanent_profile_refine",
+    )
+    if outcome.mode == "llm_fallback":
+        logger.warning("LLM refine fell back: %s", outcome.detail)
+    return outcome.value
 
 
 class CumulativeProfileRefiner:
