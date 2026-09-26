@@ -46,7 +46,7 @@ def test_search_asks_for_the_role_and_maps_every_result(payload: dict[str, Any])
     assert url.startswith(API_SEARCH)
     assert body["skill/role"]["text"] == "analista de datos"
     assert "remote" not in body, "remote is a filter the user asks for, not a default"
-    assert len(items) == 4
+    assert len(items) == 5
 
 
 def test_remote_flag_becomes_a_filter(payload: dict[str, Any]) -> None:
@@ -101,11 +101,41 @@ def test_an_opportunity_hosted_on_an_ats_points_at_that_ats(payload: dict[str, A
 def test_remote_and_location_are_read_from_place(payload: dict[str, Any]) -> None:
     remote_job = job_from_api_item(payload["results"][0])
     onsite_job = job_from_api_item(payload["results"][1])
+    physical_job = job_from_api_item(payload["results"][4])
 
     assert remote_job.remote_type == "fully_remote"
     assert remote_job.location == "Remote / anywhere"
     assert onsite_job.remote_type == "on_site"
     assert onsite_job.location == "Santiago, Chile"
+    assert physical_job.remote_type == "physical_location"
+    assert "Singapore" in (physical_job.location or "")
+
+
+def test_remote_search_drops_onsite_even_when_api_returns_them(
+    payload: dict[str, Any], tmp_path: Path
+) -> None:
+    """API ``remote: {term: True}`` is not enough: physical_location still leaks.
+
+    A candidate in Santiago must not get Singapore office roles from
+    ``torre search --remote``.
+    """
+    config = JobbotConfig(root=tmp_path)
+    (tmp_path / "data").mkdir(exist_ok=True)
+    source = TorreJobSource(config, fetcher=FakeFetcher(payload))
+
+    jobs = source.search_jobs(
+        JobSearchQuery(query="cientifico de datos", limit=20, remote=True)
+    )
+
+    remote_types = {j.remote_type for j in jobs}
+    assert "physical_location" not in remote_types
+    assert "on_site" not in remote_types
+    assert not any("Singapore" in (j.location or "") for j in jobs)
+    # Still keep genuine remote shapes from the same payload.
+    assert "fully_remote" in remote_types or any(
+        (j.remote_type or "").startswith("remote") for j in jobs
+    )
+    assert any(j.remote_type == "remote_countries" for j in jobs)
 
 
 def test_a_country_restricted_remote_role_names_its_countries(
@@ -162,7 +192,7 @@ def test_source_learns_the_portal_once(
 
     jobs = source.search_jobs(JobSearchQuery(query="analista de datos", limit=3))
 
-    assert len(jobs) == 4
+    assert len(jobs) == 5
     from jobbot.portals.registry import default_portals_path, load_registry
 
     registry = load_registry(default_portals_path(tmp_path))

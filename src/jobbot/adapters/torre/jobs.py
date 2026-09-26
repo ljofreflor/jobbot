@@ -30,6 +30,15 @@ API_SEARCH = "https://search.torre.co/opportunities/_search/"
 SITE_ORIGIN = "https://torre.ai"
 MAX_SIZE = 50
 
+# Torre's ``remote: {term: True}`` still returns office roles; drop these locally.
+_ONSITE_LOCATION_TYPES = frozenset(
+    {
+        "on_site",
+        "onsite",
+        "physical_location",
+    }
+)
+
 
 class Fetcher(Protocol):
     """POST a JSON body, get JSON back. Injectable so tests stay offline."""
@@ -73,6 +82,8 @@ class TorreJobSource:
             remote=query.remote or None,
             fetcher=self.fetcher,
         )
+        if query.remote:
+            items = [item for item in items if is_remote_opportunity(item)]
         jobs = [job_from_api_item(item) for item in items]
         self._remember_portal()
         return jobs
@@ -113,6 +124,30 @@ def search_opportunities(
     if not isinstance(results, list):
         return []
     return [item for item in results if isinstance(item, dict)]
+
+
+def is_remote_opportunity(item: dict[str, Any]) -> bool:
+    """True when the payload shows remote work, not an office / physical seat.
+
+    Used after ``remote: {term: True}`` because Torre still returns
+    ``physical_location`` / ``on_site`` rows that must not reach ``--remote``.
+    """
+    place: dict[str, Any] = {}
+    raw_place = item.get("place")
+    if isinstance(raw_place, dict):
+        place = raw_place
+    kind = str(place.get("locationType") or "").strip().casefold().replace("-", "_")
+    if kind in _ONSITE_LOCATION_TYPES:
+        return False
+    if place.get("anywhere") is True or place.get("remote") is True:
+        return True
+    if item.get("remote") is True:
+        return True
+    return kind.startswith("remote") or kind in {
+        "hybrid",
+        "remote_anywhere",
+        "remote_countries",
+    }
 
 
 def job_from_api_item(item: dict[str, Any]) -> JobPosting:

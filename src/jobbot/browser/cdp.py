@@ -26,11 +26,44 @@ def resolve_cdp_url(
 
 
 def find_chrome_executable() -> Path | None:
-    mac = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-    if mac.is_file():
-        return mac
-    which = shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chrome")
-    return Path(which) if which else None
+    """Find any Chromium-based browser (Chrome, Edge, Brave, Chromium).
+    
+    Searches in order of preference:
+    1. Platform-specific paths (Mac apps)
+    2. Common executable names in PATH
+    
+    Returns the first browser found, or None if no Chromium browser is available.
+    """
+    # Mac: Check application bundles
+    mac_browsers = [
+        Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+        Path("/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
+        Path("/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"),
+        Path("/Applications/Chromium.app/Contents/MacOS/Chromium"),
+    ]
+    for browser in mac_browsers:
+        if browser.is_file():
+            return browser
+    
+    # Linux/Windows: Check PATH for executables
+    # Order: Chrome -> Edge -> Brave -> Chromium
+    executables = [
+        "google-chrome",     # Linux Chrome
+        "chrome",            # Windows Chrome shorthand
+        "microsoft-edge",    # Linux Edge
+        "msedge",           # Windows Edge
+        "brave-browser",     # Linux Brave
+        "brave",            # Windows/Mac Brave
+        "chromium-browser",  # Linux Chromium
+        "chromium",         # General Chromium
+    ]
+    
+    for exe_name in executables:
+        found = shutil.which(exe_name)
+        if found:
+            return Path(found)
+    
+    return None
 
 
 def chrome_debug_argv(
@@ -40,10 +73,16 @@ def chrome_debug_argv(
     start_url: str = "https://cl.indeed.com/",
     chrome: Path | None = None,
 ) -> list[str]:
-    """Argv to launch a normal Chrome with remote debugging (user owns the window)."""
+    """Argv to launch a Chromium browser with remote debugging (user owns the window).
+    
+    Works with Chrome, Edge, Brave, or any Chromium-based browser.
+    """
     exe = chrome or find_chrome_executable()
     if exe is None:
-        msg = "Google Chrome not found; install it or pass chrome=…"
+        msg = (
+            "No Chromium-based browser found. "
+            "Install Chrome, Edge, Brave, or Chromium, or pass chrome=…"
+        )
         raise FileNotFoundError(msg)
     return [
         str(exe),

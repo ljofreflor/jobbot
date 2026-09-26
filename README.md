@@ -29,24 +29,36 @@ PII guard (`make hooks`). The collaboration is on the map, not on the traveller.
 
 ## Architecture
 
-```text
-                         profile.yaml
-                              │
-     ┌────────────┬───────────┼───────────┬──────────────────┐
-     ▼            ▼           ▼           ▼                  ▼
-   LaTeX        Indeed     LinkedIn   permanent         active company
-     │            │           │       portals           portals (shared
-     ▼            ▼           ▼       (GoB, …)          companies base)
-    PDF      IndeedAdapter  LinkedInAdapter
-                              │
-                              ▼
-                     cv sync / propagate (#43)
-                     + assisted signup (#44)
+![JobBot architecture](docs/images/architecture.png)
+
+Two loops, one source of truth (`data/profile.yaml` → `Candidate`). LaTeX/PDF, Indeed,
+LinkedIn and company career portals are views or adapters — facts are never invented to
+fit a posting. Collaboration shares **who hires where**; each person's CV, sessions and
+applications stay local (the map, not the traveller).
+
+| Cluster | What it is |
+| --- | --- |
+| Standing presence | Keep this candidate registered and up to date on permanent + *active* portals (`cv sync` [#43](https://github.com/ljofreflor/jobbot/issues/43), signup [#44](https://github.com/ljofreflor/jobbot/issues/44), recon [#45](https://github.com/ljofreflor/jobbot/issues/45)) |
+| Apply / cargo | Discover → store `Jxxxx` → match → tailored CV → `application apply` (HITL submit) |
+| Collaborative map | `companies.yaml` / `portals.yaml` / `recruiters.yaml` — share via `export`, no PII |
+| Local only | SQLite, browser/CDP, `output/`, `form_knowledge` — never leave the machine |
+| Autopoiesis | Non-zero exit with class+message → `ops_failures` → `ops failure work` → issue → PR → re-run |
+
+Detail (adapters, knowledge, failure lane):
+
+![JobBot adapters, knowledge, autopoiesis](docs/images/architecture-detail.png)
+
+Regenerate the PNGs (needs [Graphviz](https://graphviz.org/) and the optional docs group):
+
+```bash
+brew install graphviz   # once; or apt install graphviz
+make architecture       # uv sync --group docs + scripts/render_architecture.py
 ```
 
-`data/profile.yaml` is the single source of professional truth. LaTeX, PDF, Indeed, LinkedIn,
-and company career portals are views or adapters. Facts are never invented to fit a job posting.
-Collaboration shares who hires where; each person's CV and accounts stay local.
+The diagram source is [`scripts/render_architecture.py`](scripts/render_architecture.py)
+([mingrammer/diagrams](https://diagrams.mingrammer.com/)). Commit the rendered files under
+`docs/images/` so the README stays readable without regenerating. (PNG only —
+SVG from Graphviz can embed absolute icon paths from your machine.)
 
 ## Status
 

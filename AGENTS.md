@@ -88,12 +88,17 @@ jobbot profile suggest-from-market     # market language (no stdin; --ask for ga
 
 Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
 (`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
+Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
+    90|(`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
 or Indeed; `--fixture` also ingests Indeed viewjob or career-page HTML). From a phone,
 `jobbot capture URL` keeps the share as a **candidate** (hard-link inbox, company portal
-candidate, or unrecognized list) with no fetch; `--park` remains the hard-link-only shortcut.
-On a desktop with Chrome CDP, `jobbot get --parked` / `companies recon` finish the work
-(CAPTCHA stays HITL). Known ATS hosts
-without a fetcher are recognized then refused. Manual `jobs add --file` is a fallback.
+candidate, or unrecognized list) with no fetch; `--park` queues the share URL under
+`data/hard-link-inbox.txt` as the hard-link-only shortcut. On a desktop with Chrome CDP,
+`jobbot get --parked` / `companies recon` finish the work (CAPTCHA stays HITL). Known ATS hosts
+without a fetcher (or Indeed URL shapes we do not yet parse) are refused and recorded
+as ops failures with class+message — tracking stripped from the stored command — so
+`ops failure work` can open the issue→branch→PR lane. Manual `jobs add --file` is a fallback.
+   100|`profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
 
@@ -175,19 +180,23 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   alimenta [#43](https://github.com/ljofreflor/jobbot/issues/43) / [#44](https://github.com/ljofreflor/jobbot/issues/44).
 - **Qué pide un formulario:** `portals form-learn URL --fetch|--fixture PATH` lee un formulario de
   postulación y guarda **solo las preguntas**: etiqueta, tipo, obligatoriedad, opciones de un select
-  y qué archivos acepta. Nunca guarda un valor tipeado, un token oculto ni el teléfono de ejemplo de
-  un placeholder, y no envía nada. `application apply --apply` lo aprende de paso, sin bloquear la
-  postulación si la página no se puede leer (queda como `unknown`, no como formulario vacío).
-  `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el insumo que
-  `cv advise` usa para saber qué preguntan realmente las empresas.
+  y qué archivos acepta. También nombra botones **Sign in with Google/LinkedIn/…** si están en la
+  página (HITL; nunca inicia OAuth). Nunca guarda un valor tipeado, un token oculto ni el teléfono de
+  ejemplo de un placeholder, y no envía nada. `application apply --apply` lo aprende de paso, sin
+  bloquear la postulación si la página no se puede leer (queda como `unknown`, no como formulario
+  vacío). `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el
+  insumo que `cv advise` usa para saber qué preguntan realmente las empresas.
 - **Registro de cuenta (asistido, HITL):** el endgame es que un portal *active* de la base
   colaborativa pueda quedar con cuenta + perfil/CV al día para este candidato. Hoy
-  `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`. La
-  automatización permitida es **rellenar campos que el perfil ya responde** y adjuntar el
-  PDF construido; **prohibido** inventar contraseña, aceptar términos solo, resolver
-  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. El módulo de sheet
+  `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`.
+  Con `--apply` rellena campos que el perfil ya responde y puede adjuntar el PDF;
+  **prohibido** inventar contraseña, aceptar términos solo, resolver
+  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. Si la página ofrece **Sign in with
+  Google / LinkedIn / Microsoft / Apple**, `form-learn` y la hoja de signup lo **nombran**
+  (`jobbot.portals.sso`); vos clicás el proveedor — JobBot nunca inicia OAuth. Un campo
+  URL de perfil LinkedIn o un enlace de footer no cuentan como SSO. El módulo de sheet
   (`jobbot.companies.signup`) sigue sin cliente HTTP propio (la hoja es pura); el driver
-  de relleno vive en adapters de portal, detrás de `--apply` + confirm. ATS sin cuenta
+  de relleno vive en `adapters/ats/signup_fill.py`, detrás de `--apply` + confirm. ATS sin cuenta
   (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
 - **Asesor de presentación:** `cv advise` propone **pocas** mejoras por corrida en tres ejes
   (legibilidad de máquina, lenguaje, puesta en página) usando JD guardados, formularios observados y
@@ -252,7 +261,9 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
 
 - Own accounts only. No CAPTCHA solving, 2FA bypass, stealth, proxies, telemetry.
 - Failures: local `ops_failures` in SQLite + `output/ops/failures/`; GitHub issues only via HITL
-  `jobbot ops failure issue` (never auto on crash). Maintainer lane is bash:
+  `jobbot ops failure issue` (never auto on crash). Every issue opened that way (and any
+  `gh issue create`) must be assigned to Cursor — login `cursoragent` — so it is never left
+  unassigned; see Planning. Maintainer lane is bash:
   `jobbot ops failure work Fxxxx` prints (or with `--apply` opens) issue → `git fetch` →
   branch → PR → triage → re-run ([#46](https://github.com/ljofreflor/jobbot/issues/46)); never
   auto-commit / push / merge.
@@ -336,6 +347,15 @@ an issue already holds acceptance tests wastes everyone's time.
 3. If the work is genuinely new, open or update an issue first (HITL), then plan against that
    number.
 4. Cite issue numbers in the plan and in PR bodies.
+5. **Assign every GitHub issue to Cursor.** On `gh issue create` and on
+   `jobbot ops failure issue`, pass `--assignee cursoragent` (or
+   `gh issue edit N --add-assignee cursoragent` right after create). Agents must not leave
+   issues unassigned. Login is `cursoragent` (GitHub User “Cursor Agent”); the App bot
+   `cursor[bot]` **cannot** be an issue assignee. `cursoragent` needs **write** on the repo
+   to appear in assignable users (read via the Cursor GitHub App is not enough). Until that
+   write collaborator is in place, apply the `cursor` label as the ownership signal and keep
+   a write invite open — then retry `--add-assignee cursoragent`. Prefer the real assignee
+   over the label alone.
 
 ## Remote agents (issues, cloud, CI)
 
@@ -351,6 +371,8 @@ So, when working on an issue without the local machine:
   ship the code plus fixture tests and say in the PR which check the human has to run locally.
 - Never add a fixture with real PII. `*.example.yaml` and `latex/cv.tex.demo` are the templates.
 - `.cursor/` is local, so this file is the whole policy: read it before touching anything.
+- Product and ops issues are Cursor-owned: assignee `cursoragent` (fallback label `cursor`).
+  Do not open or leave an issue without that ownership signal.
 
 ## Verify
 
@@ -398,7 +420,7 @@ uv run jobbot cv propagate                 # alias permanente-only de sync (sin 
 uv run jobbot cv propagate --targets permanent --apply
 uv run jobbot status                       # permanentes + active company portals (evidencia)
 # Signup fill beyond the sheet: issue #44
-uv run jobbot companies signup NOMBRE      # hoja + open; fill --apply es #44
+uv run jobbot companies signup NOMBRE --apply [--cdp URL]  # fill known fields; HITL create
 uv run jobbot cv advise                    # determinista, sin tokens
 uv run jobbot cv advise --apply            # confirma una por una → profile.yaml (con backup)
 uv run jobbot cv advise --llm --dry-run    # qué se enviaría y cuánto, sin gastar
@@ -448,7 +470,7 @@ uv run jobbot companies learn URL --company NAME --country CL
 uv run jobbot companies list|show|promote|reject|sites|export
 uv run jobbot companies discover data/companies-cl.example.yaml   # oneshot → candidatos
 uv run jobbot companies import output/discovery/company_portals.generated.yaml
-uv run jobbot companies signup NOMBRE                 # hoja + open; fill --apply = #44
+uv run jobbot companies signup NOMBRE --apply [--cdp URL] # fill known; HITL create (#44)
 uv run jobbot companies recon NOMBRE --fixture PATH   # aprender ATS/form desde HTML (#45)
 uv run jobbot companies recon NOMBRE --cdp URL --apply
 uv run jobbot application apply J0001

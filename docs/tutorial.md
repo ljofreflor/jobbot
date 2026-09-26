@@ -105,7 +105,7 @@ What the search teaches you comes back as proposals, never as silent edits:
 uv run jobbot companies discover data/companies-cl.example.yaml   # map portals (candidates)
 uv run jobbot companies recon NOMBRE --fixture page.html --apply  # truth from inside (#45)
 uv run jobbot portals form-learn URL --fetch     # what a form asks; it submits nothing
-uv run jobbot companies signup NOMBRE            # sheet + open; you finish irreversible steps
+uv run jobbot companies signup NOMBRE --apply --cdp URL  # fill known; you finish create
 uv run jobbot recruiters discover URL            # public hiring practice, then promote it
 uv run jobbot profile suggest-from-market        # market wording and gap questions
 ```

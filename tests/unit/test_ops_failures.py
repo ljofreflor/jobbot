@@ -56,6 +56,26 @@ def test_fingerprint_stable_across_numeric_noise() -> None:
     assert len(a) == 16
 
 
+def test_normalize_command_stabilizes_job_urls() -> None:
+    """Hard-link argv must drop tracking so the failure-work re-run stays clean."""
+    from jobbot.ops.failures import normalize_command
+
+    cmd = normalize_command(
+        [
+            "jobbot",
+            "get",
+            "https://cl.indeed.com/viewjob?jk=abc123&from=email&tk=xyz",
+        ]
+    )
+    assert cmd == "jobbot get https://cl.indeed.com/viewjob?jk=abc123"
+
+    linkedin = normalize_command(
+        ["jobbot", "get", "https://www.linkedin.com/jobs/view/123?trk=flagship"]
+    )
+    assert "trk=" not in linkedin
+    assert "linkedin.com/jobs/view/123" in linkedin
+
+
 def test_normalize_message_collapses_noise() -> None:
     assert "j0016" not in normalize_message("see J0016 path /tmp/x")
     assert "<id>" in normalize_message("see J0016")

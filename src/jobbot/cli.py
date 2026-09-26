@@ -82,7 +82,7 @@ linkedin_app = typer.Typer(
     no_args_is_help=True,
 )
 browser_app = typer.Typer(
-    help="Browser helpers (HITL Chrome / CDP — no CAPTCHA bypass)",
+    help="Browser helpers (HITL Chrome/Edge/Brave via CDP — no CAPTCHA bypass)",
     no_args_is_help=True,
 )
 getonboard_app = typer.Typer(
@@ -137,6 +137,21 @@ class _QuietExit(Exception):
         self.code = code
 
 
+class _RecordedExit(Exception):
+    """Non-zero exit that must land in ops_failures with a real fingerprint.
+
+    Autopoietic lane for product gaps (novel URL shapes, missing fetchers):
+    exception → observability → ``ops failure work`` → issue → PR. A bare
+    ``typer.Exit`` drops the message and collapses every gap into one useless
+    ``Exit:`` fingerprint.
+    """
+
+    def __init__(self, code: int, *, error_class: str, message: str) -> None:
+        self.code = code
+        self.error_class = error_class
+        self.message = message
+
+
 def run_cli(
     argv: Sequence[str] | None = None,
     *,
@@ -148,6 +163,8 @@ def run_cli(
     exit_code = SUCCESS
     caught: BaseException | None = None
     aborted = False
+    recorded_class: str | None = None
+    recorded_message: str | None = None
     try:
         result = app(args, prog_name=prog_name, standalone_mode=False)
         if isinstance(result, int):
@@ -182,6 +199,11 @@ def run_cli(
         if standalone_mode:
             raise SystemExit(exc.code) from exc
         return exc.code
+    except _RecordedExit as exc:
+        exit_code = exc.code
+        recorded_class = exc.error_class
+        recorded_message = exc.message
+        caught = exc.__cause__ if isinstance(exc.__cause__, BaseException) else None
     except Exception as exc:  # noqa: BLE001 — CLI boundary capture
         exit_code = GENERIC_FAILURE
         caught = exc
@@ -194,8 +216,16 @@ def run_cli(
             exit_code,
             argv=["jobbot", *args],
             exc=caught if not isinstance(caught, typer.Exit) else None,
-            error_class="Abort" if aborted else None,
-            message=ABORT_MESSAGE if aborted else None,
+            error_class=(
+                recorded_class
+                if recorded_class is not None
+                else ("Abort" if aborted else None)
+            ),
+            message=(
+                recorded_message
+                if recorded_message is not None
+                else (ABORT_MESSAGE if aborted else None)
+            ),
             context=runtime_context(),
         )
         if record is not None:
@@ -481,6 +511,27 @@ def _drain_parked_hard_links(
                 cdp=cdp,
                 fixture=None,
             )
+        except _RecordedExit as exc:
+            failures += 1
+            from jobbot.ops.failures import capture_cli_failure, runtime_context
+
+            record = capture_cli_failure(
+                exc.code,
+                argv=["jobbot", "get", item],
+                exc=exc.__cause__ if isinstance(exc.__cause__, BaseException) else None,
+                error_class=exc.error_class,
+                message=exc.message,
+                context=runtime_context(),
+            )
+            if record is not None:
+                err_console.print(
+                    f"[yellow]Recorded failure[/yellow] {record.id} "
+                    f"(fingerprint={record.fingerprint})"
+                )
+            err_console.print(
+                f"[yellow]Left in inbox[/yellow] (exit {exc.code}): {item}"
+            )
+            continue
         except (_QuietExit, typer.Exit) as exc:
             failures += 1
             if isinstance(exc, _QuietExit):
@@ -492,7 +543,9 @@ def _drain_parked_hard_links(
         remove_parked(config, item)
         console.print(f"[dim]Removed from inbox:[/dim] {item}")
     if failures:
-        raise typer.Exit(GENERIC_FAILURE if failures == len(urls) else SUCCESS)
+        # Per-URL gaps already landed in ops_failures; the drain summary is not a
+        # new defect (avoid a second empty Exit fingerprint).
+        raise _QuietExit(GENERIC_FAILURE if failures == len(urls) else SUCCESS)
 
 
 def _ingest_one_hard_link(
@@ -557,10 +610,18 @@ def _ingest_one_hard_link(
         raise typer.Exit(VALIDATION_FAILURE) from exc
     except UnsupportedPortalFetchError as exc:
         err_console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+        raise _RecordedExit(
+            GENERIC_FAILURE,
+            error_class=type(exc).__name__,
+            message=str(exc),
+        ) from exc
     except OSError as exc:
         err_console.print(f"[red]Could not fetch job page:[/red] {exc}")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+        raise _RecordedExit(
+            GENERIC_FAILURE,
+            error_class=type(exc).__name__,
+            message=f"Could not fetch job page: {exc}",
+        ) from exc
 
     job = result.job
     _learn_company_knowledge(config, job, narrator=narrator)
@@ -3549,7 +3610,7 @@ def portals_form_learn(
 
     form = learn_form_html(html, url=url, company=company)
     _print_form_knowledge(form)
-    if save and form.readable:
+    if save and (form.readable or form.sso_providers):
         stored = _store_form_knowledge(config, form)
         console.print(f"Learned (candidate knowledge): {stored}")
     elif save:
@@ -3582,6 +3643,12 @@ def _print_form_knowledge(form: Any) -> None:
     from jobbot.portals.form_learn import FieldKind
 
     console.print(f"[bold]{form.url}[/bold]  ats={form.ats.value}")
+    if form.sso_providers:
+        names = ", ".join(form.sso_providers)
+        console.print(
+            f"Sign in with: {names}  "
+            "[dim](you click; JobBot never starts OAuth)[/dim]"
+        )
     if not form.readable:
         console.print(f"[yellow]{form.evidence}[/yellow]")
         console.print("Tip: open the page, save the HTML, and pass it with --fixture.")
@@ -4006,8 +4073,28 @@ def companies_signup(
         str | None,
         typer.Option("--site", help="Which career site, when the company has several"),
     ] = None,
+    apply_fill: Annotated[
+        bool,
+        typer.Option(
+            "--apply",
+            help="Fill known fields from profile.yaml (stops before password/terms/submit)",
+        ),
+    ] = False,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to Chrome via CDP (e.g. http://127.0.0.1:9222)"),
+    ] = None,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Skip the fill confirmation (with --apply)"),
+    ] = False,
 ) -> None:
-    """Open a company portal and list what registering will ask. Creates nothing."""
+    """Sheet of what registering asks; --apply fills known fields (HITL create).
+
+    With --apply, fills fields profile.yaml already answers and may attach the built
+    CV. Stops before password, terms, CAPTCHA/2FA, and final create/submit.
+    Never creates the account.
+    """
     from jobbot.companies.signup import (
         AccountNeed,
         screening_to_prepare,
@@ -4068,11 +4155,92 @@ def companies_signup(
     )
     if target.need is AccountNeed.NOT_NEEDED:
         console.print("You may not need an account at all — check before registering.")
+
+    if apply_fill:
+        _companies_signup_apply(
+            config=config,
+            candidate=candidate,
+            target_url=target.url,
+            need=target.need,
+            form=form,
+            cdp=cdp,
+            yes=yes,
+        )
+        return
+
     if open_page:
         from jobbot.adapters.ats.apply import open_ats_in_browser
 
         open_ats_in_browser(target.url)
         console.print(f"Opened {target.url}")
+
+
+def _companies_signup_apply(
+    *,
+    config: JobbotConfig,
+    candidate: Candidate,
+    target_url: str,
+    need: Any,
+    form: Any,
+    cdp: str | None,
+    yes: bool,
+) -> None:
+    from jobbot.adapters.ats.signup_fill import build_fill_plan, fill_signup_with_session
+    from jobbot.adapters.getonboard.cv_upload import resolve_base_cv
+    from jobbot.browser.cdp import resolve_cdp_url
+    from jobbot.browser.session import BrowserSession
+
+    cv_path = resolve_base_cv(config.output_dir)
+    plan = build_fill_plan(candidate, target_url, need, form=form, cv_path=cv_path)
+
+    console.print("\n[bold]Fill plan[/bold] (will not create/submit):")
+    fillable = ", ".join(plan.fields_to_fill) if plan.fields_to_fill else "none"
+    console.print(f"  • Will fill: {fillable}")
+    manual = ", ".join(plan.needs_manual[:4])
+    if len(plan.needs_manual) > 4:
+        manual += "…"
+    console.print(f"  • Requires you: {manual}")
+    if plan.can_attach_cv:
+        console.print(f"  • Will attach CV: {plan.cv_path}")
+    else:
+        console.print("  • CV: not attached (build one with [bold]jobbot cv build[/bold])")
+
+    if not yes and not typer.confirm(
+        "Fill known profile fields now? (password, terms, CAPTCHA/2FA and create "
+        "stay with you — JobBot does not submit)",
+        default=False,
+    ):
+        console.print("Skipped fill. Sheet above still stands.")
+        raise typer.Exit(SUCCESS)
+
+    cdp_url = resolve_cdp_url(cdp)
+    with BrowserSession(
+        profile_dir=config.root / "browser-data" / "signup",
+        headless=False,
+        cdp_url=cdp_url,
+        debug_root=config.output_dir / "debug",
+    ) as session:
+        result = fill_signup_with_session(
+            session,
+            target_url,
+            candidate,
+            form=form,
+            cv_path=cv_path,
+            need=need,
+            confirm_submit=False,
+        )
+
+    console.print(
+        f"\n[green]Filled[/green] {len(result.filled_fields)} field(s)"
+        + (" · CV attached" if result.attached else "")
+    )
+    for field in result.filled_fields:
+        console.print(f"  • {field}")
+    console.print(f"[bold]Stopped at:[/bold] {result.stopped_at}")
+    console.print(
+        "[yellow]Complete password, terms, CAPTCHA/2FA and create/submit yourself.[/yellow]"
+    )
+    assert result.submitted is False
 
 
 @companies_app.command("promote")
@@ -4334,7 +4502,11 @@ def browser_chrome_debug(
         typer.Option("--launch/--print-only", help="Launch Chrome (default) or only print argv"),
     ] = True,
 ) -> None:
-    """Open a normal Chrome with CDP so challenges can be completed by hand."""
+    """Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
+    
+    Automatically detects and launches any available Chromium-based browser:
+    Chrome, Microsoft Edge, Brave, or Chromium.
+    """
     import subprocess
 
     from jobbot.browser.cdp import cdp_http_url, chrome_debug_argv
