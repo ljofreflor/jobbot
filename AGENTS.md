@@ -185,10 +185,14 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   CAPTCHA/2FA o pulsar crear/enviar sin confirmación. Si la página ofrece **Sign in with
   Google / LinkedIn / Microsoft / Apple**, `form-learn` y la hoja de signup lo **nombran**
   (`jobbot.portals.sso`); vos clicás el proveedor — JobBot nunca inicia OAuth. Un campo
-  URL de perfil LinkedIn o un enlace de footer no cuentan como SSO. El módulo de sheet
-  (`jobbot.companies.signup`) sigue sin cliente HTTP propio (la hoja es pura); el driver
-  de relleno vive en `adapters/ats/signup_fill.py`, detrás de `--apply` + confirm. ATS sin cuenta
-  (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
+  URL de perfil LinkedIn o un enlace de footer no cuentan como SSO. Las etiquetas del
+  formulario se mapean a hechos de `profile.yaml` solo vía la **tabla de homologación**
+  (`jobbot.portals.field_homologation`: un hecho → muchos alias ES/EN; match exacto, sin
+  substring). "Middle Name" / "Father's Family Name" quedan vacíos hasta que exista un
+  hecho explícito. El módulo de sheet (`jobbot.companies.signup`) sigue sin cliente HTTP
+  propio (la hoja es pura); el driver de relleno vive en `adapters/ats/signup_fill.py`,
+  detrás de `--apply` + confirm. ATS sin cuenta (Greenhouse, Lever, Ashby) lo declaran;
+  sin evidencia → `unknown`.
 - **Asesor de presentación:** `cv advise` propone **pocas** mejoras por corrida en tres ejes
   (legibilidad de máquina, lenguaje, puesta en página) usando JD guardados, formularios observados y
   prácticas de reclutamiento que promoviste. Dos invariantes se **verifican**, no se prometen: una
