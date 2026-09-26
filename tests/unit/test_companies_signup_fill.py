@@ -317,3 +317,25 @@ def test_workday_create_account_fill_uses_automation_id(tmp_path: Path) -> None:
         "data-automation-id" in sel or sel.startswith("#") for sel in page.filled
     )
     assert page.clicked == []
+
+
+def test_bare_name_does_not_fill_middle_or_family_name_fields() -> None:
+    """Substring 'name' must not overwrite Workday's split name fields."""
+    from jobbot.companies.signup import signup_sheet
+
+    form = FormKnowledge(
+        url="https://example.wd5.myworkdayjobs.com/x",
+        readable=True,
+        fields=[
+            FormField(name="middle", label="Middle Name", kind=FieldKind.TEXT),
+            FormField(name="father", label="Father's Family Name", kind=FieldKind.TEXT),
+            FormField(name="email", label="Email Address", kind=FieldKind.EMAIL),
+            FormField(name="city", label="City", kind=FieldKind.TEXT),
+        ],
+    )
+    sheet = {item.label: item for item in signup_sheet(_candidate(), form=form)}
+
+    assert sheet["Middle Name"].value == ""
+    assert sheet["Father's Family Name"].value == ""
+    assert sheet["Email Address"].value == str(_candidate().personal.email)
+    assert sheet["City"].value == (_candidate().personal.city or "")
