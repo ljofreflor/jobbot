@@ -294,3 +294,26 @@ def test_greenhouse_lever_ashby_stay_not_needed() -> None:
         )
         assert plan.need is AccountNeed.NOT_NEEDED
         assert target.need is AccountNeed.NOT_NEEDED
+
+
+def test_workday_create_account_fill_uses_automation_id(tmp_path: Path) -> None:
+    """Workday email has no name= — only data-automation-id / id (#92)."""
+    html = Path("tests/fixtures/forms/workday_create_account.html").read_text(
+        encoding="utf-8"
+    )
+    page = FakePage(
+        html=html,
+        url=(
+            "https://example.wd5.myworkdayjobs.com/en-US/External_Career/"
+            "job/Remote/Role_1/apply/applyManually"
+        ),
+    )
+    result = fill_signup_form(page, _candidate(), cv_path=_pdf(tmp_path))
+
+    assert result.submitted is False
+    assert "Email Address" in result.filled_fields
+    assert not any("password" in f.casefold() for f in result.filled_fields)
+    assert any(
+        "data-automation-id" in sel or sel.startswith("#") for sel in page.filled
+    )
+    assert page.clicked == []

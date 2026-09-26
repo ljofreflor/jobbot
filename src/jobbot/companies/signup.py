@@ -184,5 +184,16 @@ def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
 
 
 def _item_for(label: str, answers: dict[str, tuple[str, str]]) -> SignupItem:
-    value, source = answers.get(label.casefold(), ("", "you decide: not a fact in the profile"))
-    return SignupItem(label=label, value=value, source=source)
+    folded = label.casefold().replace("*", "").strip()
+    if folded in answers:
+        value, source = answers[folded]
+        return SignupItem(label=label, value=value, source=source)
+    # Workday and others: "Email Address" / "Phone Number" — key sits inside the label.
+    for key, (value, source) in answers.items():
+        if len(key) >= 4 and key in folded:
+            return SignupItem(label=label, value=value, source=source)
+    return SignupItem(
+        label=label,
+        value="",
+        source="you decide: not a fact in the profile",
+    )

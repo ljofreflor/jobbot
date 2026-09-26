@@ -286,7 +286,9 @@ def _field(node: Tag, form: Tag) -> FormField | None:
     node_type = str(node.get("type") or "").lower()
     if tag == "input" and node_type in _IGNORED_TYPES:
         return None
-    name = str(node.get("name") or node.get("id") or "").strip()
+    name = str(
+        node.get("name") or node.get("data-automation-id") or node.get("id") or ""
+    ).strip()
     if not name:
         return None
     label = _label_for(node, form)
