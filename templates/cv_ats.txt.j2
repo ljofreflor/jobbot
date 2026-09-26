@@ -34,3 +34,4 @@ SKILLS
 PUBLICATIONS
 {% for pub in publications %}- {% if pub.authors %}{{ pub.authors | join(', ') }}. {% endif %}{{ pub.title }}{% if pub.journal %}. {{ pub.journal }}{% endif %}{% if pub.year %} ({{ pub.year }}){% endif %}{% if pub.status %} [{{ pub.status }}]{% endif %}{% if pub.doi %}. doi:{{ pub.doi }}{% endif %}
 {% endfor %}{% endif %}
+{{ cv_credit }}
