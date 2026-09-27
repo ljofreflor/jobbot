@@ -101,6 +101,12 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
     ),
     (re.compile(r"[a-z0-9_-]+\.teamtailor\.com", re.I), AtsKind.TEAMTAILOR, "teamtailor host"),
     (
+        # Custom career domains (careers.neuralworks.cl) still load Teamtailor's CDN.
+        re.compile(r"teamtailor(?:-cdn)?\.(?:com|io)", re.I),
+        AtsKind.TEAMTAILOR,
+        "teamtailor assets",
+    ),
+    (
         re.compile(r"(?:apply|[a-z0-9_-]+)\.workable\.com", re.I),
         AtsKind.WORKABLE,
         "workable host",
@@ -148,6 +154,50 @@ def detect_ats_in_html(html: str) -> tuple[AtsKind, str]:
         if match:
             return kind, f"html marker: {label} ({match.group(0)[:60]})"
     return AtsKind.UNKNOWN, ""
+
+
+_MAX_SNIFF_BYTES = 96_000
+_SNIFF_USER_AGENT = "jobbot/0.1 (local; ats sniff)"
+
+
+def sniff_ats(url: str, *, timeout: float = 10.0) -> AtsKind:
+    """
+    Classify a vacancy URL: host rule first, then the page's own ATS markers.
+
+    Custom career domains (``careers.neuralworks.cl``) look unknown by host alone but
+    still load Teamtailor/Greenhouse assets — that is technical evidence, not a guess.
+    """
+    kind = detect_ats(url)
+    if kind != AtsKind.UNKNOWN:
+        return kind
+    html = _fetch_html_prefix(url, timeout=timeout)
+    kind, _ = detect_ats_in_html(html or "")
+    return kind
+
+
+def _fetch_html_prefix(url: str, *, timeout: float) -> str | None:
+    import logging
+    import urllib.error
+    import urllib.request
+
+    raw = (url or "").strip()
+    if not raw.startswith(("http://", "https://")):
+        return None
+    req = urllib.request.Request(
+        raw,
+        headers={"User-Agent": _SNIFF_USER_AGENT, "Accept": "text/html"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 — user URL
+            chunk = resp.read(_MAX_SNIFF_BYTES)
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        logging.getLogger("jobbot.portals.detect").debug("ats sniff failed for %s: %s", raw, exc)
+        return None
+    try:
+        return chunk.decode("utf-8", errors="replace")
+    except Exception:  # noqa: BLE001 — sniff must never raise
+        return None
 
 
 def extract_http_urls(text: str) -> list[str]:

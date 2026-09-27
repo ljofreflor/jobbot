@@ -211,6 +211,16 @@ def test_title_drops_the_word_naming_whom_the_recruiter_wants() -> None:
     )
 
 
+def test_title_keeps_the_first_letter_of_applied_scientist() -> None:
+    """Regression: '(?i)a' matched the A of Applied and the title became 'pplied Scientist'."""
+    from jobbot.adapters.linkedin.sweep import _guess_title
+
+    title = _guess_title("Buscamos Applied Scientist para sumarse a nuestro equipo.")
+    assert title is not None
+    assert title.startswith("Applied Scientist")
+    assert not title.startswith("pplied")
+
+
 def test_a_topic_hashtag_never_promotes_a_place_to_an_employer() -> None:
     """Only a hashtag spelling the name itself corroborates; #Empleo says nothing."""
     from jobbot.adapters.linkedin.sweep import parse_post_blob

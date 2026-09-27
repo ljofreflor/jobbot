@@ -35,6 +35,22 @@ def _load_real_post(name: str, monkeypatch: object) -> object:
             return {url: captured.get(url, url) for url in urls}
 
         monkeypatch.setattr(sweep_mod, "expand_url_map", fake_expand)
+
+    # Offline stand-in for sniff_ats: read a sibling .html when the host alone is mute.
+    html_path = _REAL / f"{name}.html"
+    if html_path.exists():
+        from jobbot.portals.detect import detect_ats, detect_ats_in_html
+
+        page = html_path.read_text(encoding="utf-8")
+
+        def fake_sniff(url: str, *, timeout: float = 10.0) -> AtsKind:
+            kind = detect_ats(url)
+            if kind != AtsKind.UNKNOWN:
+                return kind
+            kind, _ = detect_ats_in_html(page)
+            return kind
+
+        monkeypatch.setattr(sweep_mod, "sniff_ats", fake_sniff)
     return parse_posts_fixture(text)[0]
 
 
@@ -98,3 +114,22 @@ def test_real_nttdata_madrid_post_is_named_and_kept_out_of_chile(
     assert job.company == "NTT DATA"
     assert job.title == "Machine Learning & Customer Analytics"
     assert "talento" not in job.title.casefold()
+
+
+def test_real_neuralworks_applied_scientist_is_named_and_teamtailor(
+    monkeypatch: object,
+) -> None:
+    """https://lnkd.in/p/dXzvuKkn — Chilean Teamtailor career page behind a custom host."""
+    post = _load_real_post("neuralworks_applied_scientist", monkeypatch)
+
+    assert post.ats_kind == AtsKind.TEAMTAILOR  # type: ignore[attr-defined]
+    assert post.ats_url == (  # type: ignore[attr-defined]
+        "https://careers.neuralworks.cl/jobs/568945-applied-scientist"
+    )
+    assert post_offers_wanted_country(post.text, wanted=["CL"]) is True  # type: ignore[attr-defined]
+
+    job = post_to_job(post)  # type: ignore[arg-type]
+    assert job.company == "NeuralWorks"
+    assert job.title.startswith("Applied Scientist")
+    assert not job.title.lower().startswith("pplied")
+    assert job.ats_kind == "teamtailor"

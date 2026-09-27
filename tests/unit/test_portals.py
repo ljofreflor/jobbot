@@ -6,6 +6,7 @@ from jobbot.portals.detect import (
     JOB_BOARD_KINDS,
     AtsKind,
     detect_ats,
+    detect_ats_in_html,
     extract_http_urls,
     first_external_ats_url,
 )
@@ -21,12 +22,20 @@ def test_detect_ats_kinds() -> None:
     assert detect_ats("https://acme.breezy.hr/p/abc-role") == AtsKind.BREEZY
     assert detect_ats("https://www.linkedin.com/posts/x") == AtsKind.LINKEDIN
     assert detect_ats("https://example.com/jobs/1") == AtsKind.UNKNOWN
+    assert detect_ats("https://careers.neuralworks.cl/jobs/1") == AtsKind.UNKNOWN
+
+
+def test_teamtailor_cdn_on_a_custom_career_host_is_evidence(project_root: Path) -> None:
+    """careers.neuralworks.cl is not teamtailor.com; the page still loads Teamtailor's CDN."""
+    html = (project_root / "tests/fixtures/teamtailor_career_page.html").read_text(encoding="utf-8")
+    kind, evidence = detect_ats_in_html(html)
+    assert kind == AtsKind.TEAMTAILOR
+    assert "teamtailor" in evidence.casefold()
 
 
 def test_first_external_ats_prefers_greenhouse() -> None:
     urls = extract_http_urls(
-        "see https://www.linkedin.com/feed/update/1 and "
-        "https://boards.greenhouse.io/acme/jobs/9"
+        "see https://www.linkedin.com/feed/update/1 and https://boards.greenhouse.io/acme/jobs/9"
     )
     url, kind = first_external_ats_url(urls)
     assert kind == AtsKind.GREENHOUSE

@@ -12,7 +12,13 @@ from urllib.parse import urlparse
 from jobbot.jobs.geo import country_allows, detect_country, normalize_countries
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
-from jobbot.portals.detect import AtsKind, detect_ats, extract_http_urls, first_external_ats_url
+from jobbot.portals.detect import (
+    AtsKind,
+    detect_ats,
+    extract_http_urls,
+    first_external_ats_url,
+    sniff_ats,
+)
 from jobbot.portals.email_apply import first_apply_email, mailto_url
 from jobbot.portals.redirect import expand_url_map
 
@@ -270,6 +276,9 @@ def parse_post_blob(
     urls = _both_ends(url_map)
     vacancies = split_vacancy_links(text, url_map)
     ats_url, ats_kind = first_external_ats_url(urls)
+    if ats_url is not None and ats_kind == AtsKind.UNKNOWN:
+        # careers.example.cl and friends: host says nothing, the page still names its ATS.
+        ats_kind = sniff_ats(ats_url)
     if ats_url is None:
         email = first_apply_email(text)
         if email:
@@ -412,11 +421,13 @@ def _vacancy_source_id(url: str) -> str:
 def _guess_title(text: str) -> str | None:
     patterns = [
         (
+            # Articles must be their own word. Otherwise "(?i)a" eats the A of "Applied".
             r"(?i)(?:hiring|buscamos|looking for|we(?:'re| are) looking for)\s+"
-            r"(?:a|an|un|una)?\s*([^\n.!?]{8,80})"
+            r"(?:(?:a|an|un|una)\s+)?([^\n.!?]{8,80})"
         ),
         r"(?i)(?:role|puesto|cargo)\s*[:\-]\s*([^\n]{5,80})",
         r"(?i)\b((?:senior |staff |lead )?data scientist[^\n.!?]{0,40})",
+        r"(?i)\b((?:senior |staff |lead )?applied scientist[^\n.!?]{0,40})",
         r"(?i)\b((?:senior |staff )?machine learning engineer[^\n.!?]{0,40})",
         r"(?i)\b((?:senior )?data engineer[^\n.!?]{0,40})",
     ]
