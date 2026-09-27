@@ -498,7 +498,7 @@ body:has(.jb-hero) .md-tabs {
   62%,
   84% {
     opacity: 1;
-    max-height: 16rem;
+    max-height: 22rem;
     padding: 0.45rem 0.15rem;
     transform: none;
   }
