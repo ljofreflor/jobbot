@@ -14,6 +14,7 @@ site_dir: site
 
 theme:
   name: material
+  custom_dir: docs/overrides
   language: es
   icon:
     repo: fontawesome/brands/github
@@ -28,10 +29,6 @@ theme:
     - search.suggest
     - toc.follow
   palette:
-    - media: "(prefers-color-scheme)"
-      toggle:
-        icon: material/brightness-auto
-        name: Usar preferencia del sistema
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: teal
@@ -89,6 +86,9 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+
+extra_css:
+  - stylesheets/landing.css
 
 extra:
   social:

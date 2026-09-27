@@ -1,64 +1,51 @@
 ---
-title: JobBot in English
+template: home.html
+title: JobBot — job search on your machine
 description: >-
-  JobBot is a local-first CLI for job hunting. It runs entirely on your machine,
-  never submits an application for you and never invents facts about you.
+  Local-first CLI for job hunting. Runs entirely on your machine, never submits
+  an application for you and never invents facts about you.
+hide:
+  - navigation
+  - toc
 ---
 
-# JobBot, in English
-
-**JobBot is a command-line tool that keeps your CV as structured data, discovers
-job postings, scores them against your real profile and assembles the application
-package.** You press submit. Always.
-
-This site is written in Spanish, because the author writes in Spanish and the tool
-targets the Chilean and wider LATAM market. This page and the technical
-measurement posts are the English surface.
-
-## Install in three commands
-
-```bash
-git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
-uv sync --group dev
-cp data/profile.example.yaml data/profile.yaml
-```
-
-Then edit `data/profile.yaml` with your own data and check it:
-
-```bash
-uv run jobbot profile validate
-uv run jobbot cv build
-```
-
-## What makes it different
-
-- **Runs entirely locally.** Python, SQLite and a local Playwright browser. No
-  remote service, no account, no telemetry.
-- **Never submits an application for you.** The loop is human-in-the-loop: JobBot
-  prepares the package and plans the form fill; you review and send.
-- **Never invents facts about you.** `data/profile.yaml` is the single source of
-  professional truth. A job-adapted CV reorders and prioritises what is already
-  there.
-- **No CAPTCHA bypass.** No solving challenges, no 2FA workarounds, no anti-bot
-  evasion. When a portal asks, it hands you the keyboard.
-- **Your data never leaves your machine.** Profile, output, browser sessions and
-  the SQLite database are gitignored, and a pre-commit hook blocks them.
+<section class="jb-section" markdown="1">
 
 ## A full loop, in commands that exist
 
+Discover, score, build the CV, prepare the application. You press submit.
+
 ```bash
 uv run jobbot getonboard search "data scientist" --limit 20
-uv run jobbot jobs shortlist
 uv run jobbot jobs match J0001
 uv run jobbot cv build --job J0001
-uv run jobbot application prepare J0001
 uv run jobbot application apply J0001        # plan only; you submit
 ```
 
-## Read next
+</section>
 
-- [Which job sites block you from a datacenter IP (measured)](../blog/posts/2026-09-24-datacenter-ip-blocking.md)
-  — 403s, headers and counts from an AWS IP, plus why ATS APIs behave differently.
-- [Prior art](../prior-art.md) — other open-source projects in this space.
-- [Instalación](../instalacion.md) and [Comandos](../comandos.md) — the full docs,
-  in Spanish.
+<section class="jb-section" markdown="1">
+
+## What JobBot will not do
+
+Product rules, not slogans.
+
+<ul class="jb-principles">
+  <li><strong>Never submits for you</strong> Human-in-the-loop: it prepares the package and opens the form. Sending is yours.</li>
+  <li><strong>Never invents facts about you</strong> <code>data/profile.yaml</code> is the only source of professional truth.</li>
+  <li><strong>Never leaves your disk</strong> Profile, SQLite, browser sessions and <code>output/</code> are gitignored.</li>
+  <li><strong>No CAPTCHA bypass</strong> When a portal challenges you, it hands you the keyboard.</li>
+</ul>
+
+</section>
+
+<section class="jb-section jb-section--measure" markdown="1">
+
+## Measured, not guessed
+
+Which job sites answer from a datacenter IP, and which do not.
+
+[Read the measurement](../blog/posts/2026-09-24-datacenter-ip-blocking.md){ .jb-btn .jb-btn--primary }
+[Sitio en español](../index.md){ .jb-btn .jb-btn--ghost }
+
+</section>

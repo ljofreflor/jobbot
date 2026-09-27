@@ -1,0 +1,65 @@
+{% extends "main.html" %}
+
+{# Landing page: one composition in the first viewport, docs/blog live behind the CTAs. #}
+
+{% set en = page.file.src_uri.startswith("en/") %}
+
+{% block extrahead %}
+  {{ super() }}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
+    rel="stylesheet"
+  />
+{% endblock %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="jb-hero" aria-label="JobBot">
+    <div class="jb-hero__atmosphere" aria-hidden="true"></div>
+    <div class="jb-hero__inner md-grid">
+      <div class="jb-hero__copy">
+        <p class="jb-hero__brand">JobBot</p>
+        {% if en %}
+          <h1 class="jb-hero__title">Your job search, on your machine</h1>
+          <p class="jb-hero__lede">
+            Local CLI: structured CV, real matching, applications you submit yourself.
+          </p>
+          <div class="jb-hero__actions">
+            <a class="jb-btn jb-btn--primary" href="../instalacion/">Install</a>
+            <a class="jb-btn jb-btn--ghost" href="../blog/">Read the blog</a>
+          </div>
+        {% else %}
+          <h1 class="jb-hero__title">Tu búsqueda de trabajo, en tu máquina</h1>
+          <p class="jb-hero__lede">
+            CLI local: CV estructurado, matching real, postulaciones que envías tú.
+          </p>
+          <div class="jb-hero__actions">
+            <a class="jb-btn jb-btn--primary" href="instalacion/">Instalar</a>
+            <a class="jb-btn jb-btn--ghost" href="blog/">Leer el blog</a>
+          </div>
+        {% endif %}
+      </div>
+      <div class="jb-hero__stage" aria-hidden="true">
+        <div class="jb-term">
+          <div class="jb-term__chrome">
+            <span></span><span></span><span></span>
+            <code>jobbot — local</code>
+          </div>
+          <pre class="jb-term__body"><code><span class="jb-term__line" style="--i:0"><span class="jb-term__prompt">$</span> jobbot jobs match J0003</span>
+<span class="jb-term__line" style="--i:1">  match  82%  ·  DS Senior · Get on Board</span>
+<span class="jb-term__line" style="--i:2"><span class="jb-term__prompt">$</span> jobbot cv build --job J0003</span>
+<span class="jb-term__line" style="--i:3">  wrote  output/cv-J0003.pdf</span>
+<span class="jb-term__line" style="--i:4"><span class="jb-term__prompt">$</span> jobbot application apply J0003</span>
+<span class="jb-term__line" style="--i:5">  plan ready · you submit</span>
+<span class="jb-term__line jb-term__line--cursor" style="--i:6"><span class="jb-term__prompt">$</span> <span class="jb-term__cursor"></span></span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+  {{ page.content }}
+{% endblock %}
