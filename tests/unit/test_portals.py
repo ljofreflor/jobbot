@@ -12,6 +12,7 @@ def test_detect_ats_kinds() -> None:
     assert detect_ats("https://company.wd1.myworkdayjobs.com/en-US/careers") == AtsKind.WORKDAY
     assert detect_ats("https://jobs.ashbyhq.com/c/r") == AtsKind.ASHBY
     assert detect_ats("https://www.getonbrd.com/jobs/x") == AtsKind.GETONBOARD
+    assert detect_ats("https://acme.breezy.hr/p/abc-role") == AtsKind.BREEZY
     assert detect_ats("https://www.linkedin.com/posts/x") == AtsKind.LINKEDIN
     assert detect_ats("https://example.com/jobs/1") == AtsKind.UNKNOWN
 

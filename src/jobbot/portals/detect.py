@@ -20,6 +20,7 @@ class AtsKind(StrEnum):
     TEAMTAILOR = "teamtailor"
     WORKABLE = "workable"
     RECRUITEE = "recruitee"
+    BREEZY = "breezy"
     TORRE = "torre"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
@@ -56,6 +57,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("teamtailor.com", AtsKind.TEAMTAILOR),
     ("workable.com", AtsKind.WORKABLE),
     ("recruitee.com", AtsKind.RECRUITEE),
+    ("breezy.hr", AtsKind.BREEZY),
     ("torre.ai", AtsKind.TORRE),
     ("torre.co", AtsKind.TORRE),
     ("indeed.com", AtsKind.INDEED),
@@ -93,6 +95,7 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "workable host",
     ),
     (re.compile(r"[a-z0-9_-]+\.recruitee\.com", re.I), AtsKind.RECRUITEE, "recruitee host"),
+    (re.compile(r"[a-z0-9_-]+\.breezy\.hr", re.I), AtsKind.BREEZY, "breezy host"),
     (
         re.compile(r"[a-z0-9_-]*\.(?:successfactors|sapsf)\.(?:com|eu)", re.I),
         AtsKind.SUCCESSFACTORS,
