@@ -279,7 +279,8 @@ body:has(.jb-hero) .md-tabs {
   --jb-chat-dim: #8aa0c4;
   display: flex;
   flex-direction: column;
-  min-height: 28rem;
+  height: 32rem;
+  max-height: min(32rem, 70vh);
   background: var(--jb-chat-bg);
   color: var(--jb-chat-text);
   border-radius: 0.65rem;
@@ -358,11 +359,15 @@ body:has(.jb-hero) .md-tabs {
   flex-direction: column;
   gap: 0.15rem;
   flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 0.85rem 0.9rem 0.5rem;
-  min-height: 16rem;
   background:
     linear-gradient(180deg, rgba(0, 88, 248, 0.04), transparent 40%),
     var(--jb-chat-bg);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 88, 248, 0.35) transparent;
 }
 
 .jb-chat__msg {
@@ -694,8 +699,9 @@ body:has(.jb-hero) .md-tabs {
   font-size: 0.82rem;
 }
 
-/* Composer — Cursor multi-line input + Agent mode bar */
+/* Composer — Cursor multi-line input + Agent mode bar (pinned) */
 .jb-chat__composer {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -778,7 +784,12 @@ body:has(.jb-hero) .md-tabs {
   border: 1px solid rgba(0, 88, 248, 0.45);
 }
 
+.jb-chat__mode svg {
+  opacity: 0.9;
+}
+
 .jb-chat__model {
+  margin-left: 0.15rem;
   font-size: 0.68rem;
   font-weight: 600;
   color: var(--jb-chat-dim);
@@ -978,11 +989,8 @@ body:has(.jb-hero) .md-tabs {
 
 @media (max-width: 600px) {
   .jb-chat {
-    min-height: 24rem;
-  }
-
-  .jb-chat__thread {
-    min-height: 13rem;
+    height: 28rem;
+    max-height: min(28rem, 75vh);
   }
 
   .jb-chat__msg {
