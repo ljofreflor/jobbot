@@ -45,15 +45,17 @@ Three things Jobbot actually does. No invented product.
 
 <section class="jb-section" markdown="1">
 
-## A full loop, in commands that exist
+## A full loop, in plain language
 
-Discover, score, build the CV, prepare the application. You press submit.
+Paste a link or say what you want. Jobbot reads, matches, builds the CV and leaves
+the form ready. You press submit.
 
 ```bash
-uv run jobbot getonboard search "data scientist" --limit 20
-uv run jobbot jobs match J0001
-uv run jobbot cv build --job J0001
-uv run jobbot application apply J0001        # plan only; you submit
+# under the chat, the same steps exist as commands
+uv run jobbot linkedin sweep "machine learning"
+uv run jobbot jobs match J0002
+uv run jobbot cv build --job J0002
+uv run jobbot application apply J0002        # plan only; you submit
 ```
 
 </section>

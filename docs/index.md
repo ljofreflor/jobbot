@@ -45,15 +45,17 @@ Tres cosas que Jobbot hace de verdad. Sin inventar un producto que no existe.
 
 <section class="jb-section" markdown="1">
 
-## El ciclo, en comandos que existen
+## El ciclo, en lenguaje natural
 
-Descubrir, puntuar, armar el CV y preparar la postulación. El envío lo haces tú.
+Pegas un link o describes lo que buscas. Jobbot lee, hace match, arma el CV y deja
+el formulario listo. El envío lo haces tú.
 
 ```bash
-uv run jobbot getonboard search "data scientist" --limit 20
-uv run jobbot jobs match J0001
-uv run jobbot cv build --job J0001
-uv run jobbot application apply J0001        # plan; tú envías
+# debajo del chat, los mismos pasos existen como comandos
+uv run jobbot linkedin sweep "machine learning"
+uv run jobbot jobs match J0002
+uv run jobbot cv build --job J0002
+uv run jobbot application apply J0002        # plan; tú envías
 ```
 
 [Instalación y quickstart](instalacion.md) · [Referencia de comandos](comandos.md)
