@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
+from jobbot.jobs.geo import country_allows, detect_country, normalize_countries
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind, detect_ats, extract_http_urls, first_external_ats_url
@@ -54,6 +55,7 @@ class PostVacancy:
     title: str
     url: str
     ats_kind: AtsKind = AtsKind.UNKNOWN
+    country: str | None = None
 
 
 @dataclass(frozen=True)
@@ -149,7 +151,7 @@ def is_data_relevant(text: str) -> bool:
 
 # A post offering several roles lists them as "🔹 Lead Data Scientist: <url>". Cards keep one
 # bullet per line, but a collapsed paragraph puts them all on one, so split on both.
-_VACANCY_SEGMENT_RE = re.compile(r"[\r\n]+|(?=[🔹🔸🔷🔶🟢🟣▪◾◽•])")
+_VACANCY_SEGMENT_RE = re.compile(r"[\r\n]+|(?=[🔹🔸🔷🔶🟢🟣▪◾◽•·‧‣])")
 _VACANCY_LINE_RE = re.compile(
     r"^(?P<label>[^\n]{4,90}?)\s*[:\-–—]\s*(?P<url>https?://\S+)",
 )
@@ -181,6 +183,20 @@ _ROLE_WORDS = (
 _ROLE_WORD_RE = re.compile("|".join(_ROLE_WORDS), re.IGNORECASE)
 
 
+def labelled_vacancy_links(text: str) -> list[tuple[str, str]]:
+    """(role label, link) for every vacancy the recruiter listed, before any resolution."""
+    out: list[tuple[str, str]] = []
+    for segment in _VACANCY_SEGMENT_RE.split(text or ""):
+        match = _VACANCY_LINE_RE.match(segment.strip())
+        if match is None:
+            continue
+        label = _VACANCY_LABEL_TRIM_RE.sub("", match.group("label")).strip()
+        if not label or not _ROLE_WORD_RE.search(label):
+            continue
+        out.append((label, match.group("url").rstrip(".,;:)")))
+    return out
+
+
 def split_vacancy_links(text: str, url_map: dict[str, str] | None = None) -> list[PostVacancy]:
     """
     Labelled vacancy links in a post, in the order the recruiter listed them.
@@ -192,14 +208,7 @@ def split_vacancy_links(text: str, url_map: dict[str, str] | None = None) -> lis
     resolved_by_raw = url_map or {}
     out: list[PostVacancy] = []
     seen: set[str] = set()
-    for segment in _VACANCY_SEGMENT_RE.split(text or ""):
-        match = _VACANCY_LINE_RE.match(segment.strip())
-        if match is None:
-            continue
-        label = _VACANCY_LABEL_TRIM_RE.sub("", match.group("label")).strip()
-        if not label or not _ROLE_WORD_RE.search(label):
-            continue
-        raw_url = match.group("url").rstrip(".,;:)")
+    for label, raw_url in labelled_vacancy_links(text):
         url = resolved_by_raw.get(raw_url, raw_url)
         kind = detect_ats(url)
         if kind == AtsKind.LINKEDIN or _is_linkedin_shortener(url):
@@ -207,13 +216,38 @@ def split_vacancy_links(text: str, url_map: dict[str, str] | None = None) -> lis
         if url in seen:
             continue
         seen.add(url)
-        out.append(PostVacancy(title=label, url=url, ats_kind=kind))
+        out.append(PostVacancy(title=label, url=url, ats_kind=kind, country=detect_country(label)))
     return out
 
 
 def _is_linkedin_shortener(url: str) -> bool:
     host = (urlparse(url if "://" in url else f"https://{url}").hostname or "").casefold()
     return host == "lnkd.in" or host.endswith(".lnkd.in")
+
+
+def post_offers_wanted_country(
+    text: str,
+    *,
+    wanted: Sequence[str] = (),
+    allow_remote: bool = True,
+) -> bool:
+    """
+    Whether a post is worth keeping for the countries we want to work in.
+
+    A weekly roundup advertises one country per role ("… – Colombia", "… – Chile"), so the
+    post as a whole reads as foreign and ``country_allows`` rejects it — taking the wanted
+    role down with it. One role explicitly labelled with a wanted country keeps the post;
+    the roles themselves are filtered later, in ``post_to_jobs``.
+    """
+    if country_allows(text, wanted=wanted, allow_remote=allow_remote):
+        return True
+    codes = normalize_countries(wanted)
+    return any(detect_country(label) in codes for label, _url in labelled_vacancy_links(text))
+
+
+def _vacancy_wanted(vacancy: PostVacancy, codes: tuple[str, ...]) -> bool:
+    """A role is out only when its own label places it in a country we did not ask for."""
+    return not codes or vacancy.country is None or vacancy.country in codes
 
 
 def parse_post_blob(
@@ -323,19 +357,30 @@ def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobP
     )
 
 
-def post_to_jobs(post: LinkedInPostCandidate) -> list[JobPosting]:
+def post_to_jobs(
+    post: LinkedInPostCandidate,
+    *,
+    countries: Sequence[str] = (),
+) -> list[JobPosting]:
     """
     One JobPosting per vacancy the post lists, or a single job for the whole post.
 
     A recruiter offering five roles behind five links is five applications: collapsing
     them leaves four unreachable, since a job carries one apply URL.
+
+    ``countries`` drops the roles whose own label names a country we did not ask for:
+    a Latam roundup lists one country per role, so the choice belongs to each role and
+    not to the post.
     """
     if len(post.vacancies) < 2:
         return [post_to_job(post)]
-    company = employer_from_post(post.text, post.vacancies[0].url, author=post.author)
+    wanted = [v for v in post.vacancies if _vacancy_wanted(v, normalize_countries(countries))]
+    if not wanted:
+        return []
+    company = employer_from_post(post.text, wanted[0].url, author=post.author)
     skills = extract_skills_from_text(post.text)
     jobs: list[JobPosting] = []
-    for vacancy in post.vacancies:
+    for vacancy in wanted:
         note = f"ats={vacancy.ats_kind.value}"
         if post.post_url:
             note = f"{note} post={post.post_url}"

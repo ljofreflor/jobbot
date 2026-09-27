@@ -8,6 +8,7 @@ from jobbot.adapters.linkedin.posts_source import LinkedInPostJobSource
 from jobbot.adapters.linkedin.sweep import (
     is_data_relevant,
     parse_posts_fixture,
+    post_offers_wanted_country,
     post_to_job,
     post_to_jobs,
     split_vacancy_links,
@@ -128,6 +129,66 @@ def test_single_vacancy_post_is_unchanged(project_root: Path) -> None:
     assert len(jobs) == 1
     assert jobs[0].ats_kind == "greenhouse"
     assert jobs[0].url == greenhouse.post_url
+
+
+def _latam_roundup_post(project_root: Path) -> object:
+    text = (project_root / "tests/fixtures/linkedin_latam_roundup_post.txt").read_text(
+        encoding="utf-8"
+    )
+    return parse_posts_fixture(text)[0]
+
+
+def test_roundup_post_survives_when_one_role_is_in_the_wanted_country(
+    project_root: Path,
+) -> None:
+    """Regression: the post read as Colombian (first marker wins) and was dropped whole."""
+    post = _latam_roundup_post(project_root)
+    assert post_offers_wanted_country(post.text, wanted=["CL"]) is True  # type: ignore[attr-defined]
+
+
+def test_roundup_post_is_dropped_when_no_role_is_in_the_wanted_country(
+    project_root: Path,
+) -> None:
+    post = _latam_roundup_post(project_root)
+    assert post_offers_wanted_country(post.text, wanted=["MX"]) is False  # type: ignore[attr-defined]
+
+
+def test_roundup_keeps_only_the_roles_in_the_wanted_country(project_root: Path) -> None:
+    """Each role carries its own country, so the choice is per role and not per post."""
+    post = _latam_roundup_post(project_root)
+    assert [v.country for v in post.vacancies] == ["CO", "PE", "AR", "CL"]  # type: ignore[attr-defined]
+
+    jobs = post_to_jobs(post, countries=["CL"])  # type: ignore[arg-type]
+    assert [j.title for j in jobs] == ["GenAI & Agentic AI Full-Stack Engineer – Chile"]
+
+    every = post_to_jobs(post)  # type: ignore[arg-type]
+    assert len(every) == 4
+
+
+def test_roundup_middle_dot_bullets_survive_a_collapsed_paragraph() -> None:
+    """Roundups bullet with '·', and some cards render the whole post on one line."""
+    vacancies = split_vacancy_links(
+        "Ofertas de la semana: · Lead Data Scientist – Chile: https://career.example.com/a-1 "
+        "· ML Engineer – Perú: https://career.example.com/b-2"
+    )
+    assert [(v.title, v.country) for v in vacancies] == [
+        ("Lead Data Scientist – Chile", "CL"),
+        ("ML Engineer – Perú", "PE"),
+    ]
+
+
+def test_fixture_sweep_keeps_the_chile_role_out_of_a_latam_roundup(
+    project_root: Path, tmp_path: Path
+) -> None:
+    from jobbot.config import JobbotConfig, PathsConfig
+
+    config = JobbotConfig(paths=PathsConfig(output=tmp_path / "out"), root=project_root)
+    jobs = LinkedInPostJobSource(config).search_from_fixture(
+        project_root / "tests/fixtures/linkedin_latam_roundup_post.txt",
+        query="inteligencia artificial",
+        countries=["CL"],
+    )
+    assert [j.title for j in jobs] == ["GenAI & Agentic AI Full-Stack Engineer – Chile"]
 
 
 def test_fixture_sweep_keeps_a_post_whose_roles_are_listed_one_by_one(
