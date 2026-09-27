@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
@@ -133,3 +134,46 @@ def open_gmail_compose(
     open_fn = opener if callable(opener) else webbrowser.open
     open_fn(url)
     return url
+
+
+def render_email_draft_markdown(draft: EmailApplyDraft) -> str:
+    """Human-readable draft for the application package (survives phone / lost compose)."""
+    cv = str(draft.cv_path) if draft.cv_path is not None else "(none yet — build CV first)"
+    return (
+        f"# Email apply draft — {draft.job_id}\n\n"
+        "HITL: JobBot never sends. Copy into Gmail (or reopen with "
+        "`jobbot application apply … --apply`) when you are ready.\n"
+        "On a phone, prefer this file over the Gmail compose URL — "
+        "compose tabs and mailto links are easy to lose.\n\n"
+        f"- **To:** `{draft.to}`\n"
+        f"- **Subject:** {draft.subject}\n"
+        f"- **CV:** `{cv}`\n\n"
+        "## Body\n\n"
+        f"{draft.body}\n"
+    )
+
+
+def write_email_draft(
+    draft: EmailApplyDraft,
+    app_dir: Path,
+) -> Path:
+    """Persist the draft under ``application/email_draft.md`` (+ JSON sidecar)."""
+    app_dir.mkdir(parents=True, exist_ok=True)
+    md_path = app_dir / "email_draft.md"
+    md_path.write_text(render_email_draft_markdown(draft), encoding="utf-8")
+    (app_dir / "email_draft.json").write_text(
+        json.dumps(
+            {
+                "to": draft.to,
+                "subject": draft.subject,
+                "body": draft.body,
+                "cv_path": str(draft.cv_path) if draft.cv_path else None,
+                "job_id": draft.job_id,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return md_path

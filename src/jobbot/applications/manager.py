@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -206,6 +207,26 @@ def prepare_application_package(
                 encoding="utf-8",
             )
 
+    if candidate is not None and _is_email_apply(job):
+        from jobbot.adapters.ats.email_apply import (
+            build_email_draft,
+            resolve_cv_path,
+            write_email_draft,
+        )
+        from jobbot.models.candidate import Candidate
+
+        if isinstance(candidate, Candidate):
+            # No mailto yet — package still useful without draft.
+            with suppress(ValueError):
+                write_email_draft(
+                    build_email_draft(
+                        candidate,
+                        job,
+                        cv_path=resolve_cv_path(output_dir, job.id),
+                    ),
+                    app_dir,
+                )
+
     manifest = {
         "job_id": job.id,
         "prepared_at": datetime.now(UTC).isoformat(),
@@ -223,6 +244,14 @@ def _is_getonboard(job: JobPosting) -> bool:
     if kind == "getonboard":
         return True
     return any(url and "getonbrd.com" in url.casefold() for url in (job.ats_url, job.url))
+
+
+def _is_email_apply(job: JobPosting) -> bool:
+    kind = (job.ats_kind or "").casefold()
+    if kind == "email":
+        return True
+    raw = (job.ats_url or "").strip().casefold()
+    return raw.startswith("mailto:")
 
 
 def load_answers(path: Path) -> dict[str, object]:

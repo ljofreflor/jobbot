@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-88 commands, 134 modules, 609 public symbols.
+88 commands, 134 modules, 611 public symbols.
 
 ## Commands
 
@@ -121,7 +121,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 - `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `split_personal_name`, `prefill_field_map`, `prefill_sheet_fields`, `describe_prefill`
 - `ashby.py` — Ashby ATS adapter — open + known-field map only (HITL submit). · `AshbyAdapter`
-- `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`
+- `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`, `render_email_draft_markdown`, `write_email_draft`
 - `getonboard.py` — Get on Board adapter — open job page + known-field map (HITL submit). · `GetOnBoardAdapter`
 - `greenhouse.py` — Greenhouse ATS adapter stub — open + known-field map only (HITL submit). · `GreenhouseAdapter`
 - `indeed_apply.py` — Indeed apply handoff — open the right page and stop before submit. · `IndeedApplyAdapter`, `apply_target`

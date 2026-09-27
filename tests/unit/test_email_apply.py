@@ -201,6 +201,42 @@ def test_dry_run_does_not_need_webbrowser() -> None:
     assert gmail_compose_url(draft).startswith("https://mail.google.com/")
 
 
+def test_write_email_draft_survives_for_phone(tmp_path: Path) -> None:
+    """Compose URLs vanish on mobile; the package markdown is the durable copy."""
+    from jobbot.adapters.ats.email_apply import write_email_draft
+    from jobbot.applications.manager import prepare_application_package
+
+    cand = Candidate(
+        personal=PersonalInfo(name="Ana Ejemplo", headline="DS", email="ana@example.com")
+    )
+    job = JobPosting(
+        id="J0700",
+        title="Data Engineer",
+        company="Stefanini",
+        description="Enviar CV a naquinteros@stefanini.com con el perfil de interés.",
+        ats_url="mailto:naquinteros@stefanini.com",
+        ats_kind="email",
+    )
+    draft = build_email_draft(cand, job, cv_path=tmp_path / "cv.pdf")
+    app_dir = tmp_path / "application"
+    md = write_email_draft(draft, app_dir)
+    assert md.is_file()
+    text = md.read_text(encoding="utf-8")
+    assert "naquinteros@stefanini.com" in text
+    assert "Postulación: Data Engineer" in text
+    assert "Ana Ejemplo" in text
+    sidecar = app_dir / "email_draft.json"
+    assert sidecar.is_file()
+    assert "naquinteros@stefanini.com" in sidecar.read_text(encoding="utf-8")
+
+    out = prepare_application_package(job, tmp_path, candidate=cand)
+    assert (out / "email_draft.md").is_file()
+    prepared = (out / "email_draft.md").read_text(encoding="utf-8")
+    assert "J0700" in prepared
+    assert "naquinteros@stefanini.com" in prepared
+    assert "Data Engineer" in prepared
+
+
 def test_extract_emails_drops_addresses_that_are_not_deliverable_shapes() -> None:
     """The regex accepts shapes an RFC-aware validator rejects; do not offer those."""
     text = (

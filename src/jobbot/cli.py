@@ -2374,7 +2374,11 @@ def application_apply(
     console.print(plan.message)
 
     if plan.method == ApplyMethod.EMAIL:
-        from jobbot.adapters.ats.email_apply import is_tailored_cv, resolve_cv_path
+        from jobbot.adapters.ats.email_apply import (
+            is_tailored_cv,
+            resolve_cv_path,
+            write_email_draft,
+        )
 
         if apply_changes:
             _build_job_cv(config, candidate, job)
@@ -2387,20 +2391,29 @@ def application_apply(
         cv_pdf = resolve_cv_path(config.output_dir, job.id)
         tailored = is_tailored_cv(cv_pdf, job.id)
         draft = build_email_draft(candidate, job, cv_path=cv_pdf)
-        if cv_pdf is None:
-            cv_line = "(none — run jobbot cv build --job " + job.id + ")"
-        elif tailored:
-            cv_line = f"{cv_pdf}  [green](adapted to {job.id})[/green]"
-        else:
-            cv_line = f"{cv_pdf}  [yellow](base CV — not adapted)[/yellow]"
+        app_dir = config.output_dir / "jobs" / job.id / "application"
+        draft_path = write_email_draft(draft, app_dir)
         console.print(
             Panel(
                 f"[bold]To:[/bold] {draft.to}\n"
                 f"[bold]Subject:[/bold] {draft.subject}\n\n"
                 f"{draft.body}\n\n"
-                f"[bold]CV:[/bold] {cv_line}",
+                f"[bold]CV:[/bold] "
+                + (
+                    "(none — run jobbot cv build --job " + job.id + ")"
+                    if cv_pdf is None
+                    else (
+                        f"{cv_pdf}  [green](adapted to {job.id})[/green]"
+                        if tailored
+                        else f"{cv_pdf}  [yellow](base CV — not adapted)[/yellow]"
+                    )
+                ),
                 title="email apply draft (HITL)",
             )
+        )
+        console.print(
+            f"[dim]Saved durable draft[/dim] {draft_path} "
+            "[dim](use this on phone — Gmail compose is easy to lose)[/dim]"
         )
         if draft.body_truncated_for_url:
             console.print(

@@ -119,9 +119,13 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  Sin fecha conocida no se descarta. `jobbot jobs backfill-dates` fecha lo ya guardado, offline.
 - **ATS apply depth:** discover + store + detect portal + **prefill known fields**; user submits (`application apply --apply`). No auto-submit, no CAPTCHA bypass. A yes at a prompt is not a receipt: without portal evidence, status stays `prepared` (unknown whether it was submitted) and the URL is recorded on an `ApplicationEvent`. A posting whose text or page says the vacancy is filled is not stored as open and is not opened.
 - **Email-only apply:** posts whose only apply route is an address become `ats_kind=email`
- (`mailto:`), with the post body as JD. `application apply --apply` builds the CV adapted to the
- job, opens Gmail compose and **uploads the PDF** (Playwright; `--cdp` to reuse your logged-in
- Chrome, `--no-attach` for compose URL only). JobBot never clicks Send.
+ (`mailto:`), with the post body as JD. `application prepare` / `application apply` write a
+ durable `output/jobs/<id>/application/email_draft.md` (To / Subject / Body / CV path) so the
+ text survives when you operate from a phone — Gmail compose tabs and `mailto:` links are easy
+ to lose. `application apply --apply` also opens Gmail compose and **uploads the PDF**
+ (Playwright; `--cdp` to reuse your logged-in Chrome, `--no-attach` for compose URL only).
+ JobBot never clicks Send. Prefer the saved markdown on mobile; reopen compose on desktop when
+ ready.
 - **Market feedback:** `profile suggest-from-market` writes suggestions with no stdin by
   default (`--no-ask`). Gap prompts only with `--ask`; `--promote` still confirms before
   writing `profile.yaml`. Never invent; never delete baseline facts.
