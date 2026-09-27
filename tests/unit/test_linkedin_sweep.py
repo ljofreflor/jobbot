@@ -130,6 +130,20 @@ def test_single_vacancy_post_is_unchanged(project_root: Path) -> None:
     assert jobs[0].url == greenhouse.post_url
 
 
+def test_fixture_sweep_keeps_a_post_whose_roles_are_listed_one_by_one(
+    project_root: Path, tmp_path: Path
+) -> None:
+    """The query need not appear verbatim: the listed vacancies are the apply route."""
+    from jobbot.config import JobbotConfig, PathsConfig
+
+    config = JobbotConfig(paths=PathsConfig(output=tmp_path / "out"), root=project_root)
+    jobs = LinkedInPostJobSource(config).search_from_fixture(
+        project_root / "tests/fixtures/linkedin_multi_vacancy_post.txt",
+        query="hiring data scientist",
+    )
+    assert len(jobs) == 5
+
+
 def test_source_from_fixture(project_root: Path, tmp_path: Path) -> None:
     from jobbot.config import JobbotConfig, PathsConfig
 

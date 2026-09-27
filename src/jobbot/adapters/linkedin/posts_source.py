@@ -229,6 +229,7 @@ class LinkedInPostJobSource:
                 and q not in post.text.casefold()
                 and q not in (post.author or "").casefold()
                 and post.ats_kind == AtsKind.UNKNOWN
+                and not post.vacancies
             ):
                 continue
             jobs.extend(post_to_jobs(post))
