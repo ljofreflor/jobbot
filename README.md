@@ -163,6 +163,54 @@ jobbot profile suggest-from-market [--ask] [--promote]
 
 Recruiter posts → external ATS URL → portal registry → assisted apply (HITL). Market feedback suggests baseline wording; gaps require confirmation before `--promote`.
 
+### One post, several vacancies
+
+Recruiters often advertise a whole batch in one post, one labelled link per role:
+
+```text
+🔹 Lead Agentic AI Consultant: https://lnkd.in/eUkqbGU2
+🔹 Lead Data Scientist: https://lnkd.in/e3KmPHyp
+🔹 Senior Computer Vision Engineer: https://lnkd.in/euF_SaWV
+```
+
+Each labelled role becomes its own job, keyed on the page it opens, so every one of them is
+independently matchable and appliable:
+
+```bash
+jobbot linkedin sweep "hiring data scientist"   # → J0001…J0005, one per role
+jobbot jobs match J0002
+jobbot cv build --job J0002
+jobbot application apply J0002 --apply          # opens that role's page; you submit
+```
+
+A `lnkd.in` link that leaves LinkedIn answers `200` with an interstitial page instead of a
+redirect, so JobBot reads the destination that page declares. A link that does not resolve off
+`lnkd.in` is skipped rather than stored — the shortener is not a portal. A labelled link that
+names no role (`Learn more: …`) is not a vacancy.
+
+The employer is taken from the post only when something in it confirms the name: the apply URL's
+host, or a hashtag spelling the name out (`#NTTDATA` next to "En NTT DATA buscamos"). That second
+witness matters for the posts that keep the apply link in the first comment, where there is no
+host to check. Without either, the post's author stands — a country is not an employer, however
+the sentence reads.
+
+A weekly roundup labels one **country** per role instead:
+
+```text
+· AI Engineer - Generative AI and Agents – Colombia: https://lnkd.in/dy_GZUY3
+· GenAI & Agentic AI Full-Stack Engineer – Chile: https://lnkd.in/duvqZx6i
+```
+
+There the country belongs to each role, not to the post, so `[search].countries` is applied per
+vacancy: the post survives because one role is in Chile, and only that role is stored. Use
+`--any-country` to keep all of them. A role whose label says nothing about where it is stays —
+JobBot does not discard work it failed to classify.
+
+Every post you send JobBot to apply to is also saved under `tests/fixtures/linkedin_real/` (verbatim
+body + a sibling `.urls.json` with the short-link destinations captured at the same time). The
+suite in `tests/unit/test_linkedin_real_posts.py` re-runs those exact posts offline, so a fix for
+a new shape cannot quietly break an older one.
+
 ## Propagate the CV (permanent profiles)
 
 One command rebuilds the base CV and pushes it outward to the profiles that live beyond a

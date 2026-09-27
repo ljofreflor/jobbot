@@ -14,12 +14,12 @@ from jobbot.adapters.linkedin.sweep import (
     is_data_relevant,
     parse_post_blob,
     parse_posts_fixture,
-    post_to_job,
+    post_offers_wanted_country,
+    post_to_jobs,
 )
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
 from jobbot.jobs.freshness import age_label, is_fresh
-from jobbot.jobs.geo import country_allows
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind
@@ -220,7 +220,9 @@ class LinkedInPostJobSource:
         for post in posts:
             if not is_data_relevant(post.text):
                 continue
-            if not country_allows(post.text, wanted=countries, allow_remote=allow_remote):
+            if not post_offers_wanted_country(
+                post.text, wanted=countries, allow_remote=allow_remote
+            ):
                 continue
             if not is_fresh(post.posted_at, max_age_days=max_age_days):
                 continue
@@ -229,9 +231,10 @@ class LinkedInPostJobSource:
                 and q not in post.text.casefold()
                 and q not in (post.author or "").casefold()
                 and post.ats_kind == AtsKind.UNKNOWN
+                and not post.vacancies
             ):
                 continue
-            jobs.append(post_to_job(post))
+            jobs.extend(post_to_jobs(post, countries=countries))
         return jobs
 
     def search_live(self, query: JobSearchQuery) -> list[JobPosting]:
@@ -309,7 +312,7 @@ def collect_jobs_from_feed_page(
         seen.add(text)
         if not is_data_relevant(text):
             continue
-        if not country_allows(
+        if not post_offers_wanted_country(
             text,
             wanted=query.countries,
             allow_remote=query.allow_remote,
@@ -350,7 +353,7 @@ def collect_jobs_from_feed_page(
                 query.max_age_days,
             )
             continue
-        jobs.append(post_to_job(post))
+        jobs.extend(post_to_jobs(post, countries=query.countries))
     return jobs
 
 

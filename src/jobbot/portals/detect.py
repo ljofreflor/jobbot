@@ -20,7 +20,10 @@ class AtsKind(StrEnum):
     TEAMTAILOR = "teamtailor"
     WORKABLE = "workable"
     RECRUITEE = "recruitee"
+    BREEZY = "breezy"
     TORRE = "torre"
+    JOBTOME = "jobtome"
+    REMOSHIFT = "remoshift"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -29,7 +32,14 @@ class AtsKind(StrEnum):
 
 # Boards/aggregators: many companies publish there, so they never identify one employer.
 JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
-    {AtsKind.INDEED, AtsKind.LINKEDIN, AtsKind.GETONBOARD, AtsKind.TORRE}
+    {
+        AtsKind.INDEED,
+        AtsKind.LINKEDIN,
+        AtsKind.GETONBOARD,
+        AtsKind.TORRE,
+        AtsKind.JOBTOME,
+        AtsKind.REMOSHIFT,
+    }
 )
 
 
@@ -56,8 +66,11 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("teamtailor.com", AtsKind.TEAMTAILOR),
     ("workable.com", AtsKind.WORKABLE),
     ("recruitee.com", AtsKind.RECRUITEE),
+    ("breezy.hr", AtsKind.BREEZY),
     ("torre.ai", AtsKind.TORRE),
     ("torre.co", AtsKind.TORRE),
+    ("jobtome.com", AtsKind.JOBTOME),
+    ("remoshift.com", AtsKind.REMOSHIFT),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
@@ -88,11 +101,18 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
     ),
     (re.compile(r"[a-z0-9_-]+\.teamtailor\.com", re.I), AtsKind.TEAMTAILOR, "teamtailor host"),
     (
+        # Custom career domains (careers.neuralworks.cl) still load Teamtailor's CDN.
+        re.compile(r"teamtailor(?:-cdn)?\.(?:com|io)", re.I),
+        AtsKind.TEAMTAILOR,
+        "teamtailor assets",
+    ),
+    (
         re.compile(r"(?:apply|[a-z0-9_-]+)\.workable\.com", re.I),
         AtsKind.WORKABLE,
         "workable host",
     ),
     (re.compile(r"[a-z0-9_-]+\.recruitee\.com", re.I), AtsKind.RECRUITEE, "recruitee host"),
+    (re.compile(r"[a-z0-9_-]+\.breezy\.hr", re.I), AtsKind.BREEZY, "breezy host"),
     (
         re.compile(r"[a-z0-9_-]*\.(?:successfactors|sapsf)\.(?:com|eu)", re.I),
         AtsKind.SUCCESSFACTORS,
@@ -136,6 +156,50 @@ def detect_ats_in_html(html: str) -> tuple[AtsKind, str]:
     return AtsKind.UNKNOWN, ""
 
 
+_MAX_SNIFF_BYTES = 96_000
+_SNIFF_USER_AGENT = "jobbot/0.1 (local; ats sniff)"
+
+
+def sniff_ats(url: str, *, timeout: float = 10.0) -> AtsKind:
+    """
+    Classify a vacancy URL: host rule first, then the page's own ATS markers.
+
+    Custom career domains (``careers.neuralworks.cl``) look unknown by host alone but
+    still load Teamtailor/Greenhouse assets — that is technical evidence, not a guess.
+    """
+    kind = detect_ats(url)
+    if kind != AtsKind.UNKNOWN:
+        return kind
+    html = _fetch_html_prefix(url, timeout=timeout)
+    kind, _ = detect_ats_in_html(html or "")
+    return kind
+
+
+def _fetch_html_prefix(url: str, *, timeout: float) -> str | None:
+    import logging
+    import urllib.error
+    import urllib.request
+
+    raw = (url or "").strip()
+    if not raw.startswith(("http://", "https://")):
+        return None
+    req = urllib.request.Request(
+        raw,
+        headers={"User-Agent": _SNIFF_USER_AGENT, "Accept": "text/html"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 — user URL
+            chunk = resp.read(_MAX_SNIFF_BYTES)
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        logging.getLogger("jobbot.portals.detect").debug("ats sniff failed for %s: %s", raw, exc)
+        return None
+    try:
+        return chunk.decode("utf-8", errors="replace")
+    except Exception:  # noqa: BLE001 — sniff must never raise
+        return None
+
+
 def extract_http_urls(text: str) -> list[str]:
     """Pull http(s) URLs from free text / post body."""
     pattern = re.compile(r"https?://[^\s<>\"')\]]+", re.I)
@@ -150,7 +214,13 @@ def extract_http_urls(text: str) -> list[str]:
 
 
 def first_external_ats_url(urls: list[str]) -> tuple[str | None, AtsKind]:
-    """Prefer non-LinkedIn ATS / board links from a post (incl. unknown hosts)."""
+    """
+    Best apply link in a post: a real ATS, else the employer's own page, else a board.
+
+    An aggregator republishes other people's postings ("apply on the original posting"),
+    so it is the last resort — an unknown host in a hiring post is usually the employer's
+    own career page. Indeed is never returned.
+    """
     ranked: list[tuple[str, AtsKind]] = []
     for url in urls:
         kind = detect_ats(url)
@@ -161,7 +231,10 @@ def first_external_ats_url(urls: list[str]) -> tuple[str | None, AtsKind]:
             continue
         ranked.append((url, kind))
     for url, kind in ranked:
-        if kind not in {AtsKind.UNKNOWN, AtsKind.INDEED}:
+        if kind != AtsKind.UNKNOWN and kind not in JOB_BOARD_KINDS:
+            return url, kind
+    for url, kind in ranked:
+        if kind == AtsKind.UNKNOWN:
             return url, kind
     for url, kind in ranked:
         if kind != AtsKind.INDEED:
