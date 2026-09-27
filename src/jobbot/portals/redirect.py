@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
@@ -11,6 +12,24 @@ logger = logging.getLogger("jobbot.portals.redirect")
 
 _MAX_REDIRECTS = 8
 _USER_AGENT = "jobbot/0.1 (local; redirect resolve)"
+_MAX_INTERSTITIAL_BYTES = 512_000
+
+# LinkedIn no longer 30x-redirects a lnkd.in link that leaves the site: it answers 200 with
+# "This link will take you to a page that's not on LinkedIn" and prints the destination in a
+# single anchor. That anchor is LinkedIn stating the target, so reading it is not evasion.
+_INTERSTITIAL_DEST_RE = re.compile(
+    r"<a\b[^>]*\bdata-tracking-control-name=\"external_url_click\"[^>]*\bhref=\"([^\"]+)\"",
+    re.IGNORECASE,
+)
+
+
+def read_interstitial_destination(html: str) -> str | None:
+    """External URL declared by LinkedIn's leaving-the-site page, or None."""
+    match = _INTERSTITIAL_DEST_RE.search(html or "")
+    if match is None:
+        return None
+    dest = match.group(1).strip()
+    return dest if dest.startswith(("http://", "https://")) else None
 
 
 def follow_redirect_url(url: str, *, timeout: float = 15.0) -> str:
@@ -44,7 +63,11 @@ def follow_redirect_url(url: str, *, timeout: float = 15.0) -> str:
             logger.debug("Redirect resolve failed for %s: %s", current, exc)
             return current
         if final == current:
-            return final
+            destination = _interstitial_destination(current, timeout=timeout)
+            if destination is None or destination == current:
+                return current
+            current = destination
+            continue
         current = final
     return current
 
@@ -69,3 +92,18 @@ def _should_resolve(host: str) -> bool:
     if host.endswith("lnkd.in") or host == "lnkd.in":
         return True
     return bool("linkedin.com" in host and "redir" in host)
+
+
+def _interstitial_destination(url: str, *, timeout: float) -> str | None:
+    """Destination behind a short link that answered 200 with an interstitial page."""
+    host = (urlparse(url).hostname or "").lower()
+    if not (host == "lnkd.in" or host.endswith(".lnkd.in")):
+        return None
+    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            body = resp.read(_MAX_INTERSTITIAL_BYTES)
+    except OSError as exc:
+        logger.debug("Interstitial fetch failed for %s: %s", url, exc)
+        return None
+    return read_interstitial_destination(body.decode("utf-8", errors="replace"))
