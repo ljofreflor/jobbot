@@ -45,18 +45,116 @@ Three things Jobbot actually does. No invented product.
 
 <section class="jb-section" markdown="1">
 
-## A full loop, in plain language
+## A full loop, in your agent
 
-Paste a link or say what you want. Jobbot reads, matches, builds the CV and leaves
-the form ready. You press submit.
+In Cursor, VS Code, Claude Code, or any agent: paste a link or say what you want.
+Jobbot — local CLI — reads, matches, builds the CV and leaves the form ready.
+You press submit.
 
 ```bash
-# under the chat, the same steps exist as commands
+# same steps as CLI — what the agent runs on your machine
 uv run jobbot linkedin sweep "machine learning"
 uv run jobbot jobs match J0002
 uv run jobbot cv build --job J0002
 uv run jobbot application apply J0002        # plan only; you submit
 ```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Privacy on your machine
+
+Your profile, sessions, and outputs stay on disk. No Jobbot account, no
+telemetry — failures live in your local SQLite.
+
+<ul class="jb-evidence">
+  <li><code>data/profile.yaml</code>, SQLite, <code>browser-data/</code>, and <code>output/</code> are gitignored</li>
+  <li>Pre-commit hook (<code>make hooks</code>) blocks PII even with <code>git add -f</code></li>
+  <li>Human-in-the-loop: prepares the package; <strong>you submit</strong></li>
+  <li>No CAPTCHA or 2FA bypass — when a portal challenges you, it hands you the keyboard</li>
+</ul>
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Find recent openings
+
+Indeed, Get on Board, and LinkedIn recruiter posts. Freshness filters, country
+per role, and multi-vacancy posts split into independent jobs.
+
+```bash
+uv run jobbot jobs search "Senior Data Scientist" --location Santiago
+uv run jobbot getonboard search "data scientist"
+uv run jobbot linkedin sweep "machine learning" --country CL --max-age-days 30
+```
+
+One SoftServe post with five roles → five jobs, each with its own country and
+ATS URL. Match and apply per role, not per post.
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## One source of truth
+
+<code>data/profile.yaml</code> is the professional SoT. LaTeX, PDF, Indeed, and LinkedIn
+are views or adapters. The adapted CV reorders evidence; it never invents experience.
+
+```bash
+uv run jobbot profile validate
+uv run jobbot cv build --job J0002          # derived from profile + JD
+uv run jobbot profile suggest-from-market   # suggestions; you confirm gaps
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Sync to the portals
+
+Indeed, LinkedIn, and Get on Board adapters: login, inspect, pull, diff, and sync
+(dry-run by default). One command propagates the base CV to permanent profiles.
+
+```bash
+uv run jobbot indeed sync --section headline   # plan; --apply writes
+uv run jobbot linkedin sync --section publications --apply
+uv run jobbot cv propagate                     # HITL plan; --apply confirms
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Open source, on your machine
+
+Local CLI. No Jobbot SaaS backend. The channel is Cursor, VS Code, Claude Code,
+or another agent — not a proprietary Jobbot chat. You run the binary; you decide
+what leaves disk.
+
+```bash
+git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
+uv sync --group dev
+uv run jobbot version
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Match, ATS, and Latam
+
+Scores against your profile, ATS detection (Greenhouse, Lever, Workday, Teamtailor
+even on custom hosts, Get on Board…), a portal registry that learns from evidence,
+and Chile / Latam focus in searches and roundups.
+
+<ul class="jb-evidence">
+  <li><code>jobs match</code> / <code>shortlist</code> — scores; does not decide for you</li>
+  <li><code>portals detect</code> + <code>companies learn</code> — public topology, no PII</li>
+  <li><code>application apply --apply</code> — opens the form; you submit</li>
+  <li>Latam roundups: country per role (<code>--country CL</code>), not per whole post</li>
+</ul>
 
 </section>
 

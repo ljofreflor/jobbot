@@ -1,6 +1,6 @@
 {% extends "main.html" %}
 
-{# Jobbot landing — brand + chat-first entry that animates through an apply. #}
+{# Jobbot landing — brand + Cursor-style agent chat that animates an apply. #}
 
 {% set en = page.file.src_uri.startswith("en/") %}
 
@@ -41,81 +41,169 @@
           </div>
         </div>
         {% if en %}
-          <h1 class="jb-hero__title">Tell it in plain language. Watch the application move.</h1>
+          <h1 class="jb-hero__title">Write in your agent. Jobbot moves the application.</h1>
           <p class="jb-hero__lede">
-            A chat like Cursor: paste a link, ask to apply, and Jobbot advances match → CV → plan — you still press send.
+            In Cursor, VS Code, Claude Code, or any agent IDE: paste a link, ask to apply, and Jobbot advances match → CV → plan — you still press send.
           </p>
           <div class="jb-hero__actions">
             <a class="jb-btn jb-btn--primary" href="../instalacion/">Install</a>
             <a class="jb-btn jb-btn--ghost" href="../blog/">Read the blog</a>
           </div>
         {% else %}
-          <h1 class="jb-hero__title">Escríbele en lenguaje natural. La postulación avanza sola.</h1>
+          <h1 class="jb-hero__title">Escribe en tu agente. Jobbot avanza la postulación.</h1>
           <p class="jb-hero__lede">
-            Un chat como Cursor: pegas un link, pides postular, y Jobbot avanza match → CV → plan — el envío lo haces tú.
+            En Cursor, VS Code, Claude Code u otro agente/IDE: pegas un link, pides postular, y Jobbot avanza match → CV → plan — el envío lo haces tú.
           </p>
           <div class="jb-hero__actions">
             <a class="jb-btn jb-btn--primary" href="instalacion/">Instalar</a>
             <a class="jb-btn jb-btn--ghost" href="blog/">Leer el blog</a>
           </div>
         {% endif %}
+
+        <div class="jb-audio">
+          <button
+            type="button"
+            class="jb-audio__toggle"
+            id="jb-audio-toggle"
+            aria-pressed="false"
+            aria-controls="jb-ambient"
+          >
+            <span class="jb-audio__icon" aria-hidden="true">
+              <svg class="jb-audio__icon--off" viewBox="0 0 24 24" width="16" height="16">
+                <path d="M11 5L6 9H3v6h3l5 4V5zM16 9l5 5M21 9l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="jb-audio__icon--on" viewBox="0 0 24 24" width="16" height="16" hidden>
+                <path d="M11 5L6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 010 7M18.5 6a9 9 0 010 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="jb-audio__label">
+              {% if en %}Sound off{% else %}Sonido off{% endif %}
+            </span>
+          </button>
+          <p class="jb-audio__credit">
+            {% if en %}
+              Quiet ambient pad · <a href="{{ 'assets/audio/LICENSE.txt' | url }}">CC0</a>
+            {% else %}
+              Pad ambiente · <a href="{{ 'assets/audio/LICENSE.txt' | url }}">CC0</a>
+            {% endif %}
+          </p>
+          <audio id="jb-ambient" loop preload="none" playsinline>
+            <source src="{{ 'assets/audio/ambient-pad.ogg' | url }}" type="audio/ogg" />
+            <source src="{{ 'assets/audio/ambient-pad.mp3' | url }}" type="audio/mpeg" />
+          </audio>
+        </div>
       </div>
 
       <div class="jb-hero__stage" aria-hidden="true">
+        {# Cursor-like Agent panel — Jobbot navy/cobalt, not Cursor purple #}
         <div class="jb-chat">
-          <div class="jb-chat__chrome">
-            <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="22" height="22" alt="" />
-            <span class="jb-chat__title">Jobbot</span>
-            <span class="jb-chat__badge">{% if en %}local{% else %}local{% endif %}</span>
-          </div>
-
-          <ol class="jb-chat__rail" aria-hidden="true">
-            <li class="jb-chat__step" style="--s:0">{% if en %}Read{% else %}Leer{% endif %}</li>
-            <li class="jb-chat__step" style="--s:1">Match</li>
-            <li class="jb-chat__step" style="--s:2">CV</li>
-            <li class="jb-chat__step" style="--s:3">{% if en %}Plan{% else %}Plan{% endif %}</li>
-            <li class="jb-chat__step" style="--s:4">{% if en %}You send{% else %}Tú envías{% endif %}</li>
-          </ol>
-          <div class="jb-chat__progress"><i></i></div>
+          <header class="jb-chat__chrome">
+            <div class="jb-chat__tabs" role="tablist">
+              <span class="jb-chat__tab jb-chat__tab--active">Agent</span>
+              <span class="jb-chat__tab">Chat</span>
+            </div>
+            <span class="jb-chat__chrome-meta">
+              <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="16" height="16" alt="" />
+              <span>{% if en %}local · HITL{% else %}local · HITL{% endif %}</span>
+            </span>
+          </header>
 
           <div class="jb-chat__thread">
             {% if en %}
               <div class="jb-chat__msg jb-chat__msg--user" style="--i:0">
                 <p>Apply to this LinkedIn post — Machine Learning, Chile if it fits.</p>
-                <a class="jb-chat__link">lnkd.in/p/dRgw4_BS</a>
+                <span class="jb-chat__chip">lnkd.in/p/dRgw4_BS</span>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:1">
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:1">
+                <div class="jb-chat__role">
+                  <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="18" height="18" alt="" />
+                  <span>Jobbot</span>
+                </div>
                 <p>Reading the post… five SoftServe roles, remote CL/CO.</p>
+                <div class="jb-chat__tool">
+                  <span class="jb-chat__tool-kind">Shell</span>
+                  <code>uv run jobbot linkedin sweep …</code>
+                </div>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--card" style="--i:2">
-                <p class="jb-chat__card-kicker">Best match</p>
-                <p class="jb-chat__card-title">Lead Data Scientist</p>
-                <p class="jb-chat__card-meta">SoftServe · 82% · remote Chile</p>
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:2">
+                <div class="jb-chat__tool jb-chat__tool--done">
+                  <span class="jb-chat__tool-kind">Match</span>
+                  <code>uv run jobbot jobs match J0002</code>
+                </div>
+                <div class="jb-chat__card">
+                  <p class="jb-chat__card-kicker">Best match</p>
+                  <p class="jb-chat__card-title">Lead Data Scientist</p>
+                  <p class="jb-chat__card-meta">SoftServe · 82% · remote Chile</p>
+                </div>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:3">
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:3">
+                <div class="jb-chat__tool jb-chat__tool--done">
+                  <span class="jb-chat__tool-kind">Shell</span>
+                  <code>uv run jobbot cv build --job J0002</code>
+                </div>
                 <p>CV tailored → <code>output/cv-J0002.pdf</code></p>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--hitl" style="--i:4">
-                <p>Application plan ready. Form open — <strong>you submit</strong>.</p>
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:4">
+                <ul class="jb-chat__todos">
+                  <li class="jb-chat__todo jb-chat__todo--done">Read post</li>
+                  <li class="jb-chat__todo jb-chat__todo--done">Match roles</li>
+                  <li class="jb-chat__todo jb-chat__todo--done">Build CV</li>
+                  <li class="jb-chat__todo jb-chat__todo--done">Draft plan</li>
+                  <li class="jb-chat__todo jb-chat__todo--you">You submit</li>
+                </ul>
+                <p class="jb-chat__hitl">Application plan ready. Form open — <strong>you submit</strong>.</p>
               </div>
             {% else %}
               <div class="jb-chat__msg jb-chat__msg--user" style="--i:0">
                 <p>Postular a este post de LinkedIn — Machine Learning, Chile si encaja.</p>
-                <a class="jb-chat__link">lnkd.in/p/dRgw4_BS</a>
+                <span class="jb-chat__chip">lnkd.in/p/dRgw4_BS</span>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:1">
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:1">
+                <div class="jb-chat__role">
+                  <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="18" height="18" alt="" />
+                  <span>Jobbot</span>
+                </div>
                 <p>Leyendo el post… cinco roles SoftServe, remoto CL/CO.</p>
+                <div class="jb-chat__tool">
+                  <span class="jb-chat__tool-kind">Shell</span>
+                  <code>uv run jobbot linkedin sweep …</code>
+                </div>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--card" style="--i:2">
-                <p class="jb-chat__card-kicker">Mejor match</p>
-                <p class="jb-chat__card-title">Lead Data Scientist</p>
-                <p class="jb-chat__card-meta">SoftServe · 82% · remoto Chile</p>
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:2">
+                <div class="jb-chat__tool jb-chat__tool--done">
+                  <span class="jb-chat__tool-kind">Match</span>
+                  <code>uv run jobbot jobs match J0002</code>
+                </div>
+                <div class="jb-chat__card">
+                  <p class="jb-chat__card-kicker">Mejor match</p>
+                  <p class="jb-chat__card-title">Lead Data Scientist</p>
+                  <p class="jb-chat__card-meta">SoftServe · 82% · remoto Chile</p>
+                </div>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:3">
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:3">
+                <div class="jb-chat__tool jb-chat__tool--done">
+                  <span class="jb-chat__tool-kind">Shell</span>
+                  <code>uv run jobbot cv build --job J0002</code>
+                </div>
                 <p>CV adaptado → <code>output/cv-J0002.pdf</code></p>
               </div>
-              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--hitl" style="--i:4">
-                <p>Plan listo. Formulario abierto — <strong>tú envías</strong>.</p>
+
+              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:4">
+                <ul class="jb-chat__todos">
+                  <li class="jb-chat__todo jb-chat__todo--done">Leer post</li>
+                  <li class="jb-chat__todo jb-chat__todo--done">Match</li>
+                  <li class="jb-chat__todo jb-chat__todo--done">Armar CV</li>
+                  <li class="jb-chat__todo jb-chat__todo--done">Plan</li>
+                  <li class="jb-chat__todo jb-chat__todo--you">Tú envías</li>
+                </ul>
+                <p class="jb-chat__hitl">Plan listo. Formulario abierto — <strong>tú envías</strong>.</p>
               </div>
             {% endif %}
           </div>
@@ -127,16 +215,56 @@
               </span>
               <span class="jb-chat__caret"></span>
             </div>
-            <button class="jb-chat__send" type="button" tabindex="-1" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+            <div class="jb-chat__composer-bar">
+              <span class="jb-chat__mode">
+                <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+                  <circle cx="4.5" cy="8" r="1.4" fill="currentColor"/>
+                  <circle cx="8" cy="8" r="1.4" fill="currentColor"/>
+                  <circle cx="11.5" cy="8" r="1.4" fill="currentColor"/>
+                </svg>
+                Agent
+              </span>
+              <span class="jb-chat__model">Jobbot · local</span>
+              <button class="jb-chat__send" type="button" tabindex="-1" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                  <path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </section>
+  <script>
+    (function () {
+      var btn = document.getElementById("jb-audio-toggle");
+      var audio = document.getElementById("jb-ambient");
+      if (!btn || !audio) return;
+      var label = btn.querySelector(".jb-audio__label");
+      var iconOff = btn.querySelector(".jb-audio__icon--off");
+      var iconOn = btn.querySelector(".jb-audio__icon--on");
+      var onLabel = {{ ('"Sound on"' if en else '"Sonido on"') | safe }};
+      var offLabel = {{ ('"Sound off"' if en else '"Sonido off"') | safe }};
+      audio.volume = 0.28;
+      btn.addEventListener("click", function () {
+        if (audio.paused) {
+          audio.play().then(function () {
+            btn.setAttribute("aria-pressed", "true");
+            if (label) label.textContent = onLabel;
+            if (iconOff) iconOff.hidden = true;
+            if (iconOn) iconOn.hidden = false;
+          }).catch(function () {});
+        } else {
+          audio.pause();
+          btn.setAttribute("aria-pressed", "false");
+          if (label) label.textContent = offLabel;
+          if (iconOff) iconOff.hidden = false;
+          if (iconOn) iconOn.hidden = true;
+        }
+      });
+    })();
+  </script>
 {% endblock %}
 
 {% block content %}

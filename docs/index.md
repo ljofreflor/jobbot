@@ -45,13 +45,14 @@ Tres cosas que Jobbot hace de verdad. Sin inventar un producto que no existe.
 
 <section class="jb-section" markdown="1">
 
-## El ciclo, en lenguaje natural
+## El ciclo, en tu agente
 
-Pegas un link o describes lo que buscas. Jobbot lee, hace match, arma el CV y deja
-el formulario listo. El envío lo haces tú.
+En Cursor, VS Code, Claude Code u otro agente: pegas un link o describes lo que
+buscas. Jobbot — CLI local — lee, hace match, arma el CV y deja el formulario
+listo. El envío lo haces tú.
 
 ```bash
-# debajo del chat, los mismos pasos existen como comandos
+# mismos pasos vía CLI — lo que el agente ejecuta en tu máquina
 uv run jobbot linkedin sweep "machine learning"
 uv run jobbot jobs match J0002
 uv run jobbot cv build --job J0002
@@ -59,6 +60,103 @@ uv run jobbot application apply J0002        # plan; tú envías
 ```
 
 [Instalación y quickstart](instalacion.md) · [Referencia de comandos](comandos.md)
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Privacidad en tu máquina
+
+Tu perfil, sesiones y salidas se quedan en el disco. No hay cuenta Jobbot ni
+telemetría: las fallas se guardan en tu SQLite local.
+
+<ul class="jb-evidence">
+  <li><code>data/profile.yaml</code>, SQLite, <code>browser-data/</code> y <code>output/</code> están gitignoreados</li>
+  <li>Hook pre-commit (<code>make hooks</code>) bloquea PII aunque uses <code>git add -f</code></li>
+  <li>Human-in-the-loop: prepara el paquete; <strong>tú envías</strong></li>
+  <li>Sin bypass de CAPTCHA ni 2FA — si el portal desafía, te pasa el teclado</li>
+</ul>
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Buscar cargos recientes
+
+Indeed, Get on Board y posts de reclutadores en LinkedIn. Filtros de frescura,
+país por rol y posts con varias vacantes en uno.
+
+```bash
+uv run jobbot jobs search "Senior Data Scientist" --location Santiago
+uv run jobbot getonboard search "data scientist"
+uv run jobbot linkedin sweep "machine learning" --country CL --max-age-days 30
+```
+
+Un post con cinco roles SoftServe → cinco vacantes independientes, cada una con
+su país y su URL de ATS. Match y postulación por rol, no por post.
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Una sola fuente de verdad
+
+<code>data/profile.yaml</code> es el SoT profesional. LaTeX, PDF, Indeed y LinkedIn
+son vistas o adapters. El CV adaptado reordena evidencia; no inventa experiencia.
+
+```bash
+uv run jobbot profile validate
+uv run jobbot cv build --job J0002          # derivado del perfil + JD
+uv run jobbot profile suggest-from-market   # sugerencias; confirmas gaps
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Sincronizar a los portales
+
+Adapters de Indeed, LinkedIn y Get on Board: login, inspect, pull, diff y sync
+(dry-run por defecto). Un comando propaga el CV base a los perfiles permanentes.
+
+```bash
+uv run jobbot indeed sync --section headline   # plan; --apply escribe
+uv run jobbot linkedin sync --section publications --apply
+uv run jobbot cv propagate                     # plan HITL; --apply confirma
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Open source, en tu máquina
+
+CLI local. Sin backend SaaS de Jobbot. El canal es Cursor, VS Code, Claude Code
+u otro agente — no un chat propietario. Corres el binario; decides qué sale
+de tu disco.
+
+```bash
+git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
+uv sync --group dev
+uv run jobbot version
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Match, ATS y Latam
+
+Scores contra tu perfil, detección de ATS (Greenhouse, Lever, Workday, Teamtailor
+incluso en hosts propios, Get on Board…), registro de portales que aprende con
+evidencia, y foco en Chile / Latam en búsquedas y roundups.
+
+<ul class="jb-evidence">
+  <li><code>jobs match</code> / <code>shortlist</code> — puntúa; no decide por ti</li>
+  <li><code>portals detect</code> + <code>companies learn</code> — topología pública, sin PII</li>
+  <li><code>application apply --apply</code> — abre el formulario; el envío es tuyo</li>
+  <li>Roundups Latam: país por rol (<code>--country CL</code>), no por post entero</li>
+</ul>
 
 </section>
 
