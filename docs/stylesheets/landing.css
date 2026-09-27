@@ -1,36 +1,44 @@
-/* JobBot landing — first viewport is one composition; docs live behind the CTAs.
+/* Jobbot landing — navy + cobalt from the brand sheet.
    Scoped to body:has(.jb-hero) so instalacion/blog keep Material defaults. */
 
 body:has(.jb-hero) {
-  --jb-ink: #0e2a28;
-  --jb-ink-soft: #2a4a46;
-  --jb-mist: #d7e4e2;
-  --jb-paper: #eef4f2;
-  --jb-sea: #1b6b5a;
-  --jb-sea-deep: #0f3f36;
-  --jb-signal: #c9852a;
-  --jb-term: #0b1615;
-  --jb-term-text: #b7dcc4;
-  --jb-term-dim: #6f9580;
-  --jb-font-brand: "Syne", "IBM Plex Sans", sans-serif;
+  --jb-navy: #001838;
+  --jb-navy-soft: #082048;
+  --jb-cobalt: #0058f8;
+  --jb-cobalt-deep: #0046c7;
+  --jb-mist: #e8eef8;
+  --jb-paper: #f5f8fc;
+  --jb-term: #001030;
+  --jb-term-text: #c8d8f8;
+  --jb-term-dim: #7a90b8;
+  --jb-prompt: #5a9bff;
+  --jb-font-brand: "Nunito", "IBM Plex Sans", sans-serif;
   --jb-font-body: "IBM Plex Sans", sans-serif;
-  --jb-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --jb-font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
 }
 
-/* Hide the default Material h1 on the landing — the hero already carries the brand. */
 body:has(.jb-hero) .md-typeset > h1:first-of-type {
   display: none;
 }
 
 body:has(.jb-hero) .md-main {
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(27, 107, 90, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 90% 0%, rgba(201, 133, 42, 0.08), transparent 55%),
+    radial-gradient(1000px 520px at 85% 8%, rgba(0, 88, 248, 0.12), transparent 60%),
+    radial-gradient(800px 480px at 5% 90%, rgba(0, 24, 56, 0.08), transparent 55%),
     linear-gradient(180deg, var(--jb-paper) 0%, var(--jb-mist) 100%);
 }
 
 body:has(.jb-hero) .md-main__inner {
   margin-top: 0;
+}
+
+/* Material header on the landing: navy bar, cobalt accents */
+body:has(.jb-hero) .md-header {
+  background: var(--jb-navy);
+}
+
+body:has(.jb-hero) .md-tabs {
+  background: var(--jb-navy-soft);
 }
 
 /* —— Hero —— */
@@ -42,7 +50,7 @@ body:has(.jb-hero) .md-main__inner {
   min-height: calc(100vh - 2.4rem);
   display: flex;
   align-items: center;
-  color: var(--jb-ink);
+  color: var(--jb-navy);
   font-family: var(--jb-font-body);
 }
 
@@ -51,12 +59,12 @@ body:has(.jb-hero) .md-main__inner {
   inset: -10% -5%;
   z-index: -1;
   background:
-    radial-gradient(ellipse 70% 55% at 70% 40%, rgba(15, 63, 54, 0.18), transparent 70%),
-    radial-gradient(ellipse 50% 40% at 15% 80%, rgba(27, 107, 90, 0.14), transparent 65%),
+    radial-gradient(ellipse 55% 50% at 75% 35%, rgba(0, 88, 248, 0.16), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 12% 75%, rgba(0, 24, 56, 0.1), transparent 65%),
     repeating-linear-gradient(
       -12deg,
-      transparent 0 14px,
-      rgba(14, 42, 40, 0.025) 14px 15px
+      transparent 0 16px,
+      rgba(0, 24, 56, 0.03) 16px 17px
     );
   animation: jb-drift 28s ease-in-out infinite alternate;
 }
@@ -80,34 +88,67 @@ body:has(.jb-hero) .md-main__inner {
 }
 
 .jb-hero__brand {
-  margin: 0 0 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0 0 1.25rem;
+  animation: jb-rise 0.7s ease-out both;
+}
+
+.jb-hero__mark {
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: 0 0 auto;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 24, 56, 0.12);
+}
+
+.jb-hero__name {
+  margin: 0;
   font-family: var(--jb-font-brand);
   font-weight: 800;
-  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  font-size: clamp(2.4rem, 5.5vw, 3.6rem);
   line-height: 0.95;
   letter-spacing: -0.03em;
-  color: var(--jb-ink);
-  animation: jb-rise 0.7s ease-out both;
+}
+
+.jb-hero__name-job {
+  color: var(--jb-navy);
+}
+
+.jb-hero__name-bot {
+  color: var(--jb-cobalt);
+}
+
+.jb-hero__slogan {
+  margin: 0.25rem 0 0;
+  font-family: var(--jb-font-body);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--jb-cobalt);
 }
 
 .jb-hero__title {
   margin: 0 0 1rem;
   font-family: var(--jb-font-brand);
-  font-weight: 700;
-  font-size: clamp(1.55rem, 3.2vw, 2.15rem);
+  font-weight: 800;
+  font-size: clamp(1.45rem, 3vw, 2rem);
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--jb-ink-soft);
+  color: var(--jb-navy-soft);
   max-width: 18ch;
   animation: jb-rise 0.7s ease-out 0.08s both;
 }
 
 .jb-hero__lede {
   margin: 0 0 1.75rem;
-  max-width: 34ch;
+  max-width: 36ch;
   font-size: 1.05rem;
   line-height: 1.45;
-  color: var(--jb-ink-soft);
+  color: var(--jb-navy-soft);
   animation: jb-rise 0.7s ease-out 0.16s both;
 }
 
@@ -135,7 +176,7 @@ body:has(.jb-hero) .md-main__inner {
   justify-content: center;
   min-height: 2.75rem;
   padding: 0.65rem 1.25rem;
-  border-radius: 0.35rem;
+  border-radius: 0.45rem;
   font-family: var(--jb-font-body);
   font-weight: 600;
   font-size: 0.95rem;
@@ -148,25 +189,25 @@ body:has(.jb-hero) .md-main__inner {
 }
 
 .jb-btn--primary {
-  background: var(--jb-sea);
-  color: #f4faf8 !important;
+  background: var(--jb-cobalt);
+  color: #fff !important;
 }
 
 .jb-btn--primary:hover {
-  background: var(--jb-sea-deep);
+  background: var(--jb-cobalt-deep);
 }
 
 .jb-btn--ghost {
   background: transparent;
-  color: var(--jb-ink) !important;
-  box-shadow: inset 0 0 0 1.5px rgba(14, 42, 40, 0.35);
+  color: var(--jb-navy) !important;
+  box-shadow: inset 0 0 0 1.5px rgba(0, 24, 56, 0.3);
 }
 
 .jb-btn--ghost:hover {
-  background: rgba(14, 42, 40, 0.06);
+  background: rgba(0, 88, 248, 0.06);
 }
 
-/* —— Terminal visual —— */
+/* —— Terminal —— */
 
 .jb-hero__stage {
   animation: jb-rise 0.8s ease-out 0.2s both;
@@ -175,11 +216,11 @@ body:has(.jb-hero) .md-main__inner {
 .jb-term {
   background: var(--jb-term);
   color: var(--jb-term-text);
-  border-radius: 0.55rem;
+  border-radius: 0.65rem;
   overflow: hidden;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 18px 40px rgba(11, 22, 21, 0.28);
+    0 18px 40px rgba(0, 24, 56, 0.28);
   font-family: var(--jb-font-mono);
 }
 
@@ -196,7 +237,7 @@ body:has(.jb-hero) .md-main__inner {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: #3a4a46;
+  background: #2a3a58;
 }
 
 .jb-term__chrome code {
@@ -225,7 +266,7 @@ body:has(.jb-hero) .md-main__inner {
 }
 
 .jb-term__prompt {
-  color: #7eb89a;
+  color: var(--jb-prompt);
 }
 
 .jb-term__line {
@@ -247,7 +288,7 @@ body:has(.jb-hero) .md-main__inner {
   height: 1.05em;
   margin-left: 0.1ch;
   vertical-align: text-bottom;
-  background: #9dccad;
+  background: var(--jb-cobalt);
   animation: jb-blink 1s steps(1) infinite;
 }
 
@@ -257,36 +298,96 @@ body:has(.jb-hero) .md-main__inner {
   }
 }
 
-/* —— Below-fold sections (one job each) —— */
+/* —— Below-fold —— */
 
 .jb-section {
-  max-width: 42rem;
+  max-width: 44rem;
   margin: 0 auto 3.5rem;
   padding-top: 0.5rem;
   font-family: var(--jb-font-body);
-  color: var(--jb-ink);
+  color: var(--jb-navy);
 }
 
 .jb-section h2 {
   display: block !important;
   margin: 0 0 0.75rem;
   font-family: var(--jb-font-brand);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 1.55rem;
   letter-spacing: -0.02em;
-  color: var(--jb-ink);
+  color: var(--jb-navy);
 }
 
 .jb-section > p {
   margin: 0 0 1.1rem;
-  color: var(--jb-ink-soft);
+  color: var(--jb-navy-soft);
   font-size: 1.02rem;
   line-height: 1.5;
 }
 
 .jb-section pre {
   border-radius: 0.45rem;
-  border: 1px solid rgba(14, 42, 40, 0.12);
+  border: 1px solid rgba(0, 24, 56, 0.12);
+}
+
+.jb-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem 1.5rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jb-benefits li {
+  margin: 0;
+  padding: 0;
+}
+
+.jb-benefits__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 88, 248, 0.1);
+  color: var(--jb-cobalt);
+}
+
+.jb-benefits__icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jb-benefits strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-family: var(--jb-font-brand);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--jb-navy);
+}
+
+.jb-benefits span {
+  color: var(--jb-navy-soft);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.jb-pillars {
+  margin: 1.5rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jb-cobalt);
 }
 
 .jb-principles {
@@ -298,13 +399,13 @@ body:has(.jb-hero) .md-main__inner {
 .jb-principles li {
   position: relative;
   padding: 0.85rem 0 0.85rem 1.15rem;
-  border-top: 1px solid rgba(14, 42, 40, 0.12);
-  color: var(--jb-ink-soft);
+  border-top: 1px solid rgba(0, 24, 56, 0.12);
+  color: var(--jb-navy-soft);
   line-height: 1.45;
 }
 
 .jb-principles li:last-child {
-  border-bottom: 1px solid rgba(14, 42, 40, 0.12);
+  border-bottom: 1px solid rgba(0, 24, 56, 0.12);
 }
 
 .jb-principles li::before {
@@ -314,17 +415,19 @@ body:has(.jb-hero) .md-main__inner {
   top: 1.25rem;
   width: 0.45rem;
   height: 0.45rem;
-  background: var(--jb-sea);
+  border-radius: 50%;
+  background: var(--jb-cobalt);
 }
 
 .jb-principles strong {
   display: block;
-  color: var(--jb-ink);
+  color: var(--jb-navy);
   font-weight: 600;
   margin-bottom: 0.15rem;
 }
 
-.jb-section--measure .jb-btn {
+.jb-section--measure .jb-btn,
+.jb-section--close .jb-btn {
   margin-top: 0.35rem;
 }
 
@@ -332,8 +435,6 @@ body:has(.jb-hero) .md-main__inner {
   text-align: left;
   padding-bottom: 2rem;
 }
-
-/* —— Responsive —— */
 
 @media (max-width: 960px) {
   .jb-hero {
@@ -349,6 +450,10 @@ body:has(.jb-hero) .md-main__inner {
   .jb-hero__title {
     max-width: none;
   }
+
+  .jb-benefits {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 600px) {
@@ -363,6 +468,11 @@ body:has(.jb-hero) .md-main__inner {
 
   .jb-btn {
     flex: 1 1 auto;
+  }
+
+  .jb-hero__mark {
+    width: 3.5rem;
+    height: 3.5rem;
   }
 }
 

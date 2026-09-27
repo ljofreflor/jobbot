@@ -1,0 +1,16 @@
+/* Brand tokens across the whole docs site (not only the landing). */
+:root,
+[data-md-color-scheme="default"],
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #001838;
+  --md-primary-fg-color--light: #082048;
+  --md-primary-fg-color--dark: #000f24;
+  --md-accent-fg-color: #0058f8;
+  --md-accent-fg-color--transparent: rgba(0, 88, 248, 0.1);
+}
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 1.7rem;
+  width: auto;
+}

@@ -1,13 +1,47 @@
 ---
 template: home.html
-title: JobBot — tu búsqueda de trabajo, en tu máquina
+title: Jobbot — tu próximo paso, con inteligencia
 description: >-
-  CLI local para buscar trabajo con un CV estructurado como fuente de verdad.
-  Corre entero en tu máquina, nunca postula por ti y nunca inventa datos sobre ti.
+  CLI local para buscar trabajo: encuentra vacantes, prepara postulaciones y el
+  envío lo haces tú. Humano + tecnología, en tu máquina.
 hide:
   - navigation
   - toc
 ---
+
+<section class="jb-section" markdown="1">
+
+## Personas · oportunidades · tecnología
+
+Tres cosas que Jobbot hace de verdad. Sin inventar un producto que no existe.
+
+<ul class="jb-benefits">
+  <li>
+    <div class="jb-benefits__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </div>
+    <strong>Encuentra oportunidades</strong>
+    <span>Descubre vacantes que encajan con tu perfil real, no con un CV inventado.</span>
+  </li>
+  <li>
+    <div class="jb-benefits__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/><path d="M9 21l1.5-1.5L13 21"/></svg>
+    </div>
+    <strong>Postula más fácil</strong>
+    <span>Arma el paquete, abre el formulario y deja el envío en tus manos.</span>
+  </li>
+  <li>
+    <div class="jb-benefits__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M20 19H3"/></svg>
+    </div>
+    <strong>Avanza con confianza</strong>
+    <span>Matching contra tu perfil, shortlist y evidencia — sin telemetría ni cuenta.</span>
+  </li>
+</ul>
+
+<p class="jb-pillars">Más oportunidades. Un mejor mañana.</p>
+
+</section>
 
 <section class="jb-section" markdown="1">
 
@@ -28,7 +62,7 @@ uv run jobbot application apply J0001        # plan; tú envías
 
 <section class="jb-section" markdown="1">
 
-## Lo que JobBot no hace
+## Lo que Jobbot no hace
 
 Reglas del producto, no del marketing.
 

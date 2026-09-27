@@ -1,13 +1,13 @@
-site_name: JobBot
+site_name: Jobbot
 site_description: >-
-  Herramienta local de terminal para la búsqueda de trabajo: CV estructurado como
-  fuente de verdad, descubrimiento de vacantes, matching y postulaciones asistidas.
+  Tu próximo paso, con inteligencia. CLI local para buscar trabajo: CV estructurado,
+  matching real y postulaciones que envías tú.
 site_url: https://ljofreflor.github.io/jobbot/
-site_author: JobBot
+site_author: Jobbot
 repo_url: https://github.com/ljofreflor/jobbot
 repo_name: ljofreflor/jobbot
 edit_uri: edit/main/docs/
-copyright: Documentación de JobBot — uso personal
+copyright: Jobbot — personas · oportunidades · tecnología
 
 docs_dir: docs
 site_dir: site
@@ -16,6 +16,8 @@ theme:
   name: material
   custom_dir: docs/overrides
   language: es
+  favicon: assets/brand/favicon.png
+  logo: assets/brand/logo-mark.png
   icon:
     repo: fontawesome/brands/github
   features:
@@ -31,15 +33,15 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: teal
-      accent: teal
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/brightness-7
         name: Cambiar a modo oscuro
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: teal
-      accent: teal
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/brightness-4
         name: Cambiar a modo claro
@@ -88,13 +90,14 @@ markdown_extensions:
       alternate_style: true
 
 extra_css:
+  - stylesheets/brand.css
   - stylesheets/landing.css
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/ljofreflor/jobbot
-      name: JobBot en GitHub
+      name: Jobbot en GitHub
   # Language switcher. The site is Spanish-first; English pages live under /en/.
   alternate:
     - name: Español
