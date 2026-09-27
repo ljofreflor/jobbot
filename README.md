@@ -186,8 +186,13 @@ jobbot application apply J0002 --apply          # opens that role's page; you su
 A `lnkd.in` link that leaves LinkedIn answers `200` with an interstitial page instead of a
 redirect, so JobBot reads the destination that page declares. A link that does not resolve off
 `lnkd.in` is skipped rather than stored — the shortener is not a portal. A labelled link that
-names no role (`Learn more: …`) is not a vacancy. The employer is taken from the post only when
-the apply URL's host confirms the name; otherwise the post's author stands.
+names no role (`Learn more: …`) is not a vacancy.
+
+The employer is taken from the post only when something in it confirms the name: the apply URL's
+host, or a hashtag spelling the name out (`#NTTDATA` next to "En NTT DATA buscamos"). That second
+witness matters for the posts that keep the apply link in the first comment, where there is no
+host to check. Without either, the post's author stands — a country is not an employer, however
+the sentence reads.
 
 A weekly roundup labels one **country** per role instead:
 

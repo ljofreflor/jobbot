@@ -165,6 +165,57 @@ def test_roundup_keeps_only_the_roles_in_the_wanted_country(project_root: Path) 
     assert len(every) == 4
 
 
+def _single_employer_post(project_root: Path) -> object:
+    text = (project_root / "tests/fixtures/linkedin_single_employer_post.txt").read_text(
+        encoding="utf-8"
+    )
+    return parse_posts_fixture(text)[0]
+
+
+def test_employer_name_stops_where_the_recruiter_prose_starts() -> None:
+    """Regression: the name ran on into the sentence ('NTT DATA buscamos 4 profesionales')."""
+    from jobbot.adapters.linkedin.sweep import _guess_company
+
+    assert _guess_company("En NORTHWIND DATA buscamos 4 profesionales para un proyecto") == (
+        "NORTHWIND DATA"
+    )
+
+
+def test_a_preposition_inside_a_word_does_not_name_an_employer() -> None:
+    """'when Chile' used to read as 'en Chile' and hand back a country as the employer."""
+    from jobbot.adapters.linkedin.sweep import _guess_company
+
+    assert _guess_company("Hiring remotely when Chile reopens") is None
+
+
+def test_hashtag_confirms_the_employer_when_the_apply_link_is_in_the_comments(
+    project_root: Path,
+) -> None:
+    """A post with no link in its body still names its employer: #NorthwindData."""
+    post = _single_employer_post(project_root)
+    job = post_to_job(post)  # type: ignore[arg-type]
+
+    assert job.company == "NORTHWIND DATA"
+
+
+def test_a_topic_hashtag_never_promotes_a_place_to_an_employer() -> None:
+    """Only a hashtag spelling the name itself corroborates; #Empleo says nothing."""
+    from jobbot.adapters.linkedin.sweep import parse_post_blob
+
+    blob = (
+        "Publicación en el feed\nAna Recruiter\n"
+        "Buscamos Data Scientist en Santiago para un cliente del sector retail.\n"
+        "#Empleo #DataScience #Hiring"
+    )
+    assert post_to_job(parse_post_blob(blob)).company == "Ana Recruiter"
+
+
+def test_a_post_for_madrid_is_not_offered_for_chile(project_root: Path) -> None:
+    post = _single_employer_post(project_root)
+    assert post_offers_wanted_country(post.text, wanted=["CL"]) is False  # type: ignore[attr-defined]
+    assert post_offers_wanted_country(post.text, wanted=["ES"]) is True  # type: ignore[attr-defined]
+
+
 def test_roundup_middle_dot_bullets_survive_a_collapsed_paragraph() -> None:
     """Roundups bullet with '·', and some cards render the whole post on one line."""
     vacancies = split_vacancy_links(

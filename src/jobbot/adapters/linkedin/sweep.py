@@ -427,11 +427,37 @@ def _guess_title(text: str) -> str | None:
     return None
 
 
+# "En NTT DATA buscamos …", "Expert Analyst @ NTT Data": the employer follows the preposition.
+# The word must start a word itself, or the "en" inside "when Chile" names a company.
+_COMPANY_LEAD_RE = re.compile(r"(?:^|[\s(])(?:[Aa]t|[Ee]n|@)\s+(?P<tail>[^\n.!?,;]{1,80})")
+_COMPANY_TOKEN_RE = re.compile(r"[A-ZÁÉÍÓÚÑ0-9][\w&.\-]*$")
+_COMPANY_CONNECTORS: frozenset[str] = frozenset({"&", "de", "del", "la", "las", "los", "of", "y"})
+
+
 def _guess_company(text: str) -> str | None:
-    match = re.search(r"(?i)(?:at|en|@)\s+([A-ZÁÉÍÓÚÑ][\w&.\- ]{1,40})", text)
-    if match:
-        return match.group(1).strip()[:80]
+    for match in _COMPANY_LEAD_RE.finditer(text or ""):
+        name = _company_name_prefix(match.group("tail"))
+        if name:
+            return name[:80]
     return None
+
+
+def _company_name_prefix(tail: str) -> str | None:
+    """
+    Leading run of name-shaped words: "NTT DATA buscamos 4 profesionales" → "NTT DATA".
+
+    A company name is written in capitals; the first lowercase word after it is the
+    recruiter's prose, so the name ends there instead of eating the rest of the sentence.
+    """
+    words: list[str] = []
+    for word in tail.split():
+        if _COMPANY_TOKEN_RE.match(word) or (words and word.casefold() in _COMPANY_CONNECTORS):
+            words.append(word)
+            continue
+        break
+    while words and words[-1].casefold() in _COMPANY_CONNECTORS:
+        words.pop()
+    return " ".join(words) or None
 
 
 # Legal forms and industry words: alone they never identify one employer.
@@ -466,9 +492,36 @@ def employer_from_post(text: str, apply_url: str | None, *, author: str | None) 
     employer is a fact; otherwise the author stands, as before.
     """
     named = _guess_company(text)
-    if named and apply_url and _apply_url_names(apply_url, named):
+    if named and _post_names_employer(named, text, apply_url):
         return named
     return author or named or "Unknown company"
+
+
+def _post_names_employer(company: str, text: str, apply_url: str | None) -> bool:
+    """
+    Whether the post backs up the name ``_guess_company`` read out of one sentence.
+
+    The apply host is the strongest witness, but many posts keep the link in the first
+    comment, out of reach. There a hashtag spelling the same name (#NTTDATA next to
+    "En NTT DATA buscamos") is what tells a company apart from the "en Santiago" the
+    preposition rule also matches — the post still has to say it.
+    """
+    if apply_url and _apply_url_names(apply_url, company):
+        return True
+    return _hashtag_names(text, company)
+
+
+_HASHTAG_RE = re.compile(r"#(\w{3,40})")
+
+
+def _hashtag_names(text: str, company: str) -> bool:
+    """Whether a hashtag spells out exactly this company: #NTTDATA for "NTT DATA"."""
+    from jobbot.companies.urls import slugify
+
+    flattened = slugify(company).replace("-", "")
+    if len(flattened) < 4:
+        return False
+    return any(tag.casefold() == flattened for tag in _HASHTAG_RE.findall(text or ""))
 
 
 def _apply_url_names(url: str, company: str) -> bool:
