@@ -59,7 +59,7 @@ uv run jobbot cv build --job J0002
 uv run jobbot application apply J0002        # plan; tú envías
 ```
 
-[Instalación y quickstart](instalacion.md) · [Referencia de comandos](comandos.md)
+[Imagen lista / quickstart](instalacion.md#imagen-lista-recomendado) · [Referencia de comandos](comandos.md)
 
 </section>
 
@@ -131,14 +131,14 @@ uv run jobbot cv propagate                     # plan HITL; --apply confirma
 
 ## Open source, en tu máquina
 
-CLI local. Sin backend SaaS de Jobbot. El canal es Cursor, VS Code, Claude Code
-u otro agente — no un chat propietario. Corres el binario; decides qué sale
-de tu disco.
+Sin backend SaaS de Jobbot. El canal es Cursor, VS Code, Claude Code u otro
+agente — no un chat propietario. Lo habitual: una **imagen Docker** con Jobbot
+listo; el CLI en el host queda para desarrollo o HITL headed.
 
 ```bash
 git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
-uv sync --group dev
-uv run jobbot version
+docker compose build
+docker compose run --rm jobbot version
 ```
 
 </section>
@@ -190,15 +190,15 @@ Antes de scrapear a ciegas: qué sitios de empleo responden desde una IP de data
 
 ## Empezar
 
-Clona, sincroniza, copia el perfil de ejemplo. El resto está en la guía.
+Clona, copia el perfil de ejemplo, construye la imagen. El resto está en la guía.
 
 ```bash
 git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
-uv sync --group dev
 cp data/profile.example.yaml data/profile.yaml
+docker compose build && docker compose run --rm jobbot version
 ```
 
-[Instalar](instalacion.md){ .jb-btn .jb-btn--primary }
-[Prior art](prior-art.md){ .jb-btn .jb-btn--ghost }
+[Usar imagen lista](instalacion.md#imagen-lista-recomendado){ .jb-btn .jb-btn--primary }
+[CLI local](instalacion.md#cli-local-avanzado-desarrollo){ .jb-btn .jb-btn--ghost }
 
 </section>

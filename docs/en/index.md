@@ -129,15 +129,18 @@ uv run jobbot cv propagate                     # HITL plan; --apply confirms
 
 ## Open source, on your machine
 
-Local CLI. No Jobbot SaaS backend. The channel is Cursor, VS Code, Claude Code,
-or another agent — not a proprietary Jobbot chat. You run the binary; you decide
-what leaves disk.
+No Jobbot SaaS backend. The channel is Cursor, VS Code, Claude Code, or another
+agent — not a proprietary Jobbot chat. Default path: a **ready Docker image**;
+host CLI is for development or headed HITL.
 
 ```bash
 git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
-uv sync --group dev
-uv run jobbot version
+docker compose build
+docker compose run --rm jobbot version
 ```
+
+[Ready image](../instalacion.md#imagen-lista-recomendado){ .jb-btn .jb-btn--primary }
+[Local CLI](../instalacion.md#cli-local-avanzado-desarrollo){ .jb-btn .jb-btn--ghost }
 
 </section>
 

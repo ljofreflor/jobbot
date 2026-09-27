@@ -1,0 +1,26 @@
+# Ready-image path: build once, mount your profile/output on the host.
+#
+#   docker compose build
+#   docker compose run --rm jobbot version
+#   docker compose run --rm jobbot profile validate
+#
+# Copy data/profile.example.yaml → data/profile.yaml on the host first.
+# Optional: .jobbot.toml, data/portals.yaml (gitignored — stay on disk).
+
+services:
+  jobbot:
+    build: .
+    image: jobbot:local
+    working_dir: /app
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./browser-data:/app/browser-data
+    environment:
+      JOBBOT_LOG_LEVEL: ${JOBBOT_LOG_LEVEL:-INFO}
+    stdin_open: true
+    tty: true
+    # Headed HITL (login / CAPTCHA) is not the default here: use the host
+    # CLI + `browser chrome-debug`, or pass DISPLAY / X11 yourself if you know
+    # what you are doing. Datacenter IPs often fail job-site scrapes — see
+    # docs/blog/posts/2026-09-24-bloqueos-ip-datacenter.md.

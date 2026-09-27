@@ -62,6 +62,21 @@ uv run jobbot application prepare J0003
 
 ## Install
 
+**Recommended (ready image):** Docker with Python, uv, and Playwright Chromium
+preinstalled. Profile and outputs stay on your disk via volume mounts.
+
+```bash
+cp data/profile.example.yaml data/profile.yaml
+docker compose build
+docker compose run --rm jobbot version
+docker compose run --rm jobbot profile validate
+```
+
+When published from `main`, you can also pull `ghcr.io/ljofreflor/jobbot:latest`
+(see `.github/workflows/docker.yml`). Until that tag exists, build locally.
+
+**Advanced (host CLI / development):**
+
 ```bash
 uv sync --group dev
 cp .jobbot.toml.example .jobbot.toml   # optional
@@ -69,6 +84,9 @@ cp data/profile.example.yaml data/profile.yaml
 cp data/portals.example.yaml data/portals.yaml       # optional ATS seed
 cp data/companies.example.yaml data/companies.yaml   # optional company↔portal seed
 ```
+
+Headed portal logins and CAPTCHAs still belong on your desktop (residential IP);
+the image is best for match / ATS CV / prepare. Details: [docs/instalacion.md](docs/instalacion.md).
 
 **PII:** `data/profile.yaml` (and `portals.yaml`, `companies.yaml`, SQLite, `browser-data/`, `output/`) are
 **gitignored**. Only `*.example.yaml` templates are safe to commit. See [data/README.md](data/README.md).
