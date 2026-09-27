@@ -206,6 +206,11 @@ vacancy: the post survives because one role is in Chile, and only that role is s
 `--any-country` to keep all of them. A role whose label says nothing about where it is stays —
 JobBot does not discard work it failed to classify.
 
+Every post you send JobBot to apply to is also saved under `tests/fixtures/linkedin_real/` (verbatim
+body + a sibling `.urls.json` with the short-link destinations captured at the same time). The
+suite in `tests/unit/test_linkedin_real_posts.py` re-runs those exact posts offline, so a fix for
+a new shape cannot quietly break an older one.
+
 ## Propagate the CV (permanent profiles)
 
 One command rebuilds the base CV and pushes it outward to the profiles that live beyond a

@@ -1,0 +1,25 @@
+author: Lucas Acebedo
+url: https://www.linkedin.com/posts/lucas-acebedo-05a4b415_nttdata-machinelearning-datascience-activity-7506055750012760064-WYsO
+🚀 Buscamos talento | Machine Learning & Customer Analytics
+
+En NTT DATA buscamos 4 profesionales para incorporarse a un proyecto de analítica avanzada y Machine Learning en Banca.
+
+Buscamos perfiles con experiencia demostrable en:
+
+• Desarrollo e industrialización end-to-end de modelos de Machine Learning, desde el diseño y entrenamiento hasta su despliegue, automatización, monitorización y operación en producción.
+
+• Modelos aplicados a cross-selling, up-selling, customer lifetime value, churn/fuga, segmentación, propensión y next best action, entre otros casos de uso de Customer Analytics.
+
+• Trabajo en entornos de datos a escala con PySpark, desarrollando pipelines y soluciones preparadas para ejecución recurrente sobre grandes volúmenes de información.
+
+• Interacción directa con negocio: identificación y priorización de casos de uso, traducción de necesidades de negocio a soluciones analíticas, definición de métricas de éxito y presentación de resultados e insights a áreas no técnicas.
+
+Buscamos especialmente profesionales que hayan recorrido el ciclo completo del modelo: desde entender el problema de negocio y trabajar con los datos hasta conseguir que el modelo funcione de manera recurrente en producción y genere impacto medible.
+
+📍 4 posiciones disponibles en Madrid
+
+Si tienes experiencia haciendo este tipo de proyectos y te interesa conocer más, abajo te dejo el link para aplicar.
+
+Y si conoces a alguien que encaje, agradeceré que compartas esta publicación.
+
+#NTTDATA #MachineLearning #DataScience #PySpark #CustomerAnalytics #MLOps #AI #Analytics #Hiring #DataJobs
