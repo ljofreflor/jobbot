@@ -423,8 +423,18 @@ def _guess_title(text: str) -> str | None:
     for pat in patterns:
         match = re.search(pat, text)
         if match:
-            return re.sub(r"\s+", " ", match.group(1)).strip(" -:")[:120]
+            title = re.sub(r"\s+", " ", match.group(1)).strip(" -:")
+            return _TITLE_LEAD_IN_RE.sub("", title)[:120] or None
     return None
+
+
+# "Buscamos talento | Machine Learning & Customer Analytics": the word after the verb says
+# whom the recruiter wants, not what the job is. The role is on the other side of the bar.
+_TITLE_LEAD_IN_RE = re.compile(
+    r"^(?:talento|talent|gente|personas?|profesionales?|professionals?|candidatos?)"
+    r"\s*[|\-–—:]\s*",
+    re.IGNORECASE,
+)
 
 
 # "En NTT DATA buscamos …", "Expert Analyst @ NTT Data": the employer follows the preposition.

@@ -196,6 +196,19 @@ def test_hashtag_confirms_the_employer_when_the_apply_link_is_in_the_comments(
     job = post_to_job(post)  # type: ignore[arg-type]
 
     assert job.company == "NORTHWIND DATA"
+    assert job.title == "Machine Learning & Customer Analytics"
+
+
+def test_title_drops_the_word_naming_whom_the_recruiter_wants() -> None:
+    """Regression: the role came out as 'talento | Machine Learning & Customer Analytics'."""
+    from jobbot.adapters.linkedin.sweep import _guess_title
+
+    assert _guess_title("🚀 Buscamos talento | Machine Learning & Customer Analytics") == (
+        "Machine Learning & Customer Analytics"
+    )
+    assert _guess_title("Buscamos Data Scientist Senior para Airport Operations.") == (
+        "Data Scientist Senior para Airport Operations"
+    )
 
 
 def test_a_topic_hashtag_never_promotes_a_place_to_an_employer() -> None:
