@@ -64,6 +64,9 @@ __pycache__/
 dist/
 build/
 
+# ── Docs site build output (MkDocs) ─────────────────────────────────────────
+site/
+
 # ── Tooling caches ──────────────────────────────────────────────────────────
 .pytest_cache/
 .mypy_cache/

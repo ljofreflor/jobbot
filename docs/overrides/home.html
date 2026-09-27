@@ -1,0 +1,144 @@
+{% extends "main.html" %}
+
+{# Jobbot landing — brand + chat-first entry that animates through an apply. #}
+
+{% set en = page.file.src_uri.startswith("en/") %}
+
+{% block extrahead %}
+  {{ super() }}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Nunito:wght@700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="icon" href="{{ 'assets/brand/favicon.png' | url }}" type="image/png" />
+{% endblock %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="jb-hero" aria-label="Jobbot">
+    <div class="jb-hero__atmosphere" aria-hidden="true"></div>
+    <div class="jb-hero__inner md-grid">
+      <div class="jb-hero__copy">
+        <div class="jb-hero__brand">
+          <img
+            class="jb-hero__mark"
+            src="{{ 'assets/brand/logo-mark.png' | url }}"
+            width="72"
+            height="72"
+            alt=""
+          />
+          <div class="jb-hero__wordmark">
+            <p class="jb-hero__name" aria-label="Jobbot">
+              <span class="jb-hero__name-job">Job</span><span class="jb-hero__name-bot">bot</span>
+            </p>
+            {% if en %}
+              <p class="jb-hero__slogan">Your next step, with intelligence</p>
+            {% else %}
+              <p class="jb-hero__slogan">Tu próximo paso, con inteligencia</p>
+            {% endif %}
+          </div>
+        </div>
+        {% if en %}
+          <h1 class="jb-hero__title">Tell it in plain language. Watch the application move.</h1>
+          <p class="jb-hero__lede">
+            A chat like Cursor: paste a link, ask to apply, and Jobbot advances match → CV → plan — you still press send.
+          </p>
+          <div class="jb-hero__actions">
+            <a class="jb-btn jb-btn--primary" href="../instalacion/">Install</a>
+            <a class="jb-btn jb-btn--ghost" href="../blog/">Read the blog</a>
+          </div>
+        {% else %}
+          <h1 class="jb-hero__title">Escríbele en lenguaje natural. La postulación avanza sola.</h1>
+          <p class="jb-hero__lede">
+            Un chat como Cursor: pegas un link, pides postular, y Jobbot avanza match → CV → plan — el envío lo haces tú.
+          </p>
+          <div class="jb-hero__actions">
+            <a class="jb-btn jb-btn--primary" href="instalacion/">Instalar</a>
+            <a class="jb-btn jb-btn--ghost" href="blog/">Leer el blog</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="jb-hero__stage" aria-hidden="true">
+        <div class="jb-chat">
+          <div class="jb-chat__chrome">
+            <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="22" height="22" alt="" />
+            <span class="jb-chat__title">Jobbot</span>
+            <span class="jb-chat__badge">{% if en %}local{% else %}local{% endif %}</span>
+          </div>
+
+          <ol class="jb-chat__rail" aria-hidden="true">
+            <li class="jb-chat__step" style="--s:0">{% if en %}Read{% else %}Leer{% endif %}</li>
+            <li class="jb-chat__step" style="--s:1">Match</li>
+            <li class="jb-chat__step" style="--s:2">CV</li>
+            <li class="jb-chat__step" style="--s:3">{% if en %}Plan{% else %}Plan{% endif %}</li>
+            <li class="jb-chat__step" style="--s:4">{% if en %}You send{% else %}Tú envías{% endif %}</li>
+          </ol>
+          <div class="jb-chat__progress"><i></i></div>
+
+          <div class="jb-chat__thread">
+            {% if en %}
+              <div class="jb-chat__msg jb-chat__msg--user" style="--i:0">
+                <p>Apply to this LinkedIn post — Machine Learning, Chile if it fits.</p>
+                <a class="jb-chat__link">lnkd.in/p/dRgw4_BS</a>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:1">
+                <p>Reading the post… five SoftServe roles, remote CL/CO.</p>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--card" style="--i:2">
+                <p class="jb-chat__card-kicker">Best match</p>
+                <p class="jb-chat__card-title">Lead Data Scientist</p>
+                <p class="jb-chat__card-meta">SoftServe · 82% · remote Chile</p>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:3">
+                <p>CV tailored → <code>output/cv-J0002.pdf</code></p>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--hitl" style="--i:4">
+                <p>Application plan ready. Form open — <strong>you submit</strong>.</p>
+              </div>
+            {% else %}
+              <div class="jb-chat__msg jb-chat__msg--user" style="--i:0">
+                <p>Postular a este post de LinkedIn — Machine Learning, Chile si encaja.</p>
+                <a class="jb-chat__link">lnkd.in/p/dRgw4_BS</a>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:1">
+                <p>Leyendo el post… cinco roles SoftServe, remoto CL/CO.</p>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--card" style="--i:2">
+                <p class="jb-chat__card-kicker">Mejor match</p>
+                <p class="jb-chat__card-title">Lead Data Scientist</p>
+                <p class="jb-chat__card-meta">SoftServe · 82% · remoto Chile</p>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot" style="--i:3">
+                <p>CV adaptado → <code>output/cv-J0002.pdf</code></p>
+              </div>
+              <div class="jb-chat__msg jb-chat__msg--bot jb-chat__msg--hitl" style="--i:4">
+                <p>Plan listo. Formulario abierto — <strong>tú envías</strong>.</p>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="jb-chat__composer">
+            <div class="jb-chat__input">
+              <span class="jb-chat__typed">
+                {% if en %}Apply to https://lnkd.in/p/…{% else %}Postular https://lnkd.in/p/…{% endif %}
+              </span>
+              <span class="jb-chat__caret"></span>
+            </div>
+            <button class="jb-chat__send" type="button" tabindex="-1" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+  {{ page.content }}
+{% endblock %}

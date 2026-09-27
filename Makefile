@@ -1,4 +1,4 @@
-.PHONY: install test lint format typecheck cv run hooks pii-check
+.PHONY: install test lint format typecheck cv run hooks pii-check docs-serve docs-build
 
 install:
 	uv sync --group dev
@@ -30,3 +30,9 @@ cv:
 
 run:
 	uv run jobbot --help
+
+docs-serve:
+	uv run --group docs mkdocs serve
+
+docs-build:
+	uv run --group docs mkdocs build --strict
