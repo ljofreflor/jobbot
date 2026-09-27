@@ -189,6 +189,18 @@ redirect, so JobBot reads the destination that page declares. A link that does n
 names no role (`Learn more: …`) is not a vacancy. The employer is taken from the post only when
 the apply URL's host confirms the name; otherwise the post's author stands.
 
+A weekly roundup labels one **country** per role instead:
+
+```text
+· AI Engineer - Generative AI and Agents – Colombia: https://lnkd.in/dy_GZUY3
+· GenAI & Agentic AI Full-Stack Engineer – Chile: https://lnkd.in/duvqZx6i
+```
+
+There the country belongs to each role, not to the post, so `[search].countries` is applied per
+vacancy: the post survives because one role is in Chile, and only that role is stored. Use
+`--any-country` to keep all of them. A role whose label says nothing about where it is stays —
+JobBot does not discard work it failed to classify.
+
 ## Propagate the CV (permanent profiles)
 
 One command rebuilds the base CV and pushes it outward to the profiles that live beyond a
