@@ -921,6 +921,64 @@ body:has(.jb-hero) .md-tabs {
   color: var(--jb-cobalt);
 }
 
+/* —— Use cases / bondades (one job per section) —— */
+
+.jb-section--usecase {
+  max-width: 40rem;
+  margin-top: 0.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0, 24, 56, 0.1);
+}
+
+.jb-section--usecase h2 {
+  font-size: 1.4rem;
+}
+
+.jb-section--usecase > p {
+  max-width: 42ch;
+}
+
+.jb-evidence {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.jb-evidence li {
+  position: relative;
+  padding: 0.55rem 0 0.55rem 1.15rem;
+  border-top: 1px solid rgba(0, 24, 56, 0.08);
+  color: var(--jb-navy-soft);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.jb-evidence li:last-child {
+  border-bottom: 1px solid rgba(0, 24, 56, 0.08);
+}
+
+.jb-evidence li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.05rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--jb-cobalt);
+}
+
+.jb-evidence code,
+.jb-section--usecase code {
+  font-family: var(--jb-font-mono);
+  font-size: 0.86em;
+  padding: 0.08em 0.3em;
+  border-radius: 0.25em;
+  background: rgba(0, 88, 248, 0.08);
+  color: var(--jb-navy);
+  box-shadow: none;
+}
+
 .jb-principles {
   list-style: none;
   margin: 0;
