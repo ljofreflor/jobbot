@@ -163,6 +163,32 @@ jobbot profile suggest-from-market [--ask] [--promote]
 
 Recruiter posts → external ATS URL → portal registry → assisted apply (HITL). Market feedback suggests baseline wording; gaps require confirmation before `--promote`.
 
+### One post, several vacancies
+
+Recruiters often advertise a whole batch in one post, one labelled link per role:
+
+```text
+🔹 Lead Agentic AI Consultant: https://lnkd.in/eUkqbGU2
+🔹 Lead Data Scientist: https://lnkd.in/e3KmPHyp
+🔹 Senior Computer Vision Engineer: https://lnkd.in/euF_SaWV
+```
+
+Each labelled role becomes its own job, keyed on the page it opens, so every one of them is
+independently matchable and appliable:
+
+```bash
+jobbot linkedin sweep "hiring data scientist"   # → J0001…J0005, one per role
+jobbot jobs match J0002
+jobbot cv build --job J0002
+jobbot application apply J0002 --apply          # opens that role's page; you submit
+```
+
+A `lnkd.in` link that leaves LinkedIn answers `200` with an interstitial page instead of a
+redirect, so JobBot reads the destination that page declares. A link that does not resolve off
+`lnkd.in` is skipped rather than stored — the shortener is not a portal. A labelled link that
+names no role (`Learn more: …`) is not a vacancy. The employer is taken from the post only when
+the apply URL's host confirms the name; otherwise the post's author stands.
+
 ## Propagate the CV (permanent profiles)
 
 One command rebuilds the base CV and pushes it outward to the profiles that live beyond a
