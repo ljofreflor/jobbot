@@ -22,6 +22,8 @@ class AtsKind(StrEnum):
     RECRUITEE = "recruitee"
     BREEZY = "breezy"
     TORRE = "torre"
+    JOBTOME = "jobtome"
+    REMOSHIFT = "remoshift"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -30,7 +32,14 @@ class AtsKind(StrEnum):
 
 # Boards/aggregators: many companies publish there, so they never identify one employer.
 JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
-    {AtsKind.INDEED, AtsKind.LINKEDIN, AtsKind.GETONBOARD, AtsKind.TORRE}
+    {
+        AtsKind.INDEED,
+        AtsKind.LINKEDIN,
+        AtsKind.GETONBOARD,
+        AtsKind.TORRE,
+        AtsKind.JOBTOME,
+        AtsKind.REMOSHIFT,
+    }
 )
 
 
@@ -60,6 +69,8 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("breezy.hr", AtsKind.BREEZY),
     ("torre.ai", AtsKind.TORRE),
     ("torre.co", AtsKind.TORRE),
+    ("jobtome.com", AtsKind.JOBTOME),
+    ("remoshift.com", AtsKind.REMOSHIFT),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
@@ -153,7 +164,13 @@ def extract_http_urls(text: str) -> list[str]:
 
 
 def first_external_ats_url(urls: list[str]) -> tuple[str | None, AtsKind]:
-    """Prefer non-LinkedIn ATS / board links from a post (incl. unknown hosts)."""
+    """
+    Best apply link in a post: a real ATS, else the employer's own page, else a board.
+
+    An aggregator republishes other people's postings ("apply on the original posting"),
+    so it is the last resort — an unknown host in a hiring post is usually the employer's
+    own career page. Indeed is never returned.
+    """
     ranked: list[tuple[str, AtsKind]] = []
     for url in urls:
         kind = detect_ats(url)
@@ -164,7 +181,10 @@ def first_external_ats_url(urls: list[str]) -> tuple[str | None, AtsKind]:
             continue
         ranked.append((url, kind))
     for url, kind in ranked:
-        if kind not in {AtsKind.UNKNOWN, AtsKind.INDEED}:
+        if kind != AtsKind.UNKNOWN and kind not in JOB_BOARD_KINDS:
+            return url, kind
+    for url, kind in ranked:
+        if kind == AtsKind.UNKNOWN:
             return url, kind
     for url, kind in ranked:
         if kind != AtsKind.INDEED:

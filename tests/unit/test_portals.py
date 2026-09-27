@@ -2,7 +2,13 @@
 
 from pathlib import Path
 
-from jobbot.portals.detect import AtsKind, detect_ats, extract_http_urls, first_external_ats_url
+from jobbot.portals.detect import (
+    JOB_BOARD_KINDS,
+    AtsKind,
+    detect_ats,
+    extract_http_urls,
+    first_external_ats_url,
+)
 from jobbot.portals.registry import PortalRegistry, domain_from_url, load_registry, save_registry
 
 
@@ -25,6 +31,23 @@ def test_first_external_ats_prefers_greenhouse() -> None:
     url, kind = first_external_ats_url(urls)
     assert kind == AtsKind.GREENHOUSE
     assert url is not None and "greenhouse" in url
+
+
+def test_first_external_prefers_the_employer_page_over_an_aggregator() -> None:
+    """An aggregator republishes someone else's posting; the employer's page is the source."""
+    urls = [
+        "https://cl.jobtome.com/empleo/genai-engineer/7ff122c7",
+        "https://careers.acme.example/jobs/42",
+    ]
+    assert first_external_ats_url(urls) == ("https://careers.acme.example/jobs/42", AtsKind.UNKNOWN)
+    # With nothing better, the aggregator is still a route to the vacancy.
+    assert first_external_ats_url(urls[:1]) == (urls[0], AtsKind.JOBTOME)
+
+
+def test_aggregators_never_identify_an_employer() -> None:
+    assert AtsKind.JOBTOME in JOB_BOARD_KINDS
+    assert AtsKind.REMOSHIFT in JOB_BOARD_KINDS
+    assert AtsKind.BREEZY not in JOB_BOARD_KINDS
 
 
 def test_first_external_skips_lnkd_and_keeps_unknown_career() -> None:
