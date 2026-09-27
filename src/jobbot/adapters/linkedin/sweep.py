@@ -302,7 +302,7 @@ def parse_posts_fixture(text: str) -> list[LinkedInPostCandidate]:
 def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobPosting:
     """Map a post to JobPosting; description is the post body (JD = anuncio)."""
     title = _guess_title(post.text) or "Role from LinkedIn post"
-    company = post.author or _guess_company(post.text) or "Unknown company"
+    company = employer_from_post(post.text, post.ats_url, author=post.author)
     note = None
     if post.ats_url:
         note = f"ats={post.ats_kind.value}"
@@ -332,7 +332,7 @@ def post_to_jobs(post: LinkedInPostCandidate) -> list[JobPosting]:
     """
     if len(post.vacancies) < 2:
         return [post_to_job(post)]
-    company = post.author or _guess_company(post.text) or "Unknown company"
+    company = employer_from_post(post.text, post.vacancies[0].url, author=post.author)
     skills = extract_skills_from_text(post.text)
     jobs: list[JobPosting] = []
     for vacancy in post.vacancies:
@@ -387,3 +387,57 @@ def _guess_company(text: str) -> str | None:
     if match:
         return match.group(1).strip()[:80]
     return None
+
+
+# Legal forms and industry words: alone they never identify one employer.
+_GENERIC_NAME_TOKENS: frozenset[str] = frozenset(
+    {
+        "chile",
+        "colombia",
+        "consulting",
+        "corp",
+        "digital",
+        "global",
+        "group",
+        "labs",
+        "latam",
+        "llc",
+        "ltda",
+        "services",
+        "solutions",
+        "technologies",
+        "technology",
+    }
+)
+
+
+def employer_from_post(text: str, apply_url: str | None, *, author: str | None) -> str:
+    """
+    Employer behind a recruiter post, preferring corroborated evidence.
+
+    Whoever writes a hiring post is usually a recruiter, not the company, so the author
+    is a poor employer name — but it is the only one available most of the time. When the
+    post names a company *and* the apply URL carries that name, the two agree and the
+    employer is a fact; otherwise the author stands, as before.
+    """
+    named = _guess_company(text)
+    if named and apply_url and _apply_url_names(apply_url, named):
+        return named
+    return author or named or "Unknown company"
+
+
+def _apply_url_names(url: str, company: str) -> bool:
+    """Whether the apply host (or mail domain) carries the company's name."""
+    from jobbot.companies.urls import slugify
+
+    raw = url.strip()
+    if raw.casefold().startswith("mailto:"):
+        host = raw.partition("@")[2]
+    else:
+        host = urlparse(raw if "://" in raw else f"https://{raw}").hostname or ""
+    flattened = re.sub(r"[^a-z0-9]", "", host.casefold())
+    slug = slugify(company)
+    if len(slug) >= 4 and slug.replace("-", "") in flattened:
+        return True
+    tokens = [t for t in slug.split("-") if len(t) >= 5 and t not in _GENERIC_NAME_TOKENS]
+    return any(token in flattened for token in tokens)

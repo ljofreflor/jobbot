@@ -112,7 +112,7 @@ def test_post_with_several_vacancies_becomes_one_job_each(project_root: Path) ->
     assert len({j.ats_url for j in jobs}) == 5
     assert len({j.url for j in jobs}) == 5
     assert len({j.source_job_id for j in jobs}) == 5
-    assert all(j.ats_url and "career.example.com" in j.ats_url for j in jobs)
+    assert all(j.ats_url and "career.northwindlabs.example.com" in j.ats_url for j in jobs)
     # The advert stays the post the recruiter wrote, and the permalink is not lost.
     assert all("Northwind Labs" in j.description for j in jobs)
     assert all(
@@ -351,14 +351,38 @@ def test_strip_feed_chrome_takes_author_and_drops_ui_lines() -> None:
     assert "• Inferencia causal" in body
 
 
-def test_post_to_job_company_is_the_author_not_the_feed() -> None:
+def test_post_to_job_company_is_the_employer_not_the_feed() -> None:
+    """Regression: company came out as 'el feed' from LinkedIn's own header.
+
+    The post names NTT Data and the apply mailbox is @nttdata.com, so the employer is
+    corroborated and wins over the recruiter who wrote the post.
+    """
     from jobbot.adapters.linkedin.sweep import parse_post_blob
 
     job = post_to_job(parse_post_blob(_FEED_CARD_TEXT), job_id="J0042")
 
-    assert job.company == "Diego Carreño M."
+    assert job.company == "NTT Data"
     assert "el feed" not in job.company
     assert job.ats_url == "mailto:seleccion@nttdata.com"
+
+
+def test_company_falls_back_to_the_author_when_nothing_corroborates() -> None:
+    """Never promote a name the apply route does not confirm."""
+    from jobbot.adapters.linkedin.sweep import parse_post_blob
+
+    blob = (
+        "Publicación en el feed\nAna Recruiter\n"
+        "Buscamos Data Scientist en Santiago para un cliente del sector retail.\n"
+        "Enviar CV a seleccion@empresa.cl"
+    )
+    assert post_to_job(parse_post_blob(blob)).company == "Ana Recruiter"
+
+
+def test_multi_vacancy_company_is_the_employer_the_apply_host_confirms(
+    project_root: Path,
+) -> None:
+    jobs = post_to_jobs(_multi_vacancy_post(project_root))  # type: ignore[arg-type]
+    assert {j.company for j in jobs} == {"Northwind Labs"}
 
 
 def test_strip_feed_chrome_leaves_fixture_posts_untouched() -> None:
