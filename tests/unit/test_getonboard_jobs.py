@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from jobbot.adapters.getonboard import jobs as gob
 from jobbot.adapters.getonboard.jobs import (
     job_from_api_item,
@@ -86,6 +88,7 @@ def test_remember_portal_from_url_learns_host(tmp_path: Any) -> None:
     assert entry.notes == "from linkedin post"
 
 
+@pytest.mark.integration
 def test_search_jobs_api_smoke() -> None:
     items = search_jobs_api("data scientist", per_page=2)
     assert isinstance(items, list)
