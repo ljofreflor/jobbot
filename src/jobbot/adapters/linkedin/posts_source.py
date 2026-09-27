@@ -14,7 +14,7 @@ from jobbot.adapters.linkedin.sweep import (
     is_data_relevant,
     parse_post_blob,
     parse_posts_fixture,
-    post_to_job,
+    post_to_jobs,
 )
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
@@ -231,7 +231,7 @@ class LinkedInPostJobSource:
                 and post.ats_kind == AtsKind.UNKNOWN
             ):
                 continue
-            jobs.append(post_to_job(post))
+            jobs.extend(post_to_jobs(post))
         return jobs
 
     def search_live(self, query: JobSearchQuery) -> list[JobPosting]:
@@ -350,7 +350,7 @@ def collect_jobs_from_feed_page(
                 query.max_age_days,
             )
             continue
-        jobs.append(post_to_job(post))
+        jobs.extend(post_to_jobs(post))
     return jobs
 
 

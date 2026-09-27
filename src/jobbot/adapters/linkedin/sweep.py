@@ -7,12 +7,13 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from urllib.parse import urlparse
 
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
-from jobbot.portals.detect import AtsKind, extract_http_urls, first_external_ats_url
+from jobbot.portals.detect import AtsKind, detect_ats, extract_http_urls, first_external_ats_url
 from jobbot.portals.email_apply import first_apply_email, mailto_url
-from jobbot.portals.redirect import expand_urls
+from jobbot.portals.redirect import expand_url_map
 
 # Roles / themes relevant to this candidate's data career (title-agnostic filter)
 _DATA_ROLE_HINTS = (
@@ -47,6 +48,15 @@ _DATA_ROLE_HINTS = (
 
 
 @dataclass(frozen=True)
+class PostVacancy:
+    """One labelled vacancy link inside a recruiter post ("Lead Data Scientist: <url>")."""
+
+    title: str
+    url: str
+    ats_kind: AtsKind = AtsKind.UNKNOWN
+
+
+@dataclass(frozen=True)
 class LinkedInPostCandidate:
     """One recruiter post before it becomes a JobPosting."""
 
@@ -57,6 +67,7 @@ class LinkedInPostCandidate:
     ats_url: str | None = None
     ats_kind: AtsKind = AtsKind.UNKNOWN
     posted_at: datetime | None = None
+    vacancies: tuple[PostVacancy, ...] = ()
 
 
 # LinkedIn activity ids carry their creation time in the high bits: ms = id >> 22.
@@ -136,6 +147,75 @@ def is_data_relevant(text: str) -> bool:
     return any(hint in lowered for hint in _DATA_ROLE_HINTS)
 
 
+# A post offering several roles lists them as "🔹 Lead Data Scientist: <url>". Cards keep one
+# bullet per line, but a collapsed paragraph puts them all on one, so split on both.
+_VACANCY_SEGMENT_RE = re.compile(r"[\r\n]+|(?=[🔹🔸🔷🔶🟢🟣▪◾◽•])")
+_VACANCY_LINE_RE = re.compile(
+    r"^(?P<label>[^\n]{4,90}?)\s*[:\-–—]\s*(?P<url>https?://\S+)",
+)
+_VACANCY_LABEL_TRIM_RE = re.compile(r"^[^\w(¿¡]+|[\s\-–—:]+$")
+
+# Words that make a label a job title. Without one, a labelled link is just a link
+# ("Learn more: …", "Our careers page: …") and never becomes a vacancy.
+_ROLE_WORDS = (
+    "scientist",
+    "engineer",
+    "consultant",
+    "analyst",
+    "developer",
+    "architect",
+    "specialist",
+    "researcher",
+    "manager",
+    "administrator",
+    "cient[íi]fic",
+    "ingenier",
+    "analista",
+    "desarrollador",
+    "arquitect",
+    "especialista",
+    "investigador",
+    "jefe",
+    "l[íi]der",
+)
+_ROLE_WORD_RE = re.compile("|".join(_ROLE_WORDS), re.IGNORECASE)
+
+
+def split_vacancy_links(text: str, url_map: dict[str, str] | None = None) -> list[PostVacancy]:
+    """
+    Labelled vacancy links in a post, in the order the recruiter listed them.
+
+    ``url_map`` carries each link's resolved destination. A link that still points at
+    LinkedIn is dropped: the post's own roles are only appliable through the external
+    page, and storing a lnkd.in URL would teach the portal registry a shortener.
+    """
+    resolved_by_raw = url_map or {}
+    out: list[PostVacancy] = []
+    seen: set[str] = set()
+    for segment in _VACANCY_SEGMENT_RE.split(text or ""):
+        match = _VACANCY_LINE_RE.match(segment.strip())
+        if match is None:
+            continue
+        label = _VACANCY_LABEL_TRIM_RE.sub("", match.group("label")).strip()
+        if not label or not _ROLE_WORD_RE.search(label):
+            continue
+        raw_url = match.group("url").rstrip(".,;:)")
+        url = resolved_by_raw.get(raw_url, raw_url)
+        kind = detect_ats(url)
+        if kind == AtsKind.LINKEDIN or _is_linkedin_shortener(url):
+            continue
+        if url in seen:
+            continue
+        seen.add(url)
+        out.append(PostVacancy(title=label, url=url, ats_kind=kind))
+    return out
+
+
+def _is_linkedin_shortener(url: str) -> bool:
+    host = (urlparse(url if "://" in url else f"https://{url}").hostname or "").casefold()
+    return host == "lnkd.in" or host.endswith(".lnkd.in")
+
+
 def parse_post_blob(
     blob: str,
     *,
@@ -152,7 +232,9 @@ def parse_post_blob(
     """
     header_author, text = strip_feed_chrome(blob.strip())
     author = author or header_author
-    urls = expand_urls(extract_http_urls(text) + [u for u in (extra_urls or []) if u])
+    url_map = expand_url_map(extract_http_urls(text) + [u for u in (extra_urls or []) if u])
+    urls = _both_ends(url_map)
+    vacancies = split_vacancy_links(text, url_map)
     ats_url, ats_kind = first_external_ats_url(urls)
     if ats_url is None:
         email = first_apply_email(text)
@@ -177,7 +259,20 @@ def parse_post_blob(
         ats_url=ats_url,
         ats_kind=ats_kind,
         posted_at=posted_at_from_url(post_url),
+        vacancies=tuple(vacancies),
     )
+
+
+def _both_ends(url_map: dict[str, str]) -> list[str]:
+    """Raw and resolved URLs, deduped, in the order they appeared."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw, resolved in url_map.items():
+        for candidate in (raw, resolved):
+            if candidate and candidate not in seen:
+                seen.add(candidate)
+                out.append(candidate)
+    return out
 
 
 def parse_posts_fixture(text: str) -> list[LinkedInPostCandidate]:
@@ -226,6 +321,47 @@ def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobP
         ats_kind=post.ats_kind.value if post.ats_url else None,
         note=note,
     )
+
+
+def post_to_jobs(post: LinkedInPostCandidate) -> list[JobPosting]:
+    """
+    One JobPosting per vacancy the post lists, or a single job for the whole post.
+
+    A recruiter offering five roles behind five links is five applications: collapsing
+    them leaves four unreachable, since a job carries one apply URL.
+    """
+    if len(post.vacancies) < 2:
+        return [post_to_job(post)]
+    company = post.author or _guess_company(post.text) or "Unknown company"
+    skills = extract_skills_from_text(post.text)
+    jobs: list[JobPosting] = []
+    for vacancy in post.vacancies:
+        note = f"ats={vacancy.ats_kind.value}"
+        if post.post_url:
+            note = f"{note} post={post.post_url}"
+        jobs.append(
+            JobPosting(
+                id="PENDING",
+                source="linkedin_post",
+                source_job_id=_vacancy_source_id(vacancy.url),
+                url=vacancy.url,
+                title=vacancy.title,
+                company=company,
+                description=post.text,
+                raw_description=post.text,
+                posted_at=post.posted_at,
+                skills=skills,
+                ats_url=vacancy.url,
+                ats_kind=vacancy.ats_kind.value,
+                note=note,
+            )
+        )
+    return jobs
+
+
+def _vacancy_source_id(url: str) -> str:
+    """Keyed on the vacancy page, so the same role found twice stays one job."""
+    return hashlib.sha1(url.encode("utf-8")).hexdigest()[:12]  # noqa: S324 — id only
 
 
 def _guess_title(text: str) -> str | None:

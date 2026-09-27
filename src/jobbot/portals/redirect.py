@@ -72,13 +72,22 @@ def follow_redirect_url(url: str, *, timeout: float = 15.0) -> str:
     return current
 
 
+def expand_url_map(urls: list[str]) -> dict[str, str]:
+    """Map each URL to its destination (itself when there is nothing to resolve)."""
+    out: dict[str, str] = {}
+    for url in urls:
+        if not url or url in out:
+            continue
+        host = (urlparse(url).hostname or "").lower()
+        out[url] = follow_redirect_url(url) if _should_resolve(host) else url
+    return out
+
+
 def expand_urls(urls: list[str]) -> list[str]:
     """Resolve redirects; dedupe while preserving order."""
     out: list[str] = []
     seen: set[str] = set()
-    for url in urls:
-        host = (urlparse(url).hostname or "").lower()
-        resolved = follow_redirect_url(url) if _should_resolve(host) else url
+    for url, resolved in expand_url_map(urls).items():
         for candidate in (url, resolved):
             if candidate and candidate not in seen:
                 seen.add(candidate)

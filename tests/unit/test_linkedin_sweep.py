@@ -5,7 +5,13 @@ from pathlib import Path
 import pytest
 
 from jobbot.adapters.linkedin.posts_source import LinkedInPostJobSource
-from jobbot.adapters.linkedin.sweep import is_data_relevant, parse_posts_fixture, post_to_job
+from jobbot.adapters.linkedin.sweep import (
+    is_data_relevant,
+    parse_posts_fixture,
+    post_to_job,
+    post_to_jobs,
+    split_vacancy_links,
+)
 from jobbot.portals.detect import AtsKind
 
 
@@ -30,17 +36,98 @@ def test_parse_posts_fixture_filters_and_detects_ats(project_root: Path) -> None
 def test_parse_post_expands_short_links(monkeypatch: object) -> None:
     from jobbot.adapters.linkedin.sweep import parse_post_blob
 
-    def fake_expand(urls: list[str]) -> list[str]:
-        return urls + ["https://boards.greenhouse.io/acme/jobs/99"]
+    def fake_expand(urls: list[str]) -> dict[str, str]:
+        return {url: "https://boards.greenhouse.io/acme/jobs/99" for url in urls}
 
     import jobbot.adapters.linkedin.sweep as sweep_mod
 
-    monkeypatch.setattr(sweep_mod, "expand_urls", fake_expand)
+    monkeypatch.setattr(sweep_mod, "expand_url_map", fake_expand)
     post = parse_post_blob(
         "Hiring DS! Apply: https://lnkd.in/short\n",
     )
     assert post.ats_kind.value == "greenhouse"
     assert post.ats_url and "greenhouse" in post.ats_url
+
+
+def _multi_vacancy_post(project_root: Path) -> object:
+    text = (project_root / "tests/fixtures/linkedin_multi_vacancy_post.txt").read_text(
+        encoding="utf-8"
+    )
+    return parse_posts_fixture(text)[0]
+
+
+def test_split_vacancy_links_reads_every_labelled_role(project_root: Path) -> None:
+    post = _multi_vacancy_post(project_root)
+    titles = [v.title for v in post.vacancies]  # type: ignore[attr-defined]
+    assert titles == [
+        "Lead Agentic AI Consultant",
+        "Lead Data Scientist",
+        "Senior Data Scientist – Generative AI",
+        "Lead ML Engineer",
+        "Senior Computer Vision Engineer",
+    ]
+
+
+def test_split_vacancy_links_ignores_links_that_name_no_role() -> None:
+    vacancies = split_vacancy_links(
+        "🔹 Lead Data Scientist: https://career.example.com/a-1\n"
+        "🔹 Senior ML Engineer: https://career.example.com/b-2\n"
+        "Learn more: https://www.example.com/about\n"
+        "Our careers page: https://career.example.com/\n"
+    )
+    assert [v.title for v in vacancies] == ["Lead Data Scientist", "Senior ML Engineer"]
+
+
+def test_split_vacancy_links_handles_a_collapsed_paragraph() -> None:
+    """Some cards render the whole post as one line, bullets included."""
+    vacancies = split_vacancy_links(
+        "We're hiring! 🔹 Lead Data Scientist: https://career.example.com/a-1 "
+        "🔹 Senior Computer Vision Engineer: https://career.example.com/b-2"
+    )
+    assert [v.title for v in vacancies] == [
+        "Lead Data Scientist",
+        "Senior Computer Vision Engineer",
+    ]
+
+
+def test_split_vacancy_links_drops_unresolved_short_links() -> None:
+    """A lnkd.in URL is not appliable and must never reach the portal registry."""
+    text = (
+        "🔹 Lead Data Scientist: https://lnkd.in/e3KmPHyp\n🔹 Lead ML Engineer: https://lnkd.in/x2"
+    )
+    assert split_vacancy_links(text) == []
+    resolved = split_vacancy_links(
+        text, {"https://lnkd.in/e3KmPHyp": "https://career.example.com/lead-data-scientist-89203"}
+    )
+    assert [v.url for v in resolved] == ["https://career.example.com/lead-data-scientist-89203"]
+
+
+def test_post_with_several_vacancies_becomes_one_job_each(project_root: Path) -> None:
+    """Regression: five roles collapsed into one job left four of them unreachable."""
+    jobs = post_to_jobs(_multi_vacancy_post(project_root))  # type: ignore[arg-type]
+
+    assert len(jobs) == 5
+    assert [j.title for j in jobs][:2] == ["Lead Agentic AI Consultant", "Lead Data Scientist"]
+    # Each job is independently appliable and independently addressable in the database.
+    assert len({j.ats_url for j in jobs}) == 5
+    assert len({j.url for j in jobs}) == 5
+    assert len({j.source_job_id for j in jobs}) == 5
+    assert all(j.ats_url and "career.example.com" in j.ats_url for j in jobs)
+    # The advert stays the post the recruiter wrote, and the permalink is not lost.
+    assert all("Northwind Labs" in j.description for j in jobs)
+    assert all(
+        j.note and "post=https://www.linkedin.com/posts/laura-recruiter" in j.note for j in jobs
+    )
+    assert all(j.posted_at is not None for j in jobs)
+
+
+def test_single_vacancy_post_is_unchanged(project_root: Path) -> None:
+    text = (project_root / "tests/fixtures/linkedin_posts.txt").read_text(encoding="utf-8")
+    greenhouse = next(p for p in parse_posts_fixture(text) if p.ats_kind == AtsKind.GREENHOUSE)
+    jobs = post_to_jobs(greenhouse)
+    assert len(jobs) == 1
+    assert jobs[0].ats_kind == "greenhouse"
+    assert jobs[0].url == greenhouse.post_url
 
 
 def test_source_from_fixture(project_root: Path, tmp_path: Path) -> None:
