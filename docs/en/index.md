@@ -45,13 +45,14 @@ Three things Jobbot actually does. No invented product.
 
 <section class="jb-section" markdown="1">
 
-## A full loop, in plain language
+## A full loop, in your agent
 
-Paste a link or say what you want. Jobbot reads, matches, builds the CV and leaves
-the form ready. You press submit.
+In Cursor, VS Code, Claude Code, or any agent: paste a link or say what you want.
+Jobbot — local CLI — reads, matches, builds the CV and leaves the form ready.
+You press submit.
 
 ```bash
-# under the chat, the same steps exist as commands
+# same steps as CLI — what the agent runs on your machine
 uv run jobbot linkedin sweep "machine learning"
 uv run jobbot jobs match J0002
 uv run jobbot cv build --job J0002

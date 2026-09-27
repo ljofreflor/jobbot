@@ -1,6 +1,6 @@
 {% extends "main.html" %}
 
-{# Jobbot landing — brand + chat-first entry that animates through an apply. #}
+{# Jobbot landing — brand + agent-session hero that animates through an apply. #}
 
 {% set en = page.file.src_uri.startswith("en/") %}
 
@@ -41,18 +41,18 @@
           </div>
         </div>
         {% if en %}
-          <h1 class="jb-hero__title">Tell it in plain language. Watch the application move.</h1>
+          <h1 class="jb-hero__title">Write in your agent. Jobbot moves the application.</h1>
           <p class="jb-hero__lede">
-            A chat like Cursor: paste a link, ask to apply, and Jobbot advances match → CV → plan — you still press send.
+            In Cursor, VS Code, Claude Code, or any agent IDE: paste a link, ask to apply, and Jobbot advances match → CV → plan — you still press send.
           </p>
           <div class="jb-hero__actions">
             <a class="jb-btn jb-btn--primary" href="../instalacion/">Install</a>
             <a class="jb-btn jb-btn--ghost" href="../blog/">Read the blog</a>
           </div>
         {% else %}
-          <h1 class="jb-hero__title">Escríbele en lenguaje natural. La postulación avanza sola.</h1>
+          <h1 class="jb-hero__title">Escribe en tu agente. Jobbot avanza la postulación.</h1>
           <p class="jb-hero__lede">
-            Un chat como Cursor: pegas un link, pides postular, y Jobbot avanza match → CV → plan — el envío lo haces tú.
+            En Cursor, VS Code, Claude Code u otro agente/IDE: pegas un link, pides postular, y Jobbot avanza match → CV → plan — el envío lo haces tú.
           </p>
           <div class="jb-hero__actions">
             <a class="jb-btn jb-btn--primary" href="instalacion/">Instalar</a>
@@ -65,8 +65,8 @@
         <div class="jb-chat">
           <div class="jb-chat__chrome">
             <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="22" height="22" alt="" />
-            <span class="jb-chat__title">Jobbot</span>
-            <span class="jb-chat__badge">{% if en %}local{% else %}local{% endif %}</span>
+            <span class="jb-chat__title">Cursor</span>
+            <span class="jb-chat__badge">{% if en %}agent · local{% else %}agente · local{% endif %}</span>
           </div>
 
           <ol class="jb-chat__rail" aria-hidden="true">

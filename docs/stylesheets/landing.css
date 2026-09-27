@@ -207,7 +207,7 @@ body:has(.jb-hero) .md-tabs {
   background: rgba(0, 88, 248, 0.06);
 }
 
-/* —— Chat (Cursor-style entry; animation advances with the apply) —— */
+/* —— Agent session chrome (Cursor / IDE channel; animation advances the apply) —— */
 
 .jb-hero__stage {
   animation: jb-rise 0.8s ease-out 0.2s both;

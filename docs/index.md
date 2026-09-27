@@ -45,13 +45,14 @@ Tres cosas que Jobbot hace de verdad. Sin inventar un producto que no existe.
 
 <section class="jb-section" markdown="1">
 
-## El ciclo, en lenguaje natural
+## El ciclo, en tu agente
 
-Pegas un link o describes lo que buscas. Jobbot lee, hace match, arma el CV y deja
-el formulario listo. El envío lo haces tú.
+En Cursor, VS Code, Claude Code u otro agente: pegas un link o describes lo que
+buscas. Jobbot — CLI local — lee, hace match, arma el CV y deja el formulario
+listo. El envío lo haces tú.
 
 ```bash
-# debajo del chat, los mismos pasos existen como comandos
+# mismos pasos vía CLI — lo que el agente ejecuta en tu máquina
 uv run jobbot linkedin sweep "machine learning"
 uv run jobbot jobs match J0002
 uv run jobbot cv build --job J0002
