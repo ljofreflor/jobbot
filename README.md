@@ -60,7 +60,37 @@ uv run jobbot application prepare J0003
   - After BasicTeX: `sudo tlmgr update --self && sudo tlmgr install collection-fontsrecommended`
 - Playwright Chromium for portal commands: `uv run playwright install chromium`
 
-## Install
+## Install (no git clone required)
+
+**A — curl (host executable):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
+mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
+jobbot update   # later: reinstall from GitHub (JOBBOT_REF=main by default)
+```
+
+Until `scripts/install.sh` is on `main` (404), use the PR branch for **both** the script URL and the package ref:
+
+```bash
+REF=cursor/cold-install-workspace-aa4f
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
+```
+
+**B — Docker (ready image):**
+
+```bash
+mkdir -p ~/postulaciones
+docker pull ghcr.io/ljofreflor/jobbot:latest   # or: docker compose build
+docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot init
+# later: docker pull / compose build (not `jobbot update` inside the container)
+```
+
+State lives under `~/postulaciones/.local/` (profile, DB, output, browser-data). Sync that
+folder with any cloud vendor. Details: [docs/instalacion.md](docs/instalacion.md).
+
+**Contribute (clone):**
 
 ```bash
 uv sync --group dev
@@ -70,7 +100,7 @@ cp data/portals.example.yaml data/portals.yaml       # optional ATS seed
 cp data/companies.example.yaml data/companies.yaml   # optional company↔portal seed
 ```
 
-**PII:** `data/profile.yaml` (and `portals.yaml`, `companies.yaml`, SQLite, `browser-data/`, `output/`) are
+**PII:** In a clone, `data/profile.yaml` (and `portals.yaml`, `companies.yaml`, SQLite, `browser-data/`, `output/`) are
 **gitignored**. Only `*.example.yaml` templates are safe to commit. See [data/README.md](data/README.md).
 
 **Private LaTeX CV:** keep your real moderncv private. Use `latex/cv.tex.demo` (tracked

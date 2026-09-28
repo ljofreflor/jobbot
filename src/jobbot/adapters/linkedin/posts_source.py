@@ -198,7 +198,7 @@ class LinkedInPostJobSource:
         from jobbot.browser.cdp import resolve_cdp_url
 
         self.cdp_url = resolve_cdp_url(cdp_url)
-        self.profile_dir = self.config.root / "browser-data" / "linkedin"
+        self.profile_dir = self.config.browser_profile_dir("linkedin")
 
     def search_jobs(self, query: JobSearchQuery) -> list[JobPosting]:
         """Live LinkedIn content search for posts (HITL / CDP)."""

@@ -1,0 +1,83 @@
+\documentclass[11pt,a4paper,sans]{moderncv}
+
+\moderncvstyle{banking}
+\moderncvcolor{blue}
+
+\usepackage[scale=0.84]{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{spanish}
+
+\usepackage{url}
+\def\UrlBreaks{\do\/\do-\do?\do&\do=}
+
+\name{ {{- name_first | latex -}} }{ {{- name_last | latex -}} }
+{% if personal.headline %}
+\title{ {{- personal.headline | latex -}} }
+{% endif %}
+{% if personal.city or personal.country %}
+\address{ {{- personal.city | latex -}} }{ {{- personal.country | latex -}} }{}
+{% endif %}
+{% if personal.phone %}
+\phone[mobile]{ {{- personal.phone | latex -}} }
+{% endif %}
+{% if personal.email %}
+\email{ {{- personal.email -}} }
+{% endif %}
+{% if linkedin_handle %}
+\social[linkedin]{ {{- linkedin_handle -}} }
+{% endif %}
+{% if github_handle %}
+\social[github]{ {{- github_handle -}} }
+{% endif %}
+
+\begin{document}
+\makecvtitle
+
+{% if candidate.summary %}
+\section{Resumen Profesional}
+{{ candidate.summary | latex_para }}
+{% endif %}
+
+{% if experiences %}
+\section{Experiencia Profesional}
+{% for exp, achievements in experiences %}
+\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp.company | latex -}} }{ {{- exp.location | latex -}} }{}{}
+{% if exp.description %}
+{{ exp.description | latex_para }}
+{% endif %}
+{% if achievements %}
+\begin{itemize}
+{% for ach in achievements %}
+  \item {{ ach.text | latex_para }}{% if ach.metrics %} \textit{({{ metrics_line(ach.metrics) }})}{% endif %}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if candidate.education %}
+\section{Formación Académica}
+{% for edu in candidate.education %}
+\cventry{ {{- edu_years(edu) | latex -}} }{\textbf{ {{- edu.degree | latex -}} }}{ {{- edu.institution | latex -}} }{}{}{ {%- if edu.details -%}{{ edu.details | latex }}{%- endif -%} }
+{% endfor %}
+{% endif %}
+
+{% if skills %}
+\section{Habilidades Técnicas}
+{% for group, items in skills.items() %}
+\cvitem{ {{- group_label(group) | latex -}} }{ {{- items | map('latex') | join(', ') -}} }
+{% endfor %}
+{% endif %}
+
+{% if publications %}
+\section{Publicaciones Científicas}
+{% for pub in publications %}
+\cvitem{ {{- pub.year if pub.year else '' -}} }{{ '{' }}{% if pub.journal %}\textbf{ {{- pub.journal | latex -}} } – {% endif %}\emph{ {{- pub.title | latex -}} }{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %} \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% endif %}{{ '}' }}
+{% endfor %}
+{% endif %}
+
+\end{document}
