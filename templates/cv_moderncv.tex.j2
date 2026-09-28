@@ -16,6 +16,7 @@
 % banking's stock \cventry uses non-wrapping `l` columns (moderncvbodyiii).
 % Long Spanish org / degree strings then overflow the page as Overfull \hbox.
 % Keep the banking layout, but wrap title (#3) and company (#4) to a fixed width.
+{% raw %}
 \makeatletter
 \renewcommand*{\cventry}[7][.25em]{%
   \begin{tabular*}{\maincolumnwidth}{@{}p{\dimexpr\maincolumnwidth-10em\relax}@{\extracolsep{\fill}}r@{}}%
@@ -35,6 +36,7 @@
     \end{minipage}}\fi%
   \par\addvspace{#1}}
 \makeatother
+{% endraw %}
 
 \name{ {{- name_first | latex -}} }{ {{- name_last | latex -}} }
 {% if personal.headline %}
