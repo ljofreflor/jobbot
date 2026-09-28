@@ -136,9 +136,7 @@ or another agent — not a proprietary Jobbot chat. You run the binary; you deci
 what leaves disk.
 
 ```bash
-REF=cursor/cold-install-workspace-aa4f   # after merge to main: REF=main
-curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
-  | JOBBOT_REF="$REF" bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
 mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot version
 # later: jobbot update
@@ -198,9 +196,7 @@ Which job sites answer from a datacenter IP, and which do not.
 Curl or Docker, a `~/postulaciones` folder, then `jobbot init`. Details in the guide.
 
 ```bash
-REF=cursor/cold-install-workspace-aa4f   # after merge to main: REF=main
-curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
-  | JOBBOT_REF="$REF" bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
 mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profile.yaml
 # later: jobbot update

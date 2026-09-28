@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Install the `jobbot` executable on PATH (Homebrew-style).
-# Usage (after this file is on main):
+# Usage:
 #   curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
 #
-# From a PR/branch (script URL and package ref must match):
-#   REF=cursor/cold-install-workspace-aa4f
+# From another ref (script URL and package ref must match):
+#   REF=v0.1.0   # or a branch / SHA
 #   curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
 #     | JOBBOT_REF="$REF" bash
 #
