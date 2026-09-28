@@ -133,3 +133,25 @@ def test_real_neuralworks_applied_scientist_is_named_and_teamtailor(
     assert job.title.startswith("Applied Scientist")
     assert not job.title.lower().startswith("pplied")
     assert job.ats_kind == "teamtailor"
+
+
+def test_real_fst_negocios_coinvestigador_is_named_and_kept_out_of_chile(
+    monkeypatch: object,
+) -> None:
+    """https://lnkd.in/p/dtbAdT2k — Prociencia Perú; apply by LinkedIn DM, no ATS URL."""
+    post = _load_real_post("fst_negocios_coinvestigador_ia", monkeypatch)
+
+    assert post.vacancies == ()  # type: ignore[attr-defined]
+    assert post.ats_url is None  # type: ignore[attr-defined]
+    assert detect_country(post.text) == "PE"  # type: ignore[attr-defined]
+    assert post_offers_wanted_country(post.text, wanted=["CL"]) is False  # type: ignore[attr-defined]
+    assert post_offers_wanted_country(post.text, wanted=["PE"]) is True  # type: ignore[attr-defined]
+
+    job = post_to_job(post)  # type: ignore[arg-type]
+    assert job.company == "FST NEGOCIOS"
+    assert "coinvestigador" in job.title.casefold()
+    assert "inteligencia artificial" in job.title.casefold()
+    # Title field must not win over the employer line ("En FST NEGOCIOS – Centro…").
+    assert job.company != "INTELIGENCIA ARTIFICIAL"
+    assert job.ats_url is None
+    assert "mensaje interno" in job.description.casefold()

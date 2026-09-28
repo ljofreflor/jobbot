@@ -188,6 +188,18 @@ def test_a_preposition_inside_a_word_does_not_name_an_employer() -> None:
     assert _guess_company("Hiring remotely when Chile reopens") is None
 
 
+def test_role_field_after_en_is_not_the_employer() -> None:
+    """'BUSCAMOS COINVESTIGADOR EN INTELIGENCIA ARTIFICIAL' must not name the field."""
+    from jobbot.adapters.linkedin.sweep import _guess_company, employer_from_post
+
+    text = (
+        "🔎 BUSCAMOS COINVESTIGADOR(A) EN INTELIGENCIA ARTIFICIAL\n\n"
+        "En FST NEGOCIOS  – Centro de I+D+i estamos conformando un equipo en Prociencia Perú\n"
+    )
+    assert _guess_company(text) == "FST NEGOCIOS"
+    assert employer_from_post(text, None, author="Freddy Silva Tuesta") == "FST NEGOCIOS"
+
+
 def test_hashtag_confirms_the_employer_when_the_apply_link_is_in_the_comments(
     project_root: Path,
 ) -> None:

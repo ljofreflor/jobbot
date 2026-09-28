@@ -454,11 +454,34 @@ _COMPANY_LEAD_RE = re.compile(r"(?:^|[\s(])(?:[Aa]t|[Ee]n|@)\s+(?P<tail>[^\n.!?,
 _COMPANY_TOKEN_RE = re.compile(r"[A-ZÁÉÍÓÚÑ0-9][\w&.\-]*$")
 _COMPANY_CONNECTORS: frozenset[str] = frozenset({"&", "de", "del", "la", "las", "los", "of", "y"})
 
+# "Coinvestigador EN INTELIGENCIA ARTIFICIAL": the field after EN is not an employer.
+_FIELD_NOT_EMPLOYER: frozenset[str] = frozenset(
+    {
+        "artificialintelligence",
+        "cienciadedatos",
+        "computacion",
+        "computación",
+        "computerscience",
+        "datascience",
+        "deeplearning",
+        "inteligenciaartificial",
+        "machinelearning",
+        "softwareengineering",
+    }
+)
+
 
 def _guess_company(text: str) -> str | None:
+    """
+    First name-shaped token run after at/en/@ that is not a field or a place.
+
+    Titles like "BUSCAMOS COINVESTIGADOR(A) EN INTELIGENCIA ARTIFICIAL" hit the
+    preposition before the real line ("En FST NEGOCIOS – Centro…"); those false
+    leads are skipped so the employer is not the research field.
+    """
     for match in _COMPANY_LEAD_RE.finditer(text or ""):
         name = _company_name_prefix(match.group("tail"))
-        if name:
+        if name and not _looks_like_field(name) and not _looks_like_place(name):
             return name[:80]
     return None
 
@@ -502,6 +525,34 @@ _GENERIC_NAME_TOKENS: frozenset[str] = frozenset(
     }
 )
 
+_PLACE_NAME_FLAT: frozenset[str] = frozenset(
+    {
+        "barcelona",
+        "bogota",
+        "lima",
+        "madrid",
+        "santiago",
+    }
+)
+
+
+def _flatten_name(name: str) -> str:
+    from jobbot.companies.urls import slugify
+
+    return slugify(name).replace("-", "")
+
+
+def _looks_like_field(name: str) -> bool:
+    return _flatten_name(name) in _FIELD_NOT_EMPLOYER
+
+
+def _looks_like_place(name: str) -> bool:
+    """'en Santiago' / 'en Perú' must not become the employer."""
+    if detect_country(name) is not None:
+        return True
+    flattened = _flatten_name(name)
+    return flattened in _GENERIC_NAME_TOKENS or flattened in _PLACE_NAME_FLAT
+
 
 def employer_from_post(text: str, apply_url: str | None, *, author: str | None) -> str:
     """
@@ -525,11 +576,30 @@ def _post_names_employer(company: str, text: str, apply_url: str | None) -> bool
     The apply host is the strongest witness, but many posts keep the link in the first
     comment, out of reach. There a hashtag spelling the same name (#NTTDATA next to
     "En NTT DATA buscamos") is what tells a company apart from the "en Santiago" the
-    preposition rule also matches — the post still has to say it.
+    preposition rule also matches — the post still has to say it. An org dash
+    ("En FST NEGOCIOS – Centro de I+D+i") or a hiring verb right after the name
+    is the same kind of witness when the post has neither link nor hashtag.
     """
     if apply_url and _apply_url_names(apply_url, company):
         return True
-    return _hashtag_names(text, company)
+    if _hashtag_names(text, company):
+        return True
+    return _org_context_names(text, company)
+
+
+def _org_context_names(text: str, company: str) -> bool:
+    """Whether 'En COMPANY – Centro…' / 'En COMPANY buscamos…' names this employer."""
+    if _looks_like_place(company) or _looks_like_field(company):
+        return False
+    pattern = re.compile(
+        r"(?:^|[\s(])(?:[Aa]t|[Ee]n|@)\s+"
+        + re.escape(company)
+        + r"\s*(?:"
+        r"[–—]\s+\S|"
+        r"\b(?:buscamos|estamos|busca|hiring)\b"
+        r")",
+    )
+    return pattern.search(text or "") is not None
 
 
 _HASHTAG_RE = re.compile(r"#(\w{3,40})")
