@@ -118,6 +118,16 @@ def normalize_country(value: str | None) -> str | None:
     return None
 
 
+def country_name(code: str | None, *, locale: str = "es") -> str | None:
+    """'CL' → 'Chile'; display name from CLDR via Babel."""
+    if not code:
+        return None
+    from babel import Locale
+
+    name = Locale(locale).territories.get(code.upper())
+    return str(name) if name else None
+
+
 def normalize_countries(values: Sequence[str] | None) -> tuple[str, ...]:
     out: list[str] = []
     for value in values or ():

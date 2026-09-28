@@ -13,13 +13,14 @@ data/portals.yaml
 
 # Private CV sources (LaTeX/PDF). Real moderncv stays private.
 # Tracked: latex/cv.tex.demo + latex/README.md only.
+# Anchor to repo root so `src/jobbot/cv/` (package code) is NOT ignored.
 latex/**
 !latex/README.md
 !latex/**/*.demo
-cv/
-vitae/
-legacy/
-private/
+/cv/
+/vitae/
+/legacy/
+/private/
 data/**/*.tex
 data/**/*.pdf
 *.pdf

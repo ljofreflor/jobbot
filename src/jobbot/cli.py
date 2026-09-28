@@ -45,13 +45,16 @@ from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.ops.narrate import Narrator, Phase
 from jobbot.profile.diff import compare_summaries, summarize_profile
+from jobbot.profile.importer_common import write_generated_profile as write_imported_profile
 from jobbot.profile.importer_latex import (
     LatexImportError,
     import_latex_cv,
     write_generated_profile,
 )
+from jobbot.profile.importer_pdf import PdfImportError, import_pdf_cv
 from jobbot.profile.loader import ProfileLoadError, load_profile, load_profile_raw
 from jobbot.profile.validator import validate_candidate
+from jobbot.workspace import WorkspaceExistsError, init_workspace
 
 app = typer.Typer(
     name="jobbot",
@@ -180,6 +183,42 @@ def main(
     _setup_logging(verbose)
 
 
+@app.command("init")
+def workspace_init(
+    directory: Annotated[
+        Path,
+        typer.Argument(help="Folder for postulaciones (default: current directory)"),
+    ] = Path("."),
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Overwrite an existing .jobbot.toml / seeds"),
+    ] = False,
+) -> None:
+    """Create a portable workspace with ``.local/`` state (cold install; no git clone)."""
+    try:
+        result = init_workspace(directory, force=force)
+    except WorkspaceExistsError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+    except OSError as exc:
+        err_console.print(f"[red]Could not create workspace: {exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    console.print("[bold green]Workspace ready[/bold green]")
+    console.print(f"Root: {result.root}")
+    console.print("JobBot is installed globally; this folder is your syncable workspace.")
+    console.print(
+        Panel(
+            "Next:\n"
+            "  1. Edit .local/profile.yaml  (or: jobbot profile import-pdf CV.pdf)\n"
+            "  2. jobbot profile validate\n"
+            "  3. jobbot getonboard search \"data scientist\"\n"
+            "Sync this whole folder (including .local/) with Drive/Dropbox/Syncthing/…",
+            title="Cold start",
+        )
+    )
+
+
 @app.command("version")
 def version_cmd() -> None:
     """Show JobBot version."""
@@ -304,6 +343,75 @@ def profile_import_latex(
             title="Next steps",
         )
     )
+
+
+@profile_app.command("import-pdf")
+def profile_import_pdf(
+    pdf_path: Annotated[
+        Path,
+        typer.Argument(help="Path to a CV exported as PDF (needs a text layer)"),
+    ],
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Destination YAML"),
+    ] = None,
+    promote: Annotated[
+        bool,
+        typer.Option(
+            "--promote",
+            help="Also copy generated YAML over profile.yaml (after validate)",
+        ),
+    ] = False,
+) -> None:
+    """Import a PDF CV into profile.generated.yaml (and optionally profile.yaml)."""
+    config = load_config()
+    source = pdf_path.expanduser().resolve()
+    destination = (output or config.generated_profile_path).expanduser().resolve()
+
+    try:
+        result = import_pdf_cv(source)
+        write_imported_profile(result, destination, command="profile import-pdf")
+    except PdfImportError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    console.print("[bold green]PDF CV IMPORTED[/bold green]")
+    console.print(f"Source:  {source}")
+    console.print(f"Wrote:   {destination}")
+    console.print(f"Experiences: {result.experience_count}")
+    console.print(f"Achievements: {result.achievement_count}")
+    console.print(f"Skills: {result.skill_count}")
+    console.print(f"Education: {len(result.data.get('education', []))}")
+
+    if result.warnings:
+        console.print("\n[yellow]Warnings[/yellow]")
+        for warning in result.warnings:
+            console.print(f"- {warning}")
+
+    if promote:
+        try:
+            candidate = load_profile(destination)
+        except ProfileLoadError as exc:
+            err_console.print(f"[red]Generated profile invalid: {exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        check = validate_candidate(candidate)
+        if not check.ok:
+            for issue in check.issues:
+                err_console.print(f"[red]- {issue}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        shutil.copy2(destination, config.profile_path)
+        console.print(f"[green]Promoted[/green] → {config.profile_path}")
+    else:
+        console.print(
+            Panel(
+                "A PDF carries no structure, so every field is a guess.\n"
+                "Review the generated YAML, then:\n"
+                "  jobbot profile promote-generated\n"
+                "  jobbot profile validate\n"
+                "Or re-run with --promote after a quick review.",
+                title="Next steps",
+            )
+        )
 
 
 @profile_app.command("promote-generated")
@@ -2565,15 +2673,15 @@ def browser_chrome_debug(
     config = load_config()
     site_key = site.strip().lower()
     if site_key == "linkedin":
-        profile_dir = config.root / "browser-data" / "linkedin-cdp"
+        profile_dir = config.browser_profile_dir("linkedin-cdp")
         start_url = "https://www.linkedin.com/login"
         tip = f"jobbot linkedin sync --section publications --apply --cdp {cdp_http_url(port)}"
     elif site_key == "indeed":
-        profile_dir = config.root / "browser-data" / "indeed-cdp"
+        profile_dir = config.browser_profile_dir("indeed-cdp")
         start_url = "https://cl.indeed.com/"
         tip = f"jobbot jobs search … --cdp {cdp_http_url(port)}"
     elif site_key == "gmail":
-        profile_dir = config.root / "browser-data" / "gmail-cdp"
+        profile_dir = config.browser_profile_dir("gmail-cdp")
         start_url = "https://mail.google.com/"
         tip = f"jobbot application apply J0001 --apply --cdp {cdp_http_url(port)}"
     else:
