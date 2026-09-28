@@ -6,10 +6,12 @@ data/profile.suggested.yaml
 data/profile.yaml.bak
 data/*.bak
 data/portals.yaml
+data/companies.yaml
 
 # Keep sanitized templates tracked
 !data/profile.example.yaml
 !data/portals.example.yaml
+!data/companies.example.yaml
 
 # Private CV sources (LaTeX/PDF). Real moderncv stays private.
 # Tracked: latex/cv.tex.demo + latex/README.md only.
