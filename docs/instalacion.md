@@ -57,9 +57,13 @@ docker pull ghcr.io/ljofreflor/jobbot:latest
 
 ## Crear la carpeta (común a A y B)
 
+`jobbot init [DIR]` escribe `.jobbot.toml` y `.local/` **dentro de DIR** (default: el
+directorio actual). Ejemplo recomendado:
+
 ```bash
 mkdir -p ~/postulaciones && cd ~/postulaciones
 jobbot init
+# equivalente: jobbot init ~/postulaciones
 # o con Docker:
 # docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot init
 ```
