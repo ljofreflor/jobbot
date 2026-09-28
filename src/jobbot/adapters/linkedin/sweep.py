@@ -342,8 +342,8 @@ def parse_posts_fixture(text: str) -> list[LinkedInPostCandidate]:
     return out
 
 
-def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobPosting:
-    """Map a post to JobPosting; description is the post body (JD = anuncio)."""
+def _job_from_post_body(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobPosting:
+    """Whole-post JobPosting when the advert has no labelled vacancy links."""
     title = _guess_title(post.text) or "Role from LinkedIn post"
     company = employer_from_post(post.text, post.ats_url, author=post.author)
     note = None
@@ -366,51 +366,68 @@ def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobP
     )
 
 
+def _job_from_vacancy(
+    post: LinkedInPostCandidate,
+    vacancy: PostVacancy,
+    *,
+    company: str,
+    skills: list[str],
+) -> JobPosting:
+    """One appliable role: vacancy title/url win; permalink stays in ``note``."""
+    note = f"ats={vacancy.ats_kind.value}"
+    if post.post_url:
+        note = f"{note} post={post.post_url}"
+    return JobPosting(
+        id="PENDING",
+        source="linkedin_post",
+        source_job_id=_vacancy_source_id(vacancy.url),
+        url=vacancy.url,
+        title=vacancy.title,
+        company=company,
+        description=post.text,
+        raw_description=post.text,
+        posted_at=post.posted_at,
+        skills=skills,
+        ats_url=vacancy.url,
+        ats_kind=vacancy.ats_kind.value,
+        note=note,
+    )
+
+
 def post_to_jobs(
     post: LinkedInPostCandidate,
     *,
     countries: Sequence[str] = (),
 ) -> list[JobPosting]:
     """
-    One JobPosting per vacancy the post lists, or a single job for the whole post.
+    One JobPosting per labelled vacancy, or a single job for the whole post.
 
-    A recruiter offering five roles behind five links is five applications: collapsing
-    them leaves four unreachable, since a job carries one apply URL.
+    A recruiter offering N roles behind N links is N applications: collapsing them
+    leaves N-1 unreachable, since a job carries one apply URL. The same rule holds
+    for exactly one labelled vacancy — its title/url/ats win over the permalink.
 
     ``countries`` drops the roles whose own label names a country we did not ask for:
     a Latam roundup lists one country per role, so the choice belongs to each role and
-    not to the post.
+    not to the post. Posts with no labelled vacancies keep the whole-post mapping
+    (country filtering for those stays at the post level, via ``post_offers_wanted_country``).
     """
-    if len(post.vacancies) < 2:
-        return [post_to_job(post)]
+    if not post.vacancies:
+        return [_job_from_post_body(post)]
     wanted = [v for v in post.vacancies if _vacancy_wanted(v, normalize_countries(countries))]
     if not wanted:
         return []
     company = employer_from_post(post.text, wanted[0].url, author=post.author)
     skills = extract_skills_from_text(post.text)
-    jobs: list[JobPosting] = []
-    for vacancy in wanted:
-        note = f"ats={vacancy.ats_kind.value}"
-        if post.post_url:
-            note = f"{note} post={post.post_url}"
-        jobs.append(
-            JobPosting(
-                id="PENDING",
-                source="linkedin_post",
-                source_job_id=_vacancy_source_id(vacancy.url),
-                url=vacancy.url,
-                title=vacancy.title,
-                company=company,
-                description=post.text,
-                raw_description=post.text,
-                posted_at=post.posted_at,
-                skills=skills,
-                ats_url=vacancy.url,
-                ats_kind=vacancy.ats_kind.value,
-                note=note,
-            )
-        )
-    return jobs
+    return [_job_from_vacancy(post, vacancy, company=company, skills=skills) for vacancy in wanted]
+
+
+def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobPosting:
+    """Map a post to one JobPosting (first vacancy, or the whole post when none)."""
+    jobs = post_to_jobs(post)
+    job = jobs[0]
+    if job_id == job.id:
+        return job
+    return job.model_copy(update={"id": job_id})
 
 
 def _vacancy_source_id(url: str) -> str:

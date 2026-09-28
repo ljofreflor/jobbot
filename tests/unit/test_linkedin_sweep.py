@@ -122,13 +122,52 @@ def test_post_with_several_vacancies_becomes_one_job_each(project_root: Path) ->
     assert all(j.posted_at is not None for j in jobs)
 
 
-def test_single_vacancy_post_is_unchanged(project_root: Path) -> None:
+def test_zero_labelled_vacancies_keeps_whole_post_mapping(project_root: Path) -> None:
+    """No "Role: url" lines → permalink is the job URL (guessed title, post-level ATS)."""
     text = (project_root / "tests/fixtures/linkedin_posts.txt").read_text(encoding="utf-8")
     greenhouse = next(p for p in parse_posts_fixture(text) if p.ats_kind == AtsKind.GREENHOUSE)
+    assert greenhouse.vacancies == ()
     jobs = post_to_jobs(greenhouse)
     assert len(jobs) == 1
     assert jobs[0].ats_kind == "greenhouse"
     assert jobs[0].url == greenhouse.post_url
+    assert jobs[0].source_job_id == greenhouse.post_id
+
+
+def test_one_labelled_vacancy_uses_vacancy_title_and_url() -> None:
+    """One labelled role follows the same mapper as N — not the whole-post permalink path."""
+    from jobbot.adapters.linkedin.sweep import parse_post_blob
+
+    post = parse_post_blob(
+        "We're hiring!\n"
+        "🔹 Lead Data Scientist – Chile: https://career.example.com/lead-ds-42\n",
+        author="Ana Recruiter",
+        post_url="https://www.linkedin.com/posts/ana-activity-1234567890123456789-abcd",
+    )
+    assert len(post.vacancies) == 1
+    jobs = post_to_jobs(post, countries=["CL"])
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job.title == "Lead Data Scientist – Chile"
+    assert job.url == "https://career.example.com/lead-ds-42"
+    assert job.ats_url == job.url
+    assert job.source_job_id != post.post_id
+    assert job.note and "post=https://www.linkedin.com/posts/ana-activity" in job.note
+    # post_to_job is the same mapper's first (only) result.
+    assert post_to_job(post).url == job.url
+
+
+def test_one_labelled_vacancy_in_unwanted_country_is_filtered_out() -> None:
+    """Country filter applies at len==1 the same way it does for roundups."""
+    from jobbot.adapters.linkedin.sweep import parse_post_blob
+
+    post = parse_post_blob(
+        "🔹 Lead Data Scientist – Colombia: https://career.example.com/lead-ds-co\n",
+        post_url="https://www.linkedin.com/posts/ana-activity-1234567890123456789-abcd",
+    )
+    assert post.vacancies[0].country == "CO"
+    assert post_to_jobs(post, countries=["CL"]) == []
+    assert len(post_to_jobs(post)) == 1
 
 
 def _latam_roundup_post(project_root: Path) -> object:
