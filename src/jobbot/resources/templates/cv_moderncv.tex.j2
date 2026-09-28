@@ -13,12 +13,35 @@
 \usepackage{url}
 \def\UrlBreaks{\do\/\do-\do?\do&\do=}
 
+% banking's stock \cventry uses non-wrapping `l` columns (moderncvbodyiii).
+% Long Spanish org / degree strings then overflow the page as Overfull \hbox.
+% Keep the banking layout, but wrap title (#3) and company (#4) to a fixed width.
+\makeatletter
+\renewcommand*{\cventry}[7][.25em]{%
+  \begin{tabular*}{\maincolumnwidth}{@{}p{\dimexpr\maincolumnwidth-10em\relax}@{\extracolsep{\fill}}r@{}}%
+  \ifboolexpr{%
+    test {\ifstrempty{#4}}
+    and
+    test {\ifstrempty{#5}}}%
+  {}%
+  {{\bfseries #4} & {\bfseries #5}\\}%
+  {\itshape #3\ifstrempty{#6}{}{, #6}} & {\itshape #2}\\%
+  \end{tabular*}%
+  \ifx&#7&%
+  \else{%
+    \\%
+    \begin{minipage}{\maincolumnwidth}%
+      \small#7%
+    \end{minipage}}\fi%
+  \par\addvspace{#1}}
+\makeatother
+
 \name{ {{- name_first | latex -}} }{ {{- name_last | latex -}} }
 {% if personal.headline %}
 \title{ {{- personal.headline | latex -}} }
 {% endif %}
 {% if personal.city or personal.country %}
-\address{ {{- personal.city | latex -}} }{ {{- personal.country | latex -}} }{}
+\address{ {{- (personal.city or '') | latex -}} }{ {{- (personal.country or '') | latex -}} }{}
 {% endif %}
 {% if personal.phone %}
 \phone[mobile]{ {{- personal.phone | latex -}} }
@@ -44,7 +67,7 @@
 {% if experiences %}
 \section{Experiencia Profesional}
 {% for exp, achievements in experiences %}
-\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp.company | latex -}} }{ {{- exp.location | latex -}} }{}{}
+\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp.company | latex -}} }{ {{- (exp.location or '') | latex -}} }{}{}
 {% if exp.description %}
 {{ exp.description | latex_para }}
 {% endif %}
