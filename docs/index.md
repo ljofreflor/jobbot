@@ -139,7 +139,9 @@ de tu disco.
 REF=cursor/cold-install-workspace-aa4f   # tras el merge a main: REF=main
 curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
   | JOBBOT_REF="$REF" bash
+mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot version
+# más adelante: jobbot update
 ```
 
 ¿Contribuís al código? Ahí sí: `git clone` + `uv sync --group dev` (ver [instalación](instalacion.md)).

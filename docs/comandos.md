@@ -46,10 +46,10 @@ JOBBOT_REF=v0.1.0 jobbot update
 | `cv propagate` | Reconstruye el CV base y lo propaga a los perfiles permanentes (HITL, dry-run por defecto). |
 
 ```bash
-uv run jobbot cv build --target ats
-uv run jobbot cv build --job J0001
-uv run jobbot cv propagate                 # solo plan
-uv run jobbot cv propagate --apply         # confirma destino por destino
+jobbot cv build --target ats
+jobbot cv build --job J0001
+jobbot cv propagate                 # solo plan
+jobbot cv propagate --apply         # confirma destino por destino
 ```
 
 ## Vacantes
@@ -103,7 +103,7 @@ desafíos que aparezcan. No hay resolución automática de CAPTCHAs.
 |---------|----------|
 | `portals list` | Lista los portales de reclutamiento conocidos. |
 | `portals detect URL` | Detecta el tipo de ATS de una URL. |
-| `portals add` | Agrega o actualiza un portal en `data/portals.yaml`. |
+| `portals add` | Agrega o actualiza un portal en el registro de portales. |
 | `companies detect URL` | Clasifica una URL (aviso / portal / ATS / redirección). No escribe nada. |
 | `companies learn URL` | Registra una relación empresa↔portal como conocimiento *candidate*. |
 | `companies list` | Lista empresas y sus plataformas de carreras. |
@@ -118,7 +118,7 @@ desafíos que aparezcan. No hay resolución automática de CAPTCHAs.
 `companies discover` sondea rutas y subdominios públicos de carreras de forma
 secuencial y con pausa, y acepta un candidato solo con evidencia real: un marcador
 de ATS, una redirección o texto de empleo en la página. Un HTTP 200 no es evidencia.
-Escribe en `output/` y nunca toca `data/companies.yaml`.
+Escribe en `output/` y nunca toca el registro de empresas del workspace.
 
 ## Operación local
 

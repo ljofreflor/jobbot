@@ -139,9 +139,12 @@ what leaves disk.
 REF=cursor/cold-install-workspace-aa4f   # after merge to main: REF=main
 curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
   | JOBBOT_REF="$REF" bash
+mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot version
-# or: docker pull ghcr.io/ljofreflor/jobbot:latest
+# later: jobbot update
 ```
+
+Contributing to the code? Then `git clone` + `uv sync --group dev` (see [install](../instalacion.md)).
 
 </section>
 
@@ -195,7 +198,9 @@ Which job sites answer from a datacenter IP, and which do not.
 Curl or Docker, a `~/postulaciones` folder, then `jobbot init`. Details in the guide.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
+REF=cursor/cold-install-workspace-aa4f   # after merge to main: REF=main
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
 mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profile.yaml
 # later: jobbot update
@@ -205,27 +210,6 @@ jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profil
 ```
 
 [Install](../instalacion/){ .jb-btn .jb-btn--primary }
-[Prior art](../prior-art.md){ .jb-btn .jb-btn--ghost }
-
-</section>
-
-<section class="jb-section jb-section--close" markdown="1">
-
-## Get started
-
-Curl or Docker, then an applications folder. No git clone required.
-
-```bash
-REF=cursor/cold-install-workspace-aa4f   # after merge to main: REF=main
-curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
-  | JOBBOT_REF="$REF" bash
-mkdir -p ~/postulaciones && cd ~/postulaciones
-jobbot init
-jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profile.yaml
-# later: jobbot update
-```
-
-[Install guide](../instalacion.md){ .jb-btn .jb-btn--primary }
 [Prior art](../prior-art.md){ .jb-btn .jb-btn--ghost }
 
 </section>
