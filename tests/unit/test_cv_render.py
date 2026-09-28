@@ -171,6 +171,8 @@ def test_moderncv_cventry_wraps_long_left_column(project_root: Path) -> None:
     candidate = Candidate.model_validate(data)
     tex = render_cv_tex(candidate, project_root / "templates", style=CvStyle.MODERNCV)
 
-    assert r"p{\dimexpr\maincolumnwidth-10em\relax}" in tex
+    assert r"p{\dimexpr\maincolumnwidth-20em\relax}" in tex
     assert long_org in tex
     assert "Doctorado en Estadística" in tex
+    # moderncv owns hyperref; a second \usepackage{hyperref} option-clashes
+    assert r"\usepackage{hyperref}" not in tex

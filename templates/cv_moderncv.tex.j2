@@ -4,7 +4,8 @@
 \moderncvcolor{blue}
 
 \usepackage[scale=0.84]{geometry}
-\usepackage{hyperref}
+% moderncv loads hyperref itself (with options); do not load it here or XeLaTeX
+% hits "Option clash for package hyperref" at \begin{document}.
 \usepackage{graphicx}
 \usepackage{fontspec}
 \usepackage{polyglossia}
@@ -16,10 +17,12 @@
 % banking's stock \cventry uses non-wrapping `l` columns (moderncvbodyiii).
 % Long Spanish org / degree strings then overflow the page as Overfull \hbox.
 % Keep the banking layout, but wrap title (#3) and company (#4) to a fixed width.
+% Reserve ~20em for the right column: Spanish ranges like
+% "Abr 2022 – May 2025 (3 años, 2 meses)" are ~184pt wide.
 {% raw %}
 \makeatletter
 \renewcommand*{\cventry}[7][.25em]{%
-  \begin{tabular*}{\maincolumnwidth}{@{}p{\dimexpr\maincolumnwidth-10em\relax}@{\extracolsep{\fill}}r@{}}%
+  \begin{tabular*}{\maincolumnwidth}{@{}p{\dimexpr\maincolumnwidth-20em\relax}@{\extracolsep{\fill}}r@{}}%
   \ifboolexpr{%
     test {\ifstrempty{#4}}
     and
