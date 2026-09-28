@@ -188,14 +188,19 @@ def main(
 def workspace_init(
     directory: Annotated[
         Path,
-        typer.Argument(help="Folder for postulaciones (default: current directory)"),
+        typer.Argument(
+            help=(
+                "Folder that becomes the workspace (default: .). "
+                ".jobbot.toml and .local/ are created inside this folder"
+            ),
+        ),
     ] = Path("."),
     force: Annotated[
         bool,
         typer.Option("--force", help="Overwrite an existing .jobbot.toml / seeds"),
     ] = False,
 ) -> None:
-    """Create a portable workspace with ``.local/`` state (cold install; no git clone)."""
+    """Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone)."""
     try:
         result = init_workspace(directory, force=force)
     except WorkspaceExistsError as exc:
