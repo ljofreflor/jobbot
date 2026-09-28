@@ -54,6 +54,7 @@ from jobbot.profile.importer_latex import (
 from jobbot.profile.importer_pdf import PdfImportError, import_pdf_cv
 from jobbot.profile.loader import ProfileLoadError, load_profile, load_profile_raw
 from jobbot.profile.validator import validate_candidate
+from jobbot.self_update import update_jobbot
 from jobbot.workspace import WorkspaceExistsError, init_workspace
 
 app = typer.Typer(
@@ -223,6 +224,26 @@ def workspace_init(
 def version_cmd() -> None:
     """Show JobBot version."""
     console.print(__version__)
+
+
+@app.command("update")
+def update_cmd(
+    ref: Annotated[
+        str | None,
+        typer.Option("--ref", help="Git ref to install (default: JOBBOT_REF or main)"),
+    ] = None,
+) -> None:
+    """Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub)."""
+    console.print(f"Current: {__version__}")
+    result = update_jobbot(ref=ref)
+    if not result.ok:
+        err_console.print(f"[red]{result.message}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    console.print(f"[green]{result.message}[/green]")
+    if result.version_line:
+        console.print(f"Now: {result.version_line}")
+    else:
+        console.print("Run [bold]jobbot version[/bold] in a new shell if PATH changed.")
 
 
 # ── profile ──────────────────────────────────────────────────────────────────

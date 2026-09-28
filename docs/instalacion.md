@@ -20,6 +20,13 @@ El script instala [uv](https://docs.astral.sh/uv/) si hace falta y deja `jobbot`
 (estilo Homebrew). Audita el script en
 [scripts/install.sh](https://github.com/ljofreflor/jobbot/blob/main/scripts/install.sh).
 
+Actualizar el ejecutable más adelante:
+
+```bash
+jobbot update                    # tipicamente main
+JOBBOT_REF=v0.1.0 jobbot update  # o un tag / SHA
+```
+
 ## Opción B — Docker (imagen lista)
 
 ```bash
@@ -29,6 +36,13 @@ docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot version
 ```
 
 La imagen trae la herramienta; **tu carpeta** montada es el workspace (perfil, DB, output).
+
+Actualizar la imagen (en el host, no con `jobbot update` dentro del contenedor):
+
+```bash
+docker pull ghcr.io/ljofreflor/jobbot:latest
+# o: docker compose pull && docker compose build
+```
 
 ## Crear la carpeta (común a A y B)
 

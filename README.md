@@ -67,6 +67,7 @@ uv run jobbot application prepare J0003
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
 mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
+jobbot update   # later: reinstall from GitHub (JOBBOT_REF=main by default)
 ```
 
 **B — Docker (ready image):**
@@ -75,6 +76,7 @@ mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 mkdir -p ~/postulaciones
 docker pull ghcr.io/ljofreflor/jobbot:latest   # or: docker compose build
 docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot init
+# later: docker pull / compose build (not `jobbot update` inside the container)
 ```
 
 State lives under `~/postulaciones/.local/` (profile, DB, output, browser-data). Sync that

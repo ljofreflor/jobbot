@@ -100,6 +100,10 @@ main() {
   say "  mkdir -p ~/postulaciones && cd ~/postulaciones"
   say "  jobbot init"
   say ""
+  say "Later upgrades:"
+  say "  jobbot update                 # reinstall from GitHub (JOBBOT_REF=main by default)"
+  say "  JOBBOT_REF=v0.1.0 jobbot update"
+  say ""
   say "Or use Docker instead — see docs/instalacion.md"
 }
 
