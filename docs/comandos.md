@@ -5,17 +5,34 @@ description: Todos los comandos del CLI de JobBot, verificados contra src/jobbot
 
 # Referencia de comandos
 
-Todo se ejecuta como `uv run jobbot <grupo> <comando>`. Esta página lista lo que
-existe hoy en `src/jobbot/cli.py`; si un comando no aparece aquí, probablemente no
-existe. Para las opciones completas, `uv run jobbot <grupo> <comando> --help`.
+Tras [instalar con curl](instalacion.md), corre `jobbot <grupo> <comando>`. En un
+clon del repo, `uv run jobbot …`. Esta página lista lo que existe hoy en
+`src/jobbot/cli.py`; si un comando no aparece aquí, probablemente no existe.
+Para las opciones completas, `jobbot <grupo> <comando> --help`.
+
+## Workspace e instalación
+
+| Comando | Qué hace |
+|---------|----------|
+| `init [DIR]` | Crea un workspace frío con `.jobbot.toml` y estado en `.local/` (sin clonar el repo). `--force` sobrescribe semillas. |
+| `update` | Reinstala el ejecutable en el `PATH` desde GitHub (`uv tool`). `JOBBOT_REF` / `--ref` eligen rama, tag o SHA. En Docker: actualiza la imagen en el host. |
+| `version` | Muestra la versión de JobBot. |
+
+```bash
+mkdir -p ~/postulaciones && cd ~/postulaciones
+jobbot init
+jobbot update
+JOBBOT_REF=v0.1.0 jobbot update
+```
 
 ## Perfil
 
 | Comando | Qué hace |
 |---------|----------|
-| `profile validate` | Valida `data/profile.yaml`. |
+| `profile validate` | Valida el perfil (`.local/profile.yaml` o `data/profile.yaml`). |
 | `profile show` | Resumen del perfil local. |
-| `profile import-latex [RUTA]` | Importa un CV LaTeX legado a `data/profile.generated.yaml`. |
+| `profile import-pdf RUTA` | Importa un CV PDF (capa de texto) a `profile.generated.yaml`. `--promote` lo copia a `profile.yaml` tras validar. |
+| `profile import-latex [RUTA]` | Importa un CV LaTeX legado a `profile.generated.yaml`. |
 | `profile promote-generated` | Copia `profile.generated.yaml` → `profile.yaml` tras confirmación. |
 | `profile suggest-from-market` | Sugiere redacción base desde las JDs guardadas; pregunta antes de agregar skills. |
 | `profile status` | Consistencia entre lo local y los snapshots de portales. |
@@ -117,5 +134,4 @@ No hay telemetría: las fallas se guardan en tu base local y se quedan ahí.
 
 | Comando | Qué hace |
 |---------|----------|
-| `version` | Muestra la versión de JobBot. |
 | `--verbose` / `-v` | Logging de depuración (opción global, va antes del grupo). |

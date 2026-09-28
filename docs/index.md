@@ -53,10 +53,10 @@ listo. El envío lo haces tú.
 
 ```bash
 # mismos pasos vía CLI — lo que el agente ejecuta en tu máquina
-uv run jobbot linkedin sweep "machine learning"
-uv run jobbot jobs match J0002
-uv run jobbot cv build --job J0002
-uv run jobbot application apply J0002        # plan; tú envías
+jobbot linkedin sweep "machine learning"
+jobbot jobs match J0002
+jobbot cv build --job J0002
+jobbot application apply J0002        # plan; tú envías
 ```
 
 [Instalación y quickstart](instalacion.md) · [Referencia de comandos](comandos.md)
@@ -87,9 +87,9 @@ Indeed, Get on Board y posts de reclutadores en LinkedIn. Filtros de frescura,
 país por rol y posts con varias vacantes en uno.
 
 ```bash
-uv run jobbot jobs search "Senior Data Scientist" --location Santiago
-uv run jobbot getonboard search "data scientist"
-uv run jobbot linkedin sweep "machine learning" --country CL --max-age-days 30
+jobbot jobs search "Senior Data Scientist" --location Santiago
+jobbot getonboard search "data scientist"
+jobbot linkedin sweep "machine learning" --country CL --max-age-days 30
 ```
 
 Un post con cinco roles SoftServe → cinco vacantes independientes, cada una con
@@ -105,9 +105,9 @@ su país y su URL de ATS. Match y postulación por rol, no por post.
 son vistas o adapters. El CV adaptado reordena evidencia; no inventa experiencia.
 
 ```bash
-uv run jobbot profile validate
-uv run jobbot cv build --job J0002          # derivado del perfil + JD
-uv run jobbot profile suggest-from-market   # sugerencias; confirmas gaps
+jobbot profile validate
+jobbot cv build --job J0002          # derivado del perfil + JD
+jobbot profile suggest-from-market   # sugerencias; confirmas gaps
 ```
 
 </section>
@@ -120,9 +120,9 @@ Adapters de Indeed, LinkedIn y Get on Board: login, inspect, pull, diff y sync
 (dry-run por defecto). Un comando propaga el CV base a los perfiles permanentes.
 
 ```bash
-uv run jobbot indeed sync --section headline   # plan; --apply escribe
-uv run jobbot linkedin sync --section publications --apply
-uv run jobbot cv propagate                     # plan HITL; --apply confirma
+jobbot indeed sync --section headline   # plan; --apply escribe
+jobbot linkedin sync --section publications --apply
+jobbot cv propagate                     # plan HITL; --apply confirma
 ```
 
 </section>
@@ -136,10 +136,13 @@ u otro agente — no un chat propietario. Corres el binario; decides qué sale
 de tu disco.
 
 ```bash
-git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
-uv sync --group dev
-uv run jobbot version
+REF=cursor/cold-install-workspace-aa4f   # tras el merge a main: REF=main
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
+jobbot version
 ```
+
+¿Contribuís al código? Ahí sí: `git clone` + `uv sync --group dev` (ver [instalación](instalacion.md)).
 
 </section>
 
@@ -190,15 +193,21 @@ Antes de scrapear a ciegas: qué sitios de empleo responden desde una IP de data
 
 ## Empezar
 
-Clona, sincroniza, copia el perfil de ejemplo. El resto está en la guía.
+Curl o Docker, carpeta `~/postulaciones`, `jobbot init`. El resto está en la guía.
 
 ```bash
-git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
-uv sync --group dev
-cp data/profile.example.yaml data/profile.yaml
+REF=cursor/cold-install-workspace-aa4f   # tras el merge a main: REF=main
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
+mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
+jobbot profile import-pdf ~/Descargas/CV.pdf --promote   # o edita .local/profile.yaml
+# más adelante: jobbot update
+#
+# Docker: docker pull ghcr.io/ljofreflor/jobbot:latest
+#         docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot init
 ```
 
-[Instalar](instalacion.md){ .jb-btn .jb-btn--primary }
+[Instalación](instalacion.md){ .jb-btn .jb-btn--primary }
 [Prior art](prior-art.md){ .jb-btn .jb-btn--ghost }
 
 </section>

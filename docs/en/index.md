@@ -53,11 +53,13 @@ You press submit.
 
 ```bash
 # same steps as CLI — what the agent runs on your machine
-uv run jobbot linkedin sweep "machine learning"
-uv run jobbot jobs match J0002
-uv run jobbot cv build --job J0002
-uv run jobbot application apply J0002        # plan only; you submit
+jobbot linkedin sweep "machine learning"
+jobbot jobs match J0002
+jobbot cv build --job J0002
+jobbot application apply J0002        # plan only; you submit
 ```
+
+[Install & quickstart](../instalacion.md) · [Command reference](../comandos.md)
 
 </section>
 
@@ -85,9 +87,9 @@ Indeed, Get on Board, and LinkedIn recruiter posts. Freshness filters, country
 per role, and multi-vacancy posts split into independent jobs.
 
 ```bash
-uv run jobbot jobs search "Senior Data Scientist" --location Santiago
-uv run jobbot getonboard search "data scientist"
-uv run jobbot linkedin sweep "machine learning" --country CL --max-age-days 30
+jobbot jobs search "Senior Data Scientist" --location Santiago
+jobbot getonboard search "data scientist"
+jobbot linkedin sweep "machine learning" --country CL --max-age-days 30
 ```
 
 One SoftServe post with five roles → five jobs, each with its own country and
@@ -103,9 +105,9 @@ ATS URL. Match and apply per role, not per post.
 are views or adapters. The adapted CV reorders evidence; it never invents experience.
 
 ```bash
-uv run jobbot profile validate
-uv run jobbot cv build --job J0002          # derived from profile + JD
-uv run jobbot profile suggest-from-market   # suggestions; you confirm gaps
+jobbot profile validate
+jobbot cv build --job J0002          # derived from profile + JD
+jobbot profile suggest-from-market   # suggestions; you confirm gaps
 ```
 
 </section>
@@ -118,9 +120,9 @@ Indeed, LinkedIn, and Get on Board adapters: login, inspect, pull, diff, and syn
 (dry-run by default). One command propagates the base CV to permanent profiles.
 
 ```bash
-uv run jobbot indeed sync --section headline   # plan; --apply writes
-uv run jobbot linkedin sync --section publications --apply
-uv run jobbot cv propagate                     # HITL plan; --apply confirms
+jobbot indeed sync --section headline   # plan; --apply writes
+jobbot linkedin sync --section publications --apply
+jobbot cv propagate                     # HITL plan; --apply confirms
 ```
 
 </section>
@@ -134,9 +136,11 @@ or another agent — not a proprietary Jobbot chat. You run the binary; you deci
 what leaves disk.
 
 ```bash
-git clone https://github.com/ljofreflor/jobbot.git && cd jobbot
-uv sync --group dev
-uv run jobbot version
+REF=cursor/cold-install-workspace-aa4f   # after merge to main: REF=main
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
+jobbot version
+# or: docker pull ghcr.io/ljofreflor/jobbot:latest
 ```
 
 </section>
@@ -181,5 +185,47 @@ Which job sites answer from a datacenter IP, and which do not.
 
 [Read the measurement](../blog/posts/2026-09-24-datacenter-ip-blocking.md){ .jb-btn .jb-btn--primary }
 [Sitio en español](../index.md){ .jb-btn .jb-btn--ghost }
+
+</section>
+
+<section class="jb-section jb-section--close" markdown="1">
+
+## Get started
+
+Curl or Docker, a `~/postulaciones` folder, then `jobbot init`. Details in the guide.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
+mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
+jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profile.yaml
+# later: jobbot update
+#
+# Docker: docker pull ghcr.io/ljofreflor/jobbot:latest
+#         docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot init
+```
+
+[Install](../instalacion/){ .jb-btn .jb-btn--primary }
+[Prior art](../prior-art.md){ .jb-btn .jb-btn--ghost }
+
+</section>
+
+<section class="jb-section jb-section--close" markdown="1">
+
+## Get started
+
+Curl or Docker, then an applications folder. No git clone required.
+
+```bash
+REF=cursor/cold-install-workspace-aa4f   # after merge to main: REF=main
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
+mkdir -p ~/postulaciones && cd ~/postulaciones
+jobbot init
+jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profile.yaml
+# later: jobbot update
+```
+
+[Install guide](../instalacion.md){ .jb-btn .jb-btn--primary }
+[Prior art](../prior-art.md){ .jb-btn .jb-btn--ghost }
 
 </section>

@@ -11,9 +11,20 @@ Syncthing, etc.).
 
 ## Opción A — curl (ejecutable en el host)
 
+Tras mergear en `main`:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
 which jobbot
+```
+
+Si `main` aún no tiene el script (404), instala desde la rama del PR y fija el mismo
+ref para el paquete (si no, `JOBBOT_REF` cae en `main` y no trae `init` / `update`):
+
+```bash
+REF=cursor/cold-install-workspace-aa4f
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
 ```
 
 El script instala [uv](https://docs.astral.sh/uv/) si hace falta y deja `jobbot` en tu `PATH`
@@ -24,7 +35,7 @@ Actualizar el ejecutable más adelante:
 
 ```bash
 jobbot update                    # tipicamente main
-JOBBOT_REF=v0.1.0 jobbot update  # o un tag / SHA
+JOBBOT_REF=v0.1.0 jobbot update  # o un tag / SHA / rama
 ```
 
 ## Opción B — Docker (imagen lista)

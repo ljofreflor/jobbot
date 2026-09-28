@@ -70,6 +70,14 @@ mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot update   # later: reinstall from GitHub (JOBBOT_REF=main by default)
 ```
 
+Until `scripts/install.sh` is on `main` (404), use the PR branch for **both** the script URL and the package ref:
+
+```bash
+REF=cursor/cold-install-workspace-aa4f
+curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
+  | JOBBOT_REF="$REF" bash
+```
+
 **B — Docker (ready image):**
 
 ```bash
