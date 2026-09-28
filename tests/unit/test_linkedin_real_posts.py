@@ -155,3 +155,29 @@ def test_real_fst_negocios_coinvestigador_is_named_and_kept_out_of_chile(
     assert job.company != "INTELIGENCIA ARTIFICIAL"
     assert job.ats_url is None
     assert "mensaje interno" in job.description.casefold()
+
+
+def test_real_peopletrust_cddo_is_named_from_mailbox_and_kept_for_chile(
+    monkeypatch: object,
+) -> None:
+    """https://lnkd.in/p/ducvMAwj — Chilean Fintech CDDO; apply by email, Ley 21719."""
+    post = _load_real_post("peopletrust_cddo", monkeypatch)
+
+    assert post.vacancies == ()  # type: ignore[attr-defined]
+    assert post.ats_url == "mailto:postulaciones@peopletrust.cl"  # type: ignore[attr-defined]
+    assert post.ats_kind == AtsKind.EMAIL  # type: ignore[attr-defined]
+    assert first_apply_email(post.text) == "postulaciones@peopletrust.cl"  # type: ignore[attr-defined]
+    assert detect_country(post.text) == "CL"  # type: ignore[attr-defined]
+    assert post_offers_wanted_country(post.text, wanted=["CL"]) is True  # type: ignore[attr-defined]
+
+    job = post_to_job(post)  # type: ignore[arg-type]
+    assert job.company == "Peopletrust"
+    # Recruiter authored the post; the mailbox domain is the employer.
+    assert job.company != "Rodolfo Amenabar"
+    assert "gerente de tecnología" in job.title.casefold()
+    assert "cddo" in job.title.casefold()
+    assert "fintech" not in job.title.casefold()
+    assert not job.title.casefold().endswith("para emp")
+    assert "para empresa" not in job.title.casefold()
+    assert job.ats_url == "mailto:postulaciones@peopletrust.cl"
+    assert job.ats_kind == "email"

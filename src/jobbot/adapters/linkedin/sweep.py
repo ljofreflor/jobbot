@@ -422,8 +422,12 @@ def _guess_title(text: str) -> str | None:
     patterns = [
         (
             # Articles must be their own word. Otherwise "(?i)a" eats the A of "Applied".
-            r"(?i)(?:hiring|buscamos|looking for|we(?:'re| are) looking for)\s+"
-            r"(?:(?:a|an|un|una)\s+)?([^\n.!?]{8,80})"
+            # "Estoy buscando" is the first-person form recruiters use instead of "buscamos".
+            # Stop before "para empresa …" so a length cap cannot leave "para emp".
+            r"(?i)(?:hiring|buscamos|estoy buscando|estamos buscando|"
+            r"looking for|we(?:'re| are) looking for)\s+"
+            r"(?:(?:a|an|un|una)\s+)?([^\n.!?;]{8,120}?)"
+            r"(?=\s+para\s+empresa\b|[;.!?\n]|$)"
         ),
         r"(?i)(?:role|puesto|cargo)\s*[:\-]\s*([^\n]{5,80})",
         r"(?i)\b((?:senior |staff |lead )?data scientist[^\n.!?]{0,40})",
@@ -435,7 +439,8 @@ def _guess_title(text: str) -> str | None:
         match = re.search(pat, text)
         if match:
             title = re.sub(r"\s+", " ", match.group(1)).strip(" -:")
-            return _TITLE_LEAD_IN_RE.sub("", title)[:120] or None
+            title = _TITLE_LEAD_IN_RE.sub("", title).strip(" -:,")
+            return title[:120] or None
     return None
 
 
@@ -554,6 +559,45 @@ def _looks_like_place(name: str) -> bool:
     return flattened in _GENERIC_NAME_TOKENS or flattened in _PLACE_NAME_FLAT
 
 
+# Consumer / free-mail hosts: never treat these as the hiring company.
+_FREE_MAIL_LABELS: frozenset[str] = frozenset(
+    {
+        "gmail",
+        "googlemail",
+        "outlook",
+        "hotmail",
+        "live",
+        "yahoo",
+        "ymail",
+        "icloud",
+        "me",
+        "proton",
+        "protonmail",
+        "aol",
+        "gmx",
+        "mail",
+    }
+)
+
+# Placeholder / generic second-level domains in fixtures and anonymized posts.
+_GENERIC_DOMAIN_LABELS: frozenset[str] = frozenset(
+    {
+        "empresa",
+        "company",
+        "correo",
+        "email",
+        "ejemplo",
+        "example",
+        "test",
+        "domain",
+        "cliente",
+        "client",
+        "contacto",
+        "info",
+    }
+)
+
+
 def employer_from_post(text: str, apply_url: str | None, *, author: str | None) -> str:
     """
     Employer behind a recruiter post, preferring corroborated evidence.
@@ -561,12 +605,60 @@ def employer_from_post(text: str, apply_url: str | None, *, author: str | None) 
     Whoever writes a hiring post is usually a recruiter, not the company, so the author
     is a poor employer name — but it is the only one available most of the time. When the
     post names a company *and* the apply URL carries that name, the two agree and the
-    employer is a fact; otherwise the author stands, as before.
+    employer is a fact. A hiring mailbox on a company domain (postulaciones@peopletrust.cl)
+    is stronger than the author's name when the body never says "En PeopleTrust…".
     """
     named = _guess_company(text)
     if named and _post_names_employer(named, text, apply_url):
         return named
+    from_url = _company_from_apply_url(apply_url)
+    if from_url:
+        return from_url
     return author or named or "Unknown company"
+
+
+def _company_from_apply_url(url: str | None) -> str | None:
+    """Brand-shaped label from a mailto/HTTPS apply host, or None for free mail."""
+    if not url:
+        return None
+    raw = url.strip()
+    if raw.casefold().startswith("mailto:"):
+        host = raw.partition("@")[2].split("?", 1)[0].strip().rstrip(">")
+    else:
+        host = urlparse(raw if "://" in raw else f"https://{raw}").hostname or ""
+    host = host.casefold().removeprefix("www.")
+    if not host or "." not in host:
+        return None
+    # careers.neuralworks.cl → neuralworks.cl; jobs.softserveinc.com → softserveinc.com
+    labels = host.split(".")
+    if labels[0] in {"careers", "career", "jobs", "empleo", "empleos", "mail", "www"}:
+        labels = labels[1:]
+    if len(labels) < 2:
+        return None
+    # empresa.com.ar → empresa; peopletrust.cl → peopletrust
+    if len(labels) >= 3 and ".".join(labels[-2:]) in {
+        "com.ar",
+        "com.br",
+        "com.co",
+        "com.mx",
+        "com.pe",
+        "com.uy",
+        "co.uk",
+    }:
+        sld = labels[-3]
+    else:
+        sld = labels[-2]
+    if (
+        sld in _FREE_MAIL_LABELS
+        or sld in _GENERIC_DOMAIN_LABELS
+        or sld in _GENERIC_NAME_TOKENS
+        or len(sld) < 3
+    ):
+        return None
+    # Drop common "inc/corp" packing in the label without inventing a prettier brand.
+    brand = re.sub(r"(inc|corp|llc)$", "", sld, flags=re.I)
+    brand = brand or sld
+    return brand[0].upper() + brand[1:]
 
 
 def _post_names_employer(company: str, text: str, apply_url: str | None) -> bool:
