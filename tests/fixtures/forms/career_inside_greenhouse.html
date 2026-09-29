@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><title>Careers · Acme</title></head>
+<body>
+<script src="https://boards.greenhouse.io/embed/job_board/js?for=acme"></script>
+<a href="https://boards.greenhouse.io/acme">View openings</a>
+<div id="app_body">
+  <h1>Create your candidate profile</h1>
+  <form id="application_form" action="/register" method="post">
+    <label for="first_name">First Name <span class="required">*</span></label>
+    <input type="text" id="first_name" name="first_name" required>
+
+    <label for="email">Email <span class="required">*</span></label>
+    <input type="email" id="email" name="email" required>
+
+    <label for="phone">Phone</label>
+    <input type="tel" id="phone" name="phone">
+
+    <label for="resume">Resume/CV <span class="required">*</span></label>
+    <input type="file" id="resume" name="resume" required accept=".pdf">
+
+    <label for="notice">When could you start?</label>
+    <textarea id="notice" name="notice"></textarea>
+
+    <button type="submit">Continue</button>
+  </form>
+</div>
+</body>
+</html>
