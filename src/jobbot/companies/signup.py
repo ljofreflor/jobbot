@@ -9,6 +9,7 @@ promised.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -16,6 +17,7 @@ from jobbot.companies.models import CareerSite
 from jobbot.models.candidate import Candidate
 from jobbot.portals.detect import AtsKind
 from jobbot.portals.form_learn import FieldKind, FormKnowledge
+from jobbot.portals.sso import SsoProvider, provider_label
 
 
 class AccountNeed(StrEnum):
@@ -94,8 +96,31 @@ def signup_sheet(
     """
     answers = _profile_answers(candidate)
     if form is not None and form.readable:
-        return [_item_for(field.label, answers) for field in form.fields]
-    return [_item_for(label, answers) for label in _USUAL_FIELDS]
+        items = [_item_for(field.label, answers) for field in form.fields]
+    else:
+        items = [_item_for(label, answers) for label in _USUAL_FIELDS]
+    items.extend(_sso_items(form))
+    return items
+
+
+def _sso_items(form: FormKnowledge | None) -> list[SignupItem]:
+    """Provider buttons are HITL: named so you can click, never started for you."""
+    if form is None or not form.sso_providers:
+        return []
+    items: list[SignupItem] = []
+    for raw in form.sso_providers:
+        try:
+            provider = SsoProvider(raw)
+        except ValueError:
+            continue
+        items.append(
+            SignupItem(
+                label=provider_label(provider),
+                value="",
+                source="portal SSO — you click; JobBot never starts OAuth",
+            )
+        )
+    return items
 
 
 def screening_to_prepare(form: FormKnowledge | None) -> list[str]:
@@ -140,7 +165,9 @@ def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
         if len(parts) > 1:
             put("last name", parts[1], "personal.name")
     put("email", personal.email, "personal.email")
+    put("email address", personal.email, "personal.email")
     put("phone", personal.phone, "personal.phone")
+    put("phone number", personal.phone, "personal.phone")
     put("city", personal.city, "personal.city")
     put("country", personal.country, "personal.country")
     put("location", personal.location_line(), "personal.city + country")
@@ -156,5 +183,24 @@ def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
 
 
 def _item_for(label: str, answers: dict[str, tuple[str, str]]) -> SignupItem:
-    value, source = answers.get(label.casefold(), ("", "you decide: not a fact in the profile"))
-    return SignupItem(label=label, value=value, source=source)
+    folded = label.casefold().replace("*", "").strip()
+    if folded in answers:
+        value, source = answers[folded]
+        return SignupItem(label=label, value=value, source=source)
+    # Whole-word alias only. Never let bare "name" fill "Middle Name" / "Father's
+    # Family Name" (Workday My Information).
+    best: tuple[str, str] | None = None
+    best_len = 0
+    for key, pair in answers.items():
+        if len(key) < 5:
+            continue
+        if re.search(rf"\b{re.escape(key)}\b", folded) and len(key) > best_len:
+            best, best_len = pair, len(key)
+    if best is not None:
+        value, source = best
+        return SignupItem(label=label, value=value, source=source)
+    return SignupItem(
+        label=label,
+        value="",
+        source="you decide: not a fact in the profile",
+    )
