@@ -136,9 +136,7 @@ u otro agente — no un chat propietario. Corres el binario; decides qué sale
 de tu disco.
 
 ```bash
-REF=cursor/cold-install-workspace-aa4f   # tras el merge a main: REF=main
-curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
-  | JOBBOT_REF="$REF" bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
 mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot version
 # más adelante: jobbot update
@@ -198,9 +196,7 @@ Antes de scrapear a ciegas: qué sitios de empleo responden desde una IP de data
 Curl o Docker, carpeta `~/postulaciones`, `jobbot init`. El resto está en la guía.
 
 ```bash
-REF=cursor/cold-install-workspace-aa4f   # tras el merge a main: REF=main
-curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/install.sh" \
-  | JOBBOT_REF="$REF" bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
 mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
 jobbot profile import-pdf ~/Descargas/CV.pdf --promote   # o edita .local/profile.yaml
 # más adelante: jobbot update
