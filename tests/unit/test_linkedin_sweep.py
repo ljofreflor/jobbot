@@ -223,6 +223,42 @@ def test_title_drops_the_word_naming_whom_the_recruiter_wants() -> None:
     )
 
 
+def test_title_reads_estoy_buscando_and_stops_before_para_empresa() -> None:
+    """First-person hiring posts must still name the role, not the employer clause."""
+    from jobbot.adapters.linkedin.sweep import _guess_title
+
+    title = _guess_title(
+        "Estoy buscando un Gerente de Tecnología , Datos e Inteligencia Artificial "
+        "(CDDO Chief Digital & Data Officer) para empresa FIntech; tendrá a su cargo…"
+    )
+    assert title is not None
+    assert "gerente de tecnología" in title.casefold()
+    assert "cddo" in title.casefold()
+    assert "fintech" not in title.casefold()
+
+
+def test_mailto_company_domain_beats_recruiter_author() -> None:
+    """postulaciones@peopletrust.cl names Peopletrust, not the LinkedIn author."""
+    from jobbot.adapters.linkedin.sweep import employer_from_post
+
+    assert (
+        employer_from_post(
+            "Estoy buscando un Gerente de Tecnología para empresa Fintech.",
+            "mailto:postulaciones@peopletrust.cl",
+            author="Rodolfo Amenabar",
+        )
+        == "Peopletrust"
+    )
+    assert (
+        employer_from_post(
+            "Send CV",
+            "mailto:ana@gmail.com",
+            author="Ana Recruiter",
+        )
+        == "Ana Recruiter"
+    )
+
+
 def test_title_keeps_the_first_letter_of_applied_scientist() -> None:
     """Regression: '(?i)a' matched the A of Applied and the title became 'pplied Scientist'."""
     from jobbot.adapters.linkedin.sweep import _guess_title
