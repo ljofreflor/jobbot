@@ -17,6 +17,7 @@ from jobbot.adapters.getonboard.draft import (
     PermanentProfileFields,
     build_permanent_profile_fields,
 )
+from jobbot.branding import stamp_description, strip_mark
 from jobbot.models.candidate import Candidate
 
 logger = logging.getLogger("jobbot.nlp.refine")
@@ -102,8 +103,8 @@ class CumulativeProfileRefiner:
         cold = build_permanent_profile_fields(candidate)
         companies = _company_tokens(candidate)
         exp_text, kept, added, dropped = _merge_experience(
-            previous.experiencia_y_perfil,
-            cold.experiencia_y_perfil,
+            strip_mark(previous.experiencia_y_perfil),
+            strip_mark(cold.experiencia_y_perfil),
             companies,
             EXPERIENCE_MAX,
         )
@@ -113,6 +114,7 @@ class CumulativeProfileRefiner:
             _education_tokens(candidate),
             EDUCATION_MAX,
         )
+        exp_text = stamp_description(exp_text, max_len=EXPERIENCE_MAX)
         fields = PermanentProfileFields(
             experiencia_y_perfil=exp_text,
             formacion_academica=edu_text,
