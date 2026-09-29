@@ -14,13 +14,15 @@ Para las opciones completas, `jobbot <grupo> <comando> --help`.
 
 | Comando | Qué hace |
 |---------|----------|
-| `init [DIR]` | Crea un workspace frío con `.jobbot.toml` y estado en `.local/` (sin clonar el repo). `--force` sobrescribe semillas. |
+| `init [DIR]` | Crea un workspace frío: `.jobbot.toml` y `.local/` **dentro de DIR** (default: el directorio actual). No usa `$HOME`, `JOBBOT_ROOT` ni el repo del paquete para ubicar `.local/`. `--force` sobrescribe semillas. |
 | `update` | Reinstala el ejecutable en el `PATH` desde GitHub (`uv tool`). `JOBBOT_REF` / `--ref` eligen rama, tag o SHA. En Docker: actualiza la imagen en el host. |
 | `version` | Muestra la versión de JobBot. |
 
 ```bash
 mkdir -p ~/postulaciones && cd ~/postulaciones
 jobbot init
+# equivalente sin cd:
+# jobbot init ~/postulaciones
 jobbot update
 JOBBOT_REF=v0.1.0 jobbot update
 ```

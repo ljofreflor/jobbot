@@ -55,6 +55,70 @@ def test_init_creates_local_layout(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert config.browser_data_dir == (target / ".local" / "browser-data").resolve()
 
 
+def test_init_local_under_absolute_target_when_cwd_differs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``.local`` must land in DIR even when cwd is somewhere else."""
+    cwd = tmp_path / "elsewhere"
+    target = tmp_path / "postulaciones" / "ws"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.delenv("JOBBOT_ROOT", raising=False)
+
+    result = init_workspace(target)
+
+    assert result.root == target.resolve()
+    assert (target / CONFIG_FILENAME).is_file()
+    assert (target / ".local" / "profile.yaml").is_file()
+    assert not (cwd / ".local").exists()
+    assert not (cwd / CONFIG_FILENAME).exists()
+    assert not (tmp_path / ".local").exists()
+
+
+def test_init_dot_uses_cwd_not_home_or_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workspace = tmp_path / "invoked-here"
+    decoy_home = tmp_path / "fake-home"
+    decoy_root = tmp_path / "jobbot-root-env"
+    workspace.mkdir()
+    decoy_home.mkdir()
+    decoy_root.mkdir()
+    monkeypatch.chdir(workspace)
+    monkeypatch.setenv("HOME", str(decoy_home))
+    monkeypatch.setenv("JOBBOT_ROOT", str(decoy_root))
+
+    result = init_workspace(Path("."))
+
+    assert result.root == workspace.resolve()
+    assert (workspace / ".local" / "profile.yaml").is_file()
+    assert (workspace / CONFIG_FILENAME).is_file()
+    assert not (decoy_home / ".local").exists()
+    assert not (decoy_root / ".local").exists()
+    assert not (decoy_root / CONFIG_FILENAME).exists()
+
+
+def test_cli_init_writes_local_inside_directory_arg(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from typer.testing import CliRunner
+
+    from jobbot.cli import app
+
+    cwd = tmp_path / "cwd"
+    target = tmp_path / "foo"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.delenv("JOBBOT_ROOT", raising=False)
+
+    runner = CliRunner()
+    outcome = runner.invoke(app, ["init", str(target)])
+    assert outcome.exit_code == 0, outcome.stdout
+    assert (target / CONFIG_FILENAME).is_file()
+    assert (target / ".local" / "profile.yaml").is_file()
+    assert not (cwd / ".local").exists()
+
+
 def test_init_refuses_overwrite_without_force(tmp_path: Path) -> None:
     target = tmp_path / "ws"
     init_workspace(target)

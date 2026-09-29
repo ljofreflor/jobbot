@@ -49,6 +49,8 @@ browser-data/
 output/
 .env
 .jobbot.toml
+# Cold-install workspace state (`jobbot init` → DIR/.local/); never commit.
+.local/
 *.sqlite
 *.db
 *.sqlite3

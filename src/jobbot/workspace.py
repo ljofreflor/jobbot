@@ -44,7 +44,10 @@ def init_workspace(target: Path, *, force: bool = False) -> InitResult:
     """
     Create a portable postulaciones folder with ``.local/`` state.
 
-    Does not look for a nearby git checkout — seeds come from package resources.
+    ``.jobbot.toml`` and ``.local/`` are always created **inside** ``target``
+    (after ``expanduser`` + ``resolve``). Placement ignores ``JOBBOT_ROOT``,
+    ``$HOME``, the package install dir, and git-root walk-up — seeds come from
+    package resources, but the workspace folder is exactly ``target``.
     """
     root = target.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
