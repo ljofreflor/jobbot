@@ -9,13 +9,13 @@ promised.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from enum import StrEnum
 
 from jobbot.companies.models import CareerSite
 from jobbot.models.candidate import Candidate
 from jobbot.portals.detect import AtsKind
+from jobbot.portals.field_homologation import answer_for_label
 from jobbot.portals.form_learn import FieldKind, FormKnowledge
 from jobbot.portals.sso import SsoProvider, provider_label
 
@@ -94,11 +94,10 @@ def signup_sheet(
     one it is the set every portal asks. Either way a question the profile cannot
     answer is handed back empty, never filled with something plausible.
     """
-    answers = _profile_answers(candidate)
     if form is not None and form.readable:
-        items = [_item_for(field.label, answers) for field in form.fields]
+        items = [_item_for(candidate, field.label) for field in form.fields]
     else:
-        items = [_item_for(label, answers) for label in _USUAL_FIELDS]
+        items = [_item_for(candidate, label) for label in _USUAL_FIELDS]
     items.extend(_sso_items(form))
     return items
 
@@ -147,60 +146,7 @@ _USUAL_FIELDS: tuple[str, ...] = (
 )
 
 
-def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
-    """label (folded) → (value, where in the profile it comes from)."""
-    personal = candidate.personal
-    pairs: dict[str, tuple[str, str]] = {}
-
-    def put(label: str, value: object, source: str) -> None:
-        text = str(value or "").strip()
-        if text:
-            pairs[label.casefold()] = (text, source)
-
-    put("full name", personal.name, "personal.name")
-    put("name", personal.name, "personal.name")
-    if personal.name:
-        parts = personal.name.split(None, 1)
-        put("first name", parts[0], "personal.name")
-        if len(parts) > 1:
-            put("last name", parts[1], "personal.name")
-    put("email", personal.email, "personal.email")
-    put("email address", personal.email, "personal.email")
-    put("phone", personal.phone, "personal.phone")
-    put("phone number", personal.phone, "personal.phone")
-    put("city", personal.city, "personal.city")
-    put("country", personal.country, "personal.country")
-    put("location", personal.location_line(), "personal.city + country")
-    put("current role", personal.headline, "personal.headline")
-    put("headline", personal.headline, "personal.headline")
-    put("linkedin", personal.linkedin, "personal.linkedin")
-    put("linkedin profile", personal.linkedin, "personal.linkedin")
-    put("github", personal.github, "personal.github")
-    put("resume/cv", "output/base/cv.pdf", "cv build")
-    put("resume", "output/base/cv.pdf", "cv build")
-    put("cv", "output/base/cv.pdf", "cv build")
-    return pairs
-
-
-def _item_for(label: str, answers: dict[str, tuple[str, str]]) -> SignupItem:
-    folded = label.casefold().replace("*", "").strip()
-    if folded in answers:
-        value, source = answers[folded]
-        return SignupItem(label=label, value=value, source=source)
-    # Whole-word alias only. Never let bare "name" fill "Middle Name" / "Father's
-    # Family Name" (Workday My Information).
-    best: tuple[str, str] | None = None
-    best_len = 0
-    for key, pair in answers.items():
-        if len(key) < 5:
-            continue
-        if re.search(rf"\b{re.escape(key)}\b", folded) and len(key) > best_len:
-            best, best_len = pair, len(key)
-    if best is not None:
-        value, source = best
-        return SignupItem(label=label, value=value, source=source)
-    return SignupItem(
-        label=label,
-        value="",
-        source="you decide: not a fact in the profile",
-    )
+def _item_for(candidate: Candidate, label: str) -> SignupItem:
+    """Map a portal label through the homologation table (#94)."""
+    value, source = answer_for_label(candidate, label)
+    return SignupItem(label=label, value=value, source=source)
