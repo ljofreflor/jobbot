@@ -357,6 +357,34 @@ an issue already holds acceptance tests wastes everyone's time.
    a write invite open — then retry `--add-assignee cursoragent`. Prefer the real assignee
    over the label alone.
 
+## Local branches (periodic cleanup)
+
+A deleted remote branch leaves the local one behind. Once per local day, ask (HITL)
+before removing locals whose upstream is already gone. Do not ask again the same day.
+
+The marker is `output/ops/branch_cleanup.yaml` (under `output/`, gitignored):
+`last_asked: YYYY-MM-DD`. A clone with no `output/` skips the sweep. Update
+`last_asked` after the question, whether the answer is yes or no.
+
+When it is due:
+
+1. `git fetch --prune`.
+2. List local branches other than `main` and `develop` whose upstream is `gone`.
+   A branch that was never pushed is not in this list.
+3. Ask once, naming each branch. The delete set is whatever is already contained in
+   `develop` (`git merge-base --is-ancestor`). A tip that is not in `develop` stays;
+   do not merge it into `develop` and do not force-delete it unless the human names
+   that branch and asks for it.
+4. On yes: if the current branch is one of them, `git switch develop` first. If that
+   branch has uncommitted work, say so and stop — do not switch, do not stash. Then
+   `git branch -d` each merged branch. Never delete `main` or `develop`.
+
+When this same turn deletes a remote branch (`git push origin --delete`, a PR merge
+that deletes the head, `gh pr close` after the remote is gone), delete the matching
+local in that turn: switch to `develop` first if you are on it, `-d` only, and stop
+to ask before a force-delete if the local tip is not in `develop`. The daily question
+covers whatever that turn missed.
+
 ## Remote agents (issues, cloud, CI)
 
 An agent working from a clone only has what git tracks, and the PII lives outside git:
