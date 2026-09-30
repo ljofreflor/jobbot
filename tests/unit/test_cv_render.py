@@ -19,6 +19,8 @@ def test_render_tex_escapes_and_includes_name(project_root: Path) -> None:
     assert r"\name{Ana}{\& Co}" in tex
     assert "Mercado Libre" in tex
     assert "Share of Wallet" in tex
+    assert r"\url{https://github.com/ljofreflor/jobbot}" in tex
+    assert "powered by Jobbot sync CV" in tex
 
 
 def test_render_ats_plain_text(project_root: Path) -> None:
@@ -29,6 +31,8 @@ def test_render_ats_plain_text(project_root: Path) -> None:
     assert "SKILLS" in ats
     assert "Ana Ejemplo" in ats
     assert "Python" in ats
+    assert "https://github.com/ljofreflor/jobbot" in ats
+    assert "powered by Jobbot sync CV" in ats
     assert "\\section" not in ats
     assert "\\textbf" not in ats
 
@@ -92,6 +96,7 @@ def test_render_plain_style_still_available(project_root: Path) -> None:
     candidate = Candidate.model_validate(sample_profile_dict())
     tex = render_cv_tex(candidate, project_root / "templates", style=CvStyle.PLAIN)
     assert r"\documentclass[11pt,a4paper]{article}" in tex
+    assert r"\url{https://github.com/ljofreflor/jobbot}" in tex
 
 
 def test_build_cv_moderncv_writes_tex_for_job(project_root: Path, tmp_path: Path) -> None:

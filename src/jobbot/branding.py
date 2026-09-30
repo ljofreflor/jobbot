@@ -11,6 +11,8 @@ The token is stable on purpose: ``Jobbot sync CV``.
 from __future__ import annotations
 
 MARK = "powered by Jobbot sync CV"
+REPO_URL = "https://github.com/ljofreflor/jobbot"
+CV_CREDIT = f"{MARK} — {REPO_URL}"
 _LEGACY = "powered by AI jobbot de Leonardo Jofré"
 
 
