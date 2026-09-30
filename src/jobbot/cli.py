@@ -2188,12 +2188,16 @@ def portals_list() -> None:
 def portals_detect(
     url: Annotated[str, typer.Argument(help="Job or ATS URL")],
 ) -> None:
-    """Detect ATS kind for a URL."""
-    from jobbot.portals.detect import detect_ats
+    """Detect ATS kind for a URL (host rules, then HTML sniff for custom career domains)."""
+    from jobbot.portals.detect import detect_ats, sniff_ats
     from jobbot.portals.registry import domain_from_url
 
-    kind = detect_ats(url)
-    console.print(f"domain={domain_from_url(url)}  ats_kind={kind.value}")
+    host_kind = detect_ats(url)
+    kind = sniff_ats(url) if host_kind.value == "unknown" else host_kind
+    extra = ""
+    if host_kind.value == "unknown" and kind.value != "unknown":
+        extra = f"  (sniffed; host alone was unknown)"
+    console.print(f"domain={domain_from_url(url)}  ats_kind={kind.value}{extra}")
 
 
 @portals_app.command("add")
