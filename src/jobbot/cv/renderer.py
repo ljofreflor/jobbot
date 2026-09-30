@@ -9,8 +9,10 @@ from pathlib import Path
 from babel.units import format_unit
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from jobbot.cv.latex import escape_latex, escape_latex_multiline
+from jobbot.cv.application_log import ApplicationLog
+from jobbot.cv.latex import escape_latex, escape_latex_multiline, escape_latex_url
 from jobbot.cv.selection import SelectionResult, filter_experiences, select_for_base_cv
+from jobbot.jobs.language import Language
 from jobbot.models.candidate import Candidate
 from jobbot.models.education import Education
 from jobbot.models.experience import format_metric
@@ -28,6 +30,16 @@ _TEMPLATE_BY_STYLE = {
     CvStyle.MODERNCV: "cv_moderncv.tex.j2",
     CvStyle.PLAIN: "cv.tex.j2",
 }
+
+_LANGUAGE_BY_STYLE: dict[CvStyle, Language] = {
+    CvStyle.MODERNCV: "es",
+    CvStyle.PLAIN: "en",
+}
+
+
+def cv_language(style: CvStyle) -> Language:
+    """The language the template's own headings are written in."""
+    return _LANGUAGE_BY_STYLE[style]
 
 
 def split_name(full_name: str) -> tuple[str, str]:
@@ -186,11 +198,22 @@ def _contact_line_latex(candidate: Candidate) -> str:
         parts.append(rf"\href{{{personal.linkedin}}}{{LinkedIn}}")
     if personal.github:
         parts.append(rf"\href{{{personal.github}}}{{GitHub}}")
+    if personal.orcid_url:
+        parts.append(_href_latex(personal.orcid_url))
     return r" $\cdot$ ".join(parts)
 
 
 def _specialties_line_latex(candidate: Candidate) -> str:
     return r" $\cdot$ ".join(escape_latex(s) for s in candidate.specialties)
+
+
+def url_label(url: str) -> str:
+    """What a reader sees for a link: no scheme, no trailing slash."""
+    return url.split("://", 1)[-1].rstrip("/")
+
+
+def _href_latex(url: str) -> str:
+    return rf"\href{{{escape_latex_url(url)}}}{{{escape_latex(url_label(url))}}}"
 
 
 def render_cv_tex(
@@ -199,6 +222,7 @@ def render_cv_tex(
     selection: SelectionResult | None = None,
     *,
     style: CvStyle = CvStyle.MODERNCV,
+    application_log: ApplicationLog | None = None,
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
@@ -211,6 +235,9 @@ def render_cv_tex(
         experiences=experiences,
         skills=candidate.skills.as_dict(),
         publications=candidate.publications if selection.include_publications else [],
+        projects=candidate.projects,
+        href=_href_latex,
+        application_log=application_log,
         contact_line=_contact_line_latex(candidate),
         specialties_line=_specialties_line_latex(candidate),
         metrics_line=_metrics_line_latex,
@@ -242,6 +269,7 @@ def render_cv_ats(
         experiences=experiences,
         skills=candidate.skills.as_dict(),
         publications=candidate.publications if selection.include_publications else [],
+        projects=candidate.projects,
         metrics_line=_metrics_line,
         edu_dates=_edu_dates,
         group_label=_group_label,

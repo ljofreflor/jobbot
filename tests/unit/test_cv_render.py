@@ -167,6 +167,118 @@ def test_moderncv_renders_address_and_spanish_dates(project_root: Path) -> None:
     assert "Abr 2022" in tex
 
 
+def _with_project(url: str | None = "https://example.org/huerto#inicio") -> Candidate:
+    data = sample_profile_dict()
+    data["projects"] = [
+        {
+            "id": "huerto",
+            "name": "Huerto Comunitario",
+            "description": "Coordinación de un huerto vecinal & su compostaje.",
+            "url": url,
+            "tags": ["Compostaje", "Riego"],
+        }
+    ]
+    return Candidate.model_validate(data)
+
+
+def test_moderncv_renders_projects(project_root: Path) -> None:
+    from jobbot.cv.renderer import CvStyle
+
+    tex = render_cv_tex(_with_project(), project_root / "templates", style=CvStyle.MODERNCV)
+
+    assert r"\section{Proyectos Personales}" in tex
+    # banking prints the third \cventry argument as the bold heading: the name, not the link
+    href = r"\href{https://example.org/huerto\#inicio}{example.org/huerto\#inicio}"
+    assert rf"\cventry{{}}{{{href}}}{{Huerto Comunitario}}{{}}{{}}{{}}" in tex
+    assert r"huerto vecinal \& su compostaje" in tex
+    assert "Compostaje, Riego" in tex
+
+
+def test_plain_style_renders_projects(project_root: Path) -> None:
+    from jobbot.cv.renderer import CvStyle
+
+    tex = render_cv_tex(_with_project(), project_root / "templates", style=CvStyle.PLAIN)
+
+    assert r"\section*{Projects}" in tex
+    assert r"\textbf{Huerto Comunitario}" in tex
+    assert r"\href{https://example.org/huerto\#inicio}" in tex
+
+
+def test_ats_renders_projects(project_root: Path) -> None:
+    lines = render_cv_ats(_with_project(), project_root / "templates").splitlines()
+
+    assert "PROJECTS" in lines
+    assert "Huerto Comunitario — https://example.org/huerto#inicio" in lines
+    assert "Coordinación de un huerto vecinal & su compostaje." in lines
+    assert "Compostaje, Riego" in lines
+
+
+def test_project_without_url_renders_without_link(project_root: Path) -> None:
+    from jobbot.cv.renderer import CvStyle
+
+    candidate = _with_project(url=None)
+    tex = render_cv_tex(candidate, project_root / "templates", style=CvStyle.MODERNCV)
+    ats = render_cv_ats(candidate, project_root / "templates")
+
+    assert r"\cventry{}{}{Huerto Comunitario}{}{}{}" in tex
+    assert r"\href{None" not in tex
+    assert "Huerto Comunitario" in ats.splitlines()
+
+
+def test_no_projects_no_section(project_root: Path) -> None:
+    candidate = Candidate.model_validate(sample_profile_dict())
+    tex = render_cv_tex(candidate, project_root / "templates")
+    ats = render_cv_ats(candidate, project_root / "templates")
+
+    assert "Proyectos" not in tex
+    assert "PROJECTS" not in ats
+
+
+def _with_orcid() -> Candidate:
+    data = sample_profile_dict()
+    data["personal"]["orcid"] = "0000-0002-1825-0097"
+    return Candidate.model_validate(data)
+
+
+_ORCID_HREF = r"\href{https://orcid.org/0000-0002-1825-0097}{orcid.org/0000-0002-1825-0097}"
+
+
+def test_moderncv_renders_orcid_as_linked_text(project_root: Path) -> None:
+    from jobbot.cv.renderer import CvStyle
+
+    tex = render_cv_tex(_with_orcid(), project_root / "templates", style=CvStyle.MODERNCV)
+
+    # \extrainfo joins the header contact line without a symbol glyph
+    assert rf"\extrainfo{{{_ORCID_HREF}}}" in tex
+    assert r"\social[orcid]" not in tex
+
+
+def test_plain_style_renders_orcid_in_contact_line(project_root: Path) -> None:
+    from jobbot.cv.renderer import CvStyle
+
+    tex = render_cv_tex(_with_orcid(), project_root / "templates", style=CvStyle.PLAIN)
+
+    assert rf"$\cdot$ {_ORCID_HREF}" in tex
+
+
+def test_ats_renders_orcid_on_its_own_line(project_root: Path) -> None:
+    lines = render_cv_ats(_with_orcid(), project_root / "templates").splitlines()
+
+    assert "ORCID: https://orcid.org/0000-0002-1825-0097" in lines
+
+
+def test_no_orcid_renders_nothing(project_root: Path) -> None:
+    from jobbot.cv.renderer import CvStyle
+
+    candidate = Candidate.model_validate(sample_profile_dict())
+    templates = project_root / "templates"
+    for style in CvStyle:
+        tex = render_cv_tex(candidate, templates, style=style)
+        assert "orcid" not in tex.lower()
+        assert r"\extrainfo" not in tex
+    assert "ORCID" not in render_cv_ats(candidate, templates)
+
+
 def test_moderncv_education_puts_degree_before_institution(project_root: Path) -> None:
     from jobbot.cv.renderer import CvStyle
 

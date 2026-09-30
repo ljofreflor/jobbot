@@ -27,6 +27,11 @@ def escape_latex(text: str) -> str:
     return _ESCAPE_RE.sub(lambda m: _LATEX_SPECIALS[m.group(0)], text)
 
 
+def escape_latex_url(url: str) -> str:
+    r"""Escape a URL for the target of ``\href`` used inside another macro's argument."""
+    return url.replace("%", r"\%").replace("#", r"\#")
+
+
 def escape_latex_multiline(text: str) -> str:
     """Escape LaTeX and normalize whitespace for paragraph fields."""
     cleaned = " ".join(text.split())

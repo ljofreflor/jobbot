@@ -47,6 +47,9 @@ def _check_unique_ids(candidate: Candidate, result: ValidationResult) -> None:
     pub_ids = [p.id for p in candidate.publications]
     _assert_unique(pub_ids, "publications", result)
 
+    project_ids = [p.id for p in candidate.projects]
+    _assert_unique(project_ids, "projects", result)
+
     ach_ids = [a.id for exp in candidate.experience for a in exp.achievements]
     _assert_unique(ach_ids, "achievements", result)
 

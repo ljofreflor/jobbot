@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-88 commands, 134 modules, 610 public symbols.
+88 commands, 137 modules, 627 public symbols.
 
 ## Commands
 
@@ -106,7 +106,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
-- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `JobbotConfig`, `load_config`
+- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`
 
@@ -198,13 +198,14 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `cv`
 
 - `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
+- `application_log.py` — Opt-in last page of a job CV: which posting it was built for, the match, and where · `LogText`, `ApplicationLogOptions`, `EvidenceLine`, `ApplicationLog`, `posting_url`, `build_application_log`, `strong_requirement_evidence`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
-- `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `build_job_cv_bundle`
+- `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
 - `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `write_company_receipt`
-- `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_multiline`
+- `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_url`, `escape_latex_multiline`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
-- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `render_cv_tex`, `render_cv_ats`
+- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `url_label`, `render_cv_tex`, `render_cv_ats`
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
@@ -226,6 +227,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
+- `language.py` — Spanish or English? Deterministic, from function words only — never a guess on a tie. · `detect_language`, `posting_language`
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `normalize_many`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `repository.py` — Job persistence repository. · `JobRepository`, `write_job_json`
@@ -239,12 +241,13 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `models`
 
 - `application.py` — Application tracking models. · `ApplicationStatus`, `Application`, `ApplicationEvent`
-- `candidate.py` — Candidate domain model — single source of truth representation. · `PersonalInfo`, `Candidate`
+- `candidate.py` — Candidate domain model — single source of truth representation. · `orcid_is_valid`, `PersonalInfo`, `Candidate`
 - `education.py` — Education model. · `Education`
 - `experience.py` — Experience and achievement models. · `Achievement`, `Experience`, `format_metric`, `metrics_as_display`
 - `external_profile.py` — External profile snapshot for portal diffs. · `ExternalExperience`, `ExternalEducation`, `ExternalProfile`
 - `job.py` — Job posting domain model. · `JobPosting`
 - `match.py` — Job match result models. · `MatchStrength`, `MatchItem`, `JobMatch`
+- `project.py` — Personal project model. · `Project`
 - `skill.py` — Skill groupings and publications. · `SkillGroups`, `Publication`
 - `sync.py` — Sync plan models for writable portal adapters. · `SyncOpType`, `SyncOperation`, `SyncPlan`, `SyncResult`
 - `targets.py` — Shared types for target renderers and constraints. · `ProfileTarget`, `TargetConstraints`, `ExperienceRenderer`, `YearMonth`
