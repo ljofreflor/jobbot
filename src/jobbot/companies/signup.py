@@ -39,6 +39,10 @@ _ACCOUNT_BY_ATS: dict[AtsKind, AccountNeed] = {
     AtsKind.SUCCESSFACTORS: AccountNeed.NEEDED,
     AtsKind.ORACLE: AccountNeed.NEEDED,
     AtsKind.TEAMTAILOR: AccountNeed.NOT_NEEDED,
+    AtsKind.TORRE: AccountNeed.NEEDED,
+    AtsKind.GETONBOARD: AccountNeed.NEEDED,
+    AtsKind.INDEED: AccountNeed.NEEDED,
+    AtsKind.LINKEDIN: AccountNeed.NEEDED,
 }
 
 _NOTES: dict[AccountNeed, str] = {
@@ -81,8 +85,12 @@ class SignupItem:
         return not self.value
 
 
+def account_need(ats: AtsKind) -> AccountNeed:
+    return _ACCOUNT_BY_ATS.get(ats, AccountNeed.UNKNOWN)
+
+
 def signup_target(site: CareerSite) -> SignupTarget:
-    need = _ACCOUNT_BY_ATS.get(site.ats, AccountNeed.UNKNOWN)
+    need = account_need(site.ats)
     return SignupTarget(url=site.url, need=need, note=_NOTES[need])
 
 
