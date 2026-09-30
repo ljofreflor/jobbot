@@ -51,6 +51,18 @@ _GROUPS: dict[str, list[str]] = {
     "apis": ["apis", "api", "rest", "rest api"],
     "bayesian": ["bayesian", "bayes", "estadistica bayesiana", "estadística bayesiana"],
     "survival_analysis": ["survival analysis", "analisis de supervivencia"],
+    "statistics": ["statistics", "estadistica", "estadística"],
+    "predictive_modeling": [
+        "predictive modeling",
+        "predictive modelling",
+        "predictive model",
+        "predictive models",
+        "modelo predictivo",
+        "modelos predictivos",
+        "modelamiento predictivo",
+        "modelado predictivo",
+    ],
+    "data_science": ["data science", "ciencia de datos", "ciencias de datos"],
     "customer_analytics": [
         "customer analytics",
         "customer lifetime value",
@@ -113,6 +125,26 @@ def normalize_skill(text: str) -> str:
     if best:
         return best[1]
     return key.replace(" ", "_")
+
+
+_MIN_PROSE_ALIAS = 4
+
+
+def skills_in_text(text: str) -> set[str]:
+    """Canonical skills a sentence names, e.g. 'modelos predictivos' → predictive_modeling.
+
+    Whole phrases only. Aliases shorter than four letters ('r', 'ml', 'tf') are
+    skipped because in prose they collide with ordinary words and initials.
+    """
+    _build_alias_map()
+    folded = f" {_normalize_key(text)} "
+    if not folded.strip():
+        return set()
+    return {
+        canonical
+        for alias, canonical in _ALIAS_TO_CANONICAL.items()
+        if len(alias) >= _MIN_PROSE_ALIAS and f" {alias} " in folded
+    }
 
 
 def normalize_many(values: list[str]) -> list[str]:
