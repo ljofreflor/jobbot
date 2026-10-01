@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from jobbot.adapters.ats.apply import prefill_field_map
+from jobbot.browser.background import new_background_page
 from jobbot.models.candidate import Candidate
 from jobbot.portals.form_learn import FieldKind, FormField, FormKnowledge, learn_form_html
 
@@ -334,9 +335,9 @@ def open_and_fill_over_cdp(
     timeout_ms: int = 30_000,
     playwright_factory: Callable[[], Any] | None = None,
 ) -> ApplyFillResult:
-    """Open ``url`` in a new tab of your Chrome, fill what is known, then disconnect.
+    """Open ``url`` in a new background tab of your Chrome, fill what is known, then disconnect.
 
-    The tab stays open for review; the browser is never closed.
+    The tab stays open for review; the browser is never closed nor raised.
     """
     if playwright_factory is None:
         from playwright.sync_api import sync_playwright
@@ -351,7 +352,7 @@ def open_and_fill_over_cdp(
             msg = f"Could not attach to Chrome at {cdp_url}: {exc}"
             raise ApplyFillError(msg) from exc
         context = browser.contexts[0] if browser.contexts else browser.new_context()
-        page = context.new_page()
+        page = new_background_page(context, browser=browser)
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
         except Exception as exc:  # noqa: BLE001

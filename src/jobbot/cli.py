@@ -23,6 +23,7 @@ from jobbot.applications.manager import (
     ApplicationRepository,
     prepare_application_package,
 )
+from jobbot.browser.background import background_notice
 from jobbot.companies.models import DiscoverySource
 from jobbot.companies.registry import CompanyRegistry
 from jobbot.config import JobbotConfig, load_config
@@ -2731,8 +2732,7 @@ def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
     if not target:
         err_console.print(f"[red]No URL for job {job_id}[/red]")
         raise typer.Exit(GENERIC_FAILURE)
-    open_ats_in_browser(target)
-    console.print(f"Opened {target}")
+    console.print(open_ats_in_browser(target))
 
 
 def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | None) -> None:
@@ -2769,7 +2769,7 @@ def _ats_target_url(adapter: Any, job: JobPosting, ats_url: str) -> str:
 def _fill_ats_over_cdp(
     cdp: str, url: str, candidate: Candidate, config: JobbotConfig, job_id: str
 ) -> bool:
-    """Open the ATS in a new tab of your Chrome and fill known fields. False → fall back."""
+    """Open the ATS in a background tab of your Chrome and fill known fields. False → fall back."""
     from jobbot.adapters.ats import apply_fill
     from jobbot.adapters.ats.email_apply import resolve_cv_path
 
@@ -2780,7 +2780,7 @@ def _fill_ats_over_cdp(
         err_console.print(f"[yellow]{exc}[/yellow]")
         err_console.print("[yellow]Falling back to your default browser + prefill sheet.[/yellow]")
         return False
-    console.print(f"[bold]Opened in a new tab of[/bold] {cdp}: {result.url}")
+    console.print(background_notice(result.url, where=f"una pestaña nueva de Chrome ({cdp})"))
     if result.login_required:
         console.print(
             "[yellow]The page asks you to sign in. JobBot typed nothing: sign in in that "
@@ -3087,7 +3087,7 @@ def _application_apply_one(
                 )
         else:
             url = open_gmail_compose(draft)
-            console.print(f"Opened Gmail compose ({len(url)} chars URL)")
+            console.print(background_notice(f"Gmail compose ({len(url)} chars URL)"))
             console.print(
                 f"Adjuntá el CV ({cv_pdf or 'output/base/cv.pdf'}) "
                 "y pulsá [bold]Enviar[/bold] en Gmail. JobBot no envía por vos."
@@ -3136,11 +3136,13 @@ def _application_apply_one(
     )
     if not filled_in_cdp:
         if adapter is not None and hasattr(adapter, "open"):
-            adapter.open(job)
+            opened = adapter.open(job)
+            if opened:
+                console.print(background_notice(opened))
         else:
             from jobbot.adapters.ats.apply import open_ats_in_browser
 
-            open_ats_in_browser(plan.ats_url)
+            console.print(open_ats_in_browser(plan.ats_url))
     # Write prefill cheat-sheet next to package. Contact stays in profile.yaml.
     cheat = app_dir / "ats_prefill.yaml"
     import yaml
@@ -3841,7 +3843,7 @@ def getonboard_open_profile() -> None:
     # Ensure permanent texts exist before opening (cumulative refine)
     client.prepare_package()
     url = client.open_profile_edit()
-    console.print(f"Opened {url}")
+    console.print(background_notice(url))
     console.print("Reemplaza textos viejos con output/getonboard/profile_permanent.md")
 
 
@@ -3929,7 +3931,7 @@ def getonboard_open_cvs() -> None:
     path = resolve_base_cv(config.output_dir)
     check = validate_cv_for_upload(path)
     url = GetOnBoardProfileClient.from_config(config).open_resumes()
-    console.print(f"Opened {url}")
+    console.print(background_notice(url))
     console.print("[bold]Local CV check[/bold]")
     for line in check.summary_lines():
         console.print(f"  {line}", soft_wrap=False, overflow="ignore", crop=False)
@@ -3968,9 +3970,9 @@ def getonboard_sync(
         )
         return
     console.print("Abriendo Editar perfil (pega profile_permanent.md)…")
-    console.print(client.open_profile_edit())
+    console.print(background_notice(client.open_profile_edit()))
     console.print("Abriendo zona profesional (navega a Tus CVs)…")
-    console.print(client.open_resumes())
+    console.print(background_notice(client.open_resumes()))
     console.print("HITL: reemplaza textos viejos, sube CV default, guarda. Luego postula.")
 
 
@@ -4893,8 +4895,7 @@ def companies_signup(
     if open_page:
         from jobbot.adapters.ats.apply import open_ats_in_browser
 
-        open_ats_in_browser(target.url)
-        console.print(f"Opened {target.url}")
+        console.print(open_ats_in_browser(target.url))
 
 
 def _companies_signup_apply(
@@ -5229,8 +5230,7 @@ def browser_chrome_debug(
     Automatically detects and launches any available Chromium-based browser:
     Chrome, Microsoft Edge, Brave, or Chromium.
     """
-    import subprocess
-
+    from jobbot.browser.background import launch_detached
     from jobbot.browser.cdp import cdp_http_url, chrome_debug_argv
     from jobbot.browser.sessions import (
         KNOWN_SITES,
@@ -5265,8 +5265,9 @@ def browser_chrome_debug(
     except ProfileBusyError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
-    subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
+    launch_detached(argv)
     console.print(f"[green]Launched[/green] Chrome with CDP at {url}")
+    console.print(background_notice(start_url, where="una ventana nueva de Chrome"))
 
 
 @browser_app.command("sessions")
@@ -5325,8 +5326,7 @@ def browser_login(
     ] = None,
 ) -> None:
     """List permanent, active and candidate portals that still need you to sign in."""
-    import subprocess
-
+    from jobbot.browser.background import launch_detached
     from jobbot.browser.cdp import chrome_debug_argv
     from jobbot.browser.login_plan import plan_logins
     from jobbot.browser.sessions import ProfileBusyError, SessionStatus, ensure_profile_free
@@ -5393,7 +5393,8 @@ def browser_login(
     except ProfileBusyError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
-    subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
+    launch_detached(argv)
+    console.print(background_notice(gap.url, where="una ventana nueva de Chrome"))
     console.print(
         f"[green]Opened[/green] {gap.name}. Sign in yourself (password, CAPTCHA, 2FA). "
         "Then re-run [bold]jobbot browser login[/bold]."

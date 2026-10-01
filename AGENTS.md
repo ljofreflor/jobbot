@@ -340,6 +340,10 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
   `active` or `candidate` and may need an account ([#56](https://github.com/ljofreflor/jobbot/issues/56)):
   dry-run by default; `--apply` opens the next gap and stops. The password, CAPTCHA and 2FA stay
   human. A company tab is `unknown`, never `ready`. Visiting a candidate does not promote it.
+- **Focus:** JobBot abre páginas en segundo plano; no roba el foco. Todo pasa por
+  `jobbot.browser.background` (`open -g` en macOS, `webbrowser` con `autoraise=False` fuera,
+  pestañas CDP con `Target.createTarget` `background: true`) e imprime dónde quedó la página.
+  `JOBBOT_BROWSER_FOCUS=1` vuelve al primer plano. Los tests nunca abren un navegador real.
 - Removals ignored by default.
 
 ## Regression tests (mandatory)

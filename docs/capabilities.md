@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-103 commands, 152 modules, 743 public symbols.
+103 commands, 153 modules, 750 public symbols.
 
 ## Commands
 
@@ -196,6 +196,7 @@ writing it again — the promotion rule lives in
 
 ### `browser`
 
+- `background.py` — Open pages in the background: the terminal keeps the focus. · `wants_focus`, `macos_open_argv`, `background_notice`, `open_url`, `background_launch_argv`, `launch_detached`, `new_background_page`
 - `cdp.py` — Helpers for attaching to a user-launched Chrome (CDP) — HITL, no CAPTCHA bypass. · `resolve_cdp_url`, `find_chrome_executable`, `chrome_debug_argv`, `cdp_http_url`
 - `challenges.py` — Challenge / manual interaction helpers. · `pause_if_challenge`
 - `clipboard.py` — Clipboard helper for HITL Indeed edits (macOS pbcopy; no CAPTCHA bypass). · `copy_to_clipboard`
