@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-88 commands, 136 modules, 622 public symbols.
+89 commands, 137 modules, 631 public symbols.
 
 ## Commands
 
@@ -82,6 +82,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml.
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
+- `jobbot profile queries` — Job searches derived from your experience; --apply saves them for you to edit.
 - `jobbot profile show` — Show a summary of the local profile.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
@@ -228,15 +229,15 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
-- `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `normalize_many`
-- `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
+- `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `stem_word`, `WordIndex`, `normalize_many`
+- `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `repository.py` — Job persistence repository. · `JobRepository`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
 
 ### `matching`
 
 - `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`
-- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `format_match_report`
+- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `blind_matcher_warning`, `format_match_report`
 
 ### `models`
 
@@ -292,6 +293,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `loader.py` — Load Candidate from profile.yaml. · `ProfileLoadError`, `load_profile`, `load_profile_raw`
 - `market.py` — Market-language suggestions for baseline CV (no invention; no deletions). · `MarketGapQuestion`, `MarketSuggestion`, `suggest_from_market`, `render_suggestion_markdown`, `apply_confirmed_skills`, `merge_confirmed_skills_into_raw`
 - `pdf_glyphs.py` — Recover the ligature glyphs a PDF's /ToUnicode map forgets. · `repair_missing_ligatures`
+- `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`
 
 ### `publications`
