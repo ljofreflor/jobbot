@@ -133,9 +133,9 @@ class FakePage:
         return _Locator(self, selector)
 
 
-def test_signup_intent_points_at_the_sheet_and_opens_nothing() -> None:
+def test_signup_intent_fills_without_submit_when_no_account_evidence() -> None:
     intent = company_apply_intent(_signup_row(), _candidate(), cv_path=None)
-    assert intent.mode == "signup_sheet"
+    assert intent.mode == "signup_fill"
     assert any(not item.value for item in intent.sheet)
     labels = " ".join(item.label.casefold() for item in intent.sheet)
     assert "password" not in labels
@@ -146,12 +146,60 @@ def test_signup_intent_points_at_the_sheet_and_opens_nothing() -> None:
         page=page,
         output_dir=Path("/tmp/unused-jobbot-company-apply"),
     )
-    assert result.opened is False
+    assert result.opened is True
     assert result.submitted is False
-    assert result.receipt_path is None
-    assert page.visited == []
-    assert page.filled == {}
+    assert page.visited == ["https://betterfly.wd3.myworkdayjobs.com/careers"]
     assert page.clicked == []
+    blob = " ".join(page.filled.values()).casefold()
+    assert "password" not in blob
+    assert "terms" not in blob
+
+
+def test_account_evidence_means_login_only_no_fill() -> None:
+    intent = company_apply_intent(
+        _signup_row(),
+        _candidate(),
+        cv_path=None,
+        has_account_evidence=True,
+    )
+    assert intent.mode == "login"
+    page = FakePage()
+    result = perform_company_apply(
+        intent,
+        _candidate(),
+        page=page,
+        output_dir=Path("/tmp/unused-jobbot-company-apply"),
+    )
+    assert result.opened is True
+    assert result.filled == ()
+    assert result.submitted is False
+    assert page.filled == {}
+    assert page.uploaded == []
+
+
+def test_job_adapted_cv_is_attached_not_base(tmp_path: Path) -> None:
+    base = _pdf(tmp_path)
+    job_pdf = tmp_path / "output" / "jobs" / "J0114" / "cv.pdf"
+    job_pdf.parent.mkdir(parents=True, exist_ok=True)
+    job_pdf.write_bytes(b"%PDF-1.4\n" + b"adapted" * 8)
+    intent = company_apply_intent(
+        _signup_row(),
+        _candidate(),
+        cv_path=base,
+        job_id="J0114",
+    )
+    assert intent.require_adapted_cv is True
+    page = FakePage()
+    result = perform_company_apply(
+        intent,
+        _candidate(),
+        page=page,
+        output_dir=tmp_path / "output",
+    )
+    assert result.attached is True
+    assert page.uploaded
+    assert page.uploaded[0][1] == str(job_pdf)
+    assert page.uploaded[0][1] != str(base)
 
 
 def test_fill_known_fields_and_attach_pdf_without_submit_or_receipt(tmp_path: Path) -> None:

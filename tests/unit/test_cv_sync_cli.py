@@ -86,28 +86,41 @@ def test_cv_sync_dry_run_lists_active_only_and_opens_no_browser(
     assert "Dry-run" in out
 
 
-def test_apply_signup_row_shows_the_sheet_and_opens_no_browser(
+def test_apply_signup_row_fills_known_fields_without_submit(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    """Needs-account without receipt → signup_fill (#44), never create/submit."""
     _workspace(tmp_path, project_root, monkeypatch)
     _write_companies(tmp_path)
     from jobbot.cli import run_cli
+    from tests.unit.test_cv_company_apply import FakePage
 
     opened: list[str] = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
     monkeypatch.setattr("jobbot.cli._apply_permanent_plans", lambda *args, **kwargs: None)
 
-    def _boom(*_args: object, **_kwargs: object) -> None:
-        raise AssertionError("browser session started")
+    page = FakePage()
 
-    monkeypatch.setattr("jobbot.browser.session.BrowserSession", _boom)
+    class FakeSession:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            self.page = page
+
+        def __enter__(self) -> FakeSession:
+            return self
+
+        def __exit__(self, *_a: object) -> None:
+            return None
+
+    monkeypatch.setattr("jobbot.browser.session.BrowserSession", FakeSession)
 
     assert run_cli(["cv", "sync", "--apply", "--yes"], standalone_mode=False) == SUCCESS
     out = capsys.readouterr().out
     assert opened == []
     assert "Betterfly" in out
-    assert "password" in out.casefold() or "does not create" in out.casefold()
+    assert page.visited
+    assert "password" not in " ".join(page.filled.values()).casefold()
+    assert page.clicked == []
     assert not list((tmp_path / "output").rglob("*receipt*"))

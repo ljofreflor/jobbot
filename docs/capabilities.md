@@ -34,7 +34,7 @@ writing it again — the promotion rule lives in
 - `jobbot companies recon` — Learn ATS markers and form questions from a page you entered (issue #45).
 - `jobbot companies reject` — Mark a discovered portal as wrong so it stops coming back.
 - `jobbot companies show` — Show one company with every portal, observation and contradiction.
-- `jobbot companies signup` — Sheet of what registering asks; --apply fills known fields (HITL create).
+- `jobbot companies signup` — Sheet of what registering asks; --apply fills or opens login (HITL create).
 - `jobbot companies sites` — Career portals reusable by later job discovery.
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
@@ -286,9 +286,11 @@ writing it again — the promotion rule lives in
 
 ### `portals`
 
+- `ats_lifecycle.py` — ATS portal lifecycle: knowledge, account/session, and form-field gaps. · `AccountSessionState`, `FieldGapState`, `PortalAction`, `account_session_state`, `next_portal_action`, `field_gap_state`
 - `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
+- `field_gap_issue.py` — Draft (and optionally open) GitHub issues for novel / unanswered portal fields. · `FieldGapIssueDraft`, `draft_field_gap_issue`, `gaps_from_form`, `create_field_gap_issue`
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
