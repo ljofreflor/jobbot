@@ -6,6 +6,8 @@ matching, adapted CVs, and assisted applications. **No web UI** — everything r
 New here? Start with the [tutorial](docs/tutorial.md): the loop end to end, the practices that
 keep it safe, and the guarantees the code enforces.
 
+Docs and blog: <https://ljofreflor.github.io/jobbot/> (source in `docs/`, `make docs-serve`).
+
 ## Why the compute spent here compounds
 
 **Every token spent on this project is progress on everyone's CV, collaboratively.** A run that
@@ -234,6 +236,27 @@ jobbot profile suggest-from-market [--ask] [--promote]
 ```
 
 Recruiter posts → external ATS URL → portal registry → assisted apply (HITL). Market feedback suggests baseline wording; gaps require confirmation before `--promote`.
+
+
+### One post, several vacancies
+
+Recruiters often advertise a whole batch in one post, one labelled link per role:
+
+```text
+🔹 Lead Agentic AI Consultant: https://lnkd.in/eUkqbGU2
+🔹 Lead Data Scientist: https://lnkd.in/e3KmPHyp
+🔹 Senior Computer Vision Engineer: https://lnkd.in/euF_SaWV
+```
+
+Each labelled role becomes its own job, keyed on the page it opens, so every one of them is
+independently matchable and appliable:
+
+```bash
+jobbot linkedin sweep                  # profile queries; or pass an explicit QUERY
+jobbot jobs match J0002
+jobbot cv build --job J0002
+jobbot application apply J0002 --apply
+```
 
 ## Propagate / sync the CV (standing presence)
 

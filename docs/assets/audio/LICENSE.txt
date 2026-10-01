@@ -1,0 +1,13 @@
+Jobbot landing ambient pad
+==========================
+
+File: ambient-pad.ogg / ambient-pad.mp3
+
+License: CC0 1.0 Universal (public domain dedication)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+This short ambient loop was synthesized for the Jobbot docs landing page
+(soft dual-tone pad, ~12s, designed to loop). No third-party samples were used.
+
+Credit (optional, not required under CC0):
+  “Jobbot ambient pad” — Jobbot docs, CC0

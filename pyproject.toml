@@ -42,6 +42,17 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/jobbot"]
 
+# Non-.py seeds/templates must ship in the wheel for `jobbot init`.
+[tool.hatch.build.targets.wheel.force-include]
+"src/jobbot/resources/profile.example.yaml" = "jobbot/resources/profile.example.yaml"
+"src/jobbot/resources/portals.example.yaml" = "jobbot/resources/portals.example.yaml"
+"src/jobbot/resources/companies.example.yaml" = "jobbot/resources/companies.example.yaml"
+"src/jobbot/resources/templates/cv.tex.j2" = "jobbot/resources/templates/cv.tex.j2"
+"src/jobbot/resources/templates/cv_ats.txt.j2" = "jobbot/resources/templates/cv_ats.txt.j2"
+"src/jobbot/resources/templates/cv_moderncv.tex.j2" = "jobbot/resources/templates/cv_moderncv.tex.j2"
+"src/jobbot/resources/templates/application/.gitkeep" = "jobbot/resources/templates/application/.gitkeep"
+
+
 [tool.uv]
 package = true
 
@@ -56,6 +67,7 @@ dev = [
 ]
 docs = [
     "diagrams>=0.24",
+    "mkdocs-material>=9.5",
 ]
 
 [tool.ruff]
