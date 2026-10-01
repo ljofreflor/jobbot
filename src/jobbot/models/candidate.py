@@ -79,11 +79,27 @@ class Candidate(BaseModel):
     personal: PersonalInfo
     summary: str | None = None
     specialties: list[str] = Field(default_factory=list)
+    # Job-board searches the candidate keeps: a preference, not a professional fact.
+    search_queries: list[str] = Field(default_factory=list)
     experience: list[Experience] = Field(default_factory=list)
     education: list[Education] = Field(default_factory=list)
     skills: SkillGroups = Field(default_factory=SkillGroups)
     publications: list[Publication] = Field(default_factory=list)
     projects: list[Project] = Field(default_factory=list)
+
+    @field_validator("search_queries", mode="before")
+    @classmethod
+    def clean_queries(cls, value: object) -> object:
+        if not isinstance(value, list):
+            return value
+        seen: set[str] = set()
+        cleaned: list[str] = []
+        for item in value:
+            text = " ".join(str(item or "").split())
+            if text and text.casefold() not in seen:
+                seen.add(text.casefold())
+                cleaned.append(text)
+        return cleaned
 
     def achievement_count(self) -> int:
         return sum(len(exp.achievements) for exp in self.experience)

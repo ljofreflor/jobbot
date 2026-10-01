@@ -18,6 +18,12 @@ specialties:
   - Causal Inference
   - Customer Analytics
 
+# Optional: job-board searches to run when no query is typed. `jobbot profile queries --apply`
+# proposes them from your experience; edit freely.
+search_queries:
+  - Causal Inference
+  - Senior Data Scientist
+
 experience:
   - id: meli-ds
     company: Mercado Libre
