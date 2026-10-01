@@ -209,7 +209,7 @@ def _rows_since(
     session = make_session_factory(make_engine(db))()
     try:
         jobs = {row.id: row for row in session.scalars(select(JobRow)).all()}
-        found: list[tuple[str, str, str, str, str]] = []
+        found: list[tuple[str, str, str, str, str, str]] = []
         for app in session.scalars(select(ApplicationRow)).all():
             updated = app.updated_at
             if updated.tzinfo is None:
