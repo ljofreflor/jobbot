@@ -14,6 +14,7 @@ _JOB_EXTRA_COLUMNS: dict[str, str] = {
     "ats_url": "TEXT",
     "ats_kind": "VARCHAR(64)",
     "posted_at": "DATETIME",
+    "share_code": "VARCHAR(12)",
 }
 
 

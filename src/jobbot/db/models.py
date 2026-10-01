@@ -36,6 +36,18 @@ class JobRow(Base):
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    share_code: Mapped[str | None] = mapped_column(String(12), nullable=True, index=True)
+
+
+class JobUrlRow(Base):
+    """Public URLs seen for one job. A different path is a different job."""
+
+    __tablename__ = "job_urls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    job_id: Mapped[str] = mapped_column(String(32), index=True)
+    url: Mapped[str] = mapped_column(Text)
+    canonical_key: Mapped[str] = mapped_column(Text, index=True)
 
 
 class ApplicationRow(Base):
