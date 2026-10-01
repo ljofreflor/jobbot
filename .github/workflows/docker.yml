@@ -30,16 +30,18 @@ jobs:
           WS="${HOME}/postulaciones"
           rm -rf "${WS}"
           mkdir -p "${WS}"
-          cp tests/fixtures/cvs/carolina_baeza/CV_Carolina_Baeza_2026.pdf "${WS}/"
+          cp latex/cv.tex.demo "${WS}/cv.tex.demo"
           docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work jobbot:ci init
           docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work \
-            jobbot:ci profile import-pdf /work/CV_Carolina_Baeza_2026.pdf --promote
+            jobbot:ci profile import-latex /work/cv.tex.demo
+          docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work \
+            jobbot:ci profile promote-generated --yes
           docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work jobbot:ci profile validate
           python3 - <<'PY'
           import yaml
           from pathlib import Path
           name = yaml.safe_load(Path.home().joinpath("postulaciones/.local/profile.yaml").read_text())["personal"]["name"]
-          assert "carolina" in name.casefold() and "baeza" in name.casefold(), name
+          assert name.casefold() == "ana ejemplo", name
           print("OK", name)
           PY
       - name: Login to GHCR
