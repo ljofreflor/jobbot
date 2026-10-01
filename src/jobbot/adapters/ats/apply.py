@@ -30,7 +30,7 @@ def resolve_ats_url(job: JobPosting) -> tuple[str | None, AtsKind]:
         if job.ats_url.lower().startswith("mailto:") or job.ats_kind == "email":
             return job.ats_url, AtsKind.EMAIL
         kind = detect_ats(job.ats_url)
-        # Custom career domains (e.g. careers.neuralworks.cl) sniff as Teamtailor
+        # Custom career domains (e.g. careers.empresa.cl) sniff as Teamtailor
         # but host rules alone stay unknown — honor stored ats_kind from sniff.
         if kind == AtsKind.UNKNOWN and job.ats_kind:
             try:

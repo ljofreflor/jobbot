@@ -102,7 +102,7 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
     ),
     (re.compile(r"[a-z0-9_-]+\.teamtailor\.com", re.I), AtsKind.TEAMTAILOR, "teamtailor host"),
     (
-        # Custom career domains (careers.neuralworks.cl) still load Teamtailor's CDN.
+        # Custom career domains (careers.empresa.cl) still load Teamtailor's CDN.
         re.compile(r"teamtailor(?:-cdn)?\.(?:com|io)", re.I),
         AtsKind.TEAMTAILOR,
         "teamtailor assets",
@@ -165,7 +165,7 @@ def sniff_ats(url: str, *, timeout: float = 10.0) -> AtsKind:
     """
     Classify a vacancy URL: host rule first, then the page's own ATS markers.
 
-    Custom career domains (``careers.neuralworks.cl``) look unknown by host alone but
+    Custom career domains (``careers.empresa.cl``) look unknown by host alone but
     still load Teamtailor/Greenhouse assets — that is technical evidence, not a guess.
     """
     kind = detect_ats(url)
