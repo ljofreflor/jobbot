@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-95 commands, 140 modules, 662 public symbols.
+96 commands, 147 modules, 703 public symbols.
 
 ## Commands
 
@@ -183,6 +183,7 @@ writing it again — the promotion rule lives in
 
 ### `applications`
 
+- `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
 
@@ -211,7 +212,7 @@ writing it again — the promotion rule lives in
 
 ### `cv`
 
-- `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
+- `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `char_delta`, `compress_phrase`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
 - `application_log.py` — Opt-in last page of a job CV: which posting it was built for, the match, and where · `LogText`, `ApplicationLogOptions`, `EvidenceLine`, `ApplicationLog`, `posting_url`, `build_application_log`, `strong_requirement_evidence`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
 - `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
