@@ -10,6 +10,7 @@ from jobbot.ops.pii_guard import (
     looks_binary,
     redact,
     scan_text,
+    scan_tracked,
 )
 
 
@@ -26,6 +27,7 @@ def test_blocked_paths_cover_profile_db_and_private_latex() -> None:
 
 def test_workspaces_of_other_candidates_are_blocked() -> None:
     """A test CV is somebody else's PII: `sandboxes/` never reaches the index."""
+    assert is_blocked_path("sandboxes/rocio/data/consent.yaml")
     assert is_blocked_path("sandboxes/rocio/data/profile.yaml")
     assert is_blocked_path("sandboxes/rocio/output/jobs/J0001/cv_ats.txt")
     assert is_blocked_path("sandboxes/rocio/nursing_job.txt")
@@ -128,3 +130,15 @@ def test_png_paths_are_treated_as_binary() -> None:
     assert not is_binary_path("README.md")
     assert looks_binary(b"\x89PNG\r\n\x1a\n\0rest")
     assert not looks_binary(b"# JobBot\n")
+
+
+def test_tracked_tree_passes_the_guard() -> None:
+    """Commits made without the hook (cloud agents, web edits) still meet the guard in CI."""
+    findings = scan_tracked()
+    assert not findings, format_report(findings)
+
+
+def test_packaged_example_templates_may_hold_example_contact_data() -> None:
+    """`jobbot init` seeds from a packaged copy of data/profile.example.yaml."""
+    assert is_allowed_content_path("src/jobbot/resources/profile.example.yaml")
+    assert not is_allowed_content_path("src/jobbot/resources/profile.yaml")

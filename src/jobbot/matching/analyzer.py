@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
-from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill
+from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill, skills_in_text
 from jobbot.jobs.parsing import extract_skills_from_text, looks_like_page_metadata
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
@@ -147,16 +147,18 @@ def _candidate_tokens(candidate: Candidate) -> set[str]:
         tokens.add(normalize_skill(exp.title))
         tokens.add(normalize_skill(exp.company))
         if exp.description:
-            for word in _keyword_candidates(exp.description):
-                tokens.add(word)
+            tokens |= _keyword_candidates(exp.description)
+            tokens |= skills_in_text(exp.description)
         for ach in exp.achievements:
             for tag in ach.tags:
                 tokens.add(normalize_skill(tag))
-            for word in _keyword_candidates(ach.text):
-                tokens.add(word)
+            tokens |= _keyword_candidates(ach.text)
+            tokens |= skills_in_text(ach.text)
+    for edu in candidate.education:
+        tokens |= skills_in_text(edu.degree)
     if candidate.summary:
-        for word in _keyword_candidates(candidate.summary):
-            tokens.add(word)
+        tokens |= _keyword_candidates(candidate.summary)
+        tokens |= skills_in_text(candidate.summary)
     return {t for t in tokens if t}
 
 

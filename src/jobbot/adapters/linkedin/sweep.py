@@ -673,8 +673,8 @@ def employer_from_post(text: str, apply_url: str | None, *, author: str | None) 
     Whoever writes a hiring post is usually a recruiter, not the company, so the author
     is a poor employer name — but it is the only one available most of the time. When the
     post names a company *and* the apply URL carries that name, the two agree and the
-    employer is a fact. A hiring mailbox on a company domain (postulaciones@peopletrust.cl)
-    is stronger than the author's name when the body never says "En PeopleTrust…".
+    employer is a fact. A hiring mailbox on a company domain (postulaciones@empresa.cl)
+    is stronger than the author's name when the body never says "En Empresa…".
     """
     named = _guess_company(text)
     if named and _post_names_employer(named, text, apply_url):
@@ -697,13 +697,13 @@ def _company_from_apply_url(url: str | None) -> str | None:
     host = host.casefold().removeprefix("www.")
     if not host or "." not in host:
         return None
-    # careers.neuralworks.cl → neuralworks.cl; jobs.softserveinc.com → softserveinc.com
+    # careers.empresa.cl → empresa.cl; jobs.ejemplo.com → ejemplo.com
     labels = host.split(".")
     if labels[0] in {"careers", "career", "jobs", "empleo", "empleos", "mail", "www"}:
         labels = labels[1:]
     if len(labels) < 2:
         return None
-    # empresa.com.ar → empresa; peopletrust.cl → peopletrust
+    # empresa.com.ar → empresa; ejemplo.cl → ejemplo
     if len(labels) >= 3 and ".".join(labels[-2:]) in {
         "com.ar",
         "com.br",

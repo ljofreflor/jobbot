@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 # Paths that must never be tracked, even with `git add -f`.
 _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
@@ -26,10 +26,11 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
         r"^data/recruiters\.yaml$",
         "hiring-practice sources you read (share via recruiters export)",
     ),
-    (r"^data/.*\.bak$", "profile backup"),
+    (r"^data/.*\.bak(\.|$)", "profile backup"),
     (r"^latex/cv\.tex$", "private LaTeX CV (only cv.tex.demo is tracked)"),
     (r"^\.jobbot\.toml$", "local config with private paths"),
     (r"^sandboxes/", "another candidate's workspace (test CVs are their PII)"),
+    (r"(^|/)consent\.yaml$", "client consent and retention record"),
     (r"^browser-data/", "browser session data"),
     (r"^output/", "generated artefacts with PII"),
     (r"\.sqlite3?$", "local database"),
@@ -69,6 +70,7 @@ _BINARY_SUFFIXES = frozenset(
 _ALLOWED_PATHS: tuple[str, ...] = (
     r"^tests/",
     r"^data/.*\.example\.yaml$",
+    r"^src/jobbot/resources/.*\.example\.yaml$",
     r"^latex/cv\.tex\.demo$",
     r"^src/jobbot/ops/pii_guard\.py$",
     r"^src/jobbot/portals/email_apply\.py$",
@@ -220,6 +222,35 @@ def scan_staged() -> list[Finding]:
     return findings
 
 
+def tracked_paths() -> list[str]:
+    out = _git(["ls-files"])
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def scan_tracked() -> list[Finding]:
+    """Scan every tracked file, for commits that never ran the pre-commit hook."""
+    top = _git(["rev-parse", "--show-toplevel"]).strip()
+    if not top:
+        return []
+    root = Path(top)
+    findings: list[Finding] = []
+    for path in tracked_paths():
+        reason = is_blocked_path(path)
+        if reason is not None:
+            findings.append(Finding(path, f"blocked path ({reason})"))
+            continue
+        if is_binary_path(path):
+            continue
+        try:
+            raw = (root / path).read_bytes()
+        except OSError:
+            continue
+        if looks_binary(raw):
+            continue
+        findings.extend(scan_text(raw.decode("utf-8", errors="replace"), path))
+    return findings
+
+
 def format_report(findings: list[Finding]) -> str:
     lines = ["PII guard blocked this commit:", ""]
     for f in findings:
@@ -235,8 +266,9 @@ def format_report(findings: list[Finding]) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
-    findings = scan_staged()
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    findings = scan_tracked() if "--all" in args else scan_staged()
     if not findings:
         return 0
     print(format_report(findings), file=sys.stderr)

@@ -98,6 +98,22 @@ def test_an_opportunity_hosted_on_an_ats_points_at_that_ats(payload: dict[str, A
     assert job.ats_kind == AtsKind.GREENHOUSE.value
 
 
+def test_external_flag_with_application_url_points_at_the_ats(payload: dict[str, Any]) -> None:
+    """Regression: the API now sends `external: true` plus `externalApplicationUrl`.
+
+    Only a string `external` was read, so every such posting was stored with the
+    Torre page as its apply target and the real ATS was never reached.
+    """
+    item = dict(payload["results"][0])
+    item["external"] = True
+    item["externalApplicationUrl"] = "https://jobs.lever.co/estudioneutro/0a1b2c3d"
+
+    job = job_from_api_item(item)
+
+    assert job.ats_url == "https://jobs.lever.co/estudioneutro/0a1b2c3d"
+    assert job.ats_kind == AtsKind.LEVER.value
+
+
 def test_remote_and_location_are_read_from_place(payload: dict[str, Any]) -> None:
     remote_job = job_from_api_item(payload["results"][0])
     onsite_job = job_from_api_item(payload["results"][1])

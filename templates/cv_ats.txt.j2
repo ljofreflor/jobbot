@@ -5,6 +5,7 @@
 {% endif %}{% if personal.phone %}Phone: {{ personal.phone }}
 {% endif %}{% if personal.linkedin %}LinkedIn: {{ personal.linkedin }}
 {% endif %}{% if personal.github %}GitHub: {{ personal.github }}
+{% endif %}{% if personal.orcid_url %}ORCID: {{ personal.orcid_url }}
 {% endif %}
 
 {% if candidate.summary %}SUMMARY
@@ -20,7 +21,14 @@
 {% if exp.description %}{{ exp.description | trim }}
 {% endif %}{% for ach in achievements %}- {{ ach.text | trim }}{% if ach.metrics %} ({{ metrics_line(ach.metrics) }}){% endif +%}
 {% endfor %}
-{% endfor %}{% endif %}{% if candidate.education +%}
+{% endfor %}{% endif %}{% if projects +%}
+PROJECTS
+{% for project in projects %}{{ project.name }}{% if project.url %} — {{ project.url }}{% endif +%}
+{{ project.description | trim }}
+{% if project.tags %}{{ project.tags | join(', ') }}
+{% endif %}{% if not loop.last %}
+
+{% endif %}{% endfor %}{% endif %}{% if candidate.education +%}
 EDUCATION
 {% for edu in candidate.education %}
 {{ edu.degree }} — {{ edu.institution }}
@@ -34,4 +42,5 @@ SKILLS
 PUBLICATIONS
 {% for pub in publications %}- {% if pub.authors %}{{ pub.authors | join(', ') }}. {% endif %}{{ pub.title }}{% if pub.journal %}. {{ pub.journal }}{% endif %}{% if pub.year %} ({{ pub.year }}){% endif %}{% if pub.status %} [{{ pub.status }}]{% endif %}{% if pub.doi %}. doi:{{ pub.doi }}{% endif +%}
 {% endfor %}{% endif %}
-{{ cv_credit }}
+{% if cv_credit %}{{ cv_credit }}
+{% endif %}
