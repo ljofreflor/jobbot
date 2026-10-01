@@ -186,6 +186,11 @@ def aggregator_board(url: str) -> AtsKind | None:
     return None
 
 
+def html_marker_kinds() -> tuple[AtsKind, ...]:
+    """Platforms recognisable from a corporate page's own markup, in marker order."""
+    return tuple(dict.fromkeys(kind for _, kind, _ in _HTML_MARKERS))
+
+
 def detect_ats_in_html(html: str) -> tuple[AtsKind, str]:
     """Classify by embedded ATS markers. Returns (kind, evidence); never guesses by looks."""
     if not html:

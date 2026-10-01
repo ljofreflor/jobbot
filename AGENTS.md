@@ -581,4 +581,5 @@ uv run jobbot profile queries                   # búsquedas derivadas de la exp
 uv run jobbot profile queries --apply           # confirma y guarda search_queries (editable)
 uv run jobbot workspace list|new NAME|show|adopt
 uv run jobbot --workspace NAME cv build --job J0001  # runs against a test CV
+make site  # advisory page diagram from AtsKind/adapters/sources (stale = red suite)
 ```

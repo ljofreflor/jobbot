@@ -1,4 +1,4 @@
-.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities coverage coverage-main architecture docs-serve docs-build
+.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities site coverage coverage-main architecture docs-serve docs-build
 
 install:
 	uv sync --group dev
@@ -18,6 +18,9 @@ pre-commit:
 
 capabilities:
 	uv run jobbot ops capabilities --write
+
+site:
+	uv run python -m jobbot.portals.platform_map --write
 
 architecture:
 	@command -v dot >/dev/null || (echo "Graphviz required: brew install graphviz"; exit 1)
