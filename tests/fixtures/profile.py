@@ -174,6 +174,156 @@ def journalist_profile_dict() -> dict[str, Any]:
     }
 
 
+def public_health_profile_dict() -> dict[str, Any]:
+    """Public-health profile whose headline is a degree, not the name of a job."""
+    return {
+        "personal": {
+            "name": "Inés Morales Pinto",
+            "headline": "Doctora en Ciencias (en curso) · Magíster en Salud Animal",
+            "city": None,
+            "country": "Chile",
+            "email": "ines.morales@example.com",
+        },
+        "summary": (
+            "Médica veterinaria con experiencia en vigilancia epidemiológica, "
+            "epidemiología de campo y salud pública."
+        ),
+        "specialties": [],
+        "experience": [
+            {
+                "id": "servicio-zoonosis",
+                "company": "Servicio Regional de Salud del Valle",
+                "title": "Referente de Vigilancia de Zoonosis",
+                "location": "Chile",
+                "start_date": "2022-01",
+                "end_date": "2023-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "zoonosis-vigilancia",
+                        "text": "Referente regional de la vigilancia epidemiológica de rabia "
+                        "e hidatidosis; investigación de brotes de enfermedades zoonóticas.",
+                        "tags": [],
+                        "metrics": {},
+                    },
+                    {
+                        "id": "zoonosis-informes",
+                        "text": "Elaboré informes de situación para la toma de decisiones "
+                        "en salud pública.",
+                        "tags": [],
+                        "metrics": {},
+                    },
+                ],
+            },
+            {
+                "id": "organismo-consultoria",
+                "company": "Organismo Internacional de Salud",
+                "title": "Consultora Internacional",
+                "location": None,
+                "start_date": "2024-01",
+                "end_date": "2025-06",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "consultoria-sistema",
+                        "text": "Apoyo técnico a doce países en la puesta en marcha de un "
+                        "sistema de información de vigilancia epidemiológica para "
+                        "inmunoprevenibles.",
+                        "tags": [],
+                        "metrics": {},
+                    }
+                ],
+            },
+            {
+                "id": "red-diagnostico",
+                "company": "Unidad Nacional de Diagnóstico",
+                "title": "Coordinadora de Red de Laboratorios",
+                "location": "Chile",
+                "start_date": "2020-01",
+                "end_date": "2021-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "red-laboratorios",
+                        "text": "Coordiné una red de 150 laboratorios clínicos para el "
+                        "diagnóstico durante la pandemia.",
+                        "tags": [],
+                        "metrics": {},
+                    },
+                    {
+                        "id": "red-emergencias",
+                        "text": "Investigación de brotes y vigilancia intensificada en "
+                        "emergencias sanitarias.",
+                        "tags": [],
+                        "metrics": {},
+                    },
+                ],
+            },
+            {
+                "id": "municipio-zoonosis",
+                "company": "Municipalidad de Valle Neutro",
+                "title": "Médica Veterinaria",
+                "location": "Chile",
+                "start_date": "2014-01",
+                "end_date": "2015-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "municipio-programa",
+                        "text": "Implementé el programa municipal de zoonosis y tenencia "
+                        "responsable de mascotas.",
+                        "tags": [],
+                        "metrics": {},
+                    }
+                ],
+            },
+            {
+                "id": "universidad-docencia",
+                "company": "Universidad del Sur",
+                "title": "Docente",
+                "location": "Chile",
+                "start_date": "2012-03",
+                "end_date": "2013-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "docencia-epidemiologia",
+                        "text": "Docente de epidemiología en la carrera de medicina veterinaria.",
+                        "tags": [],
+                        "metrics": {},
+                    }
+                ],
+            },
+        ],
+        "education": [
+            {
+                "id": "doctorado",
+                "institution": "Universidad del Sur",
+                "degree": "Doctorado en Ciencias Veterinarias",
+                "start_date": "2015-01",
+            },
+            {
+                "id": "magister",
+                "institution": "Universidad del Litoral",
+                "degree": "Magíster en Salud Animal",
+                "start_date": "2011-01",
+                "end_date": "2013-12",
+            },
+        ],
+        "skills": {
+            "epidemiologia": [
+                "Vigilancia epidemiológica",
+                "Epidemiología de campo (FETP Frontline)",
+                "Investigación de brotes",
+                "QGIS",
+            ],
+            "salud_publica": ["Salud pública", "Enfermedades zoonóticas"],
+            "statistics": ["Bioestadística", "R"],
+        },
+        "publications": [],
+    }
+
+
 def sample_profile_dict() -> dict[str, Any]:
     return {
         "personal": {
