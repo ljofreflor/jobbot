@@ -396,8 +396,9 @@ When the user vibecodes recurring natural language (draft text, classify, advise
 
 ## 8. Related documents
 
+- [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
 - [AGENTS.md](../AGENTS.md) — agent policy; Design economics (System 2 → System 1)
 - [README.md](../README.md) — product overview and commands
 - [data/README.md](../data/README.md) — what is gitignored under `data/`
-- [docs/library-audit.md](library-audit.md) — adopted vs kept-ours dependency decisions
+- [library-audit.md](library-audit.md) — adopted vs kept-ours dependency decisions
 - GitHub issues `#6`–`#12` — library / DB decisions still open
