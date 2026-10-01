@@ -1,5 +1,8 @@
-name: docs
+name: pages
 
+# The repo has one GitHub Pages site, so one workflow owns it: the MkDocs docs at
+# the root and the static advisory page under /asesoria/, in a single artefact.
+# A second deploying workflow would overwrite whichever ran before it.
 on:
   push:
     branches: [main]
@@ -8,7 +11,8 @@ on:
       - mkdocs.yml
       - pyproject.toml
       - uv.lock
-      - .github/workflows/docs.yml
+      - asesoria/**
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 # Actions-based Pages deployment: the artifact is published by deploy-pages,
@@ -29,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
           python-version: "3.12"
@@ -38,6 +42,11 @@ jobs:
         run: |
           uv sync --group docs
           uv run mkdocs build --strict
+
+      - name: Add advisory page
+        run: |
+          mkdir -p site/asesoria
+          cp -R asesoria/. site/asesoria/
 
       - uses: actions/configure-pages@v6
 

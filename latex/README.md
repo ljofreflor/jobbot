@@ -23,7 +23,7 @@ In `.jobbot.toml` (gitignored):
 ```toml
 [paths]
 # Prefer an absolute path outside the repo for the real vitae, e.g.:
-# legacy_cv = "/Users/you/Documents/vitae/cv/main.tex"
+# legacy_cv = "/path/to/vitae/cv/main.tex"
 # Or a local ignored copy:
 legacy_cv = "latex/cv.tex"
 ```

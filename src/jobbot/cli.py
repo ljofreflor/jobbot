@@ -287,6 +287,11 @@ def main(
     set_active_workspace(workspace)
     if workspace is not None:
         console.print(f"[yellow]workspace:[/yellow] {workspace} ({workspace_root(workspace)})")
+        from jobbot.advisor import retention_warning
+
+        notice = retention_warning(workspace_root(workspace))
+        if notice:
+            console.print(f"[yellow]{notice}[/yellow]")
 
 
 @app.command("version")
@@ -886,6 +891,90 @@ def workspace_adopt(
         err_console.print(f"No profile with a name at {profile_path}")
         raise typer.Exit(GENERIC_FAILURE)
     console.print(f"Owner is now {fingerprint}")
+
+
+@workspace_app.command("delete")
+def workspace_delete(
+    name: Annotated[str, typer.Argument(help="Sandbox to remove")],
+    yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation")] = False,
+) -> None:
+    """Delete one sandbox. Never touches the checkout's own data/."""
+    from jobbot.advisor import WorkspaceDeleteRefused, delete_workspace
+
+    root = workspace_root(name)
+    console.print(f"Delete {root}")
+    if not yes and not typer.confirm("This removes that candidate's sandbox. Continue?"):
+        raise typer.Abort
+    try:
+        delete_workspace(name, confirmed=True)
+    except WorkspaceDeleteRefused as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+    console.print(f"Deleted {name}")
+
+
+@workspace_app.command("consent")
+def workspace_consent(
+    name: Annotated[str, typer.Argument()],
+    consented_at: Annotated[str, typer.Option("--at", help="ISO date the client agreed")],
+    scope: Annotated[str, typer.Option("--scope", help="What the client agreed to")],
+    delete_after: Annotated[
+        str, typer.Option("--delete-after", help="ISO date to erase the sandbox")
+    ],
+) -> None:
+    """Record local consent and a retention date for one sandbox."""
+    from jobbot.advisor import Consent, write_consent
+
+    root = workspace_root(name)
+    if not root.is_dir():
+        err_console.print(f"[red]No workspace {name}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    path = write_consent(
+        root,
+        Consent(consented_at=consented_at, scope=scope, delete_after=delete_after),
+    )
+    console.print(f"Wrote {path}")
+
+
+advisor_app = typer.Typer(
+    help="Cross-workspace status and a per-client report (no other candidate's data)",
+    no_args_is_help=True,
+)
+app.add_typer(advisor_app, name="advisor")
+
+
+@advisor_app.command("status")
+def advisor_status() -> None:
+    """One line per sandbox: fingerprint, counts, proposal, retention. No profile PII."""
+    from datetime import UTC, datetime
+
+    from jobbot.advisor import status_lines
+
+    names = list_workspaces()
+    lines = status_lines([(name, workspace_root(name)) for name in names], today=datetime.now(UTC))
+    if not lines:
+        console.print(f"No workspaces yet in {sandboxes_dir()}.")
+        return
+    for line in lines:
+        console.print(line)
+
+
+@advisor_app.command("report")
+def advisor_report(
+    since: Annotated[str, typer.Option("--since", help="Window, e.g. 7d")] = "7d",
+) -> None:
+    """Write a redacted report into the selected workspace's output/."""
+    from datetime import UTC, datetime
+
+    from jobbot.advisor import parse_since, write_report
+
+    name = active_workspace()
+    if not name:
+        err_console.print("[red]Pass --workspace NAME[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    now = datetime.now(UTC)
+    path = write_report(workspace_root(name), since=parse_since(since, now=now), now=now)
+    console.print(f"Wrote {path}")
 
 
 # ── profile ──────────────────────────────────────────────────────────────────
@@ -2667,6 +2756,26 @@ def application_apply(
         ):
             console.print("Aborted.")
             raise typer.Exit(SUCCESS)
+        from jobbot.browser.sessions import (
+            AccountExpectation,
+            inspect_sessions,
+            refuse_to_open,
+            session_for,
+        )
+
+        expected = AccountExpectation(
+            email=str(candidate.personal.email) if candidate.personal.email else None,
+            linkedin=candidate.personal.linkedin,
+        )
+        gmail = session_for(
+            inspect_sessions(config.root, sites=["gmail"], account=expected),
+            "gmail",
+        )
+        if gmail is not None:
+            blocked = refuse_to_open(gmail.status, gmail.evidence)
+            if blocked:
+                err_console.print(f"[red]{blocked}[/red]")
+                raise typer.Exit(GENERIC_FAILURE)
         if attach and cv_pdf is not None:
             from jobbot.adapters.gmail.compose import GmailComposeAdapter, GmailComposeError
 
@@ -4895,6 +5004,7 @@ def browser_sessions(
             SessionStatus.READY: "green",
             SessionStatus.NEEDS_LOGIN: "yellow",
             SessionStatus.PROFILE_BUSY: "red",
+            SessionStatus.WRONG_ACCOUNT: "red",
         }.get(state.status, "white")
         table.add_row(
             state.site,
@@ -4938,6 +5048,7 @@ def browser_login(
             SessionStatus.READY: "green",
             SessionStatus.NEEDS_LOGIN: "yellow",
             SessionStatus.PROFILE_BUSY: "red",
+            SessionStatus.WRONG_ACCOUNT: "red",
         }.get(row.status, "white")
         table.add_row(
             row.bucket.value,
@@ -4965,9 +5076,12 @@ def browser_login(
     if gap is None:
         console.print("Nothing left to open.")
         return
-    if gap.status is SessionStatus.PROFILE_BUSY:
-        err_console.print(f"[red]{gap.evidence}[/red]")
-        if gap.hint:
+    from jobbot.browser.sessions import refuse_to_open
+
+    reason = refuse_to_open(gap.status, gap.evidence)
+    if reason:
+        err_console.print(f"[red]{reason}[/red]")
+        if gap.hint and gap.status is not SessionStatus.WRONG_ACCOUNT:
             err_console.print(gap.hint)
         raise typer.Exit(GENERIC_FAILURE)
 
