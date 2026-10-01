@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-96 commands, 147 modules, 703 public symbols.
+96 commands, 147 modules, 706 public symbols.
 
 ## Commands
 
@@ -147,7 +147,7 @@ writing it again — the promotion rule lives in
 
 - `client.py` — Get on Board profile HITL client — permanent profile maintainer. · `GetOnBoardProfileClient`
 - `cv_upload.py` — Upload the local CV PDF to Get on Board 'Tus CVs', after validating it. · `GobCvUploadError`, `CvUploadCheck`, `CvUploadResult`, `CvUploadReceipt`, `upload_receipt_path`, `write_upload_receipt`, `load_upload_receipt`, `PageLike`, `validate_cv_for_upload`, `resolve_base_cv`, `upload_cv`, `list_resume_labels`
-- `draft.py` — Permanent Get on Board profile fields from Candidate (facts only; Spanish). · `PermanentProfileFields`, `build_permanent_profile_fields`, `draft_getonboard_fields`, `render_permanent_profile_markdown`, `render_getonboard_markdown`, `permanent_profile_dir`, `permanent_profile_yaml_path`, `permanent_profile_md_path`, `save_permanent_profile`, `fields_from_seed_text`, `load_permanent_profile`
+- `draft.py` — Permanent Get on Board profile fields from Candidate (facts only; Spanish). · `PermanentProfileFields`, `build_permanent_profile_fields`, `draft_getonboard_fields`, `render_permanent_profile_markdown`, `render_getonboard_markdown`, `permanent_profile_dir`, `permanent_profile_yaml_path`, `permanent_profile_md_path`, `save_permanent_profile`, `fields_from_seed_text`, `load_permanent_profile`, `recent_roles`, `role_label`, `role_head`
 - `jobs.py` — Get on Board job source (LATAM/ES) via public search API + hard-link pages. · `GetOnBoardJobSource`, `search_jobs_api`, `slug_from_url`, `fetch_job_html`, `parse_job_html`, `job_from_hard_link`, `job_from_api_item`, `remember_portal`, `remember_portal_from_url`
 - `package.py` — Get on Board profile + CV sync package from Candidate (facts only). · `GetOnBoardSyncPackage`, `build_getonboard_sync_package`, `render_getonboard_sync_markdown`
 - `profile_edit.py` — Write the permanent Get on Board profile through its own edit form. · `GobField`, `FieldWrite`, `ElementLike`, `PageLike`, `read_current`, `plan_writes`, `apply_writes`, `desired_from_fields`
