@@ -264,8 +264,15 @@ def _reconcile(
 # ── persistence ──────────────────────────────────────────────────────────────
 
 
-def default_companies_path(root: Path) -> Path:
-    return root / "data" / "companies.yaml"
+def default_companies_path(root: Path | None = None) -> Path:
+    """Companies YAML: config ``paths.companies`` when available, else ``data/companies.yaml``."""
+    if root is None:
+        from jobbot.config import load_config
+
+        return load_config().companies_path
+    from jobbot.config import load_config
+
+    return load_config(root=root).companies_path
 
 
 def generated_candidates_path(output_dir: Path) -> Path:

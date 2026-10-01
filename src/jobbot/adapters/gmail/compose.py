@@ -148,7 +148,7 @@ class GmailComposeAdapter:
         from jobbot.browser.cdp import resolve_cdp_url
 
         self.config = config
-        self.profile_dir = config.root / "browser-data" / "gmail"
+        self.profile_dir = config.browser_profile_dir("gmail")
         self.debug_root = config.output_dir / "debug"
         self.cdp_url = resolve_cdp_url(cdp_url)
 

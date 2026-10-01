@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
 
+from jobbot.branding import MARK
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 
@@ -96,6 +97,7 @@ def build_email_draft(
         intro_parts.append(str(candidate.personal.email))
     if candidate.personal.linkedin:
         intro_parts.append(candidate.personal.linkedin)
+    intro_parts.extend(["", MARK])
     body = "\n".join(intro_parts)
     return EmailApplyDraft(
         to=to,

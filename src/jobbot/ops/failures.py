@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from jobbot.config import JobbotConfig, load_config
 from jobbot.db.engine import make_engine, make_session_factory
 from jobbot.db.models import OpsFailureRow
-from jobbot.exit_codes import SUCCESS, USER_CANCEL
+from jobbot.exit_codes import SUCCESS, USER_CANCEL, VALIDATION_FAILURE
 from jobbot.jobs.ids import next_failure_id
 from jobbot.ops.redact import redact_context, redact_text
 
@@ -213,8 +213,8 @@ def record_failure(
 
 
 def should_record_cli_failure(argv: Sequence[str], exit_code: int) -> bool:
-    """Skip success, user cancel (Ctrl-C), help probes, and ops/version commands."""
-    if exit_code in {SUCCESS, USER_CANCEL}:
+    """Skip success, user cancel, validation errors, help probes, and ops/version."""
+    if exit_code in {SUCCESS, USER_CANCEL, VALIDATION_FAILURE}:
         return False
     if any(flag in {"--help", "-h"} for flag in argv):
         return False

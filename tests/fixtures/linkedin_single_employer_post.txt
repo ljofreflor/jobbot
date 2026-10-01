@@ -1,0 +1,11 @@
+author: Lucía Ejemplo
+url: https://www.linkedin.com/posts/lucia-ejemplo_northwinddata-machinelearning-datascience-share-7506055749362442243-Z4ai/
+🚀 Buscamos talento | Machine Learning & Customer Analytics
+En NORTHWIND DATA buscamos 4 profesionales para incorporarse a un proyecto de analítica avanzada y Machine Learning en Banca.
+Buscamos perfiles con experiencia demostrable en:
+• Desarrollo e industrialización end-to-end de modelos de Machine Learning, desde el diseño y entrenamiento hasta su despliegue, automatización, monitorización y operación en producción.
+• Modelos aplicados a cross-selling, up-selling, customer lifetime value, churn/fuga, segmentación, propensión y next best action.
+• Trabajo en entornos de datos a escala con PySpark, desarrollando pipelines preparados para ejecución recurrente sobre grandes volúmenes de información.
+📍 4 posiciones disponibles en Madrid
+Si tienes experiencia haciendo este tipo de proyectos y te interesa conocer más, abajo te dejo el link para aplicar.
+#NorthwindData #MachineLearning #DataScience #PySpark #CustomerAnalytics #MLOps #Hiring

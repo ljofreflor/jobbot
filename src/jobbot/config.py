@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,8 +14,14 @@ DEFAULT_GENERATED_PROFILE = Path("data/profile.generated.yaml")
 DEFAULT_OUTPUT = Path("output")
 DEFAULT_TEMPLATES = Path("templates")
 DEFAULT_DB = Path("data/jobbot.sqlite")
+DEFAULT_PORTALS = Path("data/portals.yaml")
+DEFAULT_COMPANIES = Path("data/companies.yaml")
+DEFAULT_BROWSER_DATA = Path("browser-data")
 DEFAULT_COUNTRIES: tuple[str, ...] = ("CL",)
 DEFAULT_MAX_AGE_DAYS = 30
+
+CONFIG_FILENAME = ".jobbot.toml"
+ENV_ROOT = "JOBBOT_ROOT"
 
 
 @dataclass(frozen=True)
@@ -24,6 +31,9 @@ class PathsConfig:
     output: Path = DEFAULT_OUTPUT
     templates: Path = DEFAULT_TEMPLATES
     database: Path = DEFAULT_DB
+    portals: Path = DEFAULT_PORTALS
+    companies: Path = DEFAULT_COMPANIES
+    browser_data: Path = DEFAULT_BROWSER_DATA
     legacy_cv: Path | None = None
 
 
@@ -63,15 +73,47 @@ class JobbotConfig:
         return self._resolve(self.paths.database)
 
     @property
+    def portals_path(self) -> Path:
+        return self._resolve(self.paths.portals)
+
+    @property
+    def companies_path(self) -> Path:
+        return self._resolve(self.paths.companies)
+
+    @property
+    def browser_data_dir(self) -> Path:
+        return self._resolve(self.paths.browser_data)
+
+    @property
     def legacy_cv_path(self) -> Path | None:
         if self.paths.legacy_cv is None:
             return None
         return self._resolve(self.paths.legacy_cv)
 
+    def browser_profile_dir(self, site: str) -> Path:
+        """Per-site Chrome profile directory under browser_data."""
+        return self.browser_data_dir / site
+
     def _resolve(self, path: Path) -> Path:
         if path.is_absolute():
             return path
         return (self.root / path).resolve()
+
+
+def resolve_workspace(start: Path | None = None) -> Path:
+    """
+    Directory that owns the JobBot workspace.
+
+    Order: ``JOBBOT_ROOT`` → walk-up for ``.jobbot.toml`` → cwd (legacy checkout).
+    """
+    env = os.environ.get(ENV_ROOT, "").strip()
+    if env:
+        return Path(env).expanduser().resolve()
+    here = (start or Path.cwd()).resolve()
+    for candidate in (here, *here.parents):
+        if (candidate / CONFIG_FILENAME).is_file():
+            return candidate
+    return here
 
 
 def _user_config_path() -> Path:
@@ -80,7 +122,7 @@ def _user_config_path() -> Path:
 
 def _find_config_file(start: Path, *, workspace: str | None) -> Path | None:
     """A workspace reads only its own file: the global one may point at another candidate."""
-    local = start / ".jobbot.toml"
+    local = start / CONFIG_FILENAME
     if local.is_file():
         return local
     if workspace is not None:
@@ -96,10 +138,31 @@ def _default_templates(workspace: str | None) -> Path:
     return repo_root() / DEFAULT_TEMPLATES
 
 
+def _load_paths(raw: dict[str, object], *, workspace: str | None) -> PathsConfig:
+    paths_raw = raw.get("paths")
+    data: dict[str, object] = paths_raw if isinstance(paths_raw, dict) else {}
+    legacy = data.get("legacy_cv")
+    return PathsConfig(
+        profile=Path(str(data.get("profile", DEFAULT_PROFILE))),
+        generated_profile=Path(str(data.get("generated_profile", DEFAULT_GENERATED_PROFILE))),
+        output=Path(str(data.get("output", DEFAULT_OUTPUT))),
+        templates=Path(str(data.get("templates", _default_templates(workspace)))),
+        database=Path(str(data.get("database", DEFAULT_DB))),
+        portals=Path(str(data.get("portals", DEFAULT_PORTALS))),
+        companies=Path(str(data.get("companies", DEFAULT_COMPANIES))),
+        browser_data=Path(str(data.get("browser_data", DEFAULT_BROWSER_DATA))),
+        legacy_cv=Path(str(legacy)) if legacy else None,
+    )
+
+
 def load_config(root: Path | None = None) -> JobbotConfig:
-    """Load config for the active workspace, else for the current directory."""
+    """Load config for the active sandbox workspace, else cold-install / cwd root."""
     if root is None:
+        # Sandbox selection (--workspace / JOBBOT_WORKSPACE) wins when set.
         base, workspace = resolve_root(Path.cwd())
+        if workspace is None:
+            # No sandbox: honour JOBBOT_ROOT / walk-up for .jobbot.toml.
+            base = resolve_workspace(Path.cwd())
     else:
         base, workspace = root.resolve(), None
     config_path = _find_config_file(base, workspace=workspace)
@@ -114,19 +177,11 @@ def load_config(root: Path | None = None) -> JobbotConfig:
     with config_path.open("rb") as fh:
         raw = tomllib.load(fh)
 
-    paths_raw = raw.get("paths", {})
-    legacy = paths_raw.get("legacy_cv")
-    paths = PathsConfig(
-        profile=Path(paths_raw.get("profile", str(DEFAULT_PROFILE))),
-        generated_profile=Path(
-            paths_raw.get("generated_profile", str(DEFAULT_GENERATED_PROFILE))
-        ),
-        output=Path(paths_raw.get("output", str(DEFAULT_OUTPUT))),
-        templates=Path(paths_raw.get("templates", str(_default_templates(workspace)))),
-        database=Path(paths_raw.get("database", str(DEFAULT_DB))),
-        legacy_cv=Path(legacy) if legacy else None,
+    config = JobbotConfig(
+        paths=_load_paths(raw, workspace=workspace),
+        root=base,
+        search=_load_search(raw),
     )
-    config = JobbotConfig(paths=paths, root=base, search=_load_search(raw))
     _verify(config, workspace)
     return config
 
