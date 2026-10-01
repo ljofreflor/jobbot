@@ -72,6 +72,16 @@ The diagram source is [`scripts/render_architecture.py`](scripts/render_architec
 `docs/images/` so the README stays readable without regenerating. (PNG only —
 SVG from Graphviz can embed absolute icon paths from your machine.)
 
+Brand / product manifesto (**búsqueda mientras programas**):
+[docs/manifesto.md](docs/manifesto.md).
+
+Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
+Phenomenology of software (not classical requirements): vibecode makes a need
+*appear* (System 2); when it returns it is a **symptom** — analyze the
+**conditions of possibility** of that need-for-a-need, capture them redacted
+(`jobbot ops symptom note --rule …`), encode as System 1. See
+[docs/software-design.md](docs/software-design.md) §3.8 and [AGENTS.md](AGENTS.md).
+
 ## Status
 
 **Endgame (standing presence first):** improve CV → keep this candidate registered and up to date
