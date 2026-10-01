@@ -440,6 +440,11 @@ Branch gates:
 - **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%.
 - **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%.
 
+Every feature, fix or docs PR targets **`develop`** (`gh pr create --base develop`), whoever
+opens it, cloud agents included. `main` only receives the `develop` → `main` release PR.
+A PR merged straight into `main` forks the history: `develop` then has to merge `main`
+back, and every conflict that merge resolves is a chance to drop a fix.
+
 A change is not delivered until its behaviour has a unit test. `cli.py` and live
 Playwright portal clients are omitted from the line count (they still have focused
 unit tests) so the gate measures offline, fixture-backed code.
