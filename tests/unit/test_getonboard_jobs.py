@@ -89,6 +89,7 @@ def test_remember_portal_from_url_learns_host(tmp_path: Any) -> None:
     assert entry.notes == "from linkedin post"
 
 
+@pytest.mark.integration
 def test_search_jobs_api_smoke() -> None:
     """Smoke test for GetOnBoard API.
     

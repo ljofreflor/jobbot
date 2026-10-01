@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-89 commands, 137 modules, 631 public symbols.
+91 commands, 141 modules, 658 public symbols.
 
 ## Commands
 
@@ -53,6 +53,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot indeed pull` — Pull Indeed profile snapshot (read).
 - `jobbot indeed status` — Check whether an Indeed session appears valid.
 - `jobbot indeed sync` — Dry-run (default) or apply Indeed profile sync from profile.yaml.
+- `jobbot init` — Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone).
 - `jobbot jobs add` — Add a job posting from a text file or stdin (manual fallback).
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
@@ -80,7 +81,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot portals list` — List known recruitment portals.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
-- `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml.
+- `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
 - `jobbot profile queries` — Job searches derived from your experience; --apply saves them for you to edit.
 - `jobbot profile show` — Show a summary of the local profile.
@@ -95,6 +96,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot recruiters show` — Show one source with every practice it taught.
 - `jobbot status` — Show which permanent CVs / profiles and active company portals are up.
 - `jobbot torre search` — Search Torre (LATAM / remote) and store jobs locally.
+- `jobbot update` — Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub).
 - `jobbot version` — Show JobBot version.
 - `jobbot workspace adopt` — Hand this workspace's data and output over to the profile now in place.
 - `jobbot workspace list` — List the extra candidates living in this checkout.
@@ -105,11 +107,13 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `jobbot`
 
+- `branding.py` — One closing mark on texts Jobbot publishes. · `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
-- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `JobbotConfig`, `load_config`
+- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
-- `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`
+- `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `update_jobbot`
+- `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`, `InitResult`, `WorkspaceExistsError`, `init_workspace`
 
 ### `adapters`
 
@@ -162,7 +166,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
 - `publications.py` — Playwright helpers for LinkedIn Publications (Spanish UI; HITL; no CAPTCHA bypass). · `profile_publications_new_url`, `profile_publications_details_url`, `vanity_from_linkedin_url`, `list_remote_publication_titles`, `open_new_publication_form`, `open_edit_publication_form`, `fill_publication_form`, `save_publication`
 - `selectors.py` — LinkedIn selector hints.
-- `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `LinkedInPostCandidate`, `posted_at_from_url`, `strip_engagement_chrome`, `strip_feed_chrome`, `looks_like_job_post`, `parse_post_blob`, `parse_posts_fixture`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`
+- `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `looks_like_job_post`, `PostVacancy`, `LinkedInPostCandidate`, `posted_at_from_url`, `strip_engagement_chrome`, `strip_feed_chrome`, `labelled_vacancy_links`, `split_vacancy_links`, `post_offers_wanted_country`, `parse_post_blob`, `parse_posts_fixture`, `post_to_jobs`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`, `employer_from_post`
 
 ### `adapters/torre`
 
@@ -271,12 +275,13 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `portals`
 
-- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `detect_ats_in_html`, `extract_http_urls`, `first_external_ats_url`
+- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
+- `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
-- `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `follow_redirect_url`, `expand_urls`
+- `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
 - `sso.py` — Identity providers offered on a login or signup page. · `SsoProvider`, `detect_sso_providers`, `provider_label`
 
@@ -305,6 +310,10 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `discover.py` — Read public pages about hiring practice, politely and without logging in. · `DiscoveryReport`, `discover_sources`, `asks_for_login`, `page_title`
 - `playbook.py` — Turn a public page about hiring into practices the CV advisor can use. · `PracticeKind`, `Practice`, `extract_practices`, `advisor_notes`
 - `sources.py` — Registry of public sources about hiring practice, with the same lifecycle as companies. · `RecruiterSource`, `default_recruiters_path`, `load_sources`, `save_sources`, `upsert_source`, `promote_source`, `reject_source`, `active_sources`, `export_payload`
+
+### `resources`
+
+- `__init__.py` — Packaged seeds and templates for cold install (`jobbot init`). · `resource_text`, `resource_bytes`, `iter_template_names`, `copy_templates`
 
 ### `sdk`
 

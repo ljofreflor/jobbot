@@ -53,11 +53,14 @@ from jobbot.profile.importer_latex import LatexImportError, import_latex_cv
 from jobbot.profile.importer_pdf import PdfImportError, import_pdf_cv
 from jobbot.profile.loader import ProfileLoadError, load_profile, load_profile_raw
 from jobbot.profile.validator import validate_candidate
+from jobbot.self_update import update_jobbot
 from jobbot.workspace import (
     DEFAULT_LABEL,
     STAMP_NAME,
+    WorkspaceExistsError,
     WorkspaceOwnerError,
     active_workspace,
+    init_workspace,
     list_workspaces,
     read_stamp,
     resolve_root,
@@ -283,6 +286,66 @@ def main(
 def version_cmd() -> None:
     """Show JobBot version."""
     console.print(__version__)
+
+@app.command("init")
+def workspace_init(
+    directory: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Folder that becomes the workspace (default: .). "
+                ".jobbot.toml and .local/ are created inside this folder"
+            ),
+        ),
+    ] = Path("."),
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Overwrite an existing .jobbot.toml / seeds"),
+    ] = False,
+) -> None:
+    """Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone)."""
+    try:
+        result = init_workspace(directory, force=force)
+    except WorkspaceExistsError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+    except OSError as exc:
+        err_console.print(f"[red]Could not create workspace: {exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    console.print("[bold green]Workspace ready[/bold green]")
+    console.print(f"Root: {result.root}")
+    console.print("JobBot is installed globally; this folder is your syncable workspace.")
+    console.print(
+        Panel(
+            "Next:\n"
+            "  1. Edit .local/profile.yaml  (or: jobbot profile import-pdf CV.pdf)\n"
+            "  2. jobbot profile validate\n"
+            "  3. jobbot getonboard search\n"
+            "Sync this whole folder (including .local/) with Drive/Dropbox/Syncthing/…",
+            title="Cold start",
+        )
+    )
+
+@app.command("update")
+def update_cmd(
+    ref: Annotated[
+        str | None,
+        typer.Option("--ref", help="Git ref to install (default: JOBBOT_REF or main)"),
+    ] = None,
+) -> None:
+    """Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub)."""
+    console.print(f"Current: {__version__}")
+    result = update_jobbot(ref=ref)
+    if not result.ok:
+        err_console.print(f"[red]{result.message}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    console.print(f"[green]{result.message}[/green]")
+    if result.version_line:
+        console.print(f"Now: {result.version_line}")
+    else:
+        console.print("Run [bold]jobbot version[/bold] in a new shell if PATH changed.")
+
 
 
 @app.command("status")
@@ -946,8 +1009,15 @@ def profile_import_pdf(
         Path | None,
         typer.Option("--output", "-o", help="Destination YAML"),
     ] = None,
+    promote: Annotated[
+        bool,
+        typer.Option(
+            "--promote",
+            help="Also copy generated YAML over profile.yaml (after validate)",
+        ),
+    ] = False,
 ) -> None:
-    """Import a PDF CV into profile.generated.yaml."""
+    """Import a PDF CV into profile.generated.yaml (and optionally profile.yaml)."""
     config = load_config()
     source = pdf_path.expanduser().resolve()
     destination = (output or config.generated_profile_path).expanduser().resolve()
@@ -972,15 +1042,30 @@ def profile_import_pdf(
         for warning in result.warnings:
             console.print(f"- {warning}")
 
-    console.print(
-        Panel(
-            "A PDF carries no structure, so every field is a guess.\n"
-            "Review the generated YAML, then:\n"
-            "  jobbot profile promote-generated\n"
-            "  jobbot profile validate",
-            title="Next steps",
+    if promote:
+        try:
+            candidate = load_profile(destination)
+        except ProfileLoadError as exc:
+            err_console.print(f"[red]Generated profile invalid: {exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        check = validate_candidate(candidate)
+        if not check.ok:
+            for issue in check.issues:
+                err_console.print(f"[red]- {issue}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        shutil.copy2(destination, config.profile_path)
+        console.print(f"[green]Promoted[/green] → {config.profile_path}")
+    else:
+        console.print(
+            Panel(
+                "A PDF carries no structure, so every field is a guess.\n"
+                "Review the generated YAML, then:\n"
+                "  jobbot profile promote-generated\n"
+                "  jobbot profile validate\n"
+                "Or re-run with --promote after a quick review.",
+                title="Next steps",
+            )
         )
-    )
 
 
 @profile_app.command("promote-generated")
