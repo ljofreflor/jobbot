@@ -72,6 +72,9 @@ The diagram source is [`scripts/render_architecture.py`](scripts/render_architec
 `docs/images/` so the README stays readable without regenerating. (PNG only —
 SVG from Graphviz can embed absolute icon paths from your machine.)
 
+Brand / product manifesto (**búsqueda mientras programas**):
+[docs/manifesto.md](docs/manifesto.md).
+
 Design map (patterns, SQLite schema, stack): [docs/software-design.md](docs/software-design.md).
 Phenomenology of software (not classical requirements): vibecode makes a need
 *appear* (System 2); when it returns it is a **symptom** — analyze the
