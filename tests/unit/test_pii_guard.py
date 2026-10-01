@@ -26,6 +26,7 @@ def test_blocked_paths_cover_profile_db_and_private_latex() -> None:
 
 def test_workspaces_of_other_candidates_are_blocked() -> None:
     """A test CV is somebody else's PII: `sandboxes/` never reaches the index."""
+    assert is_blocked_path("sandboxes/rocio/data/consent.yaml")
     assert is_blocked_path("sandboxes/rocio/data/profile.yaml")
     assert is_blocked_path("sandboxes/rocio/output/jobs/J0001/cv_ats.txt")
     assert is_blocked_path("sandboxes/rocio/nursing_job.txt")
