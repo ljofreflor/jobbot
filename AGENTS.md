@@ -260,6 +260,8 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
 ## Safety / platform
 
 - Own accounts only. No CAPTCHA solving, 2FA bypass, stealth, proxies, telemetry.
+- Public trust signal is the OpenSSF Scorecard badge (Linux Foundation, OSV vulnerabilities),
+  published by `.github/workflows/scorecard.yml` on `main`. Do not replace it with a self-scored badge.
 - Failures: local `ops_failures` in SQLite + `output/ops/failures/`; GitHub issues only via HITL
   `jobbot ops failure issue` (never auto on crash). Every issue opened that way (and any
   `gh issue create`) must be assigned to Cursor — login `cursoragent` — so it is never left
