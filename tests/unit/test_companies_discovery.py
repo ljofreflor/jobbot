@@ -136,3 +136,114 @@ def test_company_hint_on_ats_uses_tenant_not_vendor() -> None:
     assert company_hint_from_url("https://acme.wd3.myworkdayjobs.com/en-US/External") == "acme"
     assert company_hint_from_url("https://jobs.lever.co/acme/abc") == "acme"
     assert company_hint_from_url("https://acme.teamtailor.com/jobs") == "acme"
+
+
+def test_workable_root_keeps_the_company_slug() -> None:
+    """Regression: apply.workable.com/<company>/j/<id> collapsed to the bare vendor host."""
+    url = "https://apply.workable.com/empresa-demo/j/AB12CD34EF/"
+    found = classify_url(url)
+    assert found.ats == AtsKind.WORKABLE
+    assert career_root_url(found.url, found.ats) == "https://apply.workable.com/empresa-demo"
+    other = career_root_url("https://apply.workable.com/otra-demo/j/ZX98/", AtsKind.WORKABLE)
+    assert canonical_key(other) != canonical_key(career_root_url(url, AtsKind.WORKABLE))
+    assert (
+        career_root_url("https://empresa-demo.workable.com/jobs/123456", AtsKind.WORKABLE)
+        == "https://empresa-demo.workable.com"
+    )
+
+
+def test_vacancy_slug_with_id_collapses_to_the_listing() -> None:
+    """Regression: /vacancies/<title>-<id> was stored as the company's career portal."""
+    url = "https://career.empresa-demo.cl/en-us/vacancies/lead-data-analyst-89203"
+    found = classify_url(url)
+    assert found.site_type == CareerSiteType.JOB_POSTING
+    root = career_root_url(found.url, found.ats)
+    assert root == "https://career.empresa-demo.cl/en-us/vacancies"
+    assert "89203" not in root
+    assert career_root_url("https://empresa-demo.cl/vacancy/4521") == "https://empresa-demo.cl"
+
+
+def test_vacancies_listing_is_not_a_posting() -> None:
+    found = classify_url("https://career.empresa-demo.cl/en-us/vacancies")
+    assert found.site_type == CareerSiteType.COMPANY_CAREER_PORTAL
+    assert career_root_url(found.url) == "https://career.empresa-demo.cl/en-us/vacancies"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://remoteyeah.com/jobs",
+        "https://remoteyeah.com/jobs/senior-analyst-at-empresa-123",
+        "https://jobgether.com/offer/abc123-senior-analyst",
+        "https://jobs.lever.co/jobgether/0f1e2d3c-4b5a-6978-8899-aabbccddeeff",
+    ],
+)
+def test_job_boards_and_aggregators_are_not_companies(url: str) -> None:
+    """Regression: a remote job board and an aggregator's ATS tenant became companies."""
+    found = classify_url(url)
+    assert found.site_type == CareerSiteType.JOB_BOARD
+    assert not found.is_company_specific
+
+
+def test_manatal_careers_page_is_an_ats_host() -> None:
+    """Regression: careers-page.com is Manatal's shared host, not a company domain."""
+    for url in (
+        "https://careers-page.com/empresa-demo",
+        "https://empresa-demo.careers-page.com/jobs",
+    ):
+        assert detect_ats(url) == AtsKind.MANATAL
+        found = classify_url(url)
+        assert found.site_type == CareerSiteType.ATS_INSTANCE
+    assert (
+        career_root_url("https://careers-page.com/empresa-demo/job/R123", AtsKind.MANATAL)
+        == "https://careers-page.com/empresa-demo"
+    )
+    assert (
+        career_root_url("https://empresa-demo.careers-page.com/jobs/R123", AtsKind.MANATAL)
+        == "https://empresa-demo.careers-page.com"
+    )
+    kind, evidence = detect_ats_in_html(
+        '<a href="https://careers-page.com/empresa-demo">Ver vacantes</a>'
+    )
+    assert kind == AtsKind.MANATAL and "careers-page.com/empresa-demo" in evidence
+
+
+def test_ashby_marker_keeps_a_dotted_slug() -> None:
+    """Regression: jobs.ashbyhq.com/empresa.io was read as the slug 'empresa'."""
+    kind, evidence = detect_ats_in_html(
+        '<a href="https://jobs.ashbyhq.com/empresa.io/jobs">Open roles</a>.'
+    )
+    assert kind == AtsKind.ASHBY
+    assert "jobs.ashbyhq.com/empresa.io" in evidence
+    kind, evidence = detect_ats_in_html("Apply at jobs.ashbyhq.com/empresa.")
+    assert "jobs.ashbyhq.com/empresa)" in evidence
+
+
+@pytest.mark.parametrize(
+    ("host", "reserved"),
+    [
+        ("example.com", True),
+        ("careers.example.com", True),
+        ("example.org", True),
+        ("jobs.example.net", True),
+        ("careers.acme.example", True),
+        ("empresa.test", True),
+        ("empresa.invalid", True),
+        ("localhost", True),
+        ("app.localhost", True),
+        ("empresa.cl", False),
+        ("myexample.com", False),
+        ("example.com.ar", False),
+    ],
+)
+def test_reserved_example_hosts(host: str, reserved: bool) -> None:
+    from jobbot.companies.urls import is_reserved_host
+
+    assert is_reserved_host(host) is reserved
+
+
+def test_display_url_drops_only_the_scheme() -> None:
+    from jobbot.companies.urls import display_url
+
+    assert display_url("https://careers-page.com/empresa-demo") == "careers-page.com/empresa-demo"
+    assert display_url("http://empresa.cl") == "empresa.cl"

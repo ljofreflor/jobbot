@@ -2,6 +2,9 @@
 
 Instructions for AI agents and humans working on this repository.
 
+Brand and voice (niche = tech, channel = terminal):
+[docs/manifesto.md](docs/manifesto.md) — **búsqueda mientras programas**; HITL; never invent.
+
 ## Product / endgame
 
 JobBot is a **local terminal-only** tool. Two loops, one source of truth
@@ -190,7 +193,9 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  observación, dedup por URL canónica (sin query/fragment), contradicción → `stale` sin sobreescribir,
  y ATS `unknown` salvo evidencia técnica (host, redirect, marcador HTML embebido). `linkedin sweep`
  `jobs search` y `jobs add` alimentan candidatos (los job boards se omiten); solo `companies
- promote` los vuelve activos. `companies discover`
+ promote` los vuelve activos. Los nombres reservados para documentación y pruebas
+ (`example.com/.net/.org`, `*.example`, `*.test`, `*.invalid`, `localhost`) nunca se guardan:
+ el registro los rechaza con un mensaje claro. `companies discover`
  es un **oneshot** que escribe candidatos en `output/discovery/` y nunca toca `data/companies.yaml`;
  HTTP 200 no es evidencia y un sitio que nos rechaza (403/conexión cortada) se reporta como
  desconocido, no como ausencia. Compartir siempre vía `companies export` (solo activos, sin PII).
@@ -329,10 +334,16 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
   (`ready` needs an open signed-in page; a live port proves nothing). JobBot never auto-attaches:
   it suggests `--cdp`. A persistent profile held by another Chrome is `profile_busy` and blocks
   that destination up front (`BrowserSession` also refuses to launch over it).
+ A debugging port held by a Chrome whose profile lives outside this workspace's browser data
+ is reported busy without reading its tabs, and a suggested `--port` is never one a Chrome holds.
   `jobbot browser login` is the first pass over permanent sites plus company portals that are
   `active` or `candidate` and may need an account ([#56](https://github.com/ljofreflor/jobbot/issues/56)):
   dry-run by default; `--apply` opens the next gap and stops. The password, CAPTCHA and 2FA stay
   human. A company tab is `unknown`, never `ready`. Visiting a candidate does not promote it.
+- **Focus:** JobBot abre páginas en segundo plano; no roba el foco. Todo pasa por
+  `jobbot.browser.background` (`open -g` en macOS, `webbrowser` con `autoraise=False` fuera,
+  pestañas CDP con `Target.createTarget` `background: true`) e imprime dónde quedó la página.
+  `JOBBOT_BROWSER_FOCUS=1` vuelve al primer plano. Los tests nunca abren un navegador real.
 - Removals ignored by default.
 
 ## Regression tests (mandatory)

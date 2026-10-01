@@ -123,6 +123,33 @@ def test_the_recruiter_reading_list_never_reaches_git() -> None:
     """Which sources you read reflects your own search, so it stays local."""
     assert is_blocked_path("data/recruiters.yaml")
 
+
+def test_backups_and_variants_of_local_data_files_are_blocked() -> None:
+    """A dated copy of a local data file holds the same data as the original."""
+    for path in (
+        "data/companies.yaml.bak-2026-10-01",
+        "data/profile.yaml.bak",
+        "data/profile.yaml.2026-10-01",
+        "data/portals.yaml.orig",
+        "data/recruiters.yaml.old",
+        "data/form_knowledge.yaml.bak-1",
+        "data/notes.bak-2026-10-01",
+        "data/notes.orig",
+        "data/sub/notes.bak",
+    ):
+        assert is_blocked_path(path), path
+
+
+def test_example_templates_beside_backups_stay_allowed() -> None:
+    for path in (
+        "data/profile.example.yaml",
+        "data/portals.example.yaml",
+        "data/companies.example.yaml",
+        "data/companies-cl.example.yaml",
+        "data/README.md",
+    ):
+        assert is_blocked_path(path) is None, path
+
 def test_png_paths_are_treated_as_binary() -> None:
     """Architecture diagrams are binary; the guard must not UTF-8-decode them."""
     assert is_binary_path("docs/images/architecture.png")

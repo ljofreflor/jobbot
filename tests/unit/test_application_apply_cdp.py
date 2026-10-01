@@ -70,7 +70,9 @@ def test_cdp_fills_in_your_chrome_instead_of_the_default_browser(
     from jobbot.cli import run_cli
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
     calls: list[dict[str, Any]] = []
 
     def fake_fill(cdp_url: str, url: str, candidate: Any, **kwargs: Any) -> ApplyFillResult:
@@ -110,7 +112,9 @@ def test_cdp_failure_falls_back_to_the_default_browser(
     from jobbot.cli import run_cli
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
 
     def broken(*_a: Any, **_k: Any) -> None:
         raise ApplyFillError("Could not attach to Chrome at http://127.0.0.1:9222: refused")
@@ -137,7 +141,9 @@ def test_without_cdp_the_default_browser_is_used_as_before(
     from jobbot.cli import run_cli
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
 
     def must_not_run(*_a: Any, **_k: Any) -> None:
         raise AssertionError("no CDP fill without --cdp")

@@ -10,6 +10,15 @@ class PrivateRouteRejected(ValueError):
     """Raised when a URL cannot be shared as company knowledge (e.g. mailto:)."""
 
 
+class ReservedDomainRejected(PrivateRouteRejected):
+    """Raised for documentation/test domains: they are fixtures, never an employer."""
+
+
+# RFC 2606 / RFC 6761 names reserved for documentation and testing.
+_RESERVED_DOMAINS: frozenset[str] = frozenset({"example.com", "example.net", "example.org"})
+_RESERVED_TLDS: frozenset[str] = frozenset({"example", "test", "invalid", "localhost"})
+
+
 # Suffixes where the registrable domain needs three labels (empresa.com.ar).
 _MULTI_SUFFIXES: frozenset[str] = frozenset(
     {
@@ -79,6 +88,31 @@ def canonical_key(url: str) -> str:
 
 def host_of(url: str) -> str:
     return urlparse(public_url(url)).netloc.split(":", 1)[0]
+
+
+def display_url(url: str) -> str:
+    """Host plus path, the part a reviewer reads; the scheme carries nothing."""
+    return re.sub(r"^https?://", "", public_url(url), flags=re.I)
+
+
+def is_reserved_host(host: str) -> bool:
+    """True for example/test/invalid/localhost names, which no employer can own."""
+    labels = (host or "").strip().casefold().rstrip(".").split(".")
+    if not labels or not labels[-1]:
+        return False
+    if labels[-1] in _RESERVED_TLDS:
+        return True
+    return ".".join(labels[-2:]) in _RESERVED_DOMAINS
+
+
+def ensure_not_reserved(url: str) -> str:
+    """Normalized URL, or ReservedDomainRejected when its host is a fixture name."""
+    normalized = public_url(url)
+    host = host_of(normalized)
+    if is_reserved_host(host):
+        msg = f"{host} is a reserved example/test domain, not a company portal; not stored"
+        raise ReservedDomainRejected(msg)
+    return normalized
 
 
 def registrable_domain(host: str) -> str:

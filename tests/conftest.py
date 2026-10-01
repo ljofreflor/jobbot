@@ -32,6 +32,17 @@ def _stable_cli_console(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+@pytest.fixture(autouse=True)
+def _no_real_browser(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A test that forgets to fake the opener fails instead of opening a real browser."""
+
+    def refuse(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("tests must fake jobbot.browser.background.open_url")
+
+    monkeypatch.setattr("jobbot.browser.background._spawn", refuse)
+    monkeypatch.setattr("jobbot.browser.background.webbrowser.open", refuse)
+
+
 @pytest.fixture
 def project_root() -> Path:
     return Path(__file__).resolve().parents[1]

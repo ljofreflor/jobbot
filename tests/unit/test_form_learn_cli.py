@@ -137,7 +137,9 @@ def test_apply_learns_the_form_while_you_fill_it(
     html = (project_root / FIXTURE).read_text(encoding="utf-8")
     monkeypatch.setattr(cli, "_fetch_public_html", lambda url: html)
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
 
     code = run_cli(
         ["application", "apply", "J0001", "--apply", "--yes"],

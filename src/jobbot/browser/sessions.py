@@ -116,11 +116,14 @@ class AccountExpectation:
 
 @dataclass(frozen=True)
 class CdpEndpoint:
+    """A debugging port that answered. ``foreign`` ports are busy and never read."""
+
     url: str
     port: int
     browser: str | None = None
     page_urls: tuple[str, ...] = ()
     profile_dir: Path | None = None
+    foreign: bool = False
 
 
 @dataclass(frozen=True)
@@ -173,8 +176,13 @@ def discover_endpoints(
     *,
     fetch: JsonFetcher = fetch_local_json,
     processes: Sequence[ChromeProcess] | None = None,
+    own_root: Path | None = None,
 ) -> list[CdpEndpoint]:
-    """Probe localhost debugging ports; silent ports are simply absent."""
+    """Probe localhost debugging ports; silent ports are simply absent.
+
+    With ``own_root`` (this workspace's browser data), a port whose Chrome runs a
+    profile outside it is reported as foreign without fetching its tabs.
+    """
     known = {
         proc.cdp_port: proc
         for proc in (processes if processes is not None else list_chrome_processes())
@@ -183,13 +191,20 @@ def discover_endpoints(
     endpoints: list[CdpEndpoint] = []
     for port in ports:
         base = f"http://127.0.0.1:{port}"
+        holder = known.get(port)
+        if (
+            own_root is not None
+            and holder is not None
+            and not _is_within(holder.profile_dir, own_root)
+        ):
+            endpoints.append(CdpEndpoint(url=base, port=port, foreign=True))
+            continue
         try:
             version = fetch(f"{base}/json/version")
             pages = fetch(f"{base}/json/list")
         except (URLError, OSError, ValueError, json.JSONDecodeError) as exc:
             logger.debug("no CDP endpoint on port %s: %s", port, exc)
             continue
-        holder = known.get(port)
         endpoints.append(
             CdpEndpoint(
                 url=base,
@@ -266,9 +281,9 @@ def inspect_sessions(
     from jobbot.config import load_config
 
     procs = list(processes if processes is not None else list_chrome_processes())
-    endpoints = discover_endpoints(ports, fetch=fetch, processes=procs)
-    wanted = {site.casefold() for site in sites} if sites else None
     browser_root = load_config(root=root).browser_data_dir
+    endpoints = discover_endpoints(ports, fetch=fetch, processes=procs, own_root=browser_root)
+    wanted = {site.casefold() for site in sites} if sites else None
     states: list[SessionState] = []
     for spec in SITES:
         if wanted is not None and spec.site not in wanted:
@@ -280,6 +295,7 @@ def inspect_sessions(
                 endpoints,
                 holders,
                 ports,
+                processes=procs,
                 account=account,
                 page_text=page_text,
             )
@@ -317,12 +333,16 @@ def _state_for(
     holders: tuple[int, ...],
     ports: Sequence[int],
     *,
+    processes: Sequence[ChromeProcess] = (),
     account: AccountExpectation | None = None,
     page_text: dict[str, str] | None = None,
 ) -> SessionState:
+    launch = _debug_command(spec, endpoints, ports, processes)
     best: tuple[int, SessionState] | None = None
     weak: tuple[CdpEndpoint, str] | None = None
     for endpoint in endpoints:
+        if endpoint.foreign:
+            continue
         for url in endpoint.page_urls:
             if not _matches_host(url, spec):
                 continue
@@ -376,22 +396,29 @@ def _state_for(
             hint="close that Chrome window, or point --cdp at it",
             holders=holders,
         )
-    if endpoints:
+    own = [endpoint for endpoint in endpoints if not endpoint.foreign]
+    busy = _foreign_note(endpoints)
+    if own:
         return SessionState(
             site=spec.site,
             status=SessionStatus.UNKNOWN,
-            evidence=f"{len(endpoints)} CDP endpoint(s) open, none with a {spec.site} tab",
-            hint=(
-                f"open {spec.start_url} there, "
-                f"or launch: {_debug_command(spec, endpoints, ports)}"
-            ),
+            evidence=f"{len(own)} CDP endpoint(s) open, none with a {spec.site} tab{busy}",
+            hint=f"open {spec.start_url} there, or launch: {launch}",
+            holders=holders,
+        )
+    if busy:
+        return SessionState(
+            site=spec.site,
+            status=SessionStatus.UNKNOWN,
+            evidence=busy.removeprefix("; "),
+            hint=launch,
             holders=holders,
         )
     return SessionState(
         site=spec.site,
         status=SessionStatus.NO_ENDPOINT,
         evidence="no debugging port answered on 127.0.0.1",
-        hint=_debug_command(spec, endpoints, ports),
+        hint=launch,
         holders=holders,
     )
 
@@ -409,14 +436,39 @@ def _evidence_rank(state: SessionState) -> int:
     return _EVIDENCE_RANK.get(state.status, 0)
 
 
+def free_debug_port(
+    ports: Sequence[int],
+    endpoints: Sequence[CdpEndpoint],
+    processes: Sequence[ChromeProcess] = (),
+) -> int:
+    """First debugging port no Chrome answers on or holds; past the list if all are."""
+    taken = {endpoint.port for endpoint in endpoints}
+    taken.update(proc.cdp_port for proc in processes if proc.cdp_port is not None)
+    candidates = list(ports) or list(DEFAULT_PORTS)
+    for candidate in candidates:
+        if candidate not in taken:
+            return candidate
+    port = max(candidates) + 1
+    while port in taken:
+        port += 1
+    return port
+
+
 def _debug_command(
     spec: SiteSpec,
     endpoints: Sequence[CdpEndpoint],
     ports: Sequence[int],
+    processes: Sequence[ChromeProcess] = (),
 ) -> str:
-    taken = {endpoint.port for endpoint in endpoints}
-    port = next((candidate for candidate in ports if candidate not in taken), DEFAULT_PORTS[0])
+    port = free_debug_port(ports, endpoints, processes)
     return f"jobbot browser chrome-debug --site {spec.site} --port {port}"
+
+
+def _foreign_note(endpoints: Sequence[CdpEndpoint]) -> str:
+    ports = ", ".join(str(endpoint.port) for endpoint in endpoints if endpoint.foreign)
+    if not ports:
+        return ""
+    return f"; port {ports} held by a Chrome profile outside this workspace (not read)"
 
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.\w+")
@@ -487,6 +539,10 @@ def _resolved(path: Path) -> Path:
         return path.expanduser().resolve()
     except OSError:  # pragma: no cover - unreadable path
         return path
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    return _resolved(path).is_relative_to(_resolved(root))
 
 
 def _ps_output() -> str:

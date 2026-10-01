@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import logging
-import webbrowser
 from dataclasses import dataclass, field
 
 from jobbot.adapters.base import ApplyMethod, PrefillResult
+from jobbot.browser import background
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind, detect_ats
@@ -99,8 +99,9 @@ def build_apply_plan(candidate: Candidate, job: JobPosting) -> AtsApplyPlan:
     )
 
 
-def open_ats_in_browser(url: str) -> None:
-    webbrowser.open(url)
+def open_ats_in_browser(url: str) -> str:
+    """Open in the background (focus stays on the terminal); returns the line to print."""
+    return background.open_url(url)
 
 
 # Written into ats_prefill.yaml next to the package. Contact stays in profile.yaml.

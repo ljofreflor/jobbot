@@ -73,7 +73,9 @@ def test_open_uses_the_external_ats_when_one_was_stored(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
     job = JobPosting(
         id="J0001",
         source="indeed",
