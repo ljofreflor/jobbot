@@ -38,7 +38,9 @@ def _write_fixture(tmp_path: Path, extra: str = "") -> Path:
 
 def _patch_browser(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
     return opened
 
 

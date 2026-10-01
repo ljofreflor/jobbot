@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-96 commands, 147 modules, 703 public symbols.
+103 commands, 153 modules, 753 public symbols.
 
 ## Commands
 
@@ -62,6 +62,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
+- `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
 - `jobbot jobs search` — Search Indeed and store job postings locally (small volumes).
 - `jobbot jobs shortlist` — Rank stored jobs by match score.
 - `jobbot jobs show` — Show a stored job posting.
@@ -79,6 +80,12 @@ writing it again — the promotion rule lives in
 - `jobbot ops failure work` — Print (or open) the bash maintainer lane: issue → branch → PR → retry (#46).
 - `jobbot ops failures` — List stored failures (grouped by fingerprint).
 - `jobbot ops loop` — Run a maintainer step continuously; persist Fxxxx on crash and continue.
+- `jobbot ops symptom issue` — Create a GitHub issue from a redacted symptom (HITL; uses gh). Never auto.
+- `jobbot ops symptom list` — List latent requirements (symptoms), newest first.
+- `jobbot ops symptom note` — Capture a latent requirement. Same fingerprint increments sightings.
+- `jobbot ops symptom plan` — Print the System 2 → System 1 compression plan (does not write code).
+- `jobbot ops symptom show` — Show one symptom (already redacted at write time).
+- `jobbot ops symptom triage` — Update symptom status after review / compression.
 - `jobbot portals add` — Add or update a portal in data/portals.yaml.
 - `jobbot portals detect` — Detect ATS kind for a URL.
 - `jobbot portals form-learn` — Learn what an application form asks. Reads only; never fills or submits.
@@ -139,7 +146,7 @@ writing it again — the promotion rule lives in
 - `greenhouse.py` — Greenhouse ATS adapter stub — open + known-field map only (HITL submit). · `GreenhouseAdapter`
 - `indeed_apply.py` — Indeed apply handoff — open the right page and stop before submit. · `IndeedApplyAdapter`, `apply_target`
 - `lever.py` — Lever ATS adapter — open + known-field map only (HITL submit). · `LeverAdapter`
-- `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `adapter_for_kind`, `adapter_for_job`
+- `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `supported_kinds`, `adapter_for_kind`, `adapter_for_job`
 - `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
 - `workday.py` — Workday ATS adapter stub — open + known-field map only (HITL submit). · `WorkdayAdapter`
 
@@ -147,7 +154,7 @@ writing it again — the promotion rule lives in
 
 - `client.py` — Get on Board profile HITL client — permanent profile maintainer. · `GetOnBoardProfileClient`
 - `cv_upload.py` — Upload the local CV PDF to Get on Board 'Tus CVs', after validating it. · `GobCvUploadError`, `CvUploadCheck`, `CvUploadResult`, `CvUploadReceipt`, `upload_receipt_path`, `write_upload_receipt`, `load_upload_receipt`, `PageLike`, `validate_cv_for_upload`, `resolve_base_cv`, `upload_cv`, `list_resume_labels`
-- `draft.py` — Permanent Get on Board profile fields from Candidate (facts only; Spanish). · `PermanentProfileFields`, `build_permanent_profile_fields`, `draft_getonboard_fields`, `render_permanent_profile_markdown`, `render_getonboard_markdown`, `permanent_profile_dir`, `permanent_profile_yaml_path`, `permanent_profile_md_path`, `save_permanent_profile`, `fields_from_seed_text`, `load_permanent_profile`
+- `draft.py` — Permanent Get on Board profile fields from Candidate (facts only; Spanish). · `PermanentProfileFields`, `build_permanent_profile_fields`, `draft_getonboard_fields`, `render_permanent_profile_markdown`, `render_getonboard_markdown`, `permanent_profile_dir`, `permanent_profile_yaml_path`, `permanent_profile_md_path`, `save_permanent_profile`, `fields_from_seed_text`, `load_permanent_profile`, `recent_roles`, `role_label`, `role_head`
 - `jobs.py` — Get on Board job source (LATAM/ES) via public search API + hard-link pages. · `GetOnBoardJobSource`, `search_jobs_api`, `slug_from_url`, `fetch_job_html`, `parse_job_html`, `job_from_hard_link`, `job_from_api_item`, `remember_portal`, `remember_portal_from_url`
 - `package.py` — Get on Board profile + CV sync package from Candidate (facts only). · `GetOnBoardSyncPackage`, `build_getonboard_sync_package`, `render_getonboard_sync_markdown`
 - `profile_edit.py` — Write the permanent Get on Board profile through its own edit form. · `GobField`, `FieldWrite`, `ElementLike`, `PageLike`, `read_current`, `plan_writes`, `apply_writes`, `desired_from_fields`
@@ -189,6 +196,7 @@ writing it again — the promotion rule lives in
 
 ### `browser`
 
+- `background.py` — Open pages in the background: the terminal keeps the focus. · `wants_focus`, `macos_open_argv`, `background_notice`, `open_url`, `background_launch_argv`, `launch_detached`, `new_background_page`
 - `cdp.py` — Helpers for attaching to a user-launched Chrome (CDP) — HITL, no CAPTCHA bypass. · `resolve_cdp_url`, `find_chrome_executable`, `chrome_debug_argv`, `cdp_http_url`
 - `challenges.py` — Challenge / manual interaction helpers. · `pause_if_challenge`
 - `clipboard.py` — Clipboard helper for HITL Indeed edits (macOS pbcopy; no CAPTCHA bypass). · `copy_to_clipboard`
@@ -197,7 +205,7 @@ writing it again — the promotion rule lives in
 - `login_plan.py` — Login tour: which portals still need a human sign-in (issue #56). · `LoginBucket`, `LoginRow`, `LoginPlan`, `plan_logins`
 - `manual.py` — Human-in-the-loop pauses for CAPTCHA / consent (no bypass). · `wait_for_manual_clear`
 - `session.py` — Persistent Playwright browser session. · `BrowserTimeouts`, `launch_persistent_kwargs`, `BrowserSession`
-- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `judge_account`
+- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `judge_account`, `free_debug_port`
 
 ### `companies`
 
@@ -208,7 +216,7 @@ writing it again — the promotion rule lives in
 - `recon.py` — Learn portal truth from a page you are already on (issue #45). · `ReconReport`, `ReconError`, `resolve_recon_site`, `recon_from_html`, `plan_recon`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
 - `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `account_need`, `signup_target`, `signup_sheet`, `screening_to_prepare`
-- `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `public_url`, `canonical_key`, `host_of`, `registrable_domain`, `slugify`, `company_hint_from_url`
+- `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `ReservedDomainRejected`, `public_url`, `canonical_key`, `host_of`, `display_url`, `is_reserved_host`, `ensure_not_reserved`, `registrable_domain`, `slugify`, `company_hint_from_url`
 
 ### `cv`
 
@@ -229,10 +237,11 @@ writing it again — the promotion rule lives in
 ### `db`
 
 - `engine.py` — SQLAlchemy engine and session helpers. · `make_engine`, `make_session_factory`
-- `models.py` — SQLAlchemy ORM tables. · `Base`, `JobRow`, `ApplicationRow`, `ApplicationEventRow`, `ExternalProfileSnapshotRow`, `OpsFailureRow`
+- `models.py` — SQLAlchemy ORM tables. · `Base`, `JobRow`, `ApplicationRow`, `ApplicationEventRow`, `ExternalProfileSnapshotRow`, `OpsFailureRow`, `OpsSymptomRow`
 
 ### `jobs`
 
+- `ats_queries.py` — ATS host search-query templates — conditions of possibility for board discovery. · `AtsSearchQuery`, `build_ats_search_queries`, `format_queries_help`
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
 - `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
@@ -240,7 +249,7 @@ writing it again — the promotion rule lives in
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `GetFromUrlResult`, `ingest_hard_link`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
-- `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`
+- `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`, `next_symptom_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
 - `language.py` — Spanish or English? Deterministic, from function words only — never a guess on a tie. · `detect_language`, `posting_language`
@@ -270,12 +279,14 @@ writing it again — the promotion rule lives in
 
 ### `nlp`
 
+- `gateway.py` — Optional LLM gateway — deterministic first; LLM only inside promoted functions. · `LlmOutcome`, `llm_extras_available`, `build_chat_model`, `run_optional_llm`
 - `langchain_refine.py` — Optional LangChain-backed cumulative refine (facts from Candidate only). · `LangChainProfileRefiner`
 - `refine.py` — Cumulative text refinement for portal profile blurbs. · `ProfileTextRefiner`, `RefineResult`, `refine_permanent_profile`, `CumulativeProfileRefiner`
 
 ### `ops`
 
 - `capabilities.py` — Index of what JobBot already does, so nobody re-derives it (see AGENTS.md). · `ModuleEntry`, `CommandEntry`, `collect_modules`, `collect_commands`, `render_index`, `build_index`, `write_index`, `modules_without_summary`
+- `compile.py` — Knowledge compilation — phenomenology of software → System 1.
 - `failure_work.py` — Bash lane from a stored failure → issue → branch → PR → retry (issue #46). · `branch_name`, `original_command`, `work_script`, `open_branch_commands`
 - `failures.py` — Persist local CLI/loop failures for issue → hotfix planning. · `FailureRecord`, `normalize_message`, `failure_fingerprint`, `infer_component`, `normalize_command`, `record_failure`, `should_record_cli_failure`, `runtime_context`, `capture_cli_failure`, `list_failures`, `get_failure`, `mark_status`, `group_by_fingerprint`, `issue_title`, `issue_body`
 - `loop.py` — Minimal continuous runner that records failures and continues. · `LoopTickResult`, `run_loop_tick`, `run_loop`, `describe_loop_commands`
@@ -283,16 +294,18 @@ writing it again — the promotion rule lives in
 - `pii_guard.py` — Block real PII from entering git (pre-commit guard). Local only, no network. · `Finding`, `is_blocked_path`, `is_allowed_content_path`, `scan_text`, `redact`, `is_binary_path`, `looks_binary`, `staged_paths`, `staged_content`, `scan_staged`, `tracked_paths`, `scan_tracked`, `format_report`, `main`
 - `precommit.py` — Decide whether a commit has to run the unit suite. Local only, no network. · `tests_needed`, `staged_paths`, `main`
 - `redact.py` — Redact secrets and contact PII from failure payloads. · `redact_text`, `host_only_url`, `redact_context`
+- `symptoms.py` — Symptoms: appearances that return — local, redacted; not a requirements backlog. · `SymptomRecord`, `sanitize_symptom_text`, `normalize_for_fingerprint`, `symptom_fingerprint`, `note_symptom`, `list_symptoms`, `get_symptom`, `mark_symptom_status`, `promote_plan`, `issue_title`, `issue_body`
 - `test_gate.py` — CI gates for unit-test pass rate (develop→main requires ≥95%). · `pass_rate`, `read_junit_counts`, `enforce_pass_rate`, `main`
 
 ### `portals`
 
-- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
+- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `aggregator_board`, `html_marker_kinds`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
+- `platform_map.py` — Which platforms one profile reaches, grouped by how each one takes a candidate. · `Platform`, `Flavour`, `platform_label`, `source_kinds`, `platform_flavours`, `featured_platforms`, `LearningStep`, `feedback_loop`, `render_figure`, `inject_figure`, `write_page`, `main`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
 - `sso.py` — Identity providers offered on a login or signup page. · `SsoProvider`, `detect_sso_providers`, `provider_label`

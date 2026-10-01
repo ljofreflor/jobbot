@@ -40,8 +40,8 @@ def _registry_unknown_active() -> CompanyRegistry:
                 name="Acme",
                 career_sites=[
                     CareerSite(
-                        url="https://careers.acme.example/join",
-                        domain="careers.acme.example",
+                        url="https://careers.acme-demo.cl/join",
+                        domain="careers.acme-demo.cl",
                         site_type=CareerSiteType.COMPANY_CAREER_PORTAL,
                         ats=AtsKind.UNKNOWN,
                         status=KnowledgeStatus.ACTIVE,
@@ -52,9 +52,7 @@ def _registry_unknown_active() -> CompanyRegistry:
     )
 
 
-def test_greenhouse_embed_sets_ats_with_evidence(
-    tmp_path: Path, project_root: Path
-) -> None:
+def test_greenhouse_embed_sets_ats_with_evidence(tmp_path: Path, project_root: Path) -> None:
     registry = _registry_unknown_active()
     record, site = resolve_recon_site(registry, "acme")
     html = (project_root / GH_FIXTURE).read_text(encoding="utf-8")
@@ -150,3 +148,37 @@ def test_unknown_company_raises(tmp_path: Path) -> None:
     save_companies(CompanyRegistry(), default_companies_path(tmp_path))
     with pytest.raises(ReconError, match="Unknown company"):
         plan_recon(JobbotConfig(root=tmp_path), "missing-co")
+
+
+def test_recon_refuses_to_store_a_reserved_example_domain(
+    tmp_path: Path, project_root: Path
+) -> None:
+    registry = CompanyRegistry(
+        companies=[
+            CompanyRecord(
+                id="acme",
+                name="Acme",
+                career_sites=[
+                    CareerSite(
+                        url="https://careers.acme.example/join",
+                        domain="careers.acme.example",
+                        site_type=CareerSiteType.COMPANY_CAREER_PORTAL,
+                        ats=AtsKind.UNKNOWN,
+                        status=KnowledgeStatus.CANDIDATE,
+                    )
+                ],
+            )
+        ]
+    )
+    record, site = resolve_recon_site(registry, "acme")
+    html = (project_root / GH_FIXTURE).read_text(encoding="utf-8")
+    companies_path = default_companies_path(tmp_path)
+
+    report = recon_from_html(
+        registry, record, site, html, apply=True, companies_path=companies_path
+    )
+
+    assert report.detected_ats == AtsKind.GREENHOUSE
+    assert report.wrote_companies is False
+    assert report.refused is not None and "reserved" in report.refused
+    assert not companies_path.exists()

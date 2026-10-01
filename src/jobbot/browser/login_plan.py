@@ -25,6 +25,7 @@ from jobbot.browser.sessions import (
     SessionStatus,
     discover_endpoints,
     fetch_local_json,
+    free_debug_port,
     inspect_sessions,
     list_chrome_processes,
     profile_holders,
@@ -106,7 +107,7 @@ def plan_logins(
     found = (
         list(endpoints)
         if endpoints is not None
-        else discover_endpoints(ports, fetch=fetcher, processes=procs)
+        else discover_endpoints(ports, fetch=fetcher, processes=procs, own_root=_browser_root(root))
     )
     reg = registry if registry is not None else load_companies(default_companies_path(root))
     rows = _permanent_rows(states)
@@ -114,7 +115,7 @@ def plan_logins(
     rows.extend(
         _company_rows(root, reg, found, procs, KnowledgeStatus.CANDIDATE, LoginBucket.CANDIDATE)
     )
-    return LoginPlan(rows=tuple(rows), port=_free_port(found, ports))
+    return LoginPlan(rows=tuple(rows), port=free_debug_port(ports, found, procs))
 
 
 def _permanent_rows(states: Sequence[SessionState]) -> list[LoginRow]:
@@ -197,8 +198,9 @@ def _company_row(
             evidence=f"browser-data/companies held by Chrome pid {pids}",
             hint="close that Chrome window, or point --cdp at it",
         )
-    if endpoints:
-        count = len(endpoints)
+    own = [endpoint for endpoint in endpoints if not endpoint.foreign]
+    if own:
+        count = len(own)
         return _company(
             record,
             site,
@@ -254,6 +256,8 @@ def _tab_on_host(endpoints: Sequence[CdpEndpoint], domain: str) -> tuple[CdpEndp
     if not wanted:
         return None
     for endpoint in endpoints:
+        if endpoint.foreign:
+            continue
         for url in endpoint.page_urls:
             host = _hostname(url)
             if host == wanted or host.endswith("." + wanted):
@@ -272,7 +276,7 @@ def _short_url(url: str) -> str:
     return without_scheme.split("?", 1)[0][:80]
 
 
-def _free_port(endpoints: Sequence[CdpEndpoint], ports: Sequence[int]) -> int:
-    taken = {endpoint.port for endpoint in endpoints}
-    fallback = ports[0] if ports else DEFAULT_PORTS[0]
-    return next((candidate for candidate in ports if candidate not in taken), fallback)
+def _browser_root(root: Path) -> Path:
+    from jobbot.config import load_config
+
+    return load_config(root=root).browser_data_dir

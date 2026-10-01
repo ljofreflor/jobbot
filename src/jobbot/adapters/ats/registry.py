@@ -24,6 +24,11 @@ _ADAPTERS: dict[AtsKind, ApplicationPortalAdapter] = {
 }
 
 
+def supported_kinds() -> frozenset[AtsKind]:
+    """Platforms with an application adapter (prefill of known fields)."""
+    return frozenset(_ADAPTERS)
+
+
 def adapter_for_kind(kind: AtsKind) -> ApplicationPortalAdapter | None:
     return _ADAPTERS.get(kind)
 

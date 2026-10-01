@@ -26,6 +26,7 @@ from jobbot.companies.registry import (
     save_companies,
 )
 from jobbot.companies.signup import AccountNeed, signup_target
+from jobbot.companies.urls import ReservedDomainRejected
 from jobbot.config import JobbotConfig
 from jobbot.portals.detect import AtsKind, detect_ats, detect_ats_in_html
 from jobbot.portals.form_learn import (
@@ -55,6 +56,7 @@ class ReconReport:
     conflict: str | None = None
     hint: str = ""
     field_labels: tuple[str, ...] = field(default_factory=tuple)
+    refused: str | None = None
 
     @property
     def form_field_count(self) -> int:
@@ -121,25 +123,30 @@ def recon_from_html(
     need = signup_target(probe_site).need
 
     conflict: str | None = None
+    refused: str | None = None
     wrote_companies = False
     wrote_forms = False
 
     if apply and detected != AtsKind.UNKNOWN:
-        outcome = registry.observe(
-            company=record.name,
-            company_id=record.id,
-            url=site.url,
-            source=DiscoverySource.USER_OBSERVATION,
-            site_type=CareerSiteType.ATS_INSTANCE,
-            ats=detected,
-            evidence=evidence or "inside recon HTML marker",
-            country=record.country,
-            status=site.status if site.status != KnowledgeStatus.REJECTED else None,
-        )
-        conflict = outcome.conflict
-        wrote_companies = True
-        if companies_path is not None:
-            save_companies(registry, companies_path)
+        try:
+            outcome = registry.observe(
+                company=record.name,
+                company_id=record.id,
+                url=site.url,
+                source=DiscoverySource.USER_OBSERVATION,
+                site_type=CareerSiteType.ATS_INSTANCE,
+                ats=detected,
+                evidence=evidence or "inside recon HTML marker",
+                country=record.country,
+                status=site.status if site.status != KnowledgeStatus.REJECTED else None,
+            )
+        except ReservedDomainRejected as exc:
+            refused = str(exc)
+        else:
+            conflict = outcome.conflict
+            wrote_companies = True
+            if companies_path is not None:
+                save_companies(registry, companies_path)
 
     if apply and form.readable and form.fields:
         existing = load_form_knowledge(forms_path) if forms_path else []
@@ -163,6 +170,7 @@ def recon_from_html(
         conflict=conflict,
         hint=hint,
         field_labels=labels,
+        refused=refused,
     )
 
 

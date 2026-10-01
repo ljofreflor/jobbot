@@ -101,12 +101,213 @@ def test_login_wall_reports_needs_login(tmp_path: Path) -> None:
     assert state.hint is not None and "--cdp http://127.0.0.1:9223" in state.hint
 
 
+@pytest.mark.parametrize(
+    ("login_port", "signed_in_port"),
+    [(9223, 9224), (9224, 9223)],
+)
+def test_signed_in_page_on_any_endpoint_beats_a_login_wall_on_another(
+    tmp_path: Path, login_port: int, signed_in_port: int
+) -> None:
+    """Regression: a login tab on one port hid the signed-in tab on another."""
+    fetch = FakeCdp(
+        {
+            login_port: ["https://www.getonbrd.com/login"],
+            signed_in_port: ["https://www.getonbrd.com/webpros/edit"],
+        }
+    )
+    states = inspect_sessions(
+        tmp_path, sites=["getonboard"], ports=(9223, 9224), fetch=fetch, processes=[]
+    )
+    state = session_for(states, "getonboard")
+    assert state is not None and state.status is SessionStatus.READY
+    assert state.cdp_url == f"http://127.0.0.1:{signed_in_port}"
+    assert state.hint == f"--cdp http://127.0.0.1:{signed_in_port}"
+    assert "getonbrd.com/webpros/edit" in state.evidence
+
+
+def test_login_wall_beats_a_tab_that_proves_nothing(tmp_path: Path) -> None:
+    fetch = FakeCdp(
+        {
+            9222: ["https://www.getonbrd.com/empleos"],
+            9223: ["https://www.getonbrd.com/users/sign_in"],
+        }
+    )
+    states = inspect_sessions(
+        tmp_path, sites=["getonboard"], ports=(9222, 9223), fetch=fetch, processes=[]
+    )
+    state = session_for(states, "getonboard")
+    assert state is not None and state.status is SessionStatus.NEEDS_LOGIN
+    assert state.cdp_url == "http://127.0.0.1:9223"
+
+
+def test_matching_account_on_one_endpoint_beats_another_account_elsewhere(
+    tmp_path: Path,
+) -> None:
+    from jobbot.browser.sessions import AccountExpectation
+
+    other = "https://mail.google.com/mail/u/1/"
+    mine = "https://mail.google.com/mail/u/0/"
+    fetch = FakeCdp({9222: [other], 9223: [mine]})
+    states = inspect_sessions(
+        tmp_path,
+        sites=["gmail"],
+        ports=(9222, 9223),
+        fetch=fetch,
+        processes=[],
+        account=AccountExpectation(email="ana.ejemplo@example.com"),
+        page_text={
+            other: "<div>otra.persona@example.com</div>",
+            mine: "<div>ana.ejemplo@example.com</div>",
+        },
+    )
+    state = session_for(states, "gmail")
+    assert state is not None and state.status is SessionStatus.READY
+    assert state.cdp_url == "http://127.0.0.1:9223"
+
+
 def test_no_endpoint_suggests_chrome_debug(tmp_path: Path) -> None:
     fetch = FakeCdp({})
     states = inspect_sessions(tmp_path, sites=["indeed"], ports=(9222,), fetch=fetch, processes=[])
     state = session_for(states, "indeed")
     assert state is not None and state.status is SessionStatus.NO_ENDPOINT
     assert state.hint == "jobbot browser chrome-debug --site indeed --port 9222"
+
+
+def _foreign_chrome(port: int, pid: int = 4242) -> ChromeProcess:
+    """A Chrome somebody else opened, with its own profile outside this workspace."""
+    return ChromeProcess(pid=pid, profile_dir=Path("/elsewhere/other-profile"), cdp_port=port)
+
+
+def test_debug_hint_never_suggests_a_port_every_probe_found_taken(tmp_path: Path) -> None:
+    """Regression: with every probed port answering, the hint fell back to 9222."""
+    fetch = FakeCdp(
+        {
+            9222: ["https://mail.google.com/mail/u/0/"],
+            9223: ["https://www.linkedin.com/feed/"],
+            9224: ["https://mail.google.com/mail/u/0/"],
+        }
+    )
+    states = inspect_sessions(
+        tmp_path,
+        sites=["indeed"],
+        ports=(9222, 9223, 9224),
+        fetch=fetch,
+        processes=[_foreign_chrome(9222)],
+    )
+    state = session_for(states, "indeed")
+    assert state is not None and state.hint is not None
+    for taken in (9222, 9223, 9224):
+        assert f"--port {taken}" not in state.hint
+    assert "--port 9225" in state.hint
+
+
+def test_debug_hint_skips_a_port_held_by_a_chrome_that_does_not_answer(tmp_path: Path) -> None:
+    """A Chrome holding the port per the process table is busy even if CDP is silent."""
+    states = inspect_sessions(
+        tmp_path,
+        sites=["indeed"],
+        ports=(9222, 9223),
+        fetch=FakeCdp({}),
+        processes=[_foreign_chrome(9222)],
+    )
+    state = session_for(states, "indeed")
+    assert state is not None and state.hint is not None
+    assert "--port 9222" not in state.hint
+    assert state.hint == "jobbot browser chrome-debug --site indeed --port 9223"
+
+
+def test_foreign_chrome_tabs_are_never_read(tmp_path: Path) -> None:
+    """A port held by a profile outside this workspace is busy, not a session."""
+    fetch = FakeCdp({9222: ["https://profile.indeed.com/resume"]})
+    states = inspect_sessions(
+        tmp_path,
+        sites=["indeed"],
+        ports=(9222,),
+        fetch=fetch,
+        processes=[_foreign_chrome(9222)],
+    )
+    state = session_for(states, "indeed")
+    assert state is not None
+    assert state.status is not SessionStatus.READY
+    assert state.cdp_url is None
+    assert "indeed.com" not in state.evidence
+    assert "9222" in state.evidence and "not read" in state.evidence
+    assert not [url for url in fetch.requested if ":9222/" in url]
+    assert state.hint is not None and "--port 9222" not in state.hint
+
+
+def test_foreign_signed_in_tab_never_outranks_a_login_wall_on_an_own_port(
+    tmp_path: Path,
+) -> None:
+    fetch = FakeCdp(
+        {
+            9222: ["https://www.getonbrd.com/webpros/edit"],
+            9223: ["https://www.getonbrd.com/login"],
+        }
+    )
+    states = inspect_sessions(
+        tmp_path,
+        sites=["getonboard"],
+        ports=(9222, 9223),
+        fetch=fetch,
+        processes=[_foreign_chrome(9222)],
+    )
+    state = session_for(states, "getonboard")
+    assert state is not None and state.status is SessionStatus.NEEDS_LOGIN
+    assert state.cdp_url == "http://127.0.0.1:9223"
+    assert not [url for url in fetch.requested if ":9222/" in url]
+
+
+def test_foreign_endpoint_is_skipped_even_when_it_carries_tabs() -> None:
+    from jobbot.browser.sessions import SITES, CdpEndpoint, _state_for
+
+    spec = next(site for site in SITES if site.site == "getonboard")
+    foreign = CdpEndpoint(
+        url="http://127.0.0.1:9222",
+        port=9222,
+        page_urls=("https://www.getonbrd.com/webpros/edit",),
+        foreign=True,
+    )
+    state = _state_for(spec, [foreign], (), (9222,))
+    assert state.status is SessionStatus.UNKNOWN
+    assert state.cdp_url is None
+    assert "not read" in state.evidence
+
+
+def test_jobbot_profile_endpoint_is_still_read(tmp_path: Path) -> None:
+    own = ChromeProcess(pid=7, profile_dir=tmp_path / "browser-data" / "indeed-cdp", cdp_port=9222)
+    fetch = FakeCdp({9222: ["https://profile.indeed.com/resume"]})
+    states = inspect_sessions(
+        tmp_path, sites=["indeed"], ports=(9222,), fetch=fetch, processes=[own]
+    )
+    state = session_for(states, "indeed")
+    assert state is not None and state.status is SessionStatus.READY
+    assert state.cdp_url == "http://127.0.0.1:9222"
+
+
+def test_discovery_marks_foreign_endpoint_without_its_contents(tmp_path: Path) -> None:
+    fetch = FakeCdp({9222: ["https://profile.indeed.com/resume"]})
+    endpoints = discover_endpoints(
+        (9222,),
+        fetch=fetch,
+        processes=[_foreign_chrome(9222)],
+        own_root=tmp_path / "browser-data",
+    )
+    assert len(endpoints) == 1
+    assert endpoints[0].foreign is True
+    assert endpoints[0].page_urls == ()
+    assert endpoints[0].profile_dir is None
+    assert fetch.requested == []
+
+
+def test_free_debug_port_skips_answering_and_held_ports() -> None:
+    from jobbot.browser.sessions import CdpEndpoint, free_debug_port
+
+    endpoints = [CdpEndpoint(url="http://127.0.0.1:9223", port=9223)]
+    processes = [_foreign_chrome(9222), _foreign_chrome(9225, pid=5)]
+    assert free_debug_port((9222, 9223, 9224), endpoints, processes) == 9224
+    assert free_debug_port((9222, 9223), endpoints, processes) == 9224
+    assert free_debug_port((9222,), [], [_foreign_chrome(9222)]) == 9223
 
 
 def test_busy_persistent_profile_is_reported_instead_of_a_launch_crash(tmp_path: Path) -> None:

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -16,9 +17,13 @@ from jobbot.adapters.getonboard.draft import (
     EXPERIENCE_MAX,
     PermanentProfileFields,
     build_permanent_profile_fields,
+    recent_roles,
+    role_head,
+    role_label,
 )
 from jobbot.branding import stamp_description, strip_mark
 from jobbot.models.candidate import Candidate
+from jobbot.models.experience import Experience
 
 logger = logging.getLogger("jobbot.nlp.refine")
 
@@ -46,33 +51,45 @@ def refine_permanent_profile(
     *,
     use_llm: bool = False,
 ) -> RefineResult:
-    """Prefer cumulative refine; optional LangChain when use_llm=True."""
-    if use_llm:
-        try:
-            from jobbot.nlp.langchain_refine import LangChainProfileRefiner
+    """Prefer cumulative refine; optional LangChain when use_llm=True.
 
-            fields = LangChainProfileRefiner().refine(candidate, previous)
+    NL work lives here (not in chat): heuristics by default, LLM only if requested.
+    """
+    from jobbot.nlp.gateway import run_optional_llm
+
+    def _deterministic() -> RefineResult:
+        if previous is None:
+            cold = build_permanent_profile_fields(candidate)
             return RefineResult(
-                fields=fields,
-                mode="llm",
+                fields=cold,
+                mode="cold",
                 kept_paragraphs=0,
                 added_paragraphs=0,
                 dropped_paragraphs=0,
             )
-        except Exception as exc:  # noqa: BLE001 — fall back; never invent via LLM failure
-            logger.warning("LLM refine unavailable (%s); using cumulative heuristic", exc)
+        return CumulativeProfileRefiner().refine_with_stats(candidate, previous)
 
-    if previous is None:
-        cold = build_permanent_profile_fields(candidate)
+    def _llm() -> RefineResult:
+        from jobbot.nlp.langchain_refine import LangChainProfileRefiner
+
+        fields = LangChainProfileRefiner().refine(candidate, previous)
         return RefineResult(
-            fields=cold,
-            mode="cold",
+            fields=fields,
+            mode="llm",
             kept_paragraphs=0,
             added_paragraphs=0,
             dropped_paragraphs=0,
         )
 
-    return CumulativeProfileRefiner().refine_with_stats(candidate, previous)
+    outcome = run_optional_llm(
+        deterministic=_deterministic,
+        llm=_llm,
+        use_llm=use_llm,
+        task_name="permanent_profile_refine",
+    )
+    if outcome.mode == "llm_fallback":
+        logger.warning("LLM refine fell back: %s", outcome.detail)
+    return outcome.value
 
 
 class CumulativeProfileRefiner:
@@ -102,9 +119,10 @@ class CumulativeProfileRefiner:
 
         cold = build_permanent_profile_fields(candidate)
         companies = _company_tokens(candidate)
-        exp_text, kept, added, dropped = _merge_experience(
+        exp_text, kept, added, dropped = _merge_roles(
             strip_mark(previous.experiencia_y_perfil),
             strip_mark(cold.experiencia_y_perfil),
+            candidate,
             companies,
             EXPERIENCE_MAX,
         )
@@ -255,6 +273,97 @@ def _merge_experience(
         kept = []
         dropped = len(prev_parts)
     return text, len(kept), added, dropped
+
+
+_HEAD_TAIL = re.compile(r"\s*(?:\([^)]*\))?\s*\.")
+
+
+def _role_of(paragraph: str, candidate: Candidate) -> tuple[Experience, int] | None:
+    """The role a paragraph opens with, and where its head sentence ends."""
+    found: list[tuple[Experience, re.Match[str]]] = []
+    for exp in candidate.experience:
+        label = role_label(exp)
+        if paragraph[: len(label)].casefold() != label.casefold():
+            continue
+        tail = _HEAD_TAIL.match(paragraph, len(label))
+        if tail is not None:
+            found.append((exp, tail))
+    if not found:
+        return None
+    exp, tail = next(
+        ((e, t) for e, t in found if e.start_date and e.start_date in t.group(0)),
+        found[0],
+    )
+    return exp, tail.end()
+
+
+def _with_profile_head(paragraph: str, candidate: Candidate) -> str:
+    """A stored role keeps its body; its period is whatever profile.yaml says today."""
+    role = _role_of(paragraph, candidate)
+    if role is None:
+        return paragraph
+    exp, end = role
+    body = paragraph[end:].strip()
+    head = role_head(exp)
+    return f"{head} {body}" if body else head
+
+
+def _merge_roles(
+    previous: str,
+    cold: str,
+    candidate: Candidate,
+    anchors: set[str],
+    maximum: int,
+) -> tuple[str, int, int, int]:
+    """Cumulative merge where profile.yaml owns which roles are current and when they ended.
+
+    A stored paragraph keeps its wording, but a role that has ended can no longer be
+    current, and the most recent roles outrank older ones when the cap forces a cut.
+    """
+    prev_parts = [_with_profile_head(p, candidate) for p in _paragraphs(previous)]
+    text, kept, added, dropped = _merge_experience(
+        "\n\n".join(prev_parts), cold, anchors, sys.maxsize
+    )
+    rank = {exp.id: i for i, exp in enumerate(recent_roles(candidate, len(candidate.experience)))}
+    recent = [exp.id for exp in recent_roles(candidate)]
+
+    pairs: list[tuple[str | None, str]] = []
+    for index, part in enumerate(_paragraphs(text)):
+        role = _role_of(part, candidate)
+        role_id = role[0].id if role else None
+        if role_id is not None and any(rid == role_id for rid, _ in pairs):
+            if index < kept:
+                kept, dropped = kept - 1, dropped + 1
+            else:
+                added -= 1
+            continue
+        pairs.append((role_id, part))
+
+    present = {rid for rid, _ in pairs}
+    slot = next((i for i, (rid, _) in enumerate(pairs) if rid is not None), len(pairs))
+    for part in _paragraphs(cold):
+        role = _role_of(part, candidate)
+        if role is not None and role[0].id in recent and role[0].id not in present:
+            pairs.insert(slot, (role[0].id, part))
+            present.add(role[0].id)
+            added += 1
+
+    role_pairs = [p for p in pairs if p[0] is not None]
+    by_recency = iter(sorted(role_pairs, key=lambda p: rank[p[0] or ""]))
+    pairs = [next(by_recency) if rid is not None else (rid, part) for rid, part in pairs]
+
+    def victim() -> int:
+        older = [i for i, (rid, _) in enumerate(pairs) if rid is not None and rid not in recent]
+        others = [i for i, (rid, _) in enumerate(pairs) if rid is None]
+        if older:
+            return older[-1]
+        if others:
+            return others[-1]
+        return len(pairs) - 1
+
+    while pairs and len("\n\n".join(part for _, part in pairs)) > maximum:
+        pairs.pop(victim())
+    return "\n\n".join(part for _, part in pairs).strip(), kept, added, dropped
 
 
 def _completed_by(paragraph: str, cold_parts: list[str]) -> str:
