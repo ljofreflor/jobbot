@@ -9,6 +9,7 @@ from typing import Any
 
 from jobbot.adapters.ats.email_apply import EmailApplyDraft, gmail_compose_url
 from jobbot.adapters.gmail import selectors
+from jobbot.browser.background import background_notice
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig
 
@@ -170,7 +171,7 @@ class GmailComposeAdapter:
         """Attach the CV in a real Gmail draft and hold the window open for review."""
         with self._session() as browser:
             # Attached to the user's own Chrome: never hijack a tab they are using.
-            page = browser.context.new_page() if self.cdp_url else browser.page
+            page = browser.new_tab() if self.cdp_url else browser.page
             try:
                 url = prepare_gmail_draft(page, draft, cv_path=cv_path)
             except GmailAuthRequired:
@@ -189,6 +190,8 @@ class GmailComposeAdapter:
                 discard_compose(page)
                 raise
 
+            if self.cdp_url:
+                print(background_notice("el borrador de Gmail", where="una pestaña de Chrome"))
             browser.pause_for_manual(
                 "Draft ready in Gmail with the CV attached.\n"
                 "Review recipient, subject, body and attachment, then press Send yourself.\n"
