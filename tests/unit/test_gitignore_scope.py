@@ -45,3 +45,31 @@ def test_no_source_module_is_hidden_from_git(repo: Path) -> None:
 
 def test_private_cv_folders_stay_ignored_at_the_root(repo: Path) -> None:
     assert sorted(_ignored(repo, list(PRIVATE_PATHS))) == sorted(PRIVATE_PATHS)
+
+
+DATA_BACKUPS = (
+    "data/companies.yaml.bak-2026-10-01",
+    "data/profile.yaml.bak",
+    "data/profile.yaml.2026-10-01",
+    "data/portals.yaml.orig",
+    "data/recruiters.yaml.old",
+    "data/form_knowledge.yaml.bak-1",
+    "data/notes.bak-2026-10-01",
+    "data/notes.orig",
+)
+
+DATA_TEMPLATES = (
+    "data/profile.example.yaml",
+    "data/portals.example.yaml",
+    "data/companies.example.yaml",
+    "data/companies-cl.example.yaml",
+    "data/README.md",
+)
+
+
+def test_backups_of_local_data_files_are_ignored(repo: Path) -> None:
+    assert sorted(_ignored(repo, list(DATA_BACKUPS))) == sorted(DATA_BACKUPS)
+
+
+def test_example_templates_are_not_ignored(repo: Path) -> None:
+    assert _ignored(repo, list(DATA_TEMPLATES)) == []

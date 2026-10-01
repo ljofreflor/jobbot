@@ -1,9 +1,9 @@
 ---
 template: home.html
-title: Jobbot — tu próximo paso, con inteligencia
+title: Jobbot — búsqueda mientras programas
 description: >-
-  CLI local para buscar trabajo: encuentra vacantes, prepara postulaciones y el
-  envío lo haces tú. Humano + tecnología, en tu máquina.
+  CLI local para buscar trabajo sin salir del editor: encuentra dónde publican,
+  prepara sin inventar, postula con vos al mando. Humano + bot, en tu máquina.
 hide:
   - navigation
   - toc
@@ -13,33 +13,34 @@ hide:
 
 ## Personas · oportunidades · tecnología
 
-Tres cosas que Jobbot hace de verdad. Sin inventar un producto que no existe.
+Herramienta de oficio: **búsqueda mientras programas**. Sin inventar un producto
+que no existe. [Manifiesto completo](manifesto.md).
 
 <ul class="jb-benefits">
   <li>
     <div class="jb-benefits__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     </div>
-    <strong>Encuentra oportunidades</strong>
-    <span>Descubre vacantes que encajan con tu perfil real, no con un CV inventado.</span>
+    <strong>Encuentra donde publican</strong>
+    <span>ATS, boards y sweeps — vacantes que encajan con tu perfil real, no con un CV inventado.</span>
   </li>
   <li>
     <div class="jb-benefits__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/><path d="M9 21l1.5-1.5L13 21"/></svg>
     </div>
-    <strong>Postula más fácil</strong>
-    <span>Arma el paquete, abre el formulario y deja el envío en tus manos.</span>
+    <strong>Prepara sin inventar</strong>
+    <span>Arma el paquete desde hechos que ya existen; el envío queda en tus manos.</span>
   </li>
   <li>
     <div class="jb-benefits__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M20 19H3"/></svg>
     </div>
-    <strong>Avanza con confianza</strong>
-    <span>Matching contra tu perfil, shortlist y evidencia — sin telemetría ni cuenta.</span>
+    <strong>Postula con vos al mando</strong>
+    <span>Matching, shortlist y evidencia — HITL, sin telemetría ni cuenta.</span>
   </li>
 </ul>
 
-<p class="jb-pillars">Más oportunidades. Un mejor mañana.</p>
+<p class="jb-pillars">Más oportunidades. Un mejor mañana. Sin salir de la terminal.</p>
 
 </section>
 

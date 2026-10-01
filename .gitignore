@@ -3,8 +3,15 @@
 data/profile.yaml
 data/profile.generated.yaml
 data/profile.suggested.yaml
-data/profile.yaml.bak
-data/*.bak
+# Backups / variants hold the same data as the original (`.bak`, `.bak-DATE`, `.orig`…).
+data/profile.yaml.*
+data/portals.yaml.*
+data/companies.yaml.*
+data/form_knowledge.yaml.*
+data/recruiters.yaml.*
+data/**/*.bak
+data/**/*.bak-*
+data/**/*.orig
 # Owner stamp: a hash that ties this data/ + output/ to one candidate.
 data/.jobbot-owner.json
 # Extra candidates (test CVs) live in their own workspace: never their data.

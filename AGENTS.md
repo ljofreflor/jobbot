@@ -2,6 +2,9 @@
 
 Instructions for AI agents and humans working on this repository.
 
+Brand and voice (niche = tech, channel = terminal):
+[docs/manifesto.md](docs/manifesto.md) — **búsqueda mientras programas**; HITL; never invent.
+
 ## Product / endgame
 
 JobBot is a **local terminal-only** tool. Two loops, one source of truth
