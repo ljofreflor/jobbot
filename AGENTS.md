@@ -66,8 +66,12 @@ jobbot linkedin sweep [QUERY] [--country CL] [--fixture PATH] [--cdp URL]
 jobbot get https://www.getonbrd.com/empleos/.../slug
 # jobbot get 'https://cl.indeed.com/viewjob?jk=...' [--fixture PATH]
 # From a phone (no CAPTCHA): park the share link, drain later on desktop
+jobbot capture 'https://…'   # always: leave as candidate (hard link / portal / unrecognized)
+jobbot capture --list
 jobbot get 'https://cl.indeed.com/viewjob?jk=...' --park
 jobbot browser chrome-debug --site indeed
+# Prefer email / magic link in that Chrome; if the mail hits your phone:
+# jobbot indeed login --continue-url 'PEGAR_LINK_DEL_MAIL'
 jobbot get --parked --cdp http://127.0.0.1:9222
 jobbot jobs match J0001
 jobbot jobs shortlist
@@ -87,12 +91,17 @@ jobbot profile suggest-from-market --job J0001
 
 Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
 (`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
+Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
+    90|(`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
 or Indeed; `--fixture` also ingests Indeed viewjob or career-page HTML). From a phone,
-`--park` queues the share URL under `data/hard-link-inbox.txt` with no fetch; on a desktop
-with Chrome CDP, `jobbot get --parked` drains it (CAPTCHA stays HITL). Known ATS hosts
+`jobbot capture URL` keeps the share as a **candidate** (hard-link inbox, company portal
+candidate, or unrecognized list) with no fetch; `--park` queues the share URL under
+`data/hard-link-inbox.txt` as the hard-link-only shortcut. On a desktop with Chrome CDP,
+`jobbot get --parked` / `companies recon` finish the work (CAPTCHA stays HITL). Known ATS hosts
 without a fetcher (or Indeed URL shapes we do not yet parse) are refused and recorded
 as ops failures with class+message — tracking stripped from the stored command — so
 `ops failure work` can open the issue→branch→PR lane. Manual `jobs add --file` is a fallback.
+   100|`profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
 
@@ -129,8 +138,17 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  there is no table of role families.
  - Market feedback reads its terms from the stored JDs; a confirmed skill lands in a neutral
  group; an imported CV keeps the skill groups its own sections used.
- - A post is discovered for saying it is hiring or how to apply, not for its field. Search
- defaults come from `personal.headline`; no default role lives in the code.
+ - A post is discovered for saying it is hiring or how to apply, not for its field. Board
+ searches (`getonboard search`, `torre search`, `linkedin sweep` with no query) run the
+ profile's `search_queries`; without them, the set `profile queries` derives from experience
+ (skills a role backs, phrases repeated across achievements, titles held — most recent
+ first). The headline is a last fallback only; no default role lives in the code.
+ `search_queries` is a preference the candidate edits, not a professional fact.
+ - The matcher also reads the posting against the profile: a declared skill, specialty or
+ degree the posting names, or an achievement it echoes, is strong evidence. That side can
+ only add, never lower a score. Page chrome (dates, clock times, salaries, currency codes,
+ `Label: value`, shouted headings, ATS field labels) is never a requirement. When every
+ scored job lands at 0%, commands print a matcher alert instead of a silent empty list.
  - Equivalence tables (`jobs/normalization.py`) are allowed **because an unknown term falls
  through unchanged**: they add recall for names of the same thing, never a gate.
 - **PDF CV import:** `profile import-pdf` reads the text layer only (no OCR, no models). A PDF has
@@ -174,17 +192,21 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   alimenta [#43](https://github.com/ljofreflor/jobbot/issues/43) / [#44](https://github.com/ljofreflor/jobbot/issues/44).
 - **Qué pide un formulario:** `portals form-learn URL --fetch|--fixture PATH` lee un formulario de
   postulación y guarda **solo las preguntas**: etiqueta, tipo, obligatoriedad, opciones de un select
-  y qué archivos acepta. Nunca guarda un valor tipeado, un token oculto ni el teléfono de ejemplo de
-  un placeholder, y no envía nada. `application apply --apply` lo aprende de paso, sin bloquear la
-  postulación si la página no se puede leer (queda como `unknown`, no como formulario vacío).
-  `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el insumo que
-  `cv advise` usa para saber qué preguntan realmente las empresas.
+  y qué archivos acepta. También nombra botones **Sign in with Google/LinkedIn/…** si están en la
+  página (HITL; nunca inicia OAuth). Nunca guarda un valor tipeado, un token oculto ni el teléfono de
+  ejemplo de un placeholder, y no envía nada. `application apply --apply` lo aprende de paso, sin
+  bloquear la postulación si la página no se puede leer (queda como `unknown`, no como formulario
+  vacío). `data/form_knowledge.yaml` es local (gitignored + `pii_guard`) y no se comparte: es el
+  insumo que `cv advise` usa para saber qué preguntan realmente las empresas.
 - **Registro de cuenta (asistido, HITL):** el endgame es que un portal *active* de la base
   colaborativa pueda quedar con cuenta + perfil/CV al día para este candidato. Hoy
   `companies signup NOMBRE` abre el portal y lista qué pide vs `profile.yaml`.
   Con `--apply` rellena campos que el perfil ya responde y puede adjuntar el PDF;
   **prohibido** inventar contraseña, aceptar términos solo, resolver
-  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. El módulo de sheet
+  CAPTCHA/2FA o pulsar crear/enviar sin confirmación. Si la página ofrece **Sign in with
+  Google / LinkedIn / Microsoft / Apple**, `form-learn` y la hoja de signup lo **nombran**
+  (`jobbot.portals.sso`); vos clicás el proveedor — JobBot nunca inicia OAuth. Un campo
+  URL de perfil LinkedIn o un enlace de footer no cuentan como SSO. El módulo de sheet
   (`jobbot.companies.signup`) sigue sin cliente HTTP propio (la hoja es pura); el driver
   de relleno vive en `adapters/ats/signup_fill.py`, detrás de `--apply` + confirm. ATS sin cuenta
   (Greenhouse, Lever, Ashby) lo declaran; sin evidencia → `unknown`.
@@ -432,7 +454,8 @@ uv run jobbot indeed login|pull|diff|sync --section headline
 uv run jobbot linkedin login|pull|diff
 uv run jobbot linkedin sync --section publications          # dry-run
 uv run jobbot linkedin sync --section publications --apply  # confirm each
-uv run jobbot linkedin sweep                    # query desde personal.headline
+uv run jobbot linkedin sweep                    # queries del perfil (profile queries)
+uv run jobbot linkedin sweep --max-queries 5
 uv run jobbot linkedin sweep "enviar CV" --country CL --country AR
 uv run jobbot linkedin sweep "enviar CV" --any-country
 uv run jobbot linkedin sweep "enviar CV" --no-copy-links   # sin abrir el menú "…"
@@ -449,7 +472,7 @@ uv run jobbot getonboard open-cvs
 uv run jobbot getonboard upload-cv              # valida PDF (tamaño/magic/hash)
 uv run jobbot getonboard upload-cv --apply --cdp http://127.0.0.1:9224  # sube + default
 uv run jobbot getonboard sync --apply
-uv run jobbot getonboard search                 # query desde personal.headline
+uv run jobbot getonboard search                 # queries del perfil (profile queries)
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
 uv run jobbot ops failures
 uv run jobbot ops failure show F0001
@@ -479,6 +502,8 @@ uv run jobbot browser login --apply    # abre el siguiente portal sin sesión pr
 uv run jobbot browser chrome-debug --site gmail --port 9223
 uv run jobbot application apply J0001 --apply --cdp http://127.0.0.1:9223
 uv run jobbot profile suggest-from-market
+uv run jobbot profile queries                   # búsquedas derivadas de la experiencia
+uv run jobbot profile queries --apply           # confirma y guarda search_queries (editable)
 uv run jobbot workspace list|new NAME|show|adopt
 uv run jobbot --workspace NAME cv build --job J0001  # runs against a test CV
 ```

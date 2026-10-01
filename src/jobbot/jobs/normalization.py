@@ -115,6 +115,66 @@ def normalize_skill(text: str) -> str:
     return key.replace(" ", "_")
 
 
+def stem_word(word: str) -> str:
+    """'geofísico' and 'geofísica' are the same claim; so are 'proyecto'/'proyectos'.
+
+    A JD writes the masculine and the profile the feminine (or the reverse), and a
+    requirement was reported as missing over a single vowel. Long words only, so
+    short names ('sql', 'scrum') are never touched.
+    """
+    folded = fold_text(word)
+    if len(folded) < 6:
+        return folded
+    for suffix in ("es", "s"):
+        if folded.endswith(suffix) and len(folded) - len(suffix) >= 5:
+            folded = folded[: -len(suffix)]
+            break
+    if folded[-1] in "aoe" and len(folded) >= 6:
+        folded = folded[:-1]
+    return folded
+
+
+_COGNATE_PREFIX = 7
+_COGNATE_SHARE = 0.7
+
+
+class WordIndex:
+    """The words of a text, looked up tolerant of gender, plural and cognates.
+
+    'epidemiology' and 'epidemiología', 'zoonotic' and 'zoonóticas', 'consultant'
+    and 'consultora' name the same thing across languages and genders. The evidence
+    is a shared root: seven letters or more, covering most of the shorter word. A
+    short word only matches itself or its stem, so 'sql' never reads as 'sqlite'.
+    """
+
+    def __init__(self, words: set[str] | frozenset[str]) -> None:
+        self.words = frozenset(words)
+        self._stems = frozenset(stem_word(word) for word in self.words)
+        self._by_prefix: dict[str, list[str]] = {}
+        for word in self.words:
+            if len(word) >= _COGNATE_PREFIX:
+                self._by_prefix.setdefault(word[:_COGNATE_PREFIX], []).append(word)
+
+    def has(self, word: str) -> bool:
+        if word in self.words or stem_word(word) in self._stems:
+            return True
+        if len(word) < _COGNATE_PREFIX:
+            return False
+        return any(
+            _shared_prefix(word, other) >= _COGNATE_SHARE * min(len(word), len(other))
+            for other in self._by_prefix.get(word[:_COGNATE_PREFIX], ())
+        )
+
+
+def _shared_prefix(left: str, right: str) -> int:
+    count = 0
+    for a, b in zip(left, right, strict=False):
+        if a != b:
+            break
+        count += 1
+    return count
+
+
 def normalize_many(values: list[str]) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []

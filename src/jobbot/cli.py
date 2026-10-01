@@ -66,6 +66,9 @@ from jobbot.workspace import (
 )
 from jobbot.workspace import adopt as adopt_workspace
 
+# Profile searches a board command runs when no query is typed.
+_DEFAULT_MAX_QUERIES = 3
+
 app = typer.Typer(
     name="jobbot",
     help="Local terminal tool for job search and structured CV management.",
@@ -649,6 +652,93 @@ def _ingest_one_hard_link(
     application_apply(job.id, apply_changes=True, yes=yes, cdp=cdp)
 
 
+@app.command("capture")
+def capture_share_url(
+    url: Annotated[
+        str | None,
+        typer.Argument(
+            help="Share URL from phone (Indeed vacancy, company career portal, or unknown).",
+        ),
+    ] = None,
+    list_all: Annotated[
+        bool,
+        typer.Option(
+            "--list",
+            help="Show unfinished candidates (parked hard links, company portals, unrecognized)",
+        ),
+    ] = False,
+    company: Annotated[
+        str | None,
+        typer.Option("--company", help="Company name when capturing a career portal"),
+    ] = None,
+    country: Annotated[
+        str | None,
+        typer.Option("--country", help="ISO country, e.g. CL"),
+    ] = None,
+) -> None:
+    """Keep a share URL as a candidate — no fetch, no CAPTCHA (phone-friendly)."""
+    from jobbot.jobs.capture import (
+        CaptureKind,
+        capture_paths,
+        capture_url,
+        list_candidates,
+    )
+
+    _, config = _session()
+    if list_all:
+        inv = list_candidates(config)
+        paths = capture_paths(config)
+        console.print("[bold]Candidate URLs (not finished yet)[/bold]")
+        console.print(f"Hard links ({paths['hard_links']}):")
+        if inv.hard_links:
+            for item in inv.hard_links:
+                console.print(f"  · {item}")
+        else:
+            console.print("  (none)")
+        console.print(f"Company portals ({paths['companies']}):")
+        if inv.company_portals:
+            for company_id, site_url, status in inv.company_portals:
+                console.print(f"  · {company_id}  {site_url}  [{status}]")
+        else:
+            console.print("  (none)")
+        console.print(f"Unrecognized ({paths['unrecognized']}):")
+        if inv.unrecognized:
+            for item in inv.unrecognized:
+                console.print(f"  · {item}")
+        else:
+            console.print("  (none)")
+        return
+
+    if url is None:
+        err_console.print(
+            "[red]Provide a URL[/red], or [bold]jobbot capture --list[/bold]."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    try:
+        result = capture_url(config, url, company=company, country=country)
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    label = {
+        CaptureKind.HARD_LINK: "Hard link candidate",
+        CaptureKind.COMPANY_PORTAL: "Company portal candidate",
+        CaptureKind.UNRECOGNIZED: "Unrecognized candidate",
+    }[result.kind]
+    verb = "Already had" if result.already_present else "Captured"
+    console.print(f"[green]{verb}[/green] {label}: {result.url}")
+    if result.company_id:
+        console.print(f"company_id={result.company_id}")
+    console.print(result.detail)
+    console.print(
+        "Later on desktop: "
+        "[bold]jobbot get --parked[/bold] (hard links) · "
+        "[bold]jobbot companies recon …[/bold] (portals) · "
+        "[bold]jobbot capture --list[/bold]"
+    )
+
+
 # ── workspace ────────────────────────────────────────────────────────────────
 
 
@@ -1040,6 +1130,83 @@ def profile_suggest_from_market(
     shutil.copy2(suggested_path, config.profile_path)
     console.print(f"Backup: {backup}")
     console.print(f"[green]Promoted[/green] confirmed market skills → {config.profile_path}")
+
+
+_QUERY_ORIGIN_LABEL = {
+    "competency": "skill a role mentions",
+    "achievements": "repeated in achievements",
+    "title": "title held",
+}
+
+
+@profile_app.command("queries")
+def profile_queries(
+    limit: Annotated[int, typer.Option("--limit", help="How many queries to derive")] = 8,
+    apply_changes: Annotated[
+        bool,
+        typer.Option(
+            "--apply",
+            help="Save the derived set as search_queries in profile.yaml (confirm; backup)",
+        ),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation")] = False,
+) -> None:
+    """Job searches derived from your experience; --apply saves them for you to edit."""
+    from jobbot.profile.search_queries import derive_search_queries
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    if candidate.search_queries:
+        console.print("[bold]Saved in profile.yaml[/bold] (searches use these):")
+        for text in candidate.search_queries:
+            console.print(f"  • {text}")
+    derived = derive_search_queries(candidate, limit=max(1, limit))
+    if not derived:
+        console.print("Nothing to derive: the profile has no experience to search from.")
+        return
+
+    table = Table(title="Derived from your experience")
+    table.add_column("Query")
+    table.add_column("From")
+    table.add_column("Backed by", justify="right")
+    for query in derived:
+        table.add_row(
+            query.text,
+            _QUERY_ORIGIN_LABEL[query.origin.value],
+            f"{len(query.evidence)} role(s)",
+        )
+    console.print(table)
+
+    if not apply_changes:
+        console.print(
+            "Dry-run. Re-run with [bold]--apply[/bold] to save them as search_queries; "
+            "edit the list in profile.yaml afterwards."
+        )
+        return
+    texts = [query.text for query in derived]
+    if texts == candidate.search_queries:
+        console.print("Already saved.")
+        return
+    question = f"Save these {len(texts)} queries as search_queries in profile.yaml?"
+    if not yes and not typer.confirm(question, default=False):
+        console.print("Nothing written.")
+        return
+    raw = load_profile_raw(config.profile_path)
+    raw["search_queries"] = texts
+    backup = config.profile_path.with_suffix(config.profile_path.suffix + ".bak")
+    shutil.copy2(config.profile_path, backup)
+    config.profile_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    console.print(f"Backup: {backup}")
+    console.print(f"[green]Saved[/green] {len(texts)} search queries → {config.profile_path}")
+    console.print("Next: [bold]jobbot getonboard search[/bold] (no query needed)")
 
 
 @profile_app.command("status")
@@ -2168,6 +2335,7 @@ def jobs_shortlist() -> None:
     console.print("[bold]TOP MATCHES[/bold]")
     for score, jid, title, company in rows:
         console.print(f"{score:5.1f}%  {jid}  {title}  {company}")
+    _warn_if_matcher_blind([row[0] for row in rows])
 
 
 @jobs_app.command("backfill-dates")
@@ -2592,12 +2760,31 @@ def indeed_login(
         str | None,
         typer.Option("--cdp", help="Attach to Chrome CDP (e.g. http://127.0.0.1:9222)"),
     ] = None,
+    continue_url: Annotated[
+        str | None,
+        typer.Option(
+            "--continue-url",
+            help=(
+                "Magic / verify link from Indeed's email (paste from phone). "
+                "JobBot opens it in the persistent Chrome profile; never types a password."
+            ),
+        ),
+    ] = None,
 ) -> None:
-    """Open Indeed login with persistent browser profile."""
-    from jobbot.adapters.indeed.client import IndeedAdapter
+    """Open Indeed login (HITL). Prefer email/magic link; optional --continue-url."""
+    from jobbot.adapters.indeed.client import IndeedAdapter, normalize_indeed_continue_url
     from jobbot.browser.cdp import resolve_cdp_url
 
-    IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).login()
+    if continue_url is not None:
+        try:
+            continue_url = normalize_indeed_continue_url(continue_url)
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).login(
+        continue_url=continue_url
+    )
 
 
 @indeed_app.command("status")
@@ -2896,9 +3083,13 @@ def linkedin_sync(
 def linkedin_sweep(
     query: Annotated[
         str | None,
-        typer.Argument(help="Content search keywords (default: your own headline + 'hiring')"),
+        typer.Argument(help="Content search keywords (default: 'hiring' + your profile searches)"),
     ] = None,
     limit: Annotated[int, typer.Option("--limit", help="Max posts to keep")] = 20,
+    max_queries: Annotated[
+        int,
+        typer.Option("--max-queries", help="Profile searches to run when no query is given"),
+    ] = _DEFAULT_MAX_QUERIES,
     fixture: Annotated[
         Path | None,
         typer.Option("--fixture", help="Parse posts from a text fixture (no browser)"),
@@ -2967,15 +3158,9 @@ def linkedin_sweep(
 
     session, config = _session()
     if query is None:
-        role = _profile_role_query(config)
-        if role is None:
-            err_console.print(
-                "No query given and no role in the profile: "
-                "pass the keywords or set personal.headline."
-            )
-            raise typer.Exit(GENERIC_FAILURE)
-        query = f"hiring {role}"
-        console.print(f"[dim]Query from your profile: {query}[/dim]")
+        queries = [f"hiring {text}" for text in _search_queries(config, None, max_queries)]
+    else:
+        queries = [query]
     countries = resolve_countries(config.search.countries, country, any_country=any_country)
     max_age = 0 if any_age else config.search.max_age_days
     if max_age_days is not None and not any_age:
@@ -2990,26 +3175,33 @@ def linkedin_sweep(
         console.print(
             f"Age filter: posts newer than [bold]{max_age} days[/bold] (--any-age to lift)"
         )
-    if fixture is not None:
-        found = source.search_from_fixture(
-            fixture.expanduser().resolve(),
-            query=query,
-            countries=countries,
-            allow_remote=config.search.allow_remote,
-            max_age_days=max_age,
-        )
-    else:
-        console.print(f"Sweeping LinkedIn content for [bold]{query}[/bold]…")
-        found = source.search_jobs(
-            JobSearchQuery(
-                query=query,
-                limit=limit,
-                countries=countries,
-                allow_remote=config.search.allow_remote,
-                copy_permalinks=copy_links,
-                max_age_days=max_age,
+    found: list[JobPosting] = []
+    for text in queries:
+        if fixture is not None:
+            found.extend(
+                source.search_from_fixture(
+                    fixture.expanduser().resolve(),
+                    query=text,
+                    countries=countries,
+                    allow_remote=config.search.allow_remote,
+                    max_age_days=max_age,
+                )
             )
-        )
+        else:
+            console.print(f"Sweeping LinkedIn content for [bold]{text}[/bold]…")
+            found.extend(
+                source.search_jobs(
+                    JobSearchQuery(
+                        query=text,
+                        limit=limit,
+                        countries=countries,
+                        allow_remote=config.search.allow_remote,
+                        copy_permalinks=copy_links,
+                        max_age_days=max_age,
+                    )
+                )
+            )
+    found = _unique_postings(found)
 
     if not found:
         console.print("No relevant posts found.")
@@ -3034,12 +3226,14 @@ def linkedin_sweep(
     table.add_column("Where")
     table.add_column("Match")
     stored: list[str] = []
+    scores: list[float] = []
     for raw in found[:limit]:
         job = repo.upsert_external(raw)
         if candidate is not None:
             match = analyzer.analyze(candidate, job)
             repo.update_match_score(job.id, match.score)
             job.match_score = match.score
+            scores.append(match.score)
         write_job_json(job, config.output_dir)
         stored.append(job.id)
         ats = job.ats_kind or "-"
@@ -3089,6 +3283,8 @@ def linkedin_sweep(
         f"Stored {len(stored)} jobs. Next: [bold]jobbot jobs match {stored[0]}[/bold] "
         f"→ [bold]jobbot application apply {stored[0]}[/bold]"
     )
+    if candidate is not None:
+        _warn_if_matcher_blind(scores)
 
 
 @getonboard_app.command("prepare")
@@ -3314,9 +3510,13 @@ def getonboard_sync(
 def getonboard_search(
     query: Annotated[
         str | None,
-        typer.Argument(help="Search query (default: the role in your own profile)"),
+        typer.Argument(help="Search query (default: the searches in your own profile)"),
     ] = None,
-    limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
+    limit: Annotated[int, typer.Option("--limit", help="Max results per query (1-50)")] = 20,
+    max_queries: Annotated[
+        int,
+        typer.Option("--max-queries", help="Profile searches to run when no query is given"),
+    ] = _DEFAULT_MAX_QUERIES,
 ) -> None:
     """Search Get on Board (Spanish/LATAM) and store jobs locally."""
     from jobbot.adapters.getonboard.jobs import GetOnBoardJobSource
@@ -3327,22 +3527,17 @@ def getonboard_search(
         raise typer.Exit(GENERIC_FAILURE)
 
     session, config = _session()
-    if query is None:
-        query = _profile_role_query(config)
-        if query is None:
-            err_console.print(
-                "No query given and no role in the profile: "
-                "pass the search terms or set personal.headline."
-            )
-            raise typer.Exit(GENERIC_FAILURE)
-        console.print(f"[dim]Query from your profile: {query}[/dim]")
+    queries = _search_queries(config, query, max_queries)
     source = GetOnBoardJobSource(config)
-    console.print(f"Searching Get on Board for [bold]{query}[/bold]…")
-    try:
-        found = source.search_jobs(JobSearchQuery(query=query, limit=limit))
-    except Exception as exc:
-        err_console.print(f"[red]Get on Board search failed: {exc}[/red]")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+    found: list[JobPosting] = []
+    for text in queries:
+        console.print(f"Searching Get on Board for [bold]{text}[/bold]…")
+        try:
+            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit)))
+        except Exception as exc:
+            err_console.print(f"[red]Get on Board search failed: {exc}[/red]")
+            raise typer.Exit(GENERIC_FAILURE) from exc
+    found = _unique_postings(found)
 
     if not found:
         console.print("No jobs found.")
@@ -3361,12 +3556,14 @@ def getonboard_search(
     table.add_column("Where")
     table.add_column("Match")
     stored: list[str] = []
+    scores: list[float] = []
     for raw in found:
         job = repo.upsert_external(raw)
         if candidate is not None:
             match = analyzer.analyze(candidate, job)
             repo.update_match_score(job.id, match.score)
             job.match_score = match.score
+            scores.append(match.score)
         write_job_json(job, config.output_dir)
         stored.append(job.id)
         score = f"{job.match_score:.0f}%" if job.match_score is not None else "-"
@@ -3382,16 +3579,22 @@ def getonboard_search(
         f"Stored {len(stored)} jobs (portal getonbrd.com learned). "
         f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
     )
+    if candidate is not None:
+        _warn_if_matcher_blind(scores)
 
 
 @torre_app.command("search")
 def torre_search(
     query: Annotated[
         str | None,
-        typer.Argument(help="Search query (default: the role in your own profile)"),
+        typer.Argument(help="Search query (default: the searches in your own profile)"),
     ] = None,
-    limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
+    limit: Annotated[int, typer.Option("--limit", help="Max results per query (1-50)")] = 20,
     remote: Annotated[bool, typer.Option("--remote", help="Only remote opportunities")] = False,
+    max_queries: Annotated[
+        int,
+        typer.Option("--max-queries", help="Profile searches to run when no query is given"),
+    ] = _DEFAULT_MAX_QUERIES,
 ) -> None:
     """Search Torre (LATAM / remote) and store jobs locally."""
     from jobbot.adapters.torre.jobs import TorreJobSource
@@ -3402,24 +3605,21 @@ def torre_search(
         raise typer.Exit(GENERIC_FAILURE)
 
     session, config = _session()
-    if query is None:
-        query = _profile_role_query(config)
-        if query is None:
-            err_console.print(
-                "No query given and no role in the profile: "
-                "pass the search terms or set personal.headline."
-            )
-            raise typer.Exit(GENERIC_FAILURE)
-        console.print(f"[dim]Query from your profile: {query}[/dim]")
+    queries = _search_queries(config, query, max_queries)
 
     narrator = _narrator()
-    narrator.phase(Phase.RECEIVING_WORLD, f"Torre: {query}")
     source = TorreJobSource(config)
-    try:
-        found = source.search_jobs(JobSearchQuery(query=query, limit=limit, remote=remote))
-    except Exception as exc:
-        err_console.print(f"[red]Torre search failed: {exc}[/red]")
-        raise typer.Exit(GENERIC_FAILURE) from exc
+    found: list[JobPosting] = []
+    for text in queries:
+        narrator.phase(Phase.RECEIVING_WORLD, f"Torre: {text}")
+        try:
+            found.extend(
+                source.search_jobs(JobSearchQuery(query=text, limit=limit, remote=remote))
+            )
+        except Exception as exc:
+            err_console.print(f"[red]Torre search failed: {exc}[/red]")
+            raise typer.Exit(GENERIC_FAILURE) from exc
+    found = _unique_postings(found)
 
     if not found:
         console.print("No jobs found.")
@@ -3438,12 +3638,14 @@ def torre_search(
     table.add_column("Where")
     table.add_column("Match")
     stored: list[str] = []
+    scores: list[float] = []
     for raw in found:
         job = repo.upsert_external(raw)
         if candidate is not None:
             match = analyzer.analyze(candidate, job)
             repo.update_match_score(job.id, match.score)
             job.match_score = match.score
+            scores.append(match.score)
         write_job_json(job, config.output_dir)
         _learn_company_knowledge(config, job)
         stored.append(job.id)
@@ -3460,6 +3662,8 @@ def torre_search(
         f"Stored {len(stored)} jobs (portal torre.ai learned). "
         f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
     )
+    if candidate is not None:
+        _warn_if_matcher_blind(scores)
 
 
 @portals_app.command("list")
@@ -3604,7 +3808,7 @@ def portals_form_learn(
 
     form = learn_form_html(html, url=url, company=company)
     _print_form_knowledge(form)
-    if save and form.readable:
+    if save and (form.readable or form.sso_providers):
         stored = _store_form_knowledge(config, form)
         console.print(f"Learned (candidate knowledge): {stored}")
     elif save:
@@ -3637,6 +3841,12 @@ def _print_form_knowledge(form: Any) -> None:
     from jobbot.portals.form_learn import FieldKind
 
     console.print(f"[bold]{form.url}[/bold]  ats={form.ats.value}")
+    if form.sso_providers:
+        names = ", ".join(form.sso_providers)
+        console.print(
+            f"Sign in with: {names}  "
+            "[dim](you click; JobBot never starts OAuth)[/dim]"
+        )
     if not form.readable:
         console.print(f"[yellow]{form.evidence}[/yellow]")
         console.print("Tip: open the page, save the HTML, and pass it with --fixture.")
@@ -3688,23 +3898,76 @@ def _companies_registry(config: JobbotConfig) -> tuple[CompanyRegistry, Path]:
     return load_companies(path), path
 
 
-def _profile_role_query(config: JobbotConfig) -> str | None:
-    """The role to search for comes from the profile, not from a literal default.
+def _search_queries(config: JobbotConfig, query: str | None, max_queries: int) -> list[str]:
+    """An explicit query runs alone; otherwise the profile's own searches.
 
-    A default query hardcodes one career into the tool; the candidate's own
-    headline (or latest held title) is the only honest guess.
+    A default query hardcodes one career into the tool, and a headline can be a
+    degree. The saved ``search_queries`` win; without them the set is derived from
+    the experience, and only a profile with no experience falls back to its headline.
     """
+    from jobbot.profile.search_queries import search_queries_for
+
+    if query is not None:
+        return [query]
     try:
         candidate = load_profile(config.profile_path)
     except Exception:  # noqa: BLE001 — no profile yet is a normal first run
-        return None
+        candidate = None
+    queries: list[str] = []
+    where = ""
+    if candidate is not None:
+        chosen = search_queries_for(candidate)
+        queries = chosen.queries
+        where = "saved in profile.yaml" if chosen.saved else "derived from your experience"
+        if not queries:
+            role = _headline_role(candidate)
+            queries = [role] if role else []
+            where = "from your headline"
+    if not queries:
+        err_console.print(
+            "No query given and nothing in the profile to search for: pass the search terms, "
+            "or add experience (or search_queries) to profile.yaml."
+        )
+        raise typer.Exit(GENERIC_FAILURE)
+    picked = queries[: max(1, max_queries)]
+    console.print(f"[dim]Queries {where}: {', '.join(picked)}[/dim]")
+    if len(queries) > len(picked):
+        console.print(f"[dim]{len(queries) - len(picked)} more left out (--max-queries).[/dim]")
+    if where == "derived from your experience":
+        console.print("[dim]Review and save them: jobbot profile queries --apply[/dim]")
+    return picked
+
+
+def _headline_role(candidate: Candidate) -> str | None:
     headline = (candidate.personal.headline or "").strip()
     if headline:
         return re.split(r"\s*[|/·–—]\s*", headline)[0].strip() or None
-    for exp in candidate.experience:
-        if exp.title.strip():
-            return exp.title.strip()
     return None
+
+
+def _unique_postings(found: Sequence[JobPosting]) -> list[JobPosting]:
+    """Several queries return the same vacancy; keep the first sighting."""
+    seen: set[tuple[str, ...]] = set()
+    unique: list[JobPosting] = []
+    for job in found:
+        if job.source_job_id:
+            key: tuple[str, ...] = (job.source, job.source_job_id)
+        elif job.url:
+            key = (job.url,)
+        else:
+            key = (job.source, job.title.casefold(), job.company.casefold())
+        if key not in seen:
+            seen.add(key)
+            unique.append(job)
+    return unique
+
+
+def _warn_if_matcher_blind(scores: Sequence[float]) -> None:
+    from jobbot.matching.scoring import blind_matcher_warning
+
+    warning = blind_matcher_warning(scores)
+    if warning:
+        console.print(f"[yellow]{warning}[/yellow]")
 
 
 def _learn_company_knowledge(
