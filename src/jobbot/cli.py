@@ -72,6 +72,13 @@ from jobbot.workspace import adopt as adopt_workspace
 # Profile searches a board command runs when no query is typed.
 _DEFAULT_MAX_QUERIES = 3
 
+
+def _restamp_after_profile_promote(config: JobbotConfig) -> None:
+    """Promoting a CV is a deliberate identity change: refresh the owner stamp."""
+    label = active_workspace() or DEFAULT_LABEL
+    adopt_workspace(config.profile_path, config.output_dir, label=label)
+
+
 app = typer.Typer(
     name="jobbot",
     help="Local terminal tool for job search and structured CV management.",
@@ -1053,6 +1060,7 @@ def profile_import_pdf(
                 err_console.print(f"[red]- {issue}[/red]")
             raise typer.Exit(VALIDATION_FAILURE)
         shutil.copy2(destination, config.profile_path)
+        _restamp_after_profile_promote(config)
         console.print(f"[green]Promoted[/green] → {config.profile_path}")
     else:
         console.print(
@@ -1105,6 +1113,7 @@ def profile_promote_generated(
         console.print(f"Backup: {backup}")
 
     shutil.copy2(generated, target)
+    _restamp_after_profile_promote(config)
     console.print(f"[green]Promoted[/green] {generated} → {target}")
 
 
