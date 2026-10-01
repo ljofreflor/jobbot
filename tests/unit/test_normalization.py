@@ -2,8 +2,18 @@
 
 from __future__ import annotations
 
-from jobbot.jobs.normalization import normalize_skill
+from jobbot.jobs.normalization import normalize_skill, skills_in_text
 from jobbot.jobs.parsing import parse_job_text
+
+
+def test_skills_in_text_reads_whole_phrases_across_languages() -> None:
+    found = skills_in_text("Construí modelos predictivos; Magíster en Estadística.")
+    assert {"predictive_modeling", "statistics"} <= found
+
+
+def test_skills_in_text_ignores_short_aliases_and_fragments() -> None:
+    assert skills_in_text("Área de I+D y R&D, equipo TF") == set()
+    assert "predictive_modeling" not in skills_in_text("un modelo que no es predictivo")
 
 
 def test_normalize_postgres_aliases() -> None:

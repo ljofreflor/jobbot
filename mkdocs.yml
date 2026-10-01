@@ -117,6 +117,15 @@ nav:
   - English:
       - en/index.md
 
+# Reference pages reached by link, not from the menu.
+not_in_nav: |
+  capabilities.md
+  cli-sdk-migration.md
+  library-audit.md
+  portal-learning.md
+  sdk.md
+  tutorial.md
+
 validation:
   omitted_files: warn
   absolute_links: warn

@@ -47,10 +47,19 @@ class SearchConfig:
 
 
 @dataclass(frozen=True)
+class CvConfig:
+    """Off by default: another candidate's CV must not advertise the tool."""
+
+    jobbot_signature: bool = False
+    jobbot_project_url: str | None = None
+
+
+@dataclass(frozen=True)
 class JobbotConfig:
     paths: PathsConfig = field(default_factory=PathsConfig)
     root: Path = field(default_factory=Path.cwd)
     search: SearchConfig = field(default_factory=SearchConfig)
+    cv: CvConfig = field(default_factory=CvConfig)
 
     @property
     def profile_path(self) -> Path:
@@ -181,9 +190,20 @@ def load_config(root: Path | None = None) -> JobbotConfig:
         paths=_load_paths(raw, workspace=workspace),
         root=base,
         search=_load_search(raw),
+        cv=_load_cv(raw),
     )
     _verify(config, workspace)
     return config
+
+
+def _load_cv(raw: dict[str, object]) -> CvConfig:
+    section = raw.get("cv")
+    cv_raw: dict[str, object] = section if isinstance(section, dict) else {}
+    url = cv_raw.get("jobbot_project_url")
+    return CvConfig(
+        jobbot_signature=cv_raw.get("jobbot_signature") is True,
+        jobbot_project_url=url if isinstance(url, str) and url.strip() else None,
+    )
 
 
 def _verify(config: JobbotConfig, workspace: str | None) -> None:

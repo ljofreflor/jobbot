@@ -362,6 +362,6 @@ cv_path = cv_api.build(job=jobs[0])
 ## Support
 
 For issues or questions:
-- Check the [main documentation](README.md)
-- Review [CLI documentation](AGENTS.md) for feature details
-- Examine the [architecture docs](architecture-di.md) for design patterns
+- Check the [main documentation](https://github.com/ljofreflor/jobbot/blob/main/README.md)
+- Review [CLI documentation](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md) for feature details
+- Examine the [architecture diagram](images/architecture.png) for design patterns

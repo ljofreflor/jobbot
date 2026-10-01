@@ -14,7 +14,7 @@ from jobbot.applications.manager import (
     prepare_application_package,
 )
 from jobbot.config import JobbotConfig
-from jobbot.cv.build import BuildTarget, build_cv, should_rebuild_job_cv
+from jobbot.cv.build import build_adapted_cv
 from jobbot.jobs.career_page import (
     CareerPageParseError,
     ClosedPostingError,
@@ -214,24 +214,4 @@ def _build_adapted_cv(
     job: JobPosting,
     match: JobMatch,
 ) -> None:
-    job_dir = config.output_dir / "jobs" / job.id
-    if not should_rebuild_job_cv(job_dir, config.profile_path):
-        return
-    try:
-        build_cv(
-            candidate,
-            config.templates_dir,
-            config.output_dir,
-            target=BuildTarget.CV,
-            job=job,
-            match=match,
-        )
-    except RuntimeError:
-        build_cv(
-            candidate,
-            config.templates_dir,
-            config.output_dir,
-            target=BuildTarget.ATS,
-            job=job,
-            match=match,
-        )
+    build_adapted_cv(config, candidate, job, match)

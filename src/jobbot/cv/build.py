@@ -9,8 +9,10 @@ import subprocess
 from enum import StrEnum
 from pathlib import Path
 
+from jobbot.config import CvConfig, JobbotConfig
+from jobbot.cv.application_log import ApplicationLogOptions, build_application_log
 from jobbot.cv.ats import build_ats_text
-from jobbot.cv.renderer import CvStyle, render_cv_ats, render_cv_tex
+from jobbot.cv.renderer import CvStyle, cv_language, render_cv_ats, render_cv_tex
 from jobbot.cv.selection import (
     select_for_base_cv,
     select_for_job,
@@ -55,8 +57,15 @@ def build_cv(
     job: JobPosting | None = None,
     match: JobMatch | None = None,
     style: CvStyle = CvStyle.MODERNCV,
+    application_log: ApplicationLogOptions | None = None,
+    credit: bool = False,
 ) -> list[Path]:
-    """Build CV artifacts under output/base/ or output/jobs/<id>/."""
+    """Build CV artifacts under output/base/ or output/jobs/<id>/.
+
+    ``application_log`` adds a last page to a job PDF; the base CV and the ATS text
+    never carry it, since the ATS text is what gets pasted into forms. ``credit``
+    closes the CV with the repository link, only when the candidate opted in.
+    """
     if not templates_dir.is_dir():
         msg = f"Templates directory not found: {templates_dir}"
         raise FileNotFoundError(msg)
@@ -86,7 +95,7 @@ def build_cv(
     if target == BuildTarget.ATS:
         ats_path = out_dir / "cv_ats.txt"
         ats_path.write_text(
-            build_ats_text(candidate, templates_dir, selection),
+            build_ats_text(candidate, templates_dir, selection, credit=credit),
             encoding="utf-8",
         )
         logger.info("Wrote ATS CV: %s", ats_path)
@@ -95,7 +104,19 @@ def build_cv(
 
     # For job builds, also emit ATS alongside PDF
     tex_path = out_dir / "cv.tex"
-    tex_content = render_cv_tex(candidate, templates_dir, selection, style=style)
+    log = None
+    if application_log is not None and job is not None and match is not None:
+        log = build_application_log(
+            candidate,
+            job,
+            match,
+            selection=selection,
+            options=application_log,
+            fallback_language=cv_language(style),
+        )
+    tex_content = render_cv_tex(
+        candidate, templates_dir, selection, style=style, application_log=log, credit=credit
+    )
     tex_path.write_text(tex_content, encoding="utf-8")
     logger.info("Wrote LaTeX CV: %s", tex_path)
     written.append(tex_path)
@@ -106,7 +127,7 @@ def build_cv(
     if job is not None:
         ats_path = out_dir / "cv_ats.txt"
         ats_path.write_text(
-            render_cv_ats(candidate, templates_dir, selection),
+            render_cv_ats(candidate, templates_dir, selection, credit=credit),
             encoding="utf-8",
         )
         written.append(ats_path)
@@ -127,6 +148,62 @@ def should_rebuild_job_cv(job_dir: Path, profile_path: Path) -> bool:
         return False
     profile_mtime = profile_path.stat().st_mtime
     return any(profile_mtime > artifact.stat().st_mtime for artifact in artifacts)
+
+
+APPLICATION_LOG_MARKER = "% jobbot:application-log"
+
+
+def application_log_options(cv: CvConfig) -> ApplicationLogOptions | None:
+    if not cv.jobbot_signature:
+        return None
+    return ApplicationLogOptions(project_url=cv.jobbot_project_url)
+
+
+def _log_page_mismatch(job_dir: Path, wanted: bool) -> bool:
+    tex = job_dir / "cv.tex"
+    if not tex.is_file():
+        return False
+    return (APPLICATION_LOG_MARKER in tex.read_text(encoding="utf-8")) != wanted
+
+
+def build_adapted_cv(
+    config: JobbotConfig,
+    candidate: Candidate,
+    job: JobPosting,
+    match: JobMatch,
+) -> list[Path]:
+    """The job CV every command builds: skipped while current, log page when opted in.
+
+    Without XeLaTeX the ATS text is still written. Returns [] when nothing was rebuilt.
+    """
+    options = application_log_options(config.cv)
+    job_dir = config.output_dir / "jobs" / job.id
+    if not should_rebuild_job_cv(job_dir, config.profile_path) and not _log_page_mismatch(
+        job_dir, wanted=options is not None
+    ):
+        return []
+    try:
+        return build_cv(
+            candidate,
+            config.templates_dir,
+            config.output_dir,
+            target=BuildTarget.CV,
+            job=job,
+            match=match,
+            application_log=options,
+            credit=config.cv.jobbot_signature,
+        )
+    except RuntimeError as exc:
+        logger.warning("%s", exc)
+        return build_cv(
+            candidate,
+            config.templates_dir,
+            config.output_dir,
+            target=BuildTarget.ATS,
+            job=job,
+            match=match,
+            credit=config.cv.jobbot_signature,
+        )
 
 
 def build_job_cv_bundle(
