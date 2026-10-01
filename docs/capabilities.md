@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-96 commands, 147 modules, 703 public symbols.
+96 commands, 147 modules, 709 public symbols.
 
 ## Commands
 
@@ -197,7 +197,7 @@ writing it again — the promotion rule lives in
 - `login_plan.py` — Login tour: which portals still need a human sign-in (issue #56). · `LoginBucket`, `LoginRow`, `LoginPlan`, `plan_logins`
 - `manual.py` — Human-in-the-loop pauses for CAPTCHA / consent (no bypass). · `wait_for_manual_clear`
 - `session.py` — Persistent Playwright browser session. · `BrowserTimeouts`, `launch_persistent_kwargs`, `BrowserSession`
-- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `judge_account`
+- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `judge_account`, `free_debug_port`
 
 ### `companies`
 
@@ -208,7 +208,7 @@ writing it again — the promotion rule lives in
 - `recon.py` — Learn portal truth from a page you are already on (issue #45). · `ReconReport`, `ReconError`, `resolve_recon_site`, `recon_from_html`, `plan_recon`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
 - `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `account_need`, `signup_target`, `signup_sheet`, `screening_to_prepare`
-- `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `public_url`, `canonical_key`, `host_of`, `registrable_domain`, `slugify`, `company_hint_from_url`
+- `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `ReservedDomainRejected`, `public_url`, `canonical_key`, `host_of`, `display_url`, `is_reserved_host`, `ensure_not_reserved`, `registrable_domain`, `slugify`, `company_hint_from_url`
 
 ### `cv`
 
@@ -287,7 +287,7 @@ writing it again — the promotion rule lives in
 
 ### `portals`
 
-- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
+- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `aggregator_board`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
