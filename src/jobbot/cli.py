@@ -46,6 +46,7 @@ from jobbot.models.application import ApplicationStatus
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.ops.narrate import ExplorationOutcome, Narrator, Phase
+from jobbot.portals.detect import AtsKind
 from jobbot.profile.diff import compare_summaries, summarize_profile
 from jobbot.profile.importer_common import write_generated_profile
 from jobbot.profile.importer_latex import LatexImportError, import_latex_cv
@@ -286,6 +287,11 @@ def main(
     set_active_workspace(workspace)
     if workspace is not None:
         console.print(f"[yellow]workspace:[/yellow] {workspace} ({workspace_root(workspace)})")
+        from jobbot.advisor import retention_warning
+
+        notice = retention_warning(workspace_root(workspace))
+        if notice:
+            console.print(f"[yellow]{notice}[/yellow]")
 
 
 @app.command("version")
@@ -885,6 +891,90 @@ def workspace_adopt(
         err_console.print(f"No profile with a name at {profile_path}")
         raise typer.Exit(GENERIC_FAILURE)
     console.print(f"Owner is now {fingerprint}")
+
+
+@workspace_app.command("delete")
+def workspace_delete(
+    name: Annotated[str, typer.Argument(help="Sandbox to remove")],
+    yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation")] = False,
+) -> None:
+    """Delete one sandbox. Never touches the checkout's own data/."""
+    from jobbot.advisor import WorkspaceDeleteRefused, delete_workspace
+
+    root = workspace_root(name)
+    console.print(f"Delete {root}")
+    if not yes and not typer.confirm("This removes that candidate's sandbox. Continue?"):
+        raise typer.Abort
+    try:
+        delete_workspace(name, confirmed=True)
+    except WorkspaceDeleteRefused as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+    console.print(f"Deleted {name}")
+
+
+@workspace_app.command("consent")
+def workspace_consent(
+    name: Annotated[str, typer.Argument()],
+    consented_at: Annotated[str, typer.Option("--at", help="ISO date the client agreed")],
+    scope: Annotated[str, typer.Option("--scope", help="What the client agreed to")],
+    delete_after: Annotated[
+        str, typer.Option("--delete-after", help="ISO date to erase the sandbox")
+    ],
+) -> None:
+    """Record local consent and a retention date for one sandbox."""
+    from jobbot.advisor import Consent, write_consent
+
+    root = workspace_root(name)
+    if not root.is_dir():
+        err_console.print(f"[red]No workspace {name}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    path = write_consent(
+        root,
+        Consent(consented_at=consented_at, scope=scope, delete_after=delete_after),
+    )
+    console.print(f"Wrote {path}")
+
+
+advisor_app = typer.Typer(
+    help="Cross-workspace status and a per-client report (no other candidate's data)",
+    no_args_is_help=True,
+)
+app.add_typer(advisor_app, name="advisor")
+
+
+@advisor_app.command("status")
+def advisor_status() -> None:
+    """One line per sandbox: fingerprint, counts, proposal, retention. No profile PII."""
+    from datetime import UTC, datetime
+
+    from jobbot.advisor import status_lines
+
+    names = list_workspaces()
+    lines = status_lines([(name, workspace_root(name)) for name in names], today=datetime.now(UTC))
+    if not lines:
+        console.print(f"No workspaces yet in {sandboxes_dir()}.")
+        return
+    for line in lines:
+        console.print(line)
+
+
+@advisor_app.command("report")
+def advisor_report(
+    since: Annotated[str, typer.Option("--since", help="Window, e.g. 7d")] = "7d",
+) -> None:
+    """Write a redacted report into the selected workspace's output/."""
+    from datetime import UTC, datetime
+
+    from jobbot.advisor import parse_since, write_report
+
+    name = active_workspace()
+    if not name:
+        err_console.print("[red]Pass --workspace NAME[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    now = datetime.now(UTC)
+    path = write_report(workspace_root(name), since=parse_since(since, now=now), now=now)
+    console.print(f"Wrote {path}")
 
 
 # ── profile ──────────────────────────────────────────────────────────────────
@@ -2483,6 +2573,72 @@ def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
     console.print(f"Opened {target}")
 
 
+def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | None) -> None:
+    from urllib.parse import urlparse
+
+    from jobbot.applications.login_gate import login_warning, session_site
+    from jobbot.browser import sessions as browser_sessions
+    from jobbot.companies.signup import AccountNeed, account_need
+
+    if account_need(ats_kind) is not AccountNeed.NEEDED:
+        return
+    site = session_site(ats_kind)
+    states: list[browser_sessions.SessionState] = []
+    if site is not None:
+        ports = list(browser_sessions.DEFAULT_PORTS)
+        cdp_port = urlparse(cdp).port if cdp else None
+        if cdp_port is not None and cdp_port not in ports:
+            ports.append(cdp_port)
+        states = browser_sessions.inspect_sessions(config.root, sites=[site], ports=ports)
+    warning = login_warning(ats_kind, states)
+    if warning:
+        console.print(f"[bold yellow]{warning}[/bold yellow]")
+
+
+def _ats_target_url(adapter: Any, job: JobPosting, ats_url: str) -> str:
+    """The page `adapter.open` would show (Indeed routes to its apply step)."""
+    from jobbot.adapters.ats.indeed_apply import IndeedApplyAdapter, apply_target
+
+    if isinstance(adapter, IndeedApplyAdapter):
+        return apply_target(job) or ats_url
+    return ats_url
+
+
+def _fill_ats_over_cdp(
+    cdp: str, url: str, candidate: Candidate, config: JobbotConfig, job_id: str
+) -> bool:
+    """Open the ATS in a new tab of your Chrome and fill known fields. False → fall back."""
+    from jobbot.adapters.ats import apply_fill
+    from jobbot.adapters.ats.email_apply import resolve_cv_path
+
+    cv_pdf = resolve_cv_path(config.output_dir, job_id)
+    try:
+        result = apply_fill.open_and_fill_over_cdp(cdp, url, candidate, cv_path=cv_pdf)
+    except apply_fill.ApplyFillError as exc:
+        err_console.print(f"[yellow]{exc}[/yellow]")
+        err_console.print("[yellow]Falling back to your default browser + prefill sheet.[/yellow]")
+        return False
+    console.print(f"[bold]Opened in a new tab of[/bold] {cdp}: {result.url}")
+    if result.login_required:
+        console.print(
+            "[yellow]The page asks you to sign in. JobBot typed nothing: sign in in that "
+            "tab yourself, then re-run this command.[/yellow]"
+        )
+    elif not result.readable:
+        console.print(f"[yellow]{result.note}. Fill it by hand with the prefill sheet.[/yellow]")
+    for label in result.filled:
+        console.print(f"  [green]filled[/green] {label}")
+    for label in result.kept:
+        console.print(f"  [cyan]kept (already had a value)[/cyan] {label}")
+    if result.attached and cv_pdf is not None:
+        console.print(f"  [green]attached[/green] {cv_pdf.name}  ({cv_pdf})")
+    console.print("Left for you:")
+    for label in result.left_for_human:
+        console.print(f"  • {label}")
+    console.print("Tab left open. Review everything; you submit — JobBot never clicks it.")
+    return True
+
+
 @application_app.command("apply")
 def application_apply(
     job_id: Annotated[str, typer.Argument()],
@@ -2536,6 +2692,7 @@ def application_apply(
     console.print(f"ATS: {plan.ats_kind.value}  adapter={adapter_name}  {plan.ats_url or '(none)'}")
     console.print(f"Method: {plan.method.value}")
     console.print(plan.message)
+    _warn_if_login_needed(config, plan.ats_kind, cdp)
 
     if plan.method == ApplyMethod.EMAIL:
         from jobbot.adapters.ats.email_apply import is_tailored_cv, resolve_cv_path
@@ -2588,6 +2745,26 @@ def application_apply(
         ):
             console.print("Aborted.")
             raise typer.Exit(SUCCESS)
+        from jobbot.browser.sessions import (
+            AccountExpectation,
+            inspect_sessions,
+            refuse_to_open,
+            session_for,
+        )
+
+        expected = AccountExpectation(
+            email=str(candidate.personal.email) if candidate.personal.email else None,
+            linkedin=candidate.personal.linkedin,
+        )
+        gmail = session_for(
+            inspect_sessions(config.root, sites=["gmail"], account=expected),
+            "gmail",
+        )
+        if gmail is not None:
+            blocked = refuse_to_open(gmail.status, gmail.evidence)
+            if blocked:
+                err_console.print(f"[red]{blocked}[/red]")
+                raise typer.Exit(GENERIC_FAILURE)
         if attach and cv_pdf is not None:
             from jobbot.adapters.gmail.compose import GmailComposeAdapter, GmailComposeError
 
@@ -2651,12 +2828,16 @@ def application_apply(
     app_dir = prepare_application_package(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
     )
-    if adapter is not None and hasattr(adapter, "open"):
-        adapter.open(job)
-    else:
-        from jobbot.adapters.ats.apply import open_ats_in_browser
+    filled_in_cdp = bool(cdp) and _fill_ats_over_cdp(
+        str(cdp), _ats_target_url(adapter, job, plan.ats_url), candidate, config, job.id
+    )
+    if not filled_in_cdp:
+        if adapter is not None and hasattr(adapter, "open"):
+            adapter.open(job)
+        else:
+            from jobbot.adapters.ats.apply import open_ats_in_browser
 
-        open_ats_in_browser(plan.ats_url)
+            open_ats_in_browser(plan.ats_url)
     # Write prefill cheat-sheet next to package. Contact stays in profile.yaml.
     cheat = app_dir / "ats_prefill.yaml"
     import yaml
@@ -2679,7 +2860,8 @@ def application_apply(
         ),
         encoding="utf-8",
     )
-    console.print(f"[green]Opened ATS[/green] {plan.ats_url}")
+    where = "in your Chrome (CDP tab left open)" if filled_in_cdp else ""
+    console.print(f"[green]Opened ATS[/green] {plan.ats_url} {where}".rstrip())
     console.print(f"Prefill sheet: {cheat}")
     console.print("Submit manually after reviewing HITL fields.")
     _learn_form_from_apply(config, plan.ats_url, job.company)
@@ -4811,6 +4993,7 @@ def browser_sessions(
             SessionStatus.READY: "green",
             SessionStatus.NEEDS_LOGIN: "yellow",
             SessionStatus.PROFILE_BUSY: "red",
+            SessionStatus.WRONG_ACCOUNT: "red",
         }.get(state.status, "white")
         table.add_row(
             state.site,
@@ -4854,6 +5037,7 @@ def browser_login(
             SessionStatus.READY: "green",
             SessionStatus.NEEDS_LOGIN: "yellow",
             SessionStatus.PROFILE_BUSY: "red",
+            SessionStatus.WRONG_ACCOUNT: "red",
         }.get(row.status, "white")
         table.add_row(
             row.bucket.value,
@@ -4881,9 +5065,12 @@ def browser_login(
     if gap is None:
         console.print("Nothing left to open.")
         return
-    if gap.status is SessionStatus.PROFILE_BUSY:
-        err_console.print(f"[red]{gap.evidence}[/red]")
-        if gap.hint:
+    from jobbot.browser.sessions import refuse_to_open
+
+    reason = refuse_to_open(gap.status, gap.evidence)
+    if reason:
+        err_console.print(f"[red]{reason}[/red]")
+        if gap.hint and gap.status is not SessionStatus.WRONG_ACCOUNT:
             err_console.print(gap.hint)
         raise typer.Exit(GENERIC_FAILURE)
 

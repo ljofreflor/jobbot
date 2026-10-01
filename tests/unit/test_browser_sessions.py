@@ -172,3 +172,63 @@ def test_cli_reports_status_and_the_command_to_run(
     assert "indeed: --cdp http://127.0.0.1:9222" in out
     # An endpoint is open but proves nothing about the other sites.
     assert "unknown" in out
+
+
+def test_other_accounts_session_is_wrong_account_and_blocks_open(tmp_path: Path) -> None:
+    from jobbot.browser.sessions import AccountExpectation, refuse_to_open
+
+    url = "https://mail.google.com/mail/u/0/"
+    fetch = FakeCdp({9222: [url]})
+    html = "<div>ana.real@example.com</div><div>otra.persona@example.com</div>"
+    states = inspect_sessions(
+        tmp_path,
+        sites=["gmail"],
+        ports=(9222,),
+        fetch=fetch,
+        processes=[],
+        account=AccountExpectation(email="ana.ejemplo@example.com"),
+        page_text={url: html},
+    )
+    state = session_for(states, "gmail")
+    assert state is not None
+    assert state.status is SessionStatus.WRONG_ACCOUNT
+    reason = refuse_to_open(state.status, state.evidence)
+    assert reason
+    assert "otra.persona@example.com" not in reason
+    assert "ana.real@example.com" not in reason
+
+
+def test_matching_account_stays_ready(tmp_path: Path) -> None:
+    from jobbot.browser.sessions import AccountExpectation
+
+    url = "https://www.linkedin.com/in/ana-ejemplo/"
+    fetch = FakeCdp({9222: [url]})
+    states = inspect_sessions(
+        tmp_path,
+        sites=["linkedin"],
+        ports=(9222,),
+        fetch=fetch,
+        processes=[],
+        account=AccountExpectation(linkedin="https://www.linkedin.com/in/ana-ejemplo"),
+        page_text={url: "profile https://www.linkedin.com/in/ana-ejemplo"},
+    )
+    state = session_for(states, "linkedin")
+    assert state is not None and state.status is SessionStatus.READY
+
+
+def test_signed_in_page_without_identity_is_unknown(tmp_path: Path) -> None:
+    from jobbot.browser.sessions import AccountExpectation
+
+    url = "https://mail.google.com/mail/u/0/"
+    fetch = FakeCdp({9222: [url]})
+    states = inspect_sessions(
+        tmp_path,
+        sites=["gmail"],
+        ports=(9222,),
+        fetch=fetch,
+        processes=[],
+        account=AccountExpectation(email="ana.ejemplo@example.com"),
+        page_text={url: "<div>inbox</div>"},
+    )
+    state = session_for(states, "gmail")
+    assert state is not None and state.status is SessionStatus.UNKNOWN

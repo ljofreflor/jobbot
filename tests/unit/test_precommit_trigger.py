@@ -17,6 +17,9 @@ from jobbot.ops import precommit
         "pyproject.toml",
         "templates/cv.tex.j2",
         "AGENTS.md",
+        "asesoria/index.html",
+        "asesoria/styles.css",
+        ".github/workflows/pages.yml",
     ],
 )
 def test_these_paths_run_the_suite(path: str) -> None:

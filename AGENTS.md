@@ -250,7 +250,15 @@ file names, silently.
 - **A selected workspace ignores `~/.config/jobbot/config.toml`**, whose absolute paths
   would otherwise reach into the real profile from inside a sandbox.
 - **`sandboxes/` is somebody else's PII:** gitignored and blocked by the PII guard.
-  Delete a test CV's workspace when you are done with it.
+  Delete a test CV's workspace when you are done with it (`jobbot workspace delete NAME`).
+- **Advisor:** `jobbot advisor status` lists every sandbox by owner fingerprint (never the
+  name), job count, prepared applications, whether today's CV proposal exists, and a
+  retention warning. `jobbot --workspace NAME advisor report` writes that client's
+  summary only, redacted. Consent lives in `data/consent.yaml` inside the sandbox.
+- **Browser account:** a signed-in tab is `ready` for Gmail or LinkedIn only when the
+  page text matches this workspace. Another account is `wrong_account` and blocks
+  `browser login --apply` and `application apply --apply`. The other identity is not printed.
+  A datacenter browser per client is out of scope; proxies and stealth stay forbidden.
 
 ## Portal adapters
 
@@ -269,6 +277,8 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
 ## Safety / platform
 
 - Own accounts only. No CAPTCHA solving, 2FA bypass, stealth, proxies, telemetry.
+- Public trust signal is the OpenSSF Scorecard badge (Linux Foundation, OSV vulnerabilities),
+  published by `.github/workflows/scorecard.yml` on `main`. Do not replace it with a self-scored badge.
 - Failures: local `ops_failures` in SQLite + `output/ops/failures/`; GitHub issues only via HITL
   `jobbot ops failure issue` (never auto on crash). Every issue opened that way (and any
   `gh issue create`) must be assigned to Cursor — login `cursoragent` — so it is never left
@@ -277,7 +287,7 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
   branch → PR → triage → re-run ([#46](https://github.com/ljofreflor/jobbot/issues/46)); never
   auto-commit / push / merge.
 - **PII:** never commit `data/profile.yaml`, `data/portals.yaml`, `data/companies.yaml`, SQLite, `browser-data/`, `sandboxes/`, or `output/`. Track only `*.example.yaml` templates.
-- **PII guard:** `make hooks` enables `.githooks/pre-commit` (`jobbot.ops.pii_guard`) — blocked paths + real-looking email/phone/RUT/home-path detection. Fixtures and examples allowlisted. `pii_guard.redact()` is the one place that defines what counts as contact data, reused wherever text leaves your files (learned form labels, LLM prompts).
+- **PII guard:** `make hooks` enables `.githooks/pre-commit` (`jobbot.ops.pii_guard`) — blocked paths + real-looking email/phone/RUT/home-path detection. Fixtures and examples allowlisted. `pii_guard.redact()` is the one place that defines what counts as contact data, reused wherever text leaves your files (learned form labels, LLM prompts). The hook only runs where it was installed, so the suite also scans every tracked file (`pii_guard.scan_tracked()`, `python -m jobbot.ops.pii_guard --all`): a commit that skipped the hook still fails CI.
 - **Which commits run the suite:** `jobbot.ops.precommit.tests_needed()` decides, and it is unit-tested instead of living as a shell regex. Policy counts as behaviour: editing **this file** runs the tests, because for an agent working from a clone this file is the whole policy.
 - **Polite web reading:** the one-shot and `recruiters discover` obey `robots.txt` via `RobotsPolicy`, cached per host. Being told not to read a page is reported as *omitted*; being unable to read it (403, 429, 5xx, dropped connection) is reported as *refused*. Neither ever becomes "there is nothing there".
 - **Private LaTeX CV:** tracked dummy is `latex/cv.tex.demo` only; real `.tex`/`latex/cv.tex` stay gitignored. Prefer `paths.legacy_cv` outside the repo or a local ignored copy. See `latex/README.md`.
