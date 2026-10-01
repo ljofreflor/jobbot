@@ -114,6 +114,16 @@ a:focus-visible {
   font-size: 0.85rem;
 }
 
+.badge {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
 .lead {
   font-size: 1.15rem;
   color: var(--muted);
@@ -206,6 +216,10 @@ a:focus-visible {
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 700;
+}
+
+.pilot h3 {
+  margin-top: 1.75rem;
 }
 
 .closing {

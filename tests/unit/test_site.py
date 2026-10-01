@@ -124,6 +124,53 @@ def test_no_prices_and_no_promised_outcomes(soup: BeautifulSoup) -> None:
         assert promise not in text
 
 
+def test_no_currency_names_at_all(soup: BeautifulSoup) -> None:
+    text = soup.get_text(" ").casefold()
+    for currency in ("clp", "usd", "pesos", "dólares"):
+        assert not re.search(rf"\b{currency}\b", text), currency
+
+
+def test_hero_announces_the_free_pilot_with_twenty_spots(soup: BeautifulSoup) -> None:
+    hero = soup.find("header", class_="hero")
+    assert hero is not None
+    text = " ".join(hero.get_text(" ").split()).casefold()
+    assert "piloto gratuito" in text
+    assert "20 cupos" in text
+    cta = hero.find("a", class_="cta")
+    assert cta is not None and "piloto" in cta.get_text().casefold()
+
+
+def test_pilot_section_replaces_the_fee(soup: BeautifulSoup) -> None:
+    assert soup.find(id="honorario") is None
+    heading = soup.find(id="piloto")
+    assert heading is not None and heading.name == "h2"
+    section = heading.find_parent("section")
+    assert section is not None
+    text = " ".join(section.get_text(" ").split()).casefold()
+    assert "20 personas" in text and "no pagan" in text
+    assert "robustecer jobbot" in text
+    assert "sin tus datos personales" in text, "public failure reports carry no PII"
+    assert "sin cobro automático" in text
+    assert "no prometo resultados" in text
+
+
+def test_pilot_spots_are_stated_not_counted(soup: BeautifulSoup) -> None:
+    """Static page: no live counter of remaining spots."""
+    text = soup.get_text(" ").casefold()
+    for counter in ("quedan", "restantes", "disponibles:"):
+        assert counter not in text
+
+
+def test_written_agreement_step_covers_the_pilot(soup: BeautifulSoup) -> None:
+    steps = soup.find("ol", class_="steps")
+    assert steps is not None
+    second = steps.find_all("li")[1].get_text(" ").casefold()
+    assert "piloto" in second
+    assert "honorario" not in second
+    for term in ("alcance", "datos", "duración"):
+        assert term in second
+
+
 def test_pages_has_one_workflow_that_ships_the_page(project_root: Path) -> None:
     """A repo has one Pages site: two deploying workflows overwrite each other."""
     workflows = project_root / ".github" / "workflows"
