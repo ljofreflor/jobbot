@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from jobbot.branding import MARK, stamp_description
 from jobbot.models.candidate import Candidate
 
 PROFILE_EDIT_URL = "https://www.getonbrd.com/webpros/edit"
@@ -56,7 +57,7 @@ def build_getonboard_sync_package(candidate: Candidate) -> GetOnBoardSyncPackage
     return GetOnBoardSyncPackage(
         name=personal.name,
         headline=personal.headline,
-        summary=(candidate.summary or "").strip(),
+        summary=stamp_description(candidate.summary or ""),
         location=personal.location_line() or "",
         linkedin=personal.linkedin or "",
         github=personal.github or "",
@@ -81,7 +82,7 @@ def render_getonboard_sync_markdown(package: GetOnBoardSyncPackage) -> str:
         "# Get on Board — sync package (from profile.yaml)",
         "",
         "Orden HITL: 1) Editar perfil  2) Tus CVs  3) recién entonces postular.",
-        "No inventar. Pegar solo hechos. Firma JobBot no va al portal.",
+        f"No inventar. Pegar solo hechos. El resumen cierra con: {MARK}",
         "",
         f"- Perfil: {package.profile_edit_url}",
         f"- CVs (mismo área profesional → sección Tus CVs / Your resumes): {package.resumes_url}",

@@ -19,6 +19,8 @@ def test_render_tex_escapes_and_includes_name(project_root: Path) -> None:
     assert r"\name{Ana}{\& Co}" in tex
     assert "Mercado Libre" in tex
     assert "Share of Wallet" in tex
+    assert r"\url{https://github.com/ljofreflor/jobbot}" in tex
+    assert "powered by Jobbot sync CV" in tex
 
 
 def test_render_ats_plain_text(project_root: Path) -> None:
@@ -29,6 +31,8 @@ def test_render_ats_plain_text(project_root: Path) -> None:
     assert "SKILLS" in ats
     assert "Ana Ejemplo" in ats
     assert "Python" in ats
+    assert "https://github.com/ljofreflor/jobbot" in ats
+    assert "powered by Jobbot sync CV" in ats
     assert "\\section" not in ats
     assert "\\textbf" not in ats
 
@@ -130,6 +134,7 @@ def test_render_plain_style_still_available(project_root: Path) -> None:
     candidate = Candidate.model_validate(sample_profile_dict())
     tex = render_cv_tex(candidate, project_root / "templates", style=CvStyle.PLAIN)
     assert r"\documentclass[11pt,a4paper]{article}" in tex
+    assert r"\url{https://github.com/ljofreflor/jobbot}" in tex
 
 
 def test_build_cv_moderncv_writes_tex_for_job(project_root: Path, tmp_path: Path) -> None:
@@ -175,3 +180,42 @@ def test_moderncv_education_puts_degree_before_institution(project_root: Path) -
     edu = candidate.education[0]
     marker = rf"\textbf{{{edu.degree}}}}}{{{edu.institution}}}"
     assert marker in tex
+
+
+def test_moderncv_null_city_and_location_do_not_crash(project_root: Path) -> None:
+    """Null optional strings must not hit escape_latex via the Jinja filter (#112)."""
+    from jobbot.cv.renderer import CvStyle
+
+    data = sample_profile_dict()
+    data["personal"]["city"] = None
+    data["personal"]["country"] = "Chile"
+    data["experience"][0]["location"] = None
+    candidate = Candidate.model_validate(data)
+    tex = render_cv_tex(candidate, project_root / "templates", style=CvStyle.MODERNCV)
+    assert r"\address{}{Chile}{}" in tex
+    assert "Mercado Libre" in tex
+
+
+def test_moderncv_cventry_wraps_long_left_column(project_root: Path) -> None:
+    """Banking tabular* uses a wrapping p-column so long org names do not overflow (#112)."""
+    from jobbot.cv.renderer import CvStyle
+
+    data = sample_profile_dict()
+    long_org = (
+        "Ministerio de Ciencia, Tecnología, Conocimiento e Innovación — "
+        "Subsecretaría de Ciencia — Departamento de Estudios y Estadísticas"
+    )
+    data["experience"][0]["company"] = long_org
+    data["experience"][0]["location"] = None
+    data["education"][0]["degree"] = (
+        "Doctorado en Estadística con mención en Inferencia Bayesiana "
+        "No Paramétrica y Modelos Jerárquicos"
+    )
+    candidate = Candidate.model_validate(data)
+    tex = render_cv_tex(candidate, project_root / "templates", style=CvStyle.MODERNCV)
+
+    assert r"p{\dimexpr\maincolumnwidth-20em\relax}" in tex
+    assert long_org in tex
+    assert "Doctorado en Estadística" in tex
+    # moderncv owns hyperref; a second \usepackage{hyperref} option-clashes
+    assert r"\usepackage{hyperref}" not in tex

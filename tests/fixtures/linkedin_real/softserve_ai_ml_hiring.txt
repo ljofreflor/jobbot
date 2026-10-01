@@ -1,0 +1,33 @@
+author: Liliana Moreno
+url: https://www.linkedin.com/posts/lilianamorenop_hiring-artificialintelligence-machinelearning-share-7509444177152294912--5p8/
+🚀 We’re hiring Senior & Lead AI/ML talent!
+
+📍 Colombia or Chile
+🏠 100% remote within the country
+🙂  Senior & Lead opportunities
+
+At SoftServe, I’m currently looking for experienced professionals for 100% remote opportunities within Colombia or Chile.
+
+🎯 For these opportunities, we’re particularly looking for strong production experience.
+We’re interested in professionals who have worked end-to-end on AI/ML solutions, from the initial idea and design through deployment, production, monitoring and scaling.
+
+Experience with PoCs and prototypes is valuable, but for these roles, we’re specifically looking for professionals who have also had the opportunity to take solutions beyond the PoC stage and work with them in real production environments at scale.
+
+We’re especially interested in people who can demonstrate hands-on experience with:
+Discovery & requirements → solution design → development → deployment → production → monitoring → scaling
+
+In other words, we want to hear about solutions that made it to production and operated at scale in real environments.
+
+🔹 Lead Agentic AI Consultant: https://lnkd.in/eUkqbGU2
+🔹 Lead Data Scientist: https://lnkd.in/e3KmPHyp
+🔹 Senior Data Scientist – Generative AI: https://lnkd.in/e4DJXv5D
+🔹 Lead ML Engineer: https://lnkd.in/euU3BmMG
+🔹 Senior Computer Vision Engineer: https://lnkd.in/euF_SaWV
+
+If your experience includes taking Data Science, Machine Learning, Computer Vision, GenAI, or Agentic AI solutions from idea to production, I’d love to connect with you.
+You can apply directly through the links above or send me your CV in English at lmore@softserveinc.com.
+
+Not sure which opportunity best matches your background? Feel free to send me your CV, and I’ll be happy to review your profile.
+And if someone in your network comes to mind, feel free to tag them or share this post. 🙌
+
+#Hiring #ArtificialIntelligence #MachineLearning #DataScience #GenerativeAI #AgenticAI #ComputerVision #MLEngineering #AIJobs #Colombia #Chile #RemoteJobs #SoftServe
