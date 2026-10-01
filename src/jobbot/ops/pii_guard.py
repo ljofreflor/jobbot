@@ -26,7 +26,7 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
         r"^data/recruiters\.yaml$",
         "hiring-practice sources you read (share via recruiters export)",
     ),
-    (r"^data/.*\.bak$", "profile backup"),
+    (r"^data/.*\.bak(\.|$)", "profile backup"),
     (r"^latex/cv\.tex$", "private LaTeX CV (only cv.tex.demo is tracked)"),
     (r"^\.jobbot\.toml$", "local config with private paths"),
     (r"^sandboxes/", "another candidate's workspace (test CVs are their PII)"),

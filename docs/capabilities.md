@@ -41,6 +41,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
+- `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
@@ -222,6 +223,7 @@ writing it again — the promotion rule lives in
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
+- `tune.py` — Bounded baseline tune from one job posting (#54). · `resolve_tune_ref`, `char_delta_label`, `prompt_advice_decision`, `backup_profile`
 
 ### `db`
 
