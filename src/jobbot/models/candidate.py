@@ -2,13 +2,29 @@
 
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, TypeAdapter, field_validator
 
 from jobbot.models.education import Education
 from jobbot.models.experience import Experience
+from jobbot.models.project import Project
 from jobbot.models.skill import Publication, SkillGroups
 
 _HTTP_URL = TypeAdapter(HttpUrl)
+_ORCID_SHAPE = re.compile(r"\d{4}-\d{4}-\d{4}-\d{3}[\dX]")
+
+
+def orcid_is_valid(value: str) -> bool:
+    """ORCID iD shape plus its ISO 7064 11,2 check digit."""
+    if not _ORCID_SHAPE.fullmatch(value):
+        return False
+    digits = value.replace("-", "")
+    total = 0
+    for char in digits[:-1]:
+        total = (total + int(char)) * 2
+    remainder = (12 - total % 11) % 11
+    return digits[-1] == ("X" if remainder == 10 else str(remainder))
 
 
 class PersonalInfo(BaseModel):
@@ -20,8 +36,9 @@ class PersonalInfo(BaseModel):
     phone: str | None = None
     linkedin: str | None = None
     github: str | None = None
+    orcid: str | None = None
 
-    @field_validator("linkedin", "github", mode="before")
+    @field_validator("linkedin", "github", "orcid", mode="before")
     @classmethod
     def strip_empty(cls, value: object) -> object:
         if value == "":
@@ -39,6 +56,20 @@ class PersonalInfo(BaseModel):
         _HTTP_URL.validate_python(value)
         return value
 
+    @field_validator("orcid")
+    @classmethod
+    def validate_orcid(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not orcid_is_valid(value):
+            msg = "ORCID must be the bare iD 0000-0000-0000-000X with a valid check digit"
+            raise ValueError(msg)
+        return value
+
+    @property
+    def orcid_url(self) -> str | None:
+        return f"https://orcid.org/{self.orcid}" if self.orcid else None
+
     def location_line(self) -> str | None:
         parts = [p for p in (self.city, self.country) if p]
         return ", ".join(parts) if parts else None
@@ -54,6 +85,7 @@ class Candidate(BaseModel):
     education: list[Education] = Field(default_factory=list)
     skills: SkillGroups = Field(default_factory=SkillGroups)
     publications: list[Publication] = Field(default_factory=list)
+    projects: list[Project] = Field(default_factory=list)
 
     @field_validator("search_queries", mode="before")
     @classmethod

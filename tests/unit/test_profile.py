@@ -20,6 +20,43 @@ def test_load_example_profile(project_root: Path) -> None:
     assert candidate.personal.name == "Ana Ejemplo"
     assert len(candidate.experience) >= 1
     assert candidate.achievement_count() >= 1
+    assert candidate.projects
+
+
+def test_projects_are_loaded_not_silently_dropped() -> None:
+    """A `projects:` key used to be ignored by the model, so it never reached the CV."""
+    data = sample_profile_dict()
+    data["projects"] = [
+        {
+            "id": "huerto",
+            "name": "Huerto Comunitario",
+            "description": "Coordinación de un huerto vecinal.",
+            "url": "https://example.org/huerto",
+            "tags": ["Compostaje"],
+        }
+    ]
+    candidate = Candidate.model_validate(data)
+    assert candidate.projects[0].name == "Huerto Comunitario"
+    assert candidate.projects[0].url == "https://example.org/huerto"
+    assert candidate.projects[0].tags == ["Compostaje"]
+
+
+def test_project_url_must_be_http() -> None:
+    data = sample_profile_dict()
+    data["projects"] = [
+        {"id": "p", "name": "P", "description": "D.", "url": "example.org/p"},
+    ]
+    with pytest.raises(ValidationError):
+        Candidate.model_validate(data)
+
+
+def test_duplicate_project_id() -> None:
+    data = sample_profile_dict()
+    project = {"id": "p", "name": "P", "description": "D."}
+    data["projects"] = [project, {**project, "name": "Q"}]
+    result = validate_candidate(Candidate.model_validate(data))
+    assert not result.ok
+    assert any("duplicate id" in i.message for i in result.issues)
 
 
 def test_validate_ok() -> None:
@@ -48,6 +85,47 @@ def test_end_before_start_rejected() -> None:
 def test_invalid_email_rejected() -> None:
     data = sample_profile_dict()
     data["personal"]["email"] = "not-an-email"
+    with pytest.raises(ValidationError):
+        Candidate.model_validate(data)
+
+
+def test_orcid_is_optional() -> None:
+    candidate = Candidate.model_validate(sample_profile_dict())
+    assert candidate.personal.orcid is None
+
+
+def test_orcid_with_valid_checksum_is_accepted() -> None:
+    data = sample_profile_dict()
+    data["personal"]["orcid"] = "0000-0002-1825-0097"
+    candidate = Candidate.model_validate(data)
+    assert candidate.personal.orcid == "0000-0002-1825-0097"
+    assert candidate.personal.orcid_url == "https://orcid.org/0000-0002-1825-0097"
+
+
+def test_orcid_accepts_x_check_digit() -> None:
+    data = sample_profile_dict()
+    data["personal"]["orcid"] = "0000-0002-9079-593X"
+    assert Candidate.model_validate(data).personal.orcid == "0000-0002-9079-593X"
+
+
+def test_orcid_empty_string_means_absent() -> None:
+    data = sample_profile_dict()
+    data["personal"]["orcid"] = ""
+    assert Candidate.model_validate(data).personal.orcid is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "0000-0002-1825-0098",  # wrong check digit
+        "0000000218250097",  # no hyphens
+        "https://orcid.org/0000-0002-1825-0097",  # URL, not the iD
+        "0000-0002-1825-009",  # too short
+    ],
+)
+def test_orcid_rejects_bad_format_or_checksum(value: str) -> None:
+    data = sample_profile_dict()
+    data["personal"]["orcid"] = value
     with pytest.raises(ValidationError):
         Candidate.model_validate(data)
 
