@@ -1,0 +1,21 @@
+# Ready-image path: JobBot tool in the container, workspace on the host.
+#
+#   mkdir -p ~/postulaciones
+#   docker compose build
+#   docker compose run --rm jobbot init
+#   docker compose run --rm jobbot profile validate
+#
+# Override the mount: JOBBOT_HOME=/path/to/folder docker compose run …
+
+services:
+  jobbot:
+    build: .
+    image: ghcr.io/ljofreflor/jobbot:local
+    working_dir: /work
+    volumes:
+      - ${JOBBOT_HOME:-${HOME}/postulaciones}:/work
+    environment:
+      JOBBOT_LOG_LEVEL: ${JOBBOT_LOG_LEVEL:-INFO}
+      JOBBOT_ROOT: /work
+    stdin_open: true
+    tty: true

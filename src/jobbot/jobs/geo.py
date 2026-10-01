@@ -54,6 +54,10 @@ _COUNTRY_MARKERS: dict[str, tuple[str, ...]] = {
         "concepción",
         "antofagasta",
         "clp",
+        # Chile's personal-data law — posts cite it without naming the country.
+        "ley 21.719",
+        "ley 21719",
+        "21.719",
     ),
     "MX": (
         "cdmx",

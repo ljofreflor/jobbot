@@ -36,6 +36,29 @@ def test_first_apply_email_ignores_personal_without_apply_context() -> None:
     assert first_apply_email(text) is None
 
 
+def test_first_apply_email_with_a_pronoun_between_verb_and_cv() -> None:
+    """'send me your CV at …' is the usual English wording and was being missed."""
+    text = (
+        "We're hiring Senior & Lead AI/ML talent.\n"
+        "You can apply directly through the links above or send me your CV "
+        "in English at recruiter@example.com."
+    )
+    assert first_apply_email(text) == "recruiter@example.com"
+
+
+def test_first_apply_email_with_spanish_pronoun_wording() -> None:
+    assert first_apply_email("Envíame tu CV a talento@example.com") == "talento@example.com"
+    assert (
+        first_apply_email("Compárteme tu hoja de vida a talento@example.org")
+        == "talento@example.org"
+    )
+
+
+def test_first_apply_email_still_ignores_networking_invitations() -> None:
+    text = "Great post! Write me at someone@example.net if you want to chat about hiking."
+    assert first_apply_email(text) is None
+
+
 def test_extract_emails_unique_order() -> None:
     assert extract_emails("a@x.com then b@y.com then a@x.com") == ["a@x.com", "b@y.com"]
 

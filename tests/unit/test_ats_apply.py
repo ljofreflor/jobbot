@@ -126,3 +126,25 @@ class _DummyPackage:
     @property
     def cv_pdf(self):  # noqa: ANN201
         return None
+
+def test_resolve_honors_stored_kind_on_custom_career_domain() -> None:
+    """Host rules miss careers.neuralworks.cl; stored sniff kind must still drive the plan."""
+    from jobbot.adapters.ats.apply import resolve_ats_url
+    from jobbot.portals.detect import AtsKind
+
+    job = JobPosting(
+        id="J9",
+        title="Applied Scientist",
+        company="NeuralWorks",
+        ats_url="https://careers.neuralworks.cl/jobs/568945-applied-scientist",
+        ats_kind="teamtailor",
+    )
+    url, kind = resolve_ats_url(job)
+    assert url == job.ats_url
+    assert kind == AtsKind.TEAMTAILOR
+    plan = build_apply_plan(
+        Candidate(personal=PersonalInfo(name="Ana", headline="DS")),
+        job,
+    )
+    assert plan.ats_kind == AtsKind.TEAMTAILOR
+    assert plan.method == ApplyMethod.EXTERNAL_ATS

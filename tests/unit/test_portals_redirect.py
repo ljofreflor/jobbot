@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import httpx
 import pytest
 
 from jobbot.portals import redirect as redirect_module
-from jobbot.portals.redirect import expand_urls, follow_redirect_url
+from jobbot.portals.redirect import (
+    expand_urls,
+    follow_redirect_url,
+    read_interstitial_destination,
+)
 
 GREENHOUSE = "https://boards.greenhouse.io/acme/jobs/1"
 
@@ -114,3 +120,34 @@ def test_expand_urls_leaves_non_short_links_untouched(
 
     monkeypatch.setattr(redirect_module, "follow_redirect_url", explode)
     assert expand_urls([GREENHOUSE]) == [GREENHOUSE]
+
+
+def test_read_interstitial_destination(project_root: Path) -> None:
+    html = (project_root / "tests/fixtures/lnkd_in_interstitial.html").read_text(encoding="utf-8")
+    assert read_interstitial_destination(html) == (
+        "https://career.example.com/en-us/vacancies/lead-data-scientist-89203"
+    )
+
+
+def test_read_interstitial_destination_ignores_other_linkedin_links(project_root: Path) -> None:
+    html = (project_root / "tests/fixtures/lnkd_in_interstitial.html").read_text(encoding="utf-8")
+    assert "answer/a1341680" not in (read_interstitial_destination(html) or "")
+    assert read_interstitial_destination("<html><a href='https://x.test'>x</a></html>") is None
+
+
+def test_follow_redirect_url_reads_interstitial_when_lnkd_in_answers_200(
+    monkeypatch: pytest.MonkeyPatch,
+    project_root: Path,
+) -> None:
+    """A lnkd.in short link that answers 200 with the leaving-site page still resolves."""
+    html = (project_root / "tests/fixtures/lnkd_in_interstitial.html").read_text(encoding="utf-8")
+    dest = "https://career.example.com/en-us/vacancies/lead-data-scientist-89203"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "lnkd.in":
+            return httpx.Response(200, text=html)
+        return httpx.Response(200, text="ok")
+
+    _install(monkeypatch, httpx.MockTransport(handler))
+    assert follow_redirect_url("https://lnkd.in/abc") == dest
+

@@ -1,0 +1,36 @@
+{{ personal.name }}
+{{ personal.headline }}
+{% if personal.location_line() %}{{ personal.location_line() }}
+{% endif %}{% if personal.email %}Email: {{ personal.email }}
+{% endif %}{% if personal.phone %}Phone: {{ personal.phone }}
+{% endif %}{% if personal.linkedin %}LinkedIn: {{ personal.linkedin }}
+{% endif %}{% if personal.github %}GitHub: {{ personal.github }}
+{% endif %}
+
+{% if candidate.summary %}SUMMARY
+{{ candidate.summary | trim }}
+
+{% endif %}{% if candidate.specialties %}SPECIALTIES
+{{ candidate.specialties | join(', ') }}
+
+{% endif %}{% if experiences %}EXPERIENCE
+{% for exp, achievements in experiences %}
+{{ exp.title }} — {{ exp.company }}
+{{ exp.format_date_range() }}{% if exp.location %} | {{ exp.location }}{% endif %}
+{% if exp.description %}{{ exp.description | trim }}
+{% endif %}{% for ach in achievements %}- {{ ach.text | trim }}{% if ach.metrics %} ({{ metrics_line(ach.metrics) }}){% endif %}
+{% endfor %}
+{% endfor %}{% endif %}{% if candidate.education %}
+EDUCATION
+{% for edu in candidate.education %}
+{{ edu.degree }} — {{ edu.institution }}
+{% if edu.start_date or edu.end_date %}{{ edu_dates(edu) }}
+{% endif %}{% if edu.details %}{{ edu.details | trim }}
+{% endif %}
+{% endfor %}{% endif %}{% if skills %}
+SKILLS
+{% for group, items in skills.items() %}{{ group_label(group) }}: {{ items | join(', ') }}
+{% endfor %}{% endif %}{% if publications %}
+PUBLICATIONS
+{% for pub in publications %}- {% if pub.authors %}{{ pub.authors | join(', ') }}. {% endif %}{{ pub.title }}{% if pub.journal %}. {{ pub.journal }}{% endif %}{% if pub.year %} ({{ pub.year }}){% endif %}{% if pub.status %} [{{ pub.status }}]{% endif %}{% if pub.doi %}. doi:{{ pub.doi }}{% endif %}
+{% endfor %}{% endif %}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from jobbot.branding import MARK, stamp_description, strip_mark
 from jobbot.models.candidate import Candidate
 from jobbot.models.external_profile import ExternalProfile
 from jobbot.models.sync import SyncOperation, SyncOpType, SyncPlan
@@ -48,7 +49,7 @@ def build_diff_operations(
                 "summary",
                 "summary",
                 external.summary,
-                candidate.summary,
+                _published_summary(external.summary, candidate.summary),
             )
         )
     if "skills" in sections:
@@ -172,6 +173,16 @@ def render_profile_diff(
     if not ops:
         lines.append("No differences detected.")
     return "\n".join(lines)
+
+
+def _published_summary(remote: str | None, local: str | None) -> str:
+    """Summary Jobbot would leave: same words, plus the mark once."""
+    stamped = stamp_description(local)
+    remote_text = (remote or "").strip()
+    same_words = strip_mark(remote_text) == strip_mark(local)
+    if same_words and MARK.casefold() in remote_text.casefold():
+        return remote_text
+    return stamped or (local or "").strip()
 
 
 def _cmp(
