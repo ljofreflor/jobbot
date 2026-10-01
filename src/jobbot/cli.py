@@ -1486,6 +1486,8 @@ def cv_build(
         match = RuleBasedJobAnalyzer().analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
 
+    from jobbot.cv.build import application_log_options
+
     try:
         outputs = build_cv(
             candidate=candidate,
@@ -1495,6 +1497,8 @@ def cv_build(
             job=job,
             match=match,
             style=style,
+            application_log=application_log_options(config.cv),
+            credit=config.cv.jobbot_signature,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         err_console.print(f"[red]{exc}[/red]")
@@ -2061,6 +2065,7 @@ def _propagate_base_cv(config: JobbotConfig, candidate: Candidate, *, style: CvS
                 output_dir=config.output_dir,
                 target=target,
                 style=style,
+                credit=config.cv.jobbot_signature,
             )
         except (FileNotFoundError, RuntimeError) as exc:
             err_console.print(f"[red]cv ({target.value}): {exc}[/red]")
@@ -2496,37 +2501,21 @@ def _note_no_receipt(session: Session, job_id: str, package_dir: str, url: str) 
 
 def _build_job_cv(config: JobbotConfig, candidate: Candidate, job: JobPosting) -> None:
     """Build the CV adapted to this job, unless the one on disk is still current."""
-    from jobbot.cv.build import should_rebuild_job_cv
+    from jobbot.cv.build import build_adapted_cv
 
     job_dir = config.output_dir / "jobs" / job.id
-    if not should_rebuild_job_cv(job_dir, config.profile_path):
-        return
-    stale = (job_dir / "cv.pdf").is_file() or (job_dir / "cv_ats.txt").is_file()
-    if stale:
-        console.print(f"Profile is newer than the CV for {job.id} — rebuilding…")
-    else:
-        console.print(f"Building CV adapted to {job.id}…")
+    existed = (job_dir / "cv.pdf").is_file() or (job_dir / "cv_ats.txt").is_file()
     match = RuleBasedJobAnalyzer().analyze(candidate, job)
-    try:
-        build_cv(
-            candidate,
-            config.templates_dir,
-            config.output_dir,
-            target=BuildTarget.CV,
-            job=job,
-            match=match,
-        )
-    except RuntimeError as exc:
+    written = build_adapted_cv(config, candidate, job, match)
+    if not written:
+        return
+    if existed:
+        console.print(f"Rebuilt the CV for {job.id} (profile or CV settings changed).")
+    else:
+        console.print(f"Built CV adapted to {job.id}.")
+    if not any(path.suffix == ".pdf" for path in written):
         # PDF may fail without xelatex; ATS text is enough for the package
-        err_console.print(f"[yellow]{exc}[/yellow]")
-        build_cv(
-            candidate,
-            config.templates_dir,
-            config.output_dir,
-            target=BuildTarget.ATS,
-            job=job,
-            match=match,
-        )
+        err_console.print("[yellow]PDF not built (XeLaTeX unavailable); ATS text written.[/yellow]")
 
 
 @application_app.command("prepare")

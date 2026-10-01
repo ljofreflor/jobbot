@@ -123,6 +123,40 @@ def test_unclassified_candidate_is_not_assumed_to_be_a_data_scientist() -> None:
     assert match.score < 50
 
 
+ENGLISH_DS_JOB = (
+    "Title: Senior Data Scientist\n"
+    "Company: Example Remote Co\n"
+    "Requirements:\n"
+    "- Statistics\n"
+    "- Predictive modelling\n"
+    "- Data science\n"
+    "- Pandas\n"
+)
+
+
+def test_spanish_profile_backs_english_requirements() -> None:
+    """Regression: an MSc in Estadística and 'modelos predictivos' read as missing.
+
+    The posting names the skill in English and the profile in Spanish; a phrase
+    of the candidate's own prose ('data science') was only half matched because
+    prose was split into single words.
+    """
+    profile = sample_profile_dict()
+    profile["summary"] = (
+        "Experiencia construyendo modelos predictivos y liderando equipos de data science."
+    )
+    candidate = Candidate.model_validate(profile)
+    job = parse_job_text(ENGLISH_DS_JOB, job_id="J0503")
+
+    match = RuleBasedJobAnalyzer().analyze(candidate, job)
+    by_label = {i.label.lower(): i.strength for i in match.items}
+
+    assert by_label["statistics"] == MatchStrength.STRONG
+    assert by_label["predictive modelling"] == MatchStrength.STRONG
+    assert by_label["data science"] == MatchStrength.STRONG
+    assert by_label["pandas"] == MatchStrength.MISSING
+
+
 def test_applied_scientist_outscores_product_manager() -> None:
     candidate = Candidate.model_validate(sample_profile_dict())
     ds = parse_job_text(
