@@ -9,6 +9,7 @@ import pytest
 
 from jobbot.config import CONFIG_FILENAME, load_config, resolve_workspace
 from jobbot.workspace import WorkspaceExistsError, init_workspace
+from tests.fixtures.cv_pdf import write_sample_cv
 
 
 def test_resolve_workspace_walks_up_to_jobbot_toml(
@@ -151,7 +152,7 @@ def test_import_pdf_promote_restamps_owner_for_cold_install(
 
     target = tmp_path / "postulaciones"
     init_workspace(target)
-    pdf = Path("tests/fixtures/cvs/carolina_baeza/CV_Carolina_Baeza_2026.pdf").resolve()
+    pdf = write_sample_cv(tmp_path / "cv.pdf")
     monkeypatch.delenv("JOBBOT_WORKSPACE", raising=False)
     monkeypatch.delenv("JOBBOT_ROOT", raising=False)
     monkeypatch.setenv("JOBBOT_ROOT", str(target))

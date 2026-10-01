@@ -132,6 +132,7 @@ class FormField(BaseModel):
     max_length: int | None = None
     accepts: list[str] = Field(default_factory=list)
     is_screening: bool = False
+    autocomplete: str = ""
 
 
 class FormKnowledge(BaseModel):
@@ -329,6 +330,7 @@ def _field(node: Tag, form: Tag) -> FormField | None:
         max_length=_int_attr(node, "maxlength"),
         accepts=_accepts(node),
         is_screening=_is_screening(label, kind),
+        autocomplete=_autocomplete(node),
     )
 
 
@@ -426,6 +428,14 @@ def _select_options(node: Tag) -> list[str]:
 def _accepts(node: Tag) -> list[str]:
     raw = str(node.get("accept") or "")
     return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+def _autocomplete(node: Tag) -> str:
+    """The field's declared purpose (``given-name``, ``email``), not a value."""
+    tokens = str(node.get("autocomplete") or "").casefold().split()
+    if not tokens or tokens[-1] in {"on", "off"}:
+        return ""
+    return tokens[-1]
 
 
 def _int_attr(node: Tag, attr: str) -> int | None:
