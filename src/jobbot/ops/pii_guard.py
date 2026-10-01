@@ -30,6 +30,7 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"^latex/cv\.tex$", "private LaTeX CV (only cv.tex.demo is tracked)"),
     (r"^\.jobbot\.toml$", "local config with private paths"),
     (r"^sandboxes/", "another candidate's workspace (test CVs are their PII)"),
+    (r"(^|/)consent\.yaml$", "client consent and retention record"),
     (r"^browser-data/", "browser session data"),
     (r"^output/", "generated artefacts with PII"),
     (r"\.sqlite3?$", "local database"),

@@ -250,7 +250,15 @@ file names, silently.
 - **A selected workspace ignores `~/.config/jobbot/config.toml`**, whose absolute paths
   would otherwise reach into the real profile from inside a sandbox.
 - **`sandboxes/` is somebody else's PII:** gitignored and blocked by the PII guard.
-  Delete a test CV's workspace when you are done with it.
+  Delete a test CV's workspace when you are done with it (`jobbot workspace delete NAME`).
+- **Advisor:** `jobbot advisor status` lists every sandbox by owner fingerprint (never the
+  name), job count, prepared applications, whether today's CV proposal exists, and a
+  retention warning. `jobbot --workspace NAME advisor report` writes that client's
+  summary only, redacted. Consent lives in `data/consent.yaml` inside the sandbox.
+- **Browser account:** a signed-in tab is `ready` for Gmail or LinkedIn only when the
+  page text matches this workspace. Another account is `wrong_account` and blocks
+  `browser login --apply` and `application apply --apply`. The other identity is not printed.
+  A datacenter browser per client is out of scope; proxies and stealth stay forbidden.
 
 ## Portal adapters
 

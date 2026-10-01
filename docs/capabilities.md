@@ -7,10 +7,12 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-91 commands, 139 modules, 647 public symbols.
+95 commands, 140 modules, 662 public symbols.
 
 ## Commands
 
+- `jobbot advisor report` — Write a redacted report into the selected workspace's output/.
+- `jobbot advisor status` — One line per sandbox: fingerprint, counts, proposal, retention. No profile PII.
 - `jobbot application apply` — Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
 - `jobbot application open` — Open the job URL (or ATS URL) in the default browser (does not apply).
 - `jobbot application prepare` — Prepare application package for a job (does not invent answers).
@@ -99,6 +101,8 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot update` — Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub).
 - `jobbot version` — Show JobBot version.
 - `jobbot workspace adopt` — Hand this workspace's data and output over to the profile now in place.
+- `jobbot workspace consent` — Record local consent and a retention date for one sandbox.
+- `jobbot workspace delete` — Delete one sandbox. Never touches the checkout's own data/.
 - `jobbot workspace list` — List the extra candidates living in this checkout.
 - `jobbot workspace new` — Create an isolated `data/` + `output/` for another candidate.
 - `jobbot workspace show` — Show which candidate the current run would touch.
@@ -107,6 +111,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `jobbot`
 
+- `advisor.py` — Advisor view across workspaces: status, a client report, consent, deletion. · `WorkspaceDeleteRefused`, `Consent`, `WorkspaceActivity`, `consent_path`, `read_consent`, `write_consent`, `retention_due`, `retention_warning`, `workspace_activity`, `status_lines`, `write_report`, `parse_since`, `delete_workspace`
 - `branding.py` — One closing mark on texts Jobbot publishes. · `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
@@ -187,7 +192,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `login_plan.py` — Login tour: which portals still need a human sign-in (issue #56). · `LoginBucket`, `LoginRow`, `LoginPlan`, `plan_logins`
 - `manual.py` — Human-in-the-loop pauses for CAPTCHA / consent (no bypass). · `wait_for_manual_clear`
 - `session.py` — Persistent Playwright browser session. · `BrowserTimeouts`, `launch_persistent_kwargs`, `BrowserSession`
-- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `SiteSpec`, `site_spec`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`
+- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `judge_account`
 
 ### `companies`
 
