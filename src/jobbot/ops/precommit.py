@@ -19,6 +19,8 @@ _TRIGGERS: tuple[tuple[str, str, str], ...] = (
     (r"^tests/", "tests/", "the suite itself"),
     (r"^AGENTS\.md$", "AGENTS.md", "project policy for humans and agents"),
     (r"^\.githooks/", ".githooks/", "the guard that runs before every commit"),
+    (r"^asesoria/", "asesoria/", "the public page, checked for privacy by its own test"),
+    (r"^\.github/workflows/", ".github/workflows/", "the Pages deploy, checked by a test"),
 )
 
 TRIGGER_HELP = "runs the suite for: " + ", ".join(

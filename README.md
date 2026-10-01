@@ -7,6 +7,8 @@ New here? Start with the [tutorial](docs/tutorial.md): the loop end to end, the 
 keep it safe, and the guarantees the code enforces.
 
 Docs and blog: <https://ljofreflor.github.io/jobbot/> (source in `docs/`, `make docs-serve`).
+Advisory service built on JobBot, in Spanish: <https://ljofreflor.github.io/jobbot/asesoria/>
+(static page in `asesoria/`, published by the same Pages workflow).
 
 ## Why the compute spent here compounds
 
