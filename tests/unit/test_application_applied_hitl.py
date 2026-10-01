@@ -54,7 +54,7 @@ def test_email_apply_yes_stays_prepared_until_user_sends(
     )
     session.commit()
 
-    monkeypatch.setattr("webbrowser.open", lambda url: True)
+    monkeypatch.setattr("jobbot.browser.background.open_url", lambda url, **_k: url)
     # Avoid the Playwright Gmail attach path; --no-attach keeps the HITL compose URL.
     code = run_cli(
         ["application", "apply", stored.id, "--apply", "--yes", "--no-attach"],
