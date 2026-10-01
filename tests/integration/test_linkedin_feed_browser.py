@@ -55,6 +55,32 @@ def test_browser_feed_dom_detects_email_apply_like_live_sweep(
     assert all("hiking" not in j.description.casefold() for j in jobs)
 
 
+def test_browser_feed_dom_splits_a_post_that_lists_several_vacancies(
+    project_root: Path,
+) -> None:
+    """One card, several roles: the live scrape must yield one appliable job per role."""
+    html_path = project_root / "tests/fixtures/linkedin_feed_multi_vacancy.html"
+    query = JobSearchQuery(query="data scientist", limit=20)
+
+    with playwright.sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page()
+            page.goto(html_path.as_uri(), wait_until="domcontentloaded")
+            jobs = collect_jobs_from_feed_page(page, query, resolve_short_links=False)
+        finally:
+            browser.close()
+
+    assert [j.title for j in jobs] == [
+        "Lead Agentic AI Consultant",
+        "Lead Data Scientist",
+        "Senior Computer Vision Engineer",
+    ]
+    assert {j.company for j in jobs} == {"Northwind Labs"}
+    assert len({j.ats_url for j in jobs}) == 3
+    assert all("about-us" not in (j.ats_url or "") for j in jobs)
+
+
 @pytest.mark.skipif(
     os.environ.get("JOBBOT_LIVE_LINKEDIN") != "1",
     reason="Set JOBBOT_LIVE_LINKEDIN=1 for real LinkedIn HITL sweep (opens browser)",

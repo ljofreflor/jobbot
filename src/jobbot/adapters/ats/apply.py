@@ -29,7 +29,15 @@ def resolve_ats_url(job: JobPosting) -> tuple[str | None, AtsKind]:
     if job.ats_url:
         if job.ats_url.lower().startswith("mailto:") or job.ats_kind == "email":
             return job.ats_url, AtsKind.EMAIL
-        return job.ats_url, detect_ats(job.ats_url)
+        kind = detect_ats(job.ats_url)
+        # Custom career domains (e.g. careers.neuralworks.cl) sniff as Teamtailor
+        # but host rules alone stay unknown — honor stored ats_kind from sniff.
+        if kind == AtsKind.UNKNOWN and job.ats_kind:
+            try:
+                kind = AtsKind(job.ats_kind)
+            except ValueError:
+                kind = AtsKind.UNKNOWN
+        return job.ats_url, kind
     if job.url:
         kind = detect_ats(job.url)
         if kind != AtsKind.LINKEDIN:

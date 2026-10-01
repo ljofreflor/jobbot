@@ -240,14 +240,17 @@ def inspect_sessions(
     processes: Sequence[ChromeProcess] | None = None,
 ) -> list[SessionState]:
     """Session state per site, from open pages plus the persistent-profile locks."""
+    from jobbot.config import load_config
+
     procs = list(processes if processes is not None else list_chrome_processes())
     endpoints = discover_endpoints(ports, fetch=fetch, processes=procs)
     wanted = {site.casefold() for site in sites} if sites else None
+    browser_root = load_config(root=root).browser_data_dir
     states: list[SessionState] = []
     for spec in SITES:
         if wanted is not None and spec.site not in wanted:
             continue
-        holders = profile_holders(root / "browser-data" / spec.site, procs)
+        holders = profile_holders(browser_root / spec.site, procs)
         states.append(_state_for(spec, endpoints, holders, ports))
     return states
 

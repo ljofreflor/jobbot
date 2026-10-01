@@ -66,8 +66,15 @@ class PortalRegistry(BaseModel):
         return entry
 
 
-def default_portals_path(root: Path) -> Path:
-    return root / "data" / "portals.yaml"
+def default_portals_path(root: Path | None = None) -> Path:
+    """Portals YAML: config ``paths.portals`` when available, else ``data/portals.yaml``."""
+    if root is None:
+        from jobbot.config import load_config
+
+        return load_config().portals_path
+    from jobbot.config import load_config
+
+    return load_config(root=root).portals_path
 
 
 def load_registry(path: Path) -> PortalRegistry:
