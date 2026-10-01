@@ -1,5 +1,7 @@
 # JobBot
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ljofreflor/jobbot/badge)](https://scorecard.dev/viewer/?uri=github.com/ljofreflor/jobbot)
+
 Local terminal tool for managing a job search: structured CV as source of truth, portal sync,
 matching, adapted CVs, and assisted applications. **No web UI** — everything runs from the CLI.
 
@@ -30,6 +32,12 @@ not by guessing from the hostname. `jobbot status` is how you see what is actual
 What is shared is public knowledge about who hires where and how. What is never shared is you:
 your profile, your sessions, your applications and your CV stay on your machine, enforced by the
 PII guard (`make hooks`). The collaboration is on the map, not on the traveller.
+
+Whether that code is safe to run is not our word. The badge above is the
+[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/ljofreflor/jobbot):
+the Linux Foundation scores this repository, including known vulnerabilities (OSV).
+The number updates when their workflow runs on `main`. How to report a problem is in
+[SECURITY.md](SECURITY.md).
 
 ## Architecture
 
