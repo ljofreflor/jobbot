@@ -13,5 +13,7 @@ def build_ats_text(
     candidate: Candidate,
     templates_dir: Path,
     selection: SelectionResult | None = None,
+    *,
+    credit: bool = False,
 ) -> str:
-    return render_cv_ats(candidate, templates_dir, selection=selection)
+    return render_cv_ats(candidate, templates_dir, selection=selection, credit=credit)

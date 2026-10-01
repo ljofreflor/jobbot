@@ -7,6 +7,8 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from jobbot.workspace import DEFAULT_LABEL, repo_root, resolve_root, verify_owner
+
 DEFAULT_PROFILE = Path("data/profile.yaml")
 DEFAULT_GENERATED_PROFILE = Path("data/profile.generated.yaml")
 DEFAULT_OUTPUT = Path("output")
@@ -45,10 +47,19 @@ class SearchConfig:
 
 
 @dataclass(frozen=True)
+class CvConfig:
+    """Off by default: another candidate's CV must not advertise the tool."""
+
+    jobbot_signature: bool = False
+    jobbot_project_url: str | None = None
+
+
+@dataclass(frozen=True)
 class JobbotConfig:
     paths: PathsConfig = field(default_factory=PathsConfig)
     root: Path = field(default_factory=Path.cwd)
     search: SearchConfig = field(default_factory=SearchConfig)
+    cv: CvConfig = field(default_factory=CvConfig)
 
     @property
     def profile_path(self) -> Path:
@@ -114,35 +125,29 @@ def resolve_workspace(start: Path | None = None) -> Path:
     return here
 
 
-def _find_config_file(workspace: Path) -> Path | None:
-    """Prefer workspace ``.jobbot.toml``; else XDG global (paths still vs workspace)."""
-    local = workspace / CONFIG_FILENAME
+def _user_config_path() -> Path:
+    return Path.home() / ".config" / "jobbot" / "config.toml"
+
+
+def _find_config_file(start: Path, *, workspace: str | None) -> Path | None:
+    """A workspace reads only its own file: the global one may point at another candidate."""
+    local = start / CONFIG_FILENAME
     if local.is_file():
         return local
-    xdg = Path.home() / ".config" / "jobbot" / "config.toml"
-    if xdg.is_file():
-        return xdg
-    return None
+    if workspace is not None:
+        return None
+    user = _user_config_path()
+    return user if user.is_file() else None
 
 
-def load_config(root: Path | None = None) -> JobbotConfig:
-    """Load config from ``.jobbot.toml`` (walk-up / JOBBOT_ROOT) or XDG fallback."""
-    base = root.expanduser().resolve() if root is not None else resolve_workspace()
-    config_path = _find_config_file(base)
-    if config_path is None:
-        return JobbotConfig(root=base)
-
-    with config_path.open("rb") as fh:
-        raw = tomllib.load(fh)
-
-    return JobbotConfig(
-        paths=_load_paths(raw),
-        root=base,
-        search=_load_search(raw),
-    )
+def _default_templates(workspace: str | None) -> Path:
+    """Templates are code, so a workspace borrows the checkout's instead of its own."""
+    if workspace is None:
+        return DEFAULT_TEMPLATES
+    return repo_root() / DEFAULT_TEMPLATES
 
 
-def _load_paths(raw: dict[str, object]) -> PathsConfig:
+def _load_paths(raw: dict[str, object], *, workspace: str | None) -> PathsConfig:
     paths_raw = raw.get("paths")
     data: dict[str, object] = paths_raw if isinstance(paths_raw, dict) else {}
     legacy = data.get("legacy_cv")
@@ -150,12 +155,62 @@ def _load_paths(raw: dict[str, object]) -> PathsConfig:
         profile=Path(str(data.get("profile", DEFAULT_PROFILE))),
         generated_profile=Path(str(data.get("generated_profile", DEFAULT_GENERATED_PROFILE))),
         output=Path(str(data.get("output", DEFAULT_OUTPUT))),
-        templates=Path(str(data.get("templates", DEFAULT_TEMPLATES))),
+        templates=Path(str(data.get("templates", _default_templates(workspace)))),
         database=Path(str(data.get("database", DEFAULT_DB))),
         portals=Path(str(data.get("portals", DEFAULT_PORTALS))),
         companies=Path(str(data.get("companies", DEFAULT_COMPANIES))),
         browser_data=Path(str(data.get("browser_data", DEFAULT_BROWSER_DATA))),
         legacy_cv=Path(str(legacy)) if legacy else None,
+    )
+
+
+def load_config(root: Path | None = None) -> JobbotConfig:
+    """Load config for the active sandbox workspace, else cold-install / cwd root."""
+    if root is None:
+        # Sandbox selection (--workspace / JOBBOT_WORKSPACE) wins when set.
+        base, workspace = resolve_root(Path.cwd())
+        if workspace is None:
+            # No sandbox: honour JOBBOT_ROOT / walk-up for .jobbot.toml.
+            base = resolve_workspace(Path.cwd())
+    else:
+        base, workspace = root.resolve(), None
+    config_path = _find_config_file(base, workspace=workspace)
+    if config_path is None:
+        config = JobbotConfig(
+            paths=PathsConfig(templates=_default_templates(workspace)),
+            root=base,
+        )
+        _verify(config, workspace)
+        return config
+
+    with config_path.open("rb") as fh:
+        raw = tomllib.load(fh)
+
+    config = JobbotConfig(
+        paths=_load_paths(raw, workspace=workspace),
+        root=base,
+        search=_load_search(raw),
+        cv=_load_cv(raw),
+    )
+    _verify(config, workspace)
+    return config
+
+
+def _load_cv(raw: dict[str, object]) -> CvConfig:
+    section = raw.get("cv")
+    cv_raw: dict[str, object] = section if isinstance(section, dict) else {}
+    url = cv_raw.get("jobbot_project_url")
+    return CvConfig(
+        jobbot_signature=cv_raw.get("jobbot_signature") is True,
+        jobbot_project_url=url if isinstance(url, str) and url.strip() else None,
+    )
+
+
+def _verify(config: JobbotConfig, workspace: str | None) -> None:
+    verify_owner(
+        config.profile_path,
+        config.output_dir,
+        label=workspace or DEFAULT_LABEL,
     )
 
 

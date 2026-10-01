@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from jobbot.branding import MARK, stamp_description
 from jobbot.models.candidate import Candidate
 
 PROFILE_EDIT_URL = "https://www.getonbrd.com/webpros/edit"
-# Resumes live under the professional profile area (HITL: open edit, then "Tus CVs").
-RESUMES_HINT_URL = "https://www.getonbrd.com/webpros/edit"
+RESUMES_HINT_URL = "https://www.getonbrd.com/resumes"
 
 
 @dataclass(frozen=True)
 class GetOnBoardSyncPackage:
+    name: str
     headline: str
     summary: str
     location: str
@@ -54,6 +55,7 @@ def build_getonboard_sync_package(candidate: Candidate) -> GetOnBoardSyncPackage
             line += f"\n{edu.details}"
         edu_blocks.append(line)
     return GetOnBoardSyncPackage(
+        name=personal.name,
         headline=personal.headline,
         summary=stamp_description(candidate.summary or ""),
         location=personal.location_line() or "",
@@ -65,6 +67,14 @@ def build_getonboard_sync_package(candidate: Candidate) -> GetOnBoardSyncPackage
         experience_blocks=exp_blocks,
         education_blocks=edu_blocks,
     )
+
+
+def _cv_file_hint(package: GetOnBoardSyncPackage) -> str:
+    """A file name built from this candidate's own name and role."""
+    role = re.split(r"\s*[|/·–—]\s*", package.headline or "")[0]
+    parts = [*package.name.split(), *role.split()][:4]
+    slug = "-".join(re.sub(r"[^\w]", "", part) for part in parts if part)
+    return f"{slug}-CV" if slug else "CV"
 
 
 def render_getonboard_sync_markdown(package: GetOnBoardSyncPackage) -> str:
@@ -105,8 +115,10 @@ def render_getonboard_sync_markdown(package: GetOnBoardSyncPackage) -> str:
             "",
             "## Tus CVs",
             "1. Genera el PDF: `jobbot cv build` → `output/base/cv.pdf`",
-            "2. En Get on Board → Tus CVs: sube ese PDF (≤ 5 MB).",
-            "3. Renombra (ej. `Leonardo-Jofre-DS-2026`) y márcalo como default.",
+            "2. Sube con `jobbot getonboard upload-cv --apply` "
+            "(valida tamaño/PDF/hash antes de adjuntar; ≤ 5 MB).",
+            f"3. O a mano en {package.resumes_url} "
+            f"(ej. etiqueta `{_cv_file_hint(package)}`, marcar default).",
             "4. Luego postula con Quick Apply usando ese CV.",
             "",
         ]

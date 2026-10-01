@@ -7,7 +7,7 @@ import logging
 import re
 from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote_plus, urljoin, urlparse
 
 from playwright.sync_api import Page
 from rich.console import Console
@@ -21,6 +21,19 @@ from jobbot.models.job import JobPosting
 
 logger = logging.getLogger("jobbot.indeed.jobs")
 console = Console()
+
+# Wording Indeed uses when a posting is closed. Not a list of job families.
+_CLOSED_MARKERS: tuple[str, ...] = (
+    "this job has expired",
+    "no longer accepting",
+    "ya no acepta",
+    "este empleo ha expirado",
+    "esta oferta ha caducado",
+)
+
+
+class IndeedJobClosed(ValueError):
+    """The posting is no longer accepting applications."""
 
 
 class IndeedJobSource:
@@ -238,6 +251,23 @@ def parse_indeed_search_html(html: str, *, base_url: str) -> list[dict[str, Any]
     return unique
 
 
+def posting_is_closed(html: str) -> bool:
+    """True when the page says the vacancy is no longer open."""
+    folded = (html or "").casefold()
+    return any(marker in folded for marker in _CLOSED_MARKERS)
+
+
+def indeed_apply_url(viewjob_url: str | None, jk: str | None) -> str | None:
+    """Indeed Apply handoff for one vacancy: same country host, only jk."""
+    if not viewjob_url or not jk:
+        return None
+    parsed = urlparse(viewjob_url)
+    if not parsed.hostname:
+        return None
+    scheme = parsed.scheme or "https"
+    return f"{scheme}://{parsed.hostname}/applystart?jk={jk}"
+
+
 def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
     """Extract description and metadata from a job detail page."""
     title = _first(
@@ -268,11 +298,37 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
             r'data-testid="job-description"[^>]*>(.*?)</',
         ],
     )
+    
+    # Detect external ATS URL (Apply on company site button)
+    ats_url = None
+    
+    # Look for "Apply on company site" or similar external apply links
+    apply_patterns = [
+        r'href="([^"]+)"[^>]*>Apply on company site',
+        r'href="([^"]+)"[^>]*>Apply on employer site',
+        r'href="([^"]+)"[^>]*>Aplicar en el sitio de la empresa',
+        r'data-tn-element="[^"]*externalApply[^"]*"[^>]*href="([^"]+)"',
+    ]
+    
+    for pattern in apply_patterns:
+        match = re.search(pattern, html, flags=re.I)
+        if match:
+            ats_url = match.group(1)
+            # Clean up Indeed redirect wrapper if present
+            if "indeed.com" in ats_url and ("rclk?jk=" in ats_url or "/rc/clk" in ats_url):
+                # Extract actual URL from Indeed redirect
+                redirect_match = re.search(r'[?&]dest=([^&]+)', ats_url)
+                if redirect_match:
+                    from urllib.parse import unquote
+                    ats_url = unquote(redirect_match.group(1))
+            break
+    
     return {
         "title": _clean(title),
         "company": _clean(company),
         "location": _clean(location),
         "description": _clean_preserve_breaks(description or ""),
+        "ats_url": ats_url,
     }
 
 
@@ -282,6 +338,10 @@ def card_to_job_posting(
     detail_html: str | None,
     placeholder_id: str,
 ) -> JobPosting:
+    if detail_html and posting_is_closed(detail_html):
+        raise IndeedJobClosed(
+            "This Indeed job is no longer accepting applications (expired)."
+        )
     detail = parse_indeed_job_detail_html(detail_html) if detail_html else {}
     title = detail.get("title") or card.get("title") or "Untitled"
     company = detail.get("company") or card.get("company") or "Unknown"
@@ -294,6 +354,18 @@ def card_to_job_posting(
         f"Location: {location or ''}\n\n{description}"
     )
     parsed = parse_job_text(stub, job_id=placeholder_id, source="indeed", url=card.get("url"))
+    
+    ats_url = detail.get("ats_url") if detail else None
+    if isinstance(ats_url, str) and "indeed.com" in ats_url.casefold():
+        ats_url = None
+    if detail_html and not ats_url:
+        ats_url = indeed_apply_url(card.get("url"), card.get("source_job_id"))
+    ats_kind = None
+    if ats_url:
+        from jobbot.portals.detect import detect_ats
+
+        ats_kind = detect_ats(ats_url).value
+    
     return JobPosting(
         id=placeholder_id,
         source="indeed",
@@ -310,6 +382,8 @@ def card_to_job_posting(
         language_requirements=parsed.language_requirements,
         employment_type=parsed.employment_type,
         remote_type=parsed.remote_type,
+        ats_url=ats_url,
+        ats_kind=ats_kind,
         discovered_at=datetime.now(UTC),
     )
 

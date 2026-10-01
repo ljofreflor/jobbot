@@ -7,6 +7,7 @@ personal:
   phone: "+56 9 1234 5678"
   linkedin: https://www.linkedin.com/in/ana-ejemplo
   github: https://github.com/ana-ejemplo
+  orcid: "0000-0002-1825-0097"
 
 summary: >
   Data scientist con experiencia en marketplace, causal inference y productos
@@ -16,6 +17,12 @@ specialties:
   - Machine Learning
   - Causal Inference
   - Customer Analytics
+
+# Optional: job-board searches to run when no query is typed. `jobbot profile queries --apply`
+# proposes them from your experience; edit freely.
+search_queries:
+  - Causal Inference
+  - Senior Data Scientist
 
 experience:
   - id: meli-ds
@@ -104,6 +111,17 @@ skills:
   engineering:
     - MLOps
     - APIs
+
+projects:
+  - id: ejemplo-forecast-lib
+    name: Forecast Toolkit
+    description: >
+      Librería open source para evaluar modelos de forecasting con backtesting
+      reproducible.
+    url: https://github.com/ana-ejemplo/forecast-toolkit
+    tags:
+      - Python
+      - Forecasting
 
 publications:
   - id: pub-causal-2021

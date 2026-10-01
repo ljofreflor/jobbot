@@ -30,18 +30,17 @@ jobs:
           WS="${HOME}/postulaciones"
           rm -rf "${WS}"
           mkdir -p "${WS}"
-          cp latex/cv.tex.demo "${WS}/cv.tex.demo"
+          # Generated at run time: no CV binary is ever committed.
+          python3 -c "import sys; from pathlib import Path; sys.path.insert(0, '.'); from tests.fixtures.cv_pdf import write_sample_cv; write_sample_cv(Path(sys.argv[1]))" "${WS}/cv.pdf"
           docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work jobbot:ci init
           docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work \
-            jobbot:ci profile import-latex /work/cv.tex.demo
-          docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work \
-            jobbot:ci profile promote-generated --yes
+            jobbot:ci profile import-pdf /work/cv.pdf --promote
           docker run --rm -v "${WS}:/work" -w /work -e JOBBOT_ROOT=/work jobbot:ci profile validate
           python3 - <<'PY'
           import yaml
           from pathlib import Path
           name = yaml.safe_load(Path.home().joinpath("postulaciones/.local/profile.yaml").read_text())["personal"]["name"]
-          assert name.casefold() == "ana ejemplo", name
+          assert name == "Marta Soto Vera", name
           print("OK", name)
           PY
       - name: Login to GHCR

@@ -37,6 +37,7 @@ JOBBOT_REF=v0.1.0 jobbot update
 | `profile import-latex [RUTA]` | Importa un CV LaTeX legado a `profile.generated.yaml`. |
 | `profile promote-generated` | Copia `profile.generated.yaml` → `profile.yaml` tras confirmación. |
 | `profile suggest-from-market` | Sugiere redacción base desde las JDs guardadas; pregunta antes de agregar skills. |
+| `profile queries` | Deriva búsquedas desde la experiencia del perfil. `--apply` las guarda como `search_queries` (con confirmación). |
 | `profile status` | Consistencia entre lo local y los snapshots de portales. |
 | `profile diff` | Diff del perfil local contra los snapshots de portales. |
 
@@ -87,12 +88,18 @@ jobbot cv propagate --apply         # confirma destino por destino
 
 `linkedin login`, `linkedin status`, `linkedin inspect`, `linkedin pull`,
 `linkedin diff`, `linkedin sync` (Publications, con DOI y coautores),
-`linkedin sweep QUERY` (barrido de posts de reclutadores → vacantes + detección de ATS).
+`linkedin sweep [QUERY]` (barrido de posts de reclutadores → vacantes + detección de ATS).
+Sin `QUERY`, corre las `search_queries` del perfil (o las deriva). `--max-queries N` limita cuántas.
 
 ### Get on Board
 
 `getonboard prepare`, `getonboard show-profile`, `getonboard open-profile`,
-`getonboard open-cvs`, `getonboard sync`, `getonboard search QUERY`.
+`getonboard open-cvs`, `getonboard sync`, `getonboard search [QUERY]`.
+Sin `QUERY`, usa las búsquedas del perfil; `--max-queries N` limita cuántas.
+
+### Torre
+
+`torre search [QUERY]` — mismas reglas de query / `--max-queries` que Get on Board.
 
 ### Navegador
 

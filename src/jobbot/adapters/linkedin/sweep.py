@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 from jobbot.jobs.geo import country_allows, detect_country, normalize_countries
+from jobbot.jobs.normalization import fold_text
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import (
@@ -23,36 +24,56 @@ from jobbot.portals.email_apply import first_apply_email, mailto_url
 from jobbot.portals.redirect import expand_url_map
 
 # Roles / themes relevant to this candidate's data career (title-agnostic filter)
-_DATA_ROLE_HINTS = (
-    "data scientist",
-    "data science",
-    "machine learning",
-    "ml engineer",
-    "mlops",
-    "analytics",
-    "analítica",
-    "analitica",
-    "científico de datos",
-    "cientifico de datos",
-    "estadíst",
-    "estadist",
-    "causal",
-    "experimentation",
-    "a/b test",
-    "ab test",
-    "data engineer",
-    "bi ",
-    "business intelligence",
-    "applied scientist",
-    "research scientist",
+
+
+# What makes a post a job post is hiring language and a way to apply — not the
+# field being hired for. A list of roles only ever recognises one career.
+_HIRING_HINTS = (
     "hiring",
+    "we are hiring",
     "we're hiring",
-    "estamos buscando",
+    "contratando",
+    "reclutando",
     "buscamos",
+    "estamos buscando",
+    "se busca",
+    "se necesita",
+    "looking for",
+    "join our team",
+    "únete",
+    "unete",
     "vacante",
-    "oferta",
+    "vacantes",
+    "vacancy",
+    "vacancies",
+    "oferta laboral",
+    "ofertas laborales",
+    "oportunidad laboral",
+    "oportunidades laborales",
+    "convocatoria",
+    "búsqueda laboral",
+    "busqueda laboral",
+)
+_APPLY_HINTS = (
+    "postula",
+    "postular",
+    "apply",
+    "enviar cv",
+    "envía tu cv",
+    "envia tu cv",
+    "send your cv",
+    "send your resume",
+    "send your materials",
+    "cargo:",
+    "puesto:",
+    "role:",
 )
 
+
+def looks_like_job_post(text: str) -> bool:
+    """A post is a job post when it says it is hiring or how to apply."""
+    lowered = text.casefold()
+    return any(hint in lowered for hint in (*_HIRING_HINTS, *_APPLY_HINTS))
 
 @dataclass(frozen=True)
 class PostVacancy:
@@ -150,9 +171,6 @@ def strip_feed_chrome(text: str) -> tuple[str | None, str]:
     return author, "\n".join(body).strip()
 
 
-def is_data_relevant(text: str) -> bool:
-    lowered = text.casefold()
-    return any(hint in lowered for hint in _DATA_ROLE_HINTS)
 
 
 # A post offering several roles lists them as "🔹 Lead Data Scientist: <url>". Cards keep one
@@ -430,6 +448,43 @@ def post_to_job(post: LinkedInPostCandidate, *, job_id: str = "PENDING") -> JobP
     return job.model_copy(update={"id": job_id})
 
 
+def vacancy_dedupe_key(job: JobPosting) -> str | None:
+    """Same apply target + title ⇒ same vacancy, even when reposted by others."""
+    target = (job.ats_url or "").strip().casefold()
+    if not target:
+        return None
+    title = fold_text(job.title or "")
+    if not title:
+        return None
+    return f"{target}|{title}"
+
+
+def dedupe_jobs_by_apply_target(jobs: list[JobPosting]) -> list[JobPosting]:
+    """Keep the earliest (or first-seen) post per apply target + title."""
+    winners: dict[str, JobPosting] = {}
+    order: list[str] = []
+    passthrough: list[JobPosting] = []
+    for job in jobs:
+        key = vacancy_dedupe_key(job)
+        if key is None:
+            passthrough.append(job)
+            continue
+        existing = winners.get(key)
+        if existing is None:
+            winners[key] = job
+            order.append(key)
+            continue
+        # Prefer the older posting when both carry a real date.
+        if (
+            job.posted_at is not None
+            and existing.posted_at is not None
+            and job.posted_at < existing.posted_at
+        ):
+            winners[key] = job
+        # else keep existing (first-seen / older)
+    return [winners[key] for key in order] + passthrough
+
+
 def _vacancy_source_id(url: str) -> str:
     """Keyed on the vacancy page, so the same role found twice stays one job."""
     return hashlib.sha1(url.encode("utf-8")).hexdigest()[:12]  # noqa: S324 — id only
@@ -443,14 +498,10 @@ def _guess_title(text: str) -> str | None:
             # Stop before "para empresa …" so a length cap cannot leave "para emp".
             r"(?i)(?:hiring|buscamos|estoy buscando|estamos buscando|"
             r"looking for|we(?:'re| are) looking for)\s+"
-            r"(?:(?:a|an|un|una)\s+)?([^\n.!?;]{8,120}?)"
+            r"(?:(?:a|an|un|una)\s+)?([^\n.!?;]{8,160}?)"
             r"(?=\s+para\s+empresa\b|[;.!?\n]|$)"
         ),
-        r"(?i)(?:role|puesto|cargo)\s*[:\-]\s*([^\n]{5,80})",
-        r"(?i)\b((?:senior |staff |lead )?data scientist[^\n.!?]{0,40})",
-        r"(?i)\b((?:senior |staff |lead )?applied scientist[^\n.!?]{0,40})",
-        r"(?i)\b((?:senior |staff )?machine learning engineer[^\n.!?]{0,40})",
-        r"(?i)\b((?:senior )?data engineer[^\n.!?]{0,40})",
+        r"(?i)(?:role|puesto|cargo|posici[oó]n|vacante)\s*[:\-]\s*([^\n]{5,80})",
     ]
     for pat in patterns:
         match = re.search(pat, text)
@@ -622,8 +673,8 @@ def employer_from_post(text: str, apply_url: str | None, *, author: str | None) 
     Whoever writes a hiring post is usually a recruiter, not the company, so the author
     is a poor employer name — but it is the only one available most of the time. When the
     post names a company *and* the apply URL carries that name, the two agree and the
-    employer is a fact. A hiring mailbox on a company domain (postulaciones@peopletrust.cl)
-    is stronger than the author's name when the body never says "En PeopleTrust…".
+    employer is a fact. A hiring mailbox on a company domain (postulaciones@empresa.cl)
+    is stronger than the author's name when the body never says "En Empresa…".
     """
     named = _guess_company(text)
     if named and _post_names_employer(named, text, apply_url):
@@ -646,13 +697,13 @@ def _company_from_apply_url(url: str | None) -> str | None:
     host = host.casefold().removeprefix("www.")
     if not host or "." not in host:
         return None
-    # careers.neuralworks.cl → neuralworks.cl; jobs.softserveinc.com → softserveinc.com
+    # careers.empresa.cl → empresa.cl; jobs.ejemplo.com → ejemplo.com
     labels = host.split(".")
     if labels[0] in {"careers", "career", "jobs", "empleo", "empleos", "mail", "www"}:
         labels = labels[1:]
     if len(labels) < 2:
         return None
-    # empresa.com.ar → empresa; peopletrust.cl → peopletrust
+    # empresa.com.ar → empresa; ejemplo.cl → ejemplo
     if len(labels) >= 3 and ".".join(labels[-2:]) in {
         "com.ar",
         "com.br",

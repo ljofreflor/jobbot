@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 # Paths that must never be tracked, even with `git add -f`.
 _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
@@ -14,22 +14,63 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"^data/profile\.generated\.yaml$", "derived from private LaTeX CV"),
     (r"^data/profile\.suggested\.yaml$", "derived from market feedback"),
     (r"^data/portals\.yaml$", "learned portals may include real applications"),
-    (r"^data/.*\.bak$", "profile backup"),
+    (
+        r"^data/companies\.yaml$",
+        "learned company portals reflect your own search (share via companies export)",
+    ),
+    (
+        r"^data/form_knowledge\.yaml$",
+        "observed application forms (local knowledge, not shared)",
+    ),
+    (
+        r"^data/recruiters\.yaml$",
+        "hiring-practice sources you read (share via recruiters export)",
+    ),
+    (r"^data/.*\.bak(\.|$)", "profile backup"),
     (r"^latex/cv\.tex$", "private LaTeX CV (only cv.tex.demo is tracked)"),
     (r"^\.jobbot\.toml$", "local config with private paths"),
+    (r"^sandboxes/", "another candidate's workspace (test CVs are their PII)"),
+    (r"(^|/)consent\.yaml$", "client consent and retention record"),
     (r"^browser-data/", "browser session data"),
     (r"^output/", "generated artefacts with PII"),
     (r"\.sqlite3?$", "local database"),
     (r"\.db$", "local database"),
     (r"^(?!latex/).*\.pdf$", "PDF CV / attachment"),
-    (r"^AGENTS\.md$", "local agent policy, not for remote"),
     (r"^\.cursor/", "local editor/agent config"),
+)
+
+# Binary / non-text suffixes: never decode as UTF-8 for content scanning.
+_BINARY_SUFFIXES = frozenset(
+    {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".ico",
+        ".pdf",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".otf",
+        ".zip",
+        ".gz",
+        ".bz2",
+        ".xz",
+        ".pyc",
+        ".so",
+        ".dylib",
+        ".sqlite",
+        ".sqlite3",
+        ".db",
+    }
 )
 
 # Files allowed to contain example-looking PII (fixtures, templates, this guard).
 _ALLOWED_PATHS: tuple[str, ...] = (
     r"^tests/",
     r"^data/.*\.example\.yaml$",
+    r"^src/jobbot/resources/.*\.example\.yaml$",
     r"^latex/cv\.tex\.demo$",
     r"^src/jobbot/ops/pii_guard\.py$",
     r"^src/jobbot/portals/email_apply\.py$",
@@ -109,7 +150,7 @@ def redact(text: str) -> str:
     out = _EMAIL_RE.sub("[email]", text)
     out = _CL_PHONE_RE.sub("[phone]", out)
     out = _RUT_RE.sub("[id]", out)
-    return _HOME_PATH_RE.sub("[path]", out)
+    return _HOME_PATH_RE.sub("[path]/", out)
 
 
 def _git(args: list[str]) -> str:
@@ -122,13 +163,48 @@ def _git(args: list[str]) -> str:
     return proc.stdout
 
 
+def _git_bytes(args: list[str]) -> bytes:
+    proc = subprocess.run(  # noqa: S603
+        ["git", *args],
+        check=False,
+        capture_output=True,
+    )
+    return proc.stdout
+
+
+def is_binary_path(path: str) -> bool:
+    """True when the path suffix is a known non-text artefact."""
+    suffix = PurePosixPath(path).suffix.casefold()
+    return suffix in _BINARY_SUFFIXES
+
+
+def looks_binary(data: bytes) -> bool:
+    """Heuristic: NUL in the first chunk means not text for the PII scanner."""
+    if not data:
+        return False
+    sample = data[:8192]
+    return b"\0" in sample
+
+
 def staged_paths() -> list[str]:
     out = _git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"])
     return [line.strip() for line in out.splitlines() if line.strip()]
 
 
-def staged_content(path: str) -> str:
-    return _git(["show", f":{path}"])
+def staged_content(path: str) -> str | None:
+    """Return staged text, or None when the blob is binary / undecodable.
+
+    Architecture PNGs and similar must not crash the guard with UnicodeDecodeError.
+    """
+    if is_binary_path(path):
+        return None
+    raw = _git_bytes(["show", f":{path}"])
+    if looks_binary(raw):
+        return None
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
 
 
 def scan_staged() -> list[Finding]:
@@ -139,7 +215,39 @@ def scan_staged() -> list[Finding]:
         if reason is not None:
             findings.append(Finding(path, f"blocked path ({reason})"))
             continue
-        findings.extend(scan_text(staged_content(path), path))
+        text = staged_content(path)
+        if text is None:
+            continue
+        findings.extend(scan_text(text, path))
+    return findings
+
+
+def tracked_paths() -> list[str]:
+    out = _git(["ls-files"])
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def scan_tracked() -> list[Finding]:
+    """Scan every tracked file, for commits that never ran the pre-commit hook."""
+    top = _git(["rev-parse", "--show-toplevel"]).strip()
+    if not top:
+        return []
+    root = Path(top)
+    findings: list[Finding] = []
+    for path in tracked_paths():
+        reason = is_blocked_path(path)
+        if reason is not None:
+            findings.append(Finding(path, f"blocked path ({reason})"))
+            continue
+        if is_binary_path(path):
+            continue
+        try:
+            raw = (root / path).read_bytes()
+        except OSError:
+            continue
+        if looks_binary(raw):
+            continue
+        findings.extend(scan_text(raw.decode("utf-8", errors="replace"), path))
     return findings
 
 
@@ -158,8 +266,9 @@ def format_report(findings: list[Finding]) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
-    findings = scan_staged()
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    findings = scan_tracked() if "--all" in args else scan_staged()
     if not findings:
         return 0
     print(format_report(findings), file=sys.stderr)

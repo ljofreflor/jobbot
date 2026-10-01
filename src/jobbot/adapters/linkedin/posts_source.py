@@ -11,7 +11,8 @@ from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
 
 from jobbot.adapters.linkedin.sweep import (
-    is_data_relevant,
+    dedupe_jobs_by_apply_target,
+    looks_like_job_post,
     parse_post_blob,
     parse_posts_fixture,
     post_offers_wanted_country,
@@ -218,7 +219,7 @@ class LinkedInPostJobSource:
         jobs: list[JobPosting] = []
         q = (query or "").casefold()
         for post in posts:
-            if not is_data_relevant(post.text):
+            if not post.vacancies and not looks_like_job_post(post.text):
                 continue
             if not post_offers_wanted_country(
                 post.text, wanted=countries, allow_remote=allow_remote
@@ -235,7 +236,7 @@ class LinkedInPostJobSource:
             ):
                 continue
             jobs.extend(post_to_jobs(post, countries=countries))
-        return jobs
+        return dedupe_jobs_by_apply_target(jobs)
 
     def search_live(self, query: JobSearchQuery) -> list[JobPosting]:
         """Open LinkedIn content search; user assists; scrape visible post texts."""
@@ -310,7 +311,9 @@ def collect_jobs_from_feed_page(
         if len(text) < 40 or text in seen:
             continue
         seen.add(text)
-        if not is_data_relevant(text):
+        # Vacancies are parsed after the card is accepted; hiring language or
+        # an explicit apply hint is enough to keep the card for parsing.
+        if not looks_like_job_post(text):
             continue
         if not post_offers_wanted_country(
             text,
@@ -354,7 +357,7 @@ def collect_jobs_from_feed_page(
             )
             continue
         jobs.extend(post_to_jobs(post, countries=query.countries))
-    return jobs
+    return dedupe_jobs_by_apply_target(jobs)
 
 
 def _permalink_from_card(card: Any) -> str | None:

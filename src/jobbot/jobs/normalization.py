@@ -51,6 +51,18 @@ _GROUPS: dict[str, list[str]] = {
     "apis": ["apis", "api", "rest", "rest api"],
     "bayesian": ["bayesian", "bayes", "estadistica bayesiana", "estadística bayesiana"],
     "survival_analysis": ["survival analysis", "analisis de supervivencia"],
+    "statistics": ["statistics", "estadistica", "estadística"],
+    "predictive_modeling": [
+        "predictive modeling",
+        "predictive modelling",
+        "predictive model",
+        "predictive models",
+        "modelo predictivo",
+        "modelos predictivos",
+        "modelamiento predictivo",
+        "modelado predictivo",
+    ],
+    "data_science": ["data science", "ciencia de datos", "ciencias de datos"],
     "customer_analytics": [
         "customer analytics",
         "customer lifetime value",
@@ -113,6 +125,86 @@ def normalize_skill(text: str) -> str:
     if best:
         return best[1]
     return key.replace(" ", "_")
+
+
+_MIN_PROSE_ALIAS = 4
+
+
+def skills_in_text(text: str) -> set[str]:
+    """Canonical skills a sentence names, e.g. 'modelos predictivos' → predictive_modeling.
+
+    Whole phrases only. Aliases shorter than four letters ('r', 'ml', 'tf') are
+    skipped because in prose they collide with ordinary words and initials.
+    """
+    _build_alias_map()
+    folded = f" {_normalize_key(text)} "
+    if not folded.strip():
+        return set()
+    return {
+        canonical
+        for alias, canonical in _ALIAS_TO_CANONICAL.items()
+        if len(alias) >= _MIN_PROSE_ALIAS and f" {alias} " in folded
+    }
+
+
+def stem_word(word: str) -> str:
+    """'geofísico' and 'geofísica' are the same claim; so are 'proyecto'/'proyectos'.
+
+    A JD writes the masculine and the profile the feminine (or the reverse), and a
+    requirement was reported as missing over a single vowel. Long words only, so
+    short names ('sql', 'scrum') are never touched.
+    """
+    folded = fold_text(word)
+    if len(folded) < 6:
+        return folded
+    for suffix in ("es", "s"):
+        if folded.endswith(suffix) and len(folded) - len(suffix) >= 5:
+            folded = folded[: -len(suffix)]
+            break
+    if folded[-1] in "aoe" and len(folded) >= 6:
+        folded = folded[:-1]
+    return folded
+
+
+_COGNATE_PREFIX = 7
+_COGNATE_SHARE = 0.7
+
+
+class WordIndex:
+    """The words of a text, looked up tolerant of gender, plural and cognates.
+
+    'epidemiology' and 'epidemiología', 'zoonotic' and 'zoonóticas', 'consultant'
+    and 'consultora' name the same thing across languages and genders. The evidence
+    is a shared root: seven letters or more, covering most of the shorter word. A
+    short word only matches itself or its stem, so 'sql' never reads as 'sqlite'.
+    """
+
+    def __init__(self, words: set[str] | frozenset[str]) -> None:
+        self.words = frozenset(words)
+        self._stems = frozenset(stem_word(word) for word in self.words)
+        self._by_prefix: dict[str, list[str]] = {}
+        for word in self.words:
+            if len(word) >= _COGNATE_PREFIX:
+                self._by_prefix.setdefault(word[:_COGNATE_PREFIX], []).append(word)
+
+    def has(self, word: str) -> bool:
+        if word in self.words or stem_word(word) in self._stems:
+            return True
+        if len(word) < _COGNATE_PREFIX:
+            return False
+        return any(
+            _shared_prefix(word, other) >= _COGNATE_SHARE * min(len(word), len(other))
+            for other in self._by_prefix.get(word[:_COGNATE_PREFIX], ())
+        )
+
+
+def _shared_prefix(left: str, right: str) -> int:
+    count = 0
+    for a, b in zip(left, right, strict=False):
+        if a != b:
+            break
+        count += 1
+    return count
 
 
 def normalize_many(values: list[str]) -> list[str]:

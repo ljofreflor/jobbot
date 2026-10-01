@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from jobbot.db.models import ApplicationEventRow, ApplicationRow
 from jobbot.jobs.ids import next_application_id
-from jobbot.models.application import Application, ApplicationStatus
+from jobbot.models.application import Application, ApplicationEvent, ApplicationStatus
 from jobbot.models.job import JobPosting
 
 ANSWERS_TEMPLATE = """\
@@ -71,29 +71,72 @@ class ApplicationRepository:
             package_dir=row.package_dir,
         )
 
+    def get_for_job(self, job_id: str) -> Application | None:
+        row = self._session.scalars(
+            select(ApplicationRow).where(ApplicationRow.job_id == job_id)
+        ).first()
+        if row is None:
+            return None
+        return _application_from_row(row)
+
     def list_all(self) -> list[Application]:
         rows = self._session.scalars(select(ApplicationRow).order_by(ApplicationRow.id)).all()
-        return [
-            Application(
-                id=r.id,
-                job_id=r.job_id,
-                status=ApplicationStatus(r.status),
-                created_at=r.created_at,
-                updated_at=r.updated_at,
-                package_dir=r.package_dir,
-            )
-            for r in rows
-        ]
+        return [_application_from_row(r) for r in rows]
 
-    def _add_event(self, application_id: str, event_type: str, detail: str | None) -> None:
-        self._session.add(
-            ApplicationEventRow(
-                application_id=application_id,
-                event_type=event_type,
-                detail=detail,
-                created_at=datetime.now(UTC),
-            )
+    def events_for(self, application_id: str) -> list[ApplicationEvent]:
+        rows = self._session.scalars(
+            select(ApplicationEventRow)
+            .where(ApplicationEventRow.application_id == application_id)
+            .order_by(ApplicationEventRow.id)
+        ).all()
+        return [_event_from_row(row) for row in rows]
+
+    def add_event(
+        self,
+        application_id: str,
+        event_type: str,
+        detail: str | None = None,
+    ) -> ApplicationEvent:
+        event = self._add_event(application_id, event_type, detail)
+        self._session.commit()
+        return event
+
+    def _add_event(
+        self,
+        application_id: str,
+        event_type: str,
+        detail: str | None,
+    ) -> ApplicationEvent:
+        row = ApplicationEventRow(
+            application_id=application_id,
+            event_type=event_type,
+            detail=detail,
+            created_at=datetime.now(UTC),
         )
+        self._session.add(row)
+        self._session.flush()
+        return _event_from_row(row)
+
+
+def _application_from_row(row: ApplicationRow) -> Application:
+    return Application(
+        id=row.id,
+        job_id=row.job_id,
+        status=ApplicationStatus(row.status),
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        package_dir=row.package_dir,
+    )
+
+
+def _event_from_row(row: ApplicationEventRow) -> ApplicationEvent:
+    return ApplicationEvent(
+        id=str(row.id),
+        application_id=row.application_id,
+        event_type=row.event_type,
+        detail=row.detail,
+        created_at=row.created_at,
+    )
 
 
 class FilesystemApplicationPackage:

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 import re
-import urllib.error
-import urllib.request
+from typing import Any
 from urllib.parse import urlparse
+
+import httpx
 
 logger = logging.getLogger("jobbot.portals.redirect")
 
@@ -23,6 +24,11 @@ _INTERSTITIAL_DEST_RE = re.compile(
 )
 
 
+def _client(**kwargs: Any) -> httpx.Client:
+    """Seam for tests: httpx handles the redirect chain and relative locations."""
+    return httpx.Client(**kwargs)
+
+
 def read_interstitial_destination(html: str) -> str | None:
     """External URL declared by LinkedIn's leaving-the-site page, or None."""
     match = _INTERSTITIAL_DEST_RE.search(html or "")
@@ -37,39 +43,28 @@ def follow_redirect_url(url: str, *, timeout: float = 15.0) -> str:
     raw = url.strip()
     if not raw:
         return url
-    if not raw.startswith(("http://", "https://")):
-        raw = f"https://{raw}"
-    current = raw
-    for _ in range(_MAX_REDIRECTS):
-        req = urllib.request.Request(
-            current,
-            method="HEAD",
+    target = raw if raw.startswith(("http://", "https://")) else f"https://{raw}"
+    try:
+        with _client(
+            follow_redirects=True,
+            max_redirects=_MAX_REDIRECTS,
+            timeout=timeout,
             headers={"User-Agent": _USER_AGENT},
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
-                final = resp.geturl() or current
-        except urllib.error.HTTPError as exc:
-            if exc.code in {301, 302, 303, 307, 308} and exc.headers.get("Location"):
-                loc = exc.headers["Location"]
-                if loc.startswith("/"):
-                    parsed = urlparse(current)
-                    loc = f"{parsed.scheme}://{parsed.netloc}{loc}"
-                current = loc
-                continue
-            logger.debug("HEAD failed for %s: %s", current, exc)
-            return current
-        except OSError as exc:
-            logger.debug("Redirect resolve failed for %s: %s", current, exc)
-            return current
-        if final == current:
-            destination = _interstitial_destination(current, timeout=timeout)
-            if destination is None or destination == current:
-                return current
-            current = destination
-            continue
-        current = final
-    return current
+        ) as client:
+            response = client.head(target)
+            # Plenty of ATS hosts answer HEAD with 405/501 but redirect fine on GET.
+            if response.status_code >= 400:
+                response = client.get(target)
+            final = str(response.url)
+            # lnkd.in may answer 200 with an interstitial that names the destination.
+            if final == target or _is_lnkd_in(urlparse(final).hostname or ""):
+                destination = _interstitial_destination(client, final)
+                if destination:
+                    return destination
+            return final
+    except httpx.HTTPError as exc:
+        logger.debug("Redirect resolve failed for %s: %s", target, exc)
+        return target
 
 
 def expand_url_map(urls: list[str]) -> dict[str, str]:
@@ -103,16 +98,19 @@ def _should_resolve(host: str) -> bool:
     return bool("linkedin.com" in host and "redir" in host)
 
 
-def _interstitial_destination(url: str, *, timeout: float) -> str | None:
+def _is_lnkd_in(host: str) -> bool:
+    return host == "lnkd.in" or host.endswith(".lnkd.in")
+
+
+def _interstitial_destination(client: httpx.Client, url: str) -> str | None:
     """Destination behind a short link that answered 200 with an interstitial page."""
     host = (urlparse(url).hostname or "").lower()
-    if not (host == "lnkd.in" or host.endswith(".lnkd.in")):
+    if not _is_lnkd_in(host):
         return None
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
-            body = resp.read(_MAX_INTERSTITIAL_BYTES)
-    except OSError as exc:
+        response = client.get(url)
+        body = response.content[:_MAX_INTERSTITIAL_BYTES]
+    except httpx.HTTPError as exc:
         logger.debug("Interstitial fetch failed for %s: %s", url, exc)
         return None
     return read_interstitial_destination(body.decode("utf-8", errors="replace"))

@@ -205,7 +205,7 @@ jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profil
 #         docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot init
 ```
 
-[Install](../instalacion/){ .jb-btn .jb-btn--primary }
+[Install](../instalacion.md){ .jb-btn .jb-btn--primary }
 [Prior art](../prior-art.md){ .jb-btn .jb-btn--ghost }
 
 </section>

@@ -9,9 +9,12 @@ import pytest
 
 from jobbot.config import CONFIG_FILENAME, load_config, resolve_workspace
 from jobbot.workspace import WorkspaceExistsError, init_workspace
+from tests.fixtures.cv_pdf import write_sample_cv
 
 
-def test_resolve_workspace_walks_up_to_jobbot_toml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_workspace_walks_up_to_jobbot_toml(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     root = tmp_path / "postulaciones"
     nested = root / "notas" / "hoy"
     nested.mkdir(parents=True)
@@ -136,3 +139,38 @@ def test_legacy_cwd_without_toml_keeps_data_defaults(
     assert config.profile_path == (tmp_path / "data" / "profile.yaml").resolve()
     assert config.output_dir == (tmp_path / "output").resolve()
     assert "JOBBOT_ROOT" not in os.environ
+
+
+def test_import_pdf_promote_restamps_owner_for_cold_install(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """init seeds Ana Ejemplo; --promote must re-stamp so validate can load the new CV."""
+    from typer.testing import CliRunner
+
+    from jobbot.cli import app
+    from jobbot.workspace import STAMP_NAME, owner_fingerprint, read_stamp
+
+    target = tmp_path / "postulaciones"
+    init_workspace(target)
+    pdf = write_sample_cv(tmp_path / "cv.pdf")
+    monkeypatch.delenv("JOBBOT_WORKSPACE", raising=False)
+    monkeypatch.delenv("JOBBOT_ROOT", raising=False)
+    monkeypatch.setenv("JOBBOT_ROOT", str(target))
+    monkeypatch.chdir(target)
+
+    # First command stamps .local for the seed profile (Ana Ejemplo).
+    load_config()
+    seed_stamp = read_stamp(target / ".local" / STAMP_NAME)
+    assert seed_stamp is not None
+    assert seed_stamp.fingerprint == owner_fingerprint("Ana Ejemplo")
+    runner = CliRunner()
+    outcome = runner.invoke(app, ["profile", "import-pdf", str(pdf), "--promote"])
+    assert outcome.exit_code == 0, outcome.output
+
+    stamp = read_stamp(target / ".local" / STAMP_NAME)
+    assert stamp is not None
+    assert stamp.fingerprint != owner_fingerprint("Ana Ejemplo")
+
+    validate = runner.invoke(app, ["profile", "validate"])
+    assert validate.exit_code == 0, validate.output
+    assert "Wrong workspace" not in validate.output

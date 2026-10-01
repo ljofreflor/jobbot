@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from enum import StrEnum
+from typing import cast
 from urllib.parse import urlparse
 
 
@@ -101,7 +102,7 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
     ),
     (re.compile(r"[a-z0-9_-]+\.teamtailor\.com", re.I), AtsKind.TEAMTAILOR, "teamtailor host"),
     (
-        # Custom career domains (careers.neuralworks.cl) still load Teamtailor's CDN.
+        # Custom career domains (careers.empresa.cl) still load Teamtailor's CDN.
         re.compile(r"teamtailor(?:-cdn)?\.(?:com|io)", re.I),
         AtsKind.TEAMTAILOR,
         "teamtailor assets",
@@ -164,7 +165,7 @@ def sniff_ats(url: str, *, timeout: float = 10.0) -> AtsKind:
     """
     Classify a vacancy URL: host rule first, then the page's own ATS markers.
 
-    Custom career domains (``careers.neuralworks.cl``) look unknown by host alone but
+    Custom career domains (``careers.empresa.cl``) look unknown by host alone but
     still load Teamtailor/Greenhouse assets — that is technical evidence, not a guess.
     """
     kind = detect_ats(url)
@@ -195,7 +196,7 @@ def _fetch_html_prefix(url: str, *, timeout: float) -> str | None:
         logging.getLogger("jobbot.portals.detect").debug("ats sniff failed for %s: %s", raw, exc)
         return None
     try:
-        return chunk.decode("utf-8", errors="replace")
+        return cast(str, chunk.decode("utf-8", errors="replace"))
     except Exception:  # noqa: BLE001 — sniff must never raise
         return None
 

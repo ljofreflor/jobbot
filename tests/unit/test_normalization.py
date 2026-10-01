@@ -2,8 +2,18 @@
 
 from __future__ import annotations
 
-from jobbot.jobs.normalization import normalize_skill
+from jobbot.jobs.normalization import normalize_skill, skills_in_text
 from jobbot.jobs.parsing import parse_job_text
+
+
+def test_skills_in_text_reads_whole_phrases_across_languages() -> None:
+    found = skills_in_text("Construí modelos predictivos; Magíster en Estadística.")
+    assert {"predictive_modeling", "statistics"} <= found
+
+
+def test_skills_in_text_ignores_short_aliases_and_fragments() -> None:
+    assert skills_in_text("Área de I+D y R&D, equipo TF") == set()
+    assert "predictive_modeling" not in skills_in_text("un modelo que no es predictivo")
 
 
 def test_normalize_postgres_aliases() -> None:
@@ -20,6 +30,16 @@ def test_sql_alias_not_matched_inside_typescript() -> None:
     """Regression: 'sql' must not match inside 'typescript'."""
     assert normalize_skill("TypeScript") != "sql"
     assert normalize_skill("React and TypeScript") != "sql"
+
+
+def test_unknown_non_ds_terms_fall_through_unchanged() -> None:
+    """Equivalence tables add recall; an unknown term is never dropped or gated."""
+    assert normalize_skill("Ventilación Mecánica") == "ventilacion_mecanica"
+    assert normalize_skill("Reanimación Cardiopulmonar") == "reanimacion_cardiopulmonar"
+    assert normalize_skill("SEO") == "seo"
+    assert normalize_skill("WordPress") == "wordpress"
+    for term in ("Ventilación Mecánica", "SEO", "Triage Avanzado"):
+        assert normalize_skill(term) not in {"machine_learning", "python", "sql"}
 
 
 def test_short_skill_r_not_matched_inside_react() -> None:

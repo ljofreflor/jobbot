@@ -118,6 +118,59 @@ _KNOWN_ACRONYMS: frozenset[str] = frozenset(
     {"CV", "PDF", "SQL", "API", "URL", "USD", "CLP", "EUR", "KPI", "OK", "TI", "IT", "HR", "RRHH"}
 )
 
+# Intensifiers and filler: lengthening with only these is fluff, not clarity (#54).
+_FLUFF_TOKENS: frozenset[str] = frozenset(
+    {
+        "realmente",
+        "altamente",
+        "verdaderamente",
+        "absolutamente",
+        "completamente",
+        "totalmente",
+        "excepcional",
+        "excepcionalmente",
+        "desafiante",
+        "comprehensive",
+        "passionate",
+        "highly",
+        "really",
+        "truly",
+        "extremely",
+        "very",
+        "manera",
+        "forma",
+        "effective",
+        "efectiva",
+        "efectivo",
+        "entorno",
+    }
+)
+
+# Redundant openers → denser wording (same facts, fewer words).
+_COMPRESSIONS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bcon el fin de\b", re.IGNORECASE), "para"),
+    (re.compile(r"\bcon el objetivo de\b", re.IGNORECASE), "para"),
+    (re.compile(r"\ba efectos de\b", re.IGNORECASE), "para"),
+    (re.compile(r"\ben orden de\b", re.IGNORECASE), "por"),
+    (re.compile(r"\bin order to\b", re.IGNORECASE), "to"),
+    (re.compile(r"\bfor the purpose of\b", re.IGNORECASE), "to"),
+)
+
+
+def char_delta(before: str, after: str) -> int:
+    """How many characters the rewrite adds (negative = denser)."""
+    return len(after) - len(before)
+
+
+def compress_phrase(text: str) -> str | None:
+    """Replace stock circumlocutions with shorter equivalents. None if unchanged."""
+    out = text
+    for pattern, replacement in _COMPRESSIONS:
+        out = pattern.sub(replacement, out)
+    if out == text:
+        return None
+    return out
+
 
 def advise(
     candidate: Candidate,
@@ -132,33 +185,63 @@ def advise(
 
     Deterministic: the same profile yields the same suggestions in the same order,
     so a run is reproducible and the log can suppress what you already decided.
+    Density first: among rewrites that pass the gate, shorter ones surface before
+    longer ones (#54).
     """
     decided = load_advice_log(log_path) if log_path is not None else {}
+    market_terms = _market_terms_from_jobs(candidate, jobs)
     found: list[Advice] = []
     found.extend(_machine_advice(candidate))
     found.extend(_language_advice(candidate, jobs, playbook))
     found.extend(_layout_advice(candidate))
     found.extend(_form_advice(candidate, forms))
 
-    out: list[Advice] = []
+    eligible: list[Advice] = []
     seen: set[str] = set()
     for item in found:
         if item.id in decided or item.id in seen:
             continue
-        if item.is_rewrite and validate_advice(item, candidate) is not None:
+        if item.is_rewrite and validate_advice(
+            item, candidate, allowed_market_terms=market_terms
+        ) is not None:
             continue
         seen.add(item.id)
-        out.append(item)
-        if len(out) >= limit:
-            break
-    return out
+        eligible.append(item)
+
+    eligible.sort(key=_density_sort_key)
+    return eligible[: max(0, limit)]
 
 
-def validate_advice(advice: Advice, candidate: Candidate) -> str | None:
+def _density_sort_key(item: Advice) -> tuple[int, int, str]:
+    """Shorter rewrites first; notes after rewrites; stable by id."""
+    if item.is_rewrite:
+        return (0, char_delta(item.before, item.after), item.id)
+    return (1, 0, item.id)
+
+
+def _market_terms_from_jobs(
+    candidate: Candidate, jobs: Sequence[JobPosting]
+) -> frozenset[str]:
+    """Terms the postings use for something the profile already backs."""
+    if not jobs:
+        return frozenset()
+    from jobbot.profile.market import suggest_from_market
+
+    suggestion = suggest_from_market(candidate, list(jobs))
+    return frozenset(term.casefold() for term in suggestion.present)
+
+
+def validate_advice(
+    advice: Advice,
+    candidate: Candidate,
+    *,
+    allowed_market_terms: Iterable[str] = (),
+) -> str | None:
     """Why this rewrite must not be shown, or None when it is safe.
 
-    Two questions, both answerable without a model: does the new text claim a name
-    the profile cannot back, and does it lose something the old text had.
+    Checks: no invented names, no dropped figures/names, no fluff lengthening.
+    A longer rewrite is allowed only when the new tokens are market terms the
+    profile and postings already back — never intensifiers alone (#54).
     """
     if not advice.is_rewrite:
         return None
@@ -183,10 +266,25 @@ def validate_advice(advice: Advice, candidate: Candidate) -> str | None:
         if entity.casefold() not in after_squashed:
             return f"it drops {entity!r}"
 
-    if len(after) > max(len(before) * 2, len(before) + 120):
-        return "it is much longer than what it replaces"
-    return None
+    if before_squashed == after_squashed:
+        return None
 
+    before_tokens = {token.casefold() for token in _tokens(before)}
+    after_tokens = {token.casefold() for token in _tokens(after)}
+    new_tokens = after_tokens - before_tokens
+    market = {term.casefold() for term in allowed_market_terms}
+
+    if new_tokens and new_tokens <= _FLUFF_TOKENS:
+        return "it only adds fluff intensifiers"
+
+    if len(after) > len(before):
+        if not new_tokens:
+            return "it is longer than what it replaces"
+        if not new_tokens <= (market | backed):
+            return "it is longer without backed market terms"
+        if new_tokens <= _FLUFF_TOKENS:
+            return "it only adds fluff intensifiers"
+    return None
 
 def apply_advice(raw: dict[str, Any], advice: Advice) -> bool:
     """Replace the text this advice targets, in a raw profile mapping.
@@ -405,7 +503,7 @@ def _language_advice(
     jobs: Sequence[JobPosting],
     playbook: Sequence[str],
 ) -> list[Advice]:
-    """Say the same thing in the words the market and recruiters actually use."""
+    """Say the same thing in fewer words, or in the market's words."""
     out: list[Advice] = []
     for text in _texts(candidate):
         rewritten = _drop_weak_opener(text.value)
@@ -420,6 +518,21 @@ def _language_advice(
                     why=(
                         "the reader gives each line a second: the verb says what you did, "
                         "'responsible for' only says you were there"
+                    ),
+                )
+            )
+        compressed = compress_phrase(text.value)
+        if compressed is not None:
+            out.append(
+                Advice(
+                    axis=Axis.LANGUAGE,
+                    target=text.target,
+                    what="same facts, fewer words",
+                    before=text.value,
+                    after=compressed,
+                    why=(
+                        "stock phrases spend characters before the fact; "
+                        "a denser line keeps every number and name"
                     ),
                 )
             )
