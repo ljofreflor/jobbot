@@ -320,14 +320,16 @@ def _state_for(
     account: AccountExpectation | None = None,
     page_text: dict[str, str] | None = None,
 ) -> SessionState:
+    best: tuple[int, SessionState] | None = None
     weak: tuple[CdpEndpoint, str] | None = None
     for endpoint in endpoints:
         for url in endpoint.page_urls:
             if not _matches_host(url, spec):
                 continue
             short = _short_url(url)
+            found: SessionState | None = None
             if any(marker in url.casefold() for marker in spec.auth):
-                return SessionState(
+                found = SessionState(
                     site=spec.site,
                     status=SessionStatus.NEEDS_LOGIN,
                     evidence=f"open tab sits on the login wall: {short}",
@@ -335,11 +337,11 @@ def _state_for(
                     hint=f"sign in at {endpoint.url}, then re-run with --cdp {endpoint.url}",
                     holders=holders,
                 )
-            if any(marker in url.casefold() for marker in spec.signed_in):
+            elif any(marker in url.casefold() for marker in spec.signed_in):
                 status, evidence = _signed_in_verdict(
                     spec, url, short, account=account, page_text=page_text
                 )
-                return SessionState(
+                found = SessionState(
                     site=spec.site,
                     status=status,
                     evidence=evidence,
@@ -347,7 +349,14 @@ def _state_for(
                     hint=f"--cdp {endpoint.url}",
                     holders=holders,
                 )
-            weak = weak or (endpoint, short)
+            else:
+                weak = weak or (endpoint, short)
+                continue
+            rank = _evidence_rank(found)
+            if best is None or rank > best[0]:
+                best = (rank, found)
+    if best is not None:
+        return best[1]
     if weak is not None:
         endpoint, short = weak
         return SessionState(
@@ -385,6 +394,19 @@ def _state_for(
         hint=_debug_command(spec, endpoints, ports),
         holders=holders,
     )
+
+
+_EVIDENCE_RANK: dict[SessionStatus, int] = {
+    SessionStatus.READY: 4,
+    SessionStatus.WRONG_ACCOUNT: 3,
+    SessionStatus.UNKNOWN: 2,
+    SessionStatus.NEEDS_LOGIN: 1,
+}
+
+
+def _evidence_rank(state: SessionState) -> int:
+    """A signed-in tab on any endpoint outweighs a login wall on another one."""
+    return _EVIDENCE_RANK.get(state.status, 0)
 
 
 def _debug_command(
