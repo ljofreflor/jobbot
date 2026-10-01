@@ -28,8 +28,8 @@ def _workspace(tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPat
                 "name": "Acme",
                 "career_sites": [
                     {
-                        "url": "https://careers.acme.example/join",
-                        "domain": "careers.acme.example",
+                        "url": "https://careers.acme-demo.cl/join",
+                        "domain": "careers.acme-demo.cl",
                         "site_type": "company_career_portal",
                         "ats": "unknown",
                         "status": "active",

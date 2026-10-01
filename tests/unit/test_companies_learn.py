@@ -82,9 +82,7 @@ def test_employer_field_is_kept_for_real_job_sources(tmp_path: Path) -> None:
 def test_email_and_board_routes_are_not_company_knowledge(tmp_path: Path) -> None:
     config = JobbotConfig(root=tmp_path)
     assert learn_from_job(config, _job(ats_url="mailto:reclutamiento@example.com")) is None
-    assert (
-        learn_from_job(config, _job(ats_url="https://www.getonbrd.com/jobs/ds-empresa")) is None
-    )
+    assert learn_from_job(config, _job(ats_url="https://www.getonbrd.com/jobs/ds-empresa")) is None
     assert learn_from_job(config, _job(url="https://www.linkedin.com/jobs/view/1")) is None
     assert not default_companies_path(tmp_path).exists()
 
@@ -124,11 +122,65 @@ def test_opaque_job_url_is_stored_as_the_career_section(tmp_path: Path) -> None:
         _job(
             company="Empresa Ejemplo",
             source="manual",
-            url="https://careers.example.com/global/en/job/fe3426f378a7100/Data-Scientist-Senior",
-            ats_url="https://careers.example.com/global/en/job/fe3426f378a7100/Data-Scientist-Senior",
+            url="https://careers.empresa-ejemplo.cl/global/en/job/fe3426f378a7100/Data-Scientist-Senior",
+            ats_url="https://careers.empresa-ejemplo.cl/global/en/job/fe3426f378a7100/Data-Scientist-Senior",
         ),
     )
     assert result is not None
-    assert result.url == "https://careers.example.com/global/en"
+    assert result.url == "https://careers.empresa-ejemplo.cl/global/en"
     assert result.ats == "unknown"
     assert "fe3426f378a7100" not in result.url
+
+
+def test_job_source_posting_is_stored_as_the_listing(tmp_path: Path) -> None:
+    """Regression: the job_source path stored /vacancies/<slug-id> as the company site."""
+    config = JobbotConfig(root=tmp_path)
+    result = learn_from_job(
+        config,
+        _job(
+            company="Empresa Demo",
+            source="manual",
+            url="https://career.empresa-demo.cl/en-us/vacancies/lead-data-analyst-89203",
+        ),
+    )
+    assert result is not None
+    assert result.url == "https://career.empresa-demo.cl/en-us/vacancies"
+
+
+def test_aggregator_tenant_is_not_learned_as_a_company(tmp_path: Path) -> None:
+    config = JobbotConfig(root=tmp_path)
+    for url in (
+        "https://jobs.lever.co/jobgether/0f1e2d3c-4b5a-6978-8899-aabbccddeeff",
+        "https://remoteyeah.com/jobs/senior-analyst-at-empresa-123",
+    ):
+        assert learn_from_job(config, _job(company="Empresa Demo", url=url)) is None
+    assert load_companies(default_companies_path(tmp_path)).companies == []
+
+
+def test_manatal_host_is_never_a_company_domain() -> None:
+    registry = CompanyRegistry()
+    outcome = learn_from_url(
+        registry,
+        company="Empresa Demo",
+        url="https://careers-page.com/empresa-demo/job/R123",
+        source=DiscoverySource.JOB_SOURCE,
+    )
+    assert outcome is not None and outcome.site is not None
+    assert outcome.site.ats == AtsKind.MANATAL
+    assert outcome.site.url == "https://careers-page.com/empresa-demo"
+    assert outcome.company.domains == []
+
+
+def test_reserved_example_domain_is_never_learned(tmp_path: Path) -> None:
+    """Regression: fixture URLs on example.com landed in the real company base."""
+    config = JobbotConfig(root=tmp_path)
+    result = learn_from_job(
+        config,
+        _job(
+            company="Empresa Demo",
+            source="manual",
+            url="https://careers.example.com/global/en/job/fe3426f378a7100",
+        ),
+    )
+    assert result is None
+    assert load_companies(default_companies_path(tmp_path)).companies == []

@@ -28,6 +28,7 @@ from jobbot.companies.models import (
 from jobbot.companies.registry import CompanyRegistry, ObserveOutcome
 from jobbot.companies.urls import (
     PrivateRouteRejected,
+    ReservedDomainRejected,
     canonical_key,
     public_url,
     registrable_domain,
@@ -433,9 +434,7 @@ def discover_company(
                 site_type=classification.site_type,
                 ats=classification.ats,
                 reached_from=(
-                    classification.requested_url
-                    if classification.redirects_to
-                    else None
+                    classification.requested_url if classification.redirects_to else None
                 ),
                 evidence=verified,
                 source=source,
@@ -485,9 +484,7 @@ def write_candidates(candidates: Iterable[CompanyPortalCandidate], path: Path) -
             "Candidate knowledge from public web discovery. Review, then "
             "`jobbot companies import` + `jobbot companies promote`."
         ),
-        "candidates": [
-            candidate.model_dump(mode="json") for candidate in candidates
-        ],
+        "candidates": [candidate.model_dump(mode="json") for candidate in candidates],
     }
     path.write_text(
         yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
@@ -516,8 +513,8 @@ def import_candidates(
     for candidate in candidates:
         if confirm is not None and not confirm(candidate):
             continue
-        outcomes.append(
-            registry.observe(
+        try:
+            outcome = registry.observe(
                 company=candidate.company,
                 company_id=candidate.company_id,
                 url=candidate.career_url,
@@ -531,7 +528,10 @@ def import_candidates(
                 status=KnowledgeStatus.CANDIDATE,
                 now=candidate.checked_at,
             )
-        )
+        except ReservedDomainRejected as exc:
+            logger.warning("Skipped %s: %s", candidate.company, exc)
+            continue
+        outcomes.append(outcome)
     return outcomes
 
 

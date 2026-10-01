@@ -9,7 +9,13 @@ from urllib.parse import urlparse
 
 from jobbot.companies.models import CareerSiteType
 from jobbot.companies.urls import PrivateRouteRejected, canonical_key, host_of, public_url
-from jobbot.portals.detect import JOB_BOARD_KINDS, AtsKind, detect_ats, detect_ats_in_html
+from jobbot.portals.detect import (
+    JOB_BOARD_KINDS,
+    AtsKind,
+    aggregator_board,
+    detect_ats,
+    detect_ats_in_html,
+)
 from jobbot.portals.redirect import follow_redirect_url
 
 # Hosts/paths companies use for their own career presence (public naming patterns).
@@ -60,8 +66,13 @@ _POSTING_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"/position(?:s)?/[^/]+", re.I),
     re.compile(r"/opening(?:s)?/[^/]+", re.I),
     re.compile(r"/oferta(?:s)?/[^/]+", re.I),
+    re.compile(r"/vacancy/[^/]+", re.I),
+    # A listing directory followed by a slug that carries an id is one opening.
+    re.compile(r"/vacancies/[^/]*\d[^/]*", re.I),
     re.compile(r"/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I),
 )
+
+_PATH_TENANT_HOSTS: frozenset[str] = frozenset({"apply.workable.com", "careers-page.com"})
 
 _LOCALE_SEGMENT = re.compile(r"^[a-z]{2}(?:-[a-zA-Z]{2})?$")
 
@@ -69,7 +80,7 @@ _LOCALE_SEGMENT = re.compile(r"^[a-z]{2}(?:-[a-zA-Z]{2})?$")
 # `/vacantes/` are listings and keep their directory. `/job/<id>` plus an
 # optional title slug is still that one posting.
 _SINGULAR_OPENING_TAIL = re.compile(
-    r"/(?:job|vacante|position|opening|oferta)/[^/]+(?:/.*)?$",
+    r"/(?:job|vacante|vacancy|position|opening|oferta)/[^/]+(?:/.*)?$",
     re.I,
 )
 
@@ -181,7 +192,16 @@ def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
     if ats == AtsKind.WORKDAY:
         tenant_path = [seg for seg in segments if not _LOCALE_SEGMENT.match(seg)]
         return f"https://{host}/{tenant_path[0]}" if tenant_path else f"https://{host}"
-    if ats in {AtsKind.SUCCESSFACTORS, AtsKind.ORACLE, AtsKind.TEAMTAILOR, AtsKind.WORKABLE}:
+    if ats in {AtsKind.WORKABLE, AtsKind.MANATAL} and host in _PATH_TENANT_HOSTS:
+        # Shared vendor host: the company is the first path segment.
+        return f"https://{host}/{segments[0]}" if segments else f"https://{host}"
+    if ats in {
+        AtsKind.SUCCESSFACTORS,
+        AtsKind.ORACLE,
+        AtsKind.TEAMTAILOR,
+        AtsKind.WORKABLE,
+        AtsKind.MANATAL,
+    }:
         return f"https://{host}"
     if ats == AtsKind.RECRUITEE or ats == AtsKind.BAMBOOHR:
         return f"https://{host}"
@@ -190,7 +210,9 @@ def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
         prefix = parsed.path[: opening.start()].rstrip("/")
         return f"https://{host}{prefix}" if prefix else f"https://{host}"
     if _is_posting_path(parsed.path) and segments:
-        return f"https://{host}/{'/'.join(segments[:-1])}" if len(segments) > 1 else f"https://{host}"
+        return (
+            f"https://{host}/{'/'.join(segments[:-1])}" if len(segments) > 1 else f"https://{host}"
+        )
     return normalized
 
 
@@ -230,7 +252,7 @@ def _site_type_for(url: str, ats: AtsKind, *, host_ats: AtsKind) -> CareerSiteTy
     """``ats`` says which technology; the host says whose page this is."""
     if ats == AtsKind.EMAIL:
         return CareerSiteType.UNKNOWN
-    if host_ats in JOB_BOARD_KINDS:
+    if host_ats in JOB_BOARD_KINDS or aggregator_board(url) is not None:
         return CareerSiteType.JOB_BOARD
     posting = _is_posting_path(urlparse(url).path)
     if host_ats != AtsKind.UNKNOWN:
