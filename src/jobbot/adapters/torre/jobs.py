@@ -157,8 +157,8 @@ def job_from_api_item(item: dict[str, Any]) -> JobPosting:
     skills = _skills(item)
     ats_kind = AtsKind.TORRE
     url = _public_url(opportunity_id, str(item.get("slug") or ""))
-    external = item.get("external")
-    if isinstance(external, str) and external.startswith("http"):
+    external = _external_application_url(item)
+    if external:
         url = external
         ats_kind = detect_ats(external)
     text = _description(item, title=title, skills=skills)
@@ -180,6 +180,19 @@ def job_from_api_item(item: dict[str, Any]) -> JobPosting:
         posted_at=_posted_at(item),
         note="torre: summary only, open the post for the full description",
     )
+
+
+def _external_application_url(item: dict[str, Any]) -> str | None:
+    """Where the posting is applied to, when that is not Torre itself.
+
+    The API has sent this both as a string ``external`` and as ``external: true``
+    beside ``externalApplicationUrl``.
+    """
+    for key in ("externalApplicationUrl", "external"):
+        value = item.get(key)
+        if isinstance(value, str) and value.startswith("http"):
+            return value
+    return None
 
 
 def _public_url(opportunity_id: str, slug: str) -> str:
