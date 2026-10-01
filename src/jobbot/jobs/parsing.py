@@ -15,7 +15,8 @@ _HEADER_FIELD_RE = re.compile(
 _SECTION_HEADING_RE = re.compile(
     r"(?i)^(requirements?|requisitos|qualifications|calificaciones|skills|habilidades|"
     r"competencias|conocimientos|herramientas|tecnolog[ií]as|stack|nice to have|"
-    r"deseable|responsabilidades|responsibilities|beneficios|benefits|about\b.*)"
+    r"deseable|responsabilidades|responsibilities|beneficios|benefits|funciones|tareas|"
+    r"duties|education|educaci[oó]n|about\b.*)"
     r"(?:\s+\w+){0,2}\s*:?\s*$"
 )
 
@@ -58,6 +59,72 @@ _TOOL_TOKEN_RE = re.compile(
 )
 _ITEM_MAX_WORDS = 5
 _PROSE_MIN_WORDS = 13
+
+# A career page carries its own chrome: deadlines, clock times, pay figures and
+# upper-case section headings. None of it is something a candidate can have.
+_MONTH = (
+    r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|"
+    r"sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|"
+    r"enero|ene|febrero|marzo|abril|abr|mayo|junio|julio|agosto|ago|"
+    r"septiembre|setiembre|octubre|noviembre|diciembre|dic)"
+)
+_DATE_RE = re.compile(
+    rf"(?i)\b\d{{4}}-\d{{1,2}}-\d{{1,2}}\b|\b\d{{1,2}}/\d{{1,2}}/\d{{2,4}}\b"
+    rf"|\b\d{{1,2}}\s+(?:de\s+)?{_MONTH}\b|\b{_MONTH}\.?\s+\d{{1,4}}\b"
+)
+_CLOCK_RE = re.compile(r"(?i)\b\d{1,2}:\d{2}\b(?:\s*[ap]\.?\s?m\b\.?)?")
+_CURRENCY_CODES = frozenset({"USD", "CLP", "EUR", "UF", "UTM", "US$"})
+_MONEY_RE = re.compile(
+    r"[$€£]\s*\d|\d[\d.,]*\s*(?:USD|CLP|EUR|UF|UTM)\b|\b(?:USD|CLP|EUR)\s*\d"
+)
+_LABEL_VALUE_RE = re.compile(r"^[^:\d]{1,40}:\s*\S*\d")
+_HEADING_MIN_WORDS = 3
+# Field labels career sites (Workday, Taleo, public boards) print next to their values.
+_PAGE_FIELD_LABELS = frozenset(
+    {
+        "job posting",
+        "posting date",
+        "closing date",
+        "deadline",
+        "primary location",
+        "location",
+        "contractual agreement",
+        "contract type",
+        "schedule",
+        "full time",
+        "part time",
+        "off site",
+        "on site",
+        "grade",
+        "salary",
+        "salary annually",
+        "post adjustment annually",
+        "duration",
+        "job id",
+        "requisition id",
+        "fecha de cierre",
+        "fecha de publicacion",
+        "jornada",
+        "tipo de contrato",
+        "renta",
+        "sueldo",
+    }
+)
+
+
+def looks_like_page_metadata(phrase: str) -> bool:
+    """Deadlines, times, salary figures and shouted headings are page chrome, not skills."""
+    text = phrase.strip()
+    if not text:
+        return False
+    if text in _CURRENCY_CODES or fold_text(text) in _PAGE_FIELD_LABELS:
+        return True
+    if _DATE_RE.search(text) or _CLOCK_RE.search(text) or _MONEY_RE.search(text):
+        return True
+    if _LABEL_VALUE_RE.match(text):
+        return True
+    lettered = [word for word in text.split() if any(char.isalpha() for char in word)]
+    return len(lettered) >= _HEADING_MIN_WORDS and all(word.isupper() for word in lettered)
 
 _ITEM_STOPWORDS = frozenset(
     {
@@ -241,6 +308,8 @@ def _item_phrases(item: str) -> list[str]:
 
 
 def _clean_skill(phrase: str) -> str | None:
+    if looks_like_page_metadata(phrase):
+        return None
     cleaned = _TRAILING_NOISE_RE.sub("", phrase).strip(" .,:;-–—")
     for _ in range(3):
         trimmed = _DANGLING_RE.sub("", cleaned).strip(" .,:;-–—")

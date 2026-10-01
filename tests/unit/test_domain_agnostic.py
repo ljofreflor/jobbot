@@ -362,3 +362,20 @@ def test_career_page_reads_any_field_s_vacancy() -> None:
     assert job.title == "Enfermera Clínica"
     assert job.company == "Clínica Cordillera"
     assert "ventilación mecánica" in job.description.casefold()
+
+
+def test_board_searches_come_from_each_profile_s_own_experience() -> None:
+    """No default role: a nurse and a journalist search for their own work."""
+    from jobbot.profile.search_queries import search_queries_for
+
+    def searches(raw: dict[str, object]) -> str:
+        return " | ".join(search_queries_for(Candidate.model_validate(raw)).queries)
+
+    nurse = searches(nurse_profile_dict())
+    journalist = searches(journalist_profile_dict())
+
+    assert nurse and journalist
+    assert nurse != journalist
+    for blob in (nurse.casefold(), journalist.casefold()):
+        assert "data" not in blob
+        assert "python" not in blob

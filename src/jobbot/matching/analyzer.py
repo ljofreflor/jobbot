@@ -6,8 +6,8 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
-from jobbot.jobs.normalization import fold_text, normalize_skill
-from jobbot.jobs.parsing import extract_skills_from_text
+from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill
+from jobbot.jobs.parsing import extract_skills_from_text, looks_like_page_metadata
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch, MatchItem, MatchStrength
@@ -56,6 +56,12 @@ _STOPWORDS = frozenset(
 
 _MAX_REQUIREMENT_CHARS = 140
 
+# An achievement echoes a posting when most of its own content words are there.
+_ECHO_MIN_WORD = 5
+_ECHO_MIN_HITS = 4
+_ECHO_SHARE = 0.5
+_PARENTHETICAL_RE = re.compile(r"\s*\([^)]*\)")
+
 
 @dataclass(frozen=True)
 class _Vocabulary:
@@ -63,26 +69,7 @@ class _Vocabulary:
 
     phrases: dict[str, str]  # folded phrase → original wording
     words: frozenset[str]
-    stems: frozenset[str]
-
-
-def _stem(word: str) -> str:
-    """'geofísico' and 'geofísica' are the same claim; so are 'proyecto'/'proyectos'.
-
-    A JD writes the masculine and the profile the feminine (or the reverse), and a
-    requirement was reported as missing over a single vowel. Long words only, so
-    short names ('sql', 'scrum') are never touched.
-    """
-    folded = fold_text(word)
-    if len(folded) < 6:
-        return folded
-    for suffix in ("es", "s"):
-        if folded.endswith(suffix) and len(folded) - len(suffix) >= 5:
-            folded = folded[: -len(suffix)]
-            break
-    if folded[-1] in "aoe" and len(folded) >= 6:
-        folded = folded[:-1]
-    return folded
+    index: WordIndex
 
 
 class JobAnalyzer(Protocol):
@@ -127,6 +114,8 @@ class RuleBasedJobAnalyzer:
                         detail="not found in profile",
                     )
                 )
+
+        items.extend(_profile_evidence(candidate, job, items))
 
         role_item, role_cap = _role_family_item(candidate, job)
         items.append(role_item)
@@ -177,11 +166,13 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
     seen: set[str] = set()
     for skill in job.skills:
         token = normalize_skill(skill)
-        if token and token not in seen:
+        if token and token not in seen and not looks_like_page_metadata(skill):
             seen.add(token)
             pairs.append((token, skill, skill))
     for req in job.requirements:
         if re.search(r"(?i)\b(english|spanish|idioma|language|proficiency)\b", req):
+            continue
+        if looks_like_page_metadata(req):
             continue
         token = normalize_skill(req)
         if token and token not in seen and len(req) <= _MAX_REQUIREMENT_CHARS:
@@ -216,11 +207,7 @@ def _candidate_vocabulary(candidate: Candidate) -> _Vocabulary:
         for word in folded.split()
         if len(word) >= 4 and word not in _STOPWORDS
     }
-    return _Vocabulary(
-        phrases=phrases,
-        words=frozenset(words),
-        stems=frozenset(_stem(word) for word in words),
-    )
+    return _Vocabulary(phrases=phrases, words=frozenset(words), index=WordIndex(frozenset(words)))
 
 
 def _requirement_evidence(
@@ -239,7 +226,7 @@ def _requirement_evidence(
     content = [word for word in folded.split() if len(word) >= 4 and word not in _STOPWORDS]
     hits = sorted({word for word in content if word in vocabulary.words})
     variants = sorted(
-        {word for word in content if word not in hits and _stem(word) in vocabulary.stems}
+        {word for word in content if word not in hits and vocabulary.index.has(word)}
     )
 
     if len(hits) >= 2:
@@ -251,6 +238,64 @@ def _requirement_evidence(
     if variants:
         return MatchStrength.PARTIAL, f"profile wording (variant): {variants[0]}"
     return None
+
+
+def _profile_evidence(
+    candidate: Candidate,
+    job: JobPosting,
+    matched: list[MatchItem],
+) -> list[MatchItem]:
+    """What the profile claims and the posting talks about, read from the profile's side.
+
+    Requirements are read from the posting, and a career page full of chrome yields
+    few real ones. The candidate's own skills, specialties, degrees and achievements
+    found in the posting's text are evidence of fit in any field. Only what is found
+    is added: a claim the posting does not mention is not a gap, so it costs nothing.
+    """
+    posting = WordIndex(
+        frozenset(_keyword_candidates(f"{job.title}\n{job.description}\n{job.raw_description}"))
+    )
+    if not posting.words:
+        return []
+    already = [
+        fold_text(item.label)
+        for item in matched
+        if item.strength in {MatchStrength.STRONG, MatchStrength.PARTIAL}
+    ]
+    items: list[MatchItem] = []
+    seen: set[str] = set()
+    for claim in (
+        *candidate.skills.all_skills(),
+        *candidate.specialties,
+        *(edu.degree for edu in candidate.education),
+    ):
+        bare = _PARENTHETICAL_RE.sub("", claim).strip()
+        folded = fold_text(bare)
+        words = _keyword_candidates(bare)
+        if not words or folded in seen or any(folded in done or done in folded for done in already):
+            continue
+        seen.add(folded)
+        if all(posting.has(word) for word in words):
+            items.append(
+                MatchItem(
+                    label=f"profile:{bare}",
+                    strength=MatchStrength.STRONG,
+                    detail="the posting mentions it",
+                )
+            )
+    for exp in candidate.experience:
+        for ach in exp.achievements:
+            words = {word for word in _keyword_candidates(ach.text) if len(word) >= _ECHO_MIN_WORD}
+            hits = sorted(word for word in words if posting.has(word))
+            if len(hits) >= _ECHO_MIN_HITS and len(hits) >= _ECHO_SHARE * len(words):
+                items.append(
+                    MatchItem(
+                        label=f"achievement:{ach.id}",
+                        strength=MatchStrength.STRONG,
+                        detail=f"the posting echoes: {', '.join(hits[:5])}",
+                    )
+                )
+    return items
 
 
 def _keyword_candidates(text: str) -> set[str]:
@@ -307,7 +352,8 @@ def _role_family_item(candidate: Candidate, job: JobPosting) -> tuple[MatchItem,
         candidate.personal.headline or "",
     )
     wanted = _title_words(job.title)
-    shared = sorted(held & wanted)
+    held_index = WordIndex(frozenset(held))
+    shared = sorted(word for word in wanted if held_index.has(word))
 
     if len(shared) >= 2:
         return (

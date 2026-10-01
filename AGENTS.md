@@ -135,8 +135,17 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  there is no table of role families.
  - Market feedback reads its terms from the stored JDs; a confirmed skill lands in a neutral
  group; an imported CV keeps the skill groups its own sections used.
- - A post is discovered for saying it is hiring or how to apply, not for its field. Search
- defaults come from `personal.headline`; no default role lives in the code.
+ - A post is discovered for saying it is hiring or how to apply, not for its field. Board
+ searches (`getonboard search`, `torre search`, `linkedin sweep` with no query) run the
+ profile's `search_queries`; without them, the set `profile queries` derives from experience
+ (skills a role backs, phrases repeated across achievements, titles held — most recent
+ first). The headline is a last fallback only; no default role lives in the code.
+ `search_queries` is a preference the candidate edits, not a professional fact.
+ - The matcher also reads the posting against the profile: a declared skill, specialty or
+ degree the posting names, or an achievement it echoes, is strong evidence. That side can
+ only add, never lower a score. Page chrome (dates, clock times, salaries, currency codes,
+ `Label: value`, shouted headings, ATS field labels) is never a requirement. When every
+ scored job lands at 0%, commands print a matcher alert instead of a silent empty list.
  - Equivalence tables (`jobs/normalization.py`) are allowed **because an unknown term falls
  through unchanged**: they add recall for names of the same thing, never a gate.
 - **PDF CV import:** `profile import-pdf` reads the text layer only (no OCR, no models). A PDF has
@@ -434,7 +443,8 @@ uv run jobbot indeed login|pull|diff|sync --section headline
 uv run jobbot linkedin login|pull|diff
 uv run jobbot linkedin sync --section publications          # dry-run
 uv run jobbot linkedin sync --section publications --apply  # confirm each
-uv run jobbot linkedin sweep                    # query desde personal.headline
+uv run jobbot linkedin sweep                    # queries del perfil (profile queries)
+uv run jobbot linkedin sweep --max-queries 5
 uv run jobbot linkedin sweep "enviar CV" --country CL --country AR
 uv run jobbot linkedin sweep "enviar CV" --any-country
 uv run jobbot linkedin sweep "enviar CV" --no-copy-links   # sin abrir el menú "…"
@@ -451,7 +461,7 @@ uv run jobbot getonboard open-cvs
 uv run jobbot getonboard upload-cv              # valida PDF (tamaño/magic/hash)
 uv run jobbot getonboard upload-cv --apply --cdp http://127.0.0.1:9224  # sube + default
 uv run jobbot getonboard sync --apply
-uv run jobbot getonboard search                 # query desde personal.headline
+uv run jobbot getonboard search                 # queries del perfil (profile queries)
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
 uv run jobbot ops failures
 uv run jobbot ops failure show F0001
@@ -481,6 +491,8 @@ uv run jobbot browser login --apply    # abre el siguiente portal sin sesión pr
 uv run jobbot browser chrome-debug --site gmail --port 9223
 uv run jobbot application apply J0001 --apply --cdp http://127.0.0.1:9223
 uv run jobbot profile suggest-from-market
+uv run jobbot profile queries                   # búsquedas derivadas de la experiencia
+uv run jobbot profile queries --apply           # confirma y guarda search_queries (editable)
 uv run jobbot workspace list|new NAME|show|adopt
 uv run jobbot --workspace NAME cv build --job J0001  # runs against a test CV
 ```
