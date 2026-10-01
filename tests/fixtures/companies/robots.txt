@@ -1,0 +1,13 @@
+# Typical corporate robots.txt: search and internal areas closed, careers open.
+User-agent: *
+Disallow: /buscar
+Disallow: /wp-admin/
+Disallow: /intranet
+Disallow: /empleos/postular
+Allow: /empleos
+Crawl-delay: 1
+
+User-agent: BadBot
+Disallow: /
+
+Sitemap: https://empresa.cl/sitemap.xml

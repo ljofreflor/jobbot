@@ -36,6 +36,29 @@ def test_first_apply_email_ignores_personal_without_apply_context() -> None:
     assert first_apply_email(text) is None
 
 
+def test_first_apply_email_with_a_pronoun_between_verb_and_cv() -> None:
+    """'send me your CV at …' is the usual English wording and was being missed."""
+    text = (
+        "We're hiring Senior & Lead AI/ML talent.\n"
+        "You can apply directly through the links above or send me your CV "
+        "in English at recruiter@example.com."
+    )
+    assert first_apply_email(text) == "recruiter@example.com"
+
+
+def test_first_apply_email_with_spanish_pronoun_wording() -> None:
+    assert first_apply_email("Envíame tu CV a talento@example.com") == "talento@example.com"
+    assert (
+        first_apply_email("Compárteme tu hoja de vida a talento@example.org")
+        == "talento@example.org"
+    )
+
+
+def test_first_apply_email_still_ignores_networking_invitations() -> None:
+    text = "Great post! Write me at someone@example.net if you want to chat about hiking."
+    assert first_apply_email(text) is None
+
+
 def test_extract_emails_unique_order() -> None:
     assert extract_emails("a@x.com then b@y.com then a@x.com") == ["a@x.com", "b@y.com"]
 
@@ -199,3 +222,41 @@ def test_dry_run_does_not_need_webbrowser() -> None:
     assert draft.to
     # gmail_compose_url alone must not open anything
     assert gmail_compose_url(draft).startswith("https://mail.google.com/")
+
+
+def test_extract_emails_drops_addresses_that_are_not_deliverable_shapes() -> None:
+    """The regex accepts shapes an RFC-aware validator rejects; do not offer those."""
+    text = (
+        "Escribe a seleccion@empresa.cl o a rrhh@empresa.com.mx. "
+        "Versión mal escrita: hola@empresa..cl, y un dominio inválido: alguien@-empresa.cl. "
+        "Referencias: v1.2@3.4 no es correo."
+    )
+    found = extract_emails(text)
+
+    assert "seleccion@empresa.cl" in found
+    assert "rrhh@empresa.com.mx" in found
+    assert "hola@empresa..cl" not in found
+    assert "alguien@-empresa.cl" not in found
+    assert "v1.2@3.4" not in found
+
+
+def test_extract_emails_keeps_order_and_dedupes_case_insensitively() -> None:
+    text = "A: Seleccion@Empresa.cl, B: jobs@acme.io, A otra vez: seleccion@empresa.cl"
+    found = extract_emails(text)
+    assert found == ["Seleccion@Empresa.cl", "jobs@acme.io"]
+
+
+def test_first_apply_email_still_finds_the_real_mailbox() -> None:
+    text = "Interesados enviar CV a gforton@eratalent.one antes del viernes."
+    assert first_apply_email(text) == "gforton@eratalent.one"
+
+
+def test_first_apply_email_refuses_an_invalid_address_next_to_the_hint() -> None:
+    """Regression: the hint window path bypassed validation and could return garbage."""
+    assert first_apply_email("Interesados enviar CV a hola@empresa..cl") is None
+
+
+def test_first_apply_email_skips_invalid_hit_and_keeps_looking() -> None:
+    """The hint-window path scans the regex itself, so it must validate there too."""
+    text = "Enviar CV a hola@empresa..cl o a maria.perez@empresa.cl"
+    assert first_apply_email(text) == "maria.perez@empresa.cl"

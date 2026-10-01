@@ -16,6 +16,11 @@ from jobbot.models.experience import Experience
 logger = logging.getLogger("jobbot.indeed.resume_edit")
 
 INDEED_RESUME = "https://profile.indeed.com/resume"
+RESUME_SECTIONS = (
+    '[data-testid="work-experience-section"],'
+    '[data-testid="education-section"],'
+    '[data-testid="skills-section"]'
+)
 INDEED_EXPERIENCE_ADD = "https://profile.indeed.com/resume/experience/add"
 INDEED_CONTACT_EDIT = "https://profile.indeed.com/edit/contact"
 
@@ -48,6 +53,15 @@ class ResumeEditResult:
 def open_resume(page: Page) -> None:
     page.goto(INDEED_RESUME, wait_until="domcontentloaded", timeout=60_000)
     page.wait_for_timeout(1500)
+
+
+def wait_for_resume_render(page: Page, *, timeout_ms: int = 15_000) -> bool:
+    """Resume sections are client-rendered: HTML read earlier is an empty shell."""
+    try:
+        page.wait_for_selector(RESUME_SECTIONS, timeout=timeout_ms)
+    except PlaywrightTimeout:
+        return False
+    return True
 
 
 def set_summary(page: Page, summary: str) -> None:
@@ -330,7 +344,7 @@ def parse_resume_page_text(body: str) -> dict[str, object]:
         chunk = sm.group(1)
         for line in re.split(r"[\n•]", chunk):
             t = line.strip()
-            if 1 < len(t) < 60 and "agregar" not in t.casefold():
+            if 0 < len(t) < 60 and "agregar" not in t.casefold():
                 skills.append(t)
     return {"summary": summary, "skills": skills, "raw_len": len(body)}
 

@@ -13,6 +13,8 @@ from typing import Any, Self
 
 from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
 
+from jobbot.browser.sessions import ensure_profile_free
+
 logger = logging.getLogger("jobbot.browser.session")
 
 
@@ -87,6 +89,8 @@ class BrowserSession:
 
     def __enter__(self) -> Self:
         self.profile_dir.mkdir(parents=True, exist_ok=True)
+        if not self.cdp_url:
+            ensure_profile_free(self.profile_dir)
         self._playwright = sync_playwright().start()
         if self.cdp_url:
             self._attach_cdp(self.cdp_url)

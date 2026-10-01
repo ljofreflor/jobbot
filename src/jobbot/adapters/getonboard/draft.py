@@ -12,6 +12,7 @@ from pathlib import Path
 
 import yaml
 
+from jobbot.branding import MARK, stamp_description
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 
@@ -20,7 +21,7 @@ EXPERIENCE_MAX = 2000
 EDUCATION_MIN = 100
 EDUCATION_MAX = 2000
 
-JOBBOT_SIGNATURE = "powered by AI jobbot de Leonardo Jofré"
+JOBBOT_SIGNATURE = MARK
 
 
 @dataclass(frozen=True)
@@ -51,7 +52,10 @@ class PermanentProfileFields:
 
 def build_permanent_profile_fields(candidate: Candidate) -> PermanentProfileFields:
     """Derive permanent GoB blurbs from profile.yaml facts only."""
-    experience = _fit(_draft_experience(candidate), EXPERIENCE_MAX)
+    experience = stamp_description(
+        _fit(_draft_experience(candidate), EXPERIENCE_MAX),
+        max_len=EXPERIENCE_MAX,
+    )
     education = _fit(_draft_education(candidate), EDUCATION_MAX)
     return PermanentProfileFields(
         experiencia_y_perfil=experience,
@@ -84,8 +88,8 @@ def render_permanent_profile_markdown(fields: PermanentProfileFields) -> str:
             "",
             "Fuente: data/profile.yaml + iteración previa (computación acumulativa).",
             "No se descarta el texto anterior: se refina con hechos actuales.",
-            f"Generado por JobBot — {fields.signature}",
-            "NO pegar la firma en el portal.",
+            "La descripción cierra con la firma. Pegala junto con el texto.",
+            f"Firma: {fields.signature}",
             "",
             "URL: https://www.getonbrd.com/webpros/edit",
             "",
@@ -124,8 +128,7 @@ def render_getonboard_markdown(fields: dict[str, str], *, job: JobPosting) -> st
             "# Get on Board — textos para postulación (español)",
             f"# Job: {job.id} {job.title} @ {job.company}",
             "# Preferir perfil permanente actualizado en webpros/edit",
-            f"# Generado por JobBot — {fields.get('signature', JOBBOT_SIGNATURE)}",
-            "# NO pegar la firma en el formulario del empleador.",
+            f"# La descripción ya cierra con la firma: {fields.get('signature', JOBBOT_SIGNATURE)}",
             "",
             f"## experiencia_y_perfil ({len(fields['experiencia_y_perfil'])} chars)",
             "",
@@ -185,7 +188,7 @@ def fields_from_seed_text(
 ) -> PermanentProfileFields:
     """Seed a PermanentProfileFields from pasted portal text (accumulated capital)."""
     return PermanentProfileFields(
-        experiencia_y_perfil=experiencia.strip(),
+        experiencia_y_perfil=stamp_description(experiencia, max_len=EXPERIENCE_MAX),
         formacion_academica=formacion.strip() or _draft_education(candidate)[:EDUCATION_MAX],
         headline=candidate.personal.headline,
         skills=list(candidate.skills.all_skills())[:10],
@@ -217,21 +220,15 @@ def load_permanent_profile(root_output: Path) -> PermanentProfileFields | None:
 
 def _draft_experience(candidate: Candidate) -> str:
     paragraphs: list[str] = []
-    if candidate.summary:
-        # Lead with summary, but leave room for recent roles (GoB 2000-char cap).
-        summary = candidate.summary.strip()
-        if len(summary) > 550:
-            summary = summary[:549].rsplit(" ", 1)[0]
-        paragraphs.append(summary)
 
-    # Prefer current + prior senior DS roles (facts only).
+    # The two most recent roles (facts only).
     for exp in candidate.experience[:2]:
         end = "actualidad" if exp.current else (exp.end_date or "")
         period = ""
         if exp.start_date:
             period = f" ({exp.start_date}–{end})" if end else f" ({exp.start_date})"
         head = f"{exp.title} en {exp.company}{period}."
-        # One achievement each keeps Thoughtworks + Mercado Libre under GoB cap.
+        # One achievement per role keeps two roles under the GoB character cap.
         achs = [a.text.strip() for a in exp.achievements[:1] if a.text.strip()]
         if achs:
             paragraphs.append(f"{head} {' '.join(achs)}")
@@ -242,30 +239,46 @@ def _draft_experience(candidate: Candidate) -> str:
 
     skills = candidate.skills.all_skills()
     if skills:
-        core = [
-            s
-            for s in skills
-            if s.casefold()
-            in {
-                "python",
-                "sql",
-                "r",
-                "bigquery",
-                "gcp",
-                "causal inference",
-                "estadística bayesiana",
-                "ab testing",
-                "uplift modeling",
-                "mlops",
-                "llms",
-            }
-            or "causal" in s.casefold()
-            or "bayes" in s.casefold()
-        ]
-        shown = core[:8] if core else skills[:8]
+        # Which skills matter is a question only this profile can answer: the ones
+        # its own headline, summary and achievements already talk about come first.
+        emphasis = " ".join(
+            [
+                candidate.personal.headline or "",
+                candidate.summary or "",
+                *(
+                    f"{exp.title} {exp.description or ''} "
+                    + " ".join(a.text for a in exp.achievements)
+                    for exp in candidate.experience
+                ),
+                *candidate.specialties,
+            ]
+        ).casefold()
+        highlighted = [skill for skill in skills if skill.casefold() in emphasis]
+        shown = (highlighted + [s for s in skills if s not in highlighted])[:8]
         paragraphs.append("Stack habitual: " + ", ".join(shown) + ".")
 
+    if candidate.summary:
+        # The summary leads, but the roles own their space: it gets what is left of
+        # the GoB cap, cut on a sentence so the portal never shows a dangling clause.
+        room = EXPERIENCE_MAX - len("\n\n".join(paragraphs)) - 2
+        summary = _sentence_prefix(candidate.summary.strip(), room)
+        if summary:
+            paragraphs.insert(0, summary)
+
     return "\n\n".join(paragraphs).strip()
+
+
+def _sentence_prefix(text: str, maximum: int) -> str:
+    """Longest prefix of whole sentences that fits, '' when not even one does."""
+    if maximum <= 0:
+        return ""
+    if len(text) <= maximum:
+        return text
+    window = text[:maximum]
+    cut = max(window.rfind(". "), window.rfind(".\n"))
+    if cut > 0:
+        return window[: cut + 1]
+    return window if window.endswith(".") else ""
 
 
 def _draft_education(candidate: Candidate) -> str:

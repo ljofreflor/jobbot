@@ -65,6 +65,14 @@ _POSTING_PATTERNS: tuple[re.Pattern[str], ...] = (
 
 _LOCALE_SEGMENT = re.compile(r"^[a-z]{2}(?:-[a-zA-Z]{2})?$")
 
+# One vacancy, not the board that lists them. Singular on purpose: `/jobs/` and
+# `/vacantes/` are listings and keep their directory. `/job/<id>` plus an
+# optional title slug is still that one posting.
+_SINGULAR_OPENING_TAIL = re.compile(
+    r"/(?:job|vacante|position|opening|oferta)/[^/]+(?:/.*)?$",
+    re.I,
+)
+
 # Employment vocabulary grouped by concept (ES/EN). A page that only repeats one
 # concept is usually something else answering 200 (soft 404, profile, landing).
 _CAREER_VOCABULARY: dict[str, tuple[str, ...]] = {
@@ -177,6 +185,10 @@ def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
         return f"https://{host}"
     if ats == AtsKind.RECRUITEE or ats == AtsKind.BAMBOOHR:
         return f"https://{host}"
+    opening = _SINGULAR_OPENING_TAIL.search(parsed.path)
+    if opening is not None:
+        prefix = parsed.path[: opening.start()].rstrip("/")
+        return f"https://{host}{prefix}" if prefix else f"https://{host}"
     if _is_posting_path(parsed.path) and segments:
         return f"https://{host}/{'/'.join(segments[:-1])}" if len(segments) > 1 else f"https://{host}"
     return normalized

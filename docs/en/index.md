@@ -1,0 +1,211 @@
+---
+template: home.html
+title: Jobbot — your next step, with intelligence
+description: >-
+  Local CLI for job hunting: find openings, prepare applications, and you press
+  submit. Human + technology, on your machine.
+hide:
+  - navigation
+  - toc
+---
+
+<section class="jb-section" markdown="1">
+
+## People · opportunities · technology
+
+Three things Jobbot actually does. No invented product.
+
+<ul class="jb-benefits">
+  <li>
+    <div class="jb-benefits__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </div>
+    <strong>Find opportunities</strong>
+    <span>Discover openings that fit your real profile — not an invented CV.</span>
+  </li>
+  <li>
+    <div class="jb-benefits__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/><path d="M9 21l1.5-1.5L13 21"/></svg>
+    </div>
+    <strong>Apply more easily</strong>
+    <span>Assemble the package, open the form, and leave sending to you.</span>
+  </li>
+  <li>
+    <div class="jb-benefits__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M20 19H3"/></svg>
+    </div>
+    <strong>Move forward with confidence</strong>
+    <span>Matching against your profile, shortlist and evidence — no account, no telemetry.</span>
+  </li>
+</ul>
+
+<p class="jb-pillars">More opportunities. A better tomorrow.</p>
+
+</section>
+
+<section class="jb-section" markdown="1">
+
+## A full loop, in your agent
+
+In Cursor, VS Code, Claude Code, or any agent: paste a link or say what you want.
+Jobbot — local CLI — reads, matches, builds the CV and leaves the form ready.
+You press submit.
+
+```bash
+# same steps as CLI — what the agent runs on your machine
+jobbot linkedin sweep "machine learning"
+jobbot jobs match J0002
+jobbot cv build --job J0002
+jobbot application apply J0002        # plan only; you submit
+```
+
+[Install & quickstart](../instalacion.md) · [Command reference](../comandos.md)
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Privacy on your machine
+
+Your profile, sessions, and outputs stay on disk. No Jobbot account, no
+telemetry — failures live in your local SQLite.
+
+<ul class="jb-evidence">
+  <li><code>data/profile.yaml</code>, SQLite, <code>browser-data/</code>, and <code>output/</code> are gitignored</li>
+  <li>Pre-commit hook (<code>make hooks</code>) blocks PII even with <code>git add -f</code></li>
+  <li>Human-in-the-loop: prepares the package; <strong>you submit</strong></li>
+  <li>No CAPTCHA or 2FA bypass — when a portal challenges you, it hands you the keyboard</li>
+</ul>
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Find recent openings
+
+Indeed, Get on Board, and LinkedIn recruiter posts. Freshness filters, country
+per role, and multi-vacancy posts split into independent jobs.
+
+```bash
+jobbot jobs search "Senior Data Scientist" --location Santiago
+jobbot getonboard search "data scientist"
+jobbot linkedin sweep "machine learning" --country CL --max-age-days 30
+```
+
+One SoftServe post with five roles → five jobs, each with its own country and
+ATS URL. Match and apply per role, not per post.
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## One source of truth
+
+<code>data/profile.yaml</code> is the professional SoT. LaTeX, PDF, Indeed, and LinkedIn
+are views or adapters. The adapted CV reorders evidence; it never invents experience.
+
+```bash
+jobbot profile validate
+jobbot cv build --job J0002          # derived from profile + JD
+jobbot profile suggest-from-market   # suggestions; you confirm gaps
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Sync to the portals
+
+Indeed, LinkedIn, and Get on Board adapters: login, inspect, pull, diff, and sync
+(dry-run by default). One command propagates the base CV to permanent profiles.
+
+```bash
+jobbot indeed sync --section headline   # plan; --apply writes
+jobbot linkedin sync --section publications --apply
+jobbot cv propagate                     # HITL plan; --apply confirms
+```
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Open source, on your machine
+
+Local CLI. No Jobbot SaaS backend. The channel is Cursor, VS Code, Claude Code,
+or another agent — not a proprietary Jobbot chat. You run the binary; you decide
+what leaves disk.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
+mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
+jobbot version
+# later: jobbot update
+```
+
+Contributing to the code? Then `git clone` + `uv sync --group dev` (see [install](../instalacion.md)).
+
+</section>
+
+<section class="jb-section jb-section--usecase" markdown="1">
+
+## Match, ATS, and Latam
+
+Scores against your profile, ATS detection (Greenhouse, Lever, Workday, Teamtailor
+even on custom hosts, Get on Board…), a portal registry that learns from evidence,
+and Chile / Latam focus in searches and roundups.
+
+<ul class="jb-evidence">
+  <li><code>jobs match</code> / <code>shortlist</code> — scores; does not decide for you</li>
+  <li><code>portals detect</code> + <code>companies learn</code> — public topology, no PII</li>
+  <li><code>application apply --apply</code> — opens the form; you submit</li>
+  <li>Latam roundups: country per role (<code>--country CL</code>), not per whole post</li>
+</ul>
+
+</section>
+
+<section class="jb-section" markdown="1">
+
+## What Jobbot will not do
+
+Product rules, not slogans.
+
+<ul class="jb-principles">
+  <li><strong>Never submits for you</strong> Human-in-the-loop: it prepares the package and opens the form. Sending is yours.</li>
+  <li><strong>Never invents facts about you</strong> <code>data/profile.yaml</code> is the only source of professional truth.</li>
+  <li><strong>Never leaves your disk</strong> Profile, SQLite, browser sessions and <code>output/</code> are gitignored.</li>
+  <li><strong>No CAPTCHA bypass</strong> When a portal challenges you, it hands you the keyboard.</li>
+</ul>
+
+</section>
+
+<section class="jb-section jb-section--measure" markdown="1">
+
+## Measured, not guessed
+
+Which job sites answer from a datacenter IP, and which do not.
+
+[Read the measurement](../blog/posts/2026-09-24-datacenter-ip-blocking.md){ .jb-btn .jb-btn--primary }
+[Sitio en español](../index.md){ .jb-btn .jb-btn--ghost }
+
+</section>
+
+<section class="jb-section jb-section--close" markdown="1">
+
+## Get started
+
+Curl or Docker, a `~/postulaciones` folder, then `jobbot init`. Details in the guide.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ljofreflor/jobbot/main/scripts/install.sh | bash
+mkdir -p ~/postulaciones && cd ~/postulaciones && jobbot init
+jobbot profile import-pdf ~/Downloads/CV.pdf --promote   # or edit .local/profile.yaml
+# later: jobbot update
+#
+# Docker: docker pull ghcr.io/ljofreflor/jobbot:latest
+#         docker compose run --rm -v "$HOME/postulaciones:/work" -w /work jobbot init
+```
+
+[Install](../instalacion.md){ .jb-btn .jb-btn--primary }
+[Prior art](../prior-art.md){ .jb-btn .jb-btn--ghost }
+
+</section>

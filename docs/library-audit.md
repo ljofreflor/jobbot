@@ -22,6 +22,7 @@ that one is generated from the code, this one records decisions.
 | Apply emails (`portals/email_apply.py`) | regex extraction, no validation | regex + `email-validator` | The dependency was already declared and unused; it drops malformed hits the regex accepts |
 | Country names (`jobs/geo.py`) | hand-written `_COUNTRY_ALIASES` | `babel.Locale(...).territories` | Country names in Spanish and English are CLDR data; the list stops drifting |
 | PDF text extraction (`profile/importer_pdf.py`) | nothing: PDFs could not be imported | `pypdf` | Pure-python, offline, no models; it also tells us when a PDF has no text layer, which is the signal we need to refuse a scan instead of importing an empty profile. The CV layout rules (sections, bullets, date lines) stay ours: no library knows them |
+| Architecture diagrams (`docs/images/`) | hand-drawn ASCII in the README | `diagrams` (docs group only) + Graphviz | README needs a committed PNG; `make architecture` regenerates from `scripts/render_architecture.py`. Not a runtime dependency — Graphviz stays a system tool like XeLaTeX |
 
 ## Kept ours, on purpose
 
@@ -34,6 +35,8 @@ that one is generated from the code, this one records decisions.
 | LinkedIn/Gmail selectors | none | Site-specific and changes weekly; a library would lag behind |
 | Company provenance rules (`companies/`) | none | Our own knowledge model, not a generic problem |
 | ToUnicode repair (`profile/pdf_glyphs.py`) | `pypdf._cmap`, `fontTools` | pypdf parses a /ToUnicode map but exposes no way to complete one, and its private `_cmap` is not an API to depend on. `fontTools` reads the embedded font, which is exactly where the answer is missing: Word's subsets carry no `post` table, so there are no glyph names and the advance widths in `/Widths` are the only evidence left |
+| Posting language (`jobs/language.py`) | `langdetect`, `lingua-language-detector` | Only Spanish vs English is needed, and an unclear text must fall back to the CV's language instead of guessing. `langdetect` is random unless seeded and unreliable on short summaries; `lingua` ships large models. A function-word majority is deterministic and testable |
+| ORCID check digit (`models/candidate.py`) | `python-stdnum` (`iso7064.mod_11_2`) | A whole dependency for a six-line ISO 7064 11,2 loop that never changes; the shape regex and the checksum are covered by unit tests |
 | City to country markers (`_COUNTRY_MARKERS`) | `geonamescache` | Ambiguity ("Santiago", "Córdoba") needs a tie-breaker before it can replace the curated list — tracked as [#8](https://github.com/ljofreflor/jobbot/issues/8). Country detection stays curated for the same reason: a wrong hit drops a job, and an undetectable country is kept on purpose |
 
 ## Tracked as issues (behaviour changes or weight)

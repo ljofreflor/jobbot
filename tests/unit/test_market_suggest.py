@@ -64,5 +64,7 @@ def test_merge_confirmed_skills_into_raw_preserves_other_keys() -> None:
     assert merged["summary"] == "Keep me"
     assert merged["experience"][0]["id"] == "e1"
     assert "Python" in merged["skills"]["programming"]
-    assert "dbt" in merged["skills"]["machine_learning"]
+    # A confirmed skill lands in a neutral group: JobBot cannot know which group
+    # it belongs to for a candidate whose field it does not know.
+    assert "dbt" in merged["skills"]["other"]
     assert "XGBoost" in merged["skills"]["machine_learning"]

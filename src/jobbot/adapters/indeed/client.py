@@ -19,6 +19,7 @@ from jobbot.adapters.indeed.resume_edit import (
     apply_full_resume_from_candidate,
     open_resume,
     parse_resume_page_text,
+    wait_for_resume_render,
 )
 from jobbot.browser.debug import inspect_page
 from jobbot.browser.session import BrowserSession
@@ -47,7 +48,7 @@ class IndeedAdapter:
         cdp_url: str | None = None,
     ) -> None:
         self.config = config
-        self.profile_dir = config.root / "browser-data" / "indeed"
+        self.profile_dir = config.browser_profile_dir("indeed")
         self.debug_root = config.output_dir / "debug"
         from jobbot.browser.cdp import resolve_cdp_url
 
@@ -80,11 +81,33 @@ class IndeedAdapter:
             timeout_seconds=300,
         )
 
-    def login(self) -> None:
+    def login(self, *, continue_url: str | None = None) -> None:
+        """HITL Indeed login. Prefer email / magic link; never type a password.
+
+        ``continue_url`` is the link from Indeed's email (magic link / verify).
+        Paste it from your phone mail into this command on the desktop session.
+        JobBot cannot force Indeed to offer magic link — only open what they sent.
+        """
         with self._session() as browser:
-            browser.page.goto(selectors.INDEED_LOGIN, wait_until="domcontentloaded")
+            if continue_url:
+                target = normalize_indeed_continue_url(continue_url)
+                console.print(
+                    "[bold]Opening Indeed continue / magic link[/bold] "
+                    "(HITL; JobBot does not invent credentials)."
+                )
+                browser.page.goto(target, wait_until="domcontentloaded")
+            else:
+                browser.page.goto(selectors.INDEED_LOGIN, wait_until="domcontentloaded")
+                console.print(
+                    "[bold]Indeed login (HITL)[/bold]\n"
+                    "1. Prefer [bold]email / magic link / código[/bold] if Indeed shows it.\n"
+                    "2. JobBot [bold]never[/bold] types your password or solves CAPTCHA.\n"
+                    "3. If the mail arrives on your phone, copy the link and run:\n"
+                    "   [dim]jobbot indeed login --continue-url 'PEGAR_LINK'[/dim]"
+                )
             ok = browser.pause_for_manual(
-                "Log in to Indeed (including 2FA if prompted).",
+                "Finish Indeed sign-in in the browser (magic link, OTP, or CAPTCHA). "
+                "Password stays yours.",
                 is_clear=lambda: not _is_auth_url(browser.page.url),
                 timeout_seconds=300,
             )
@@ -127,6 +150,7 @@ class IndeedAdapter:
                 raise RuntimeError(msg)
             if _is_auth_url(browser.page.url):
                 browser.page.goto(selectors.INDEED_RESUME, wait_until="domcontentloaded")
+            wait_for_resume_render(browser.page)
             html = browser.page.content()
             body = browser.page.inner_text("body")
             try:
@@ -286,20 +310,26 @@ class IndeedAdapter:
 
         assert isinstance(candidate, Candidate)
         open_resume(browser.page)
+        wait_for_resume_render(browser.page)
         body = browser.page.inner_text("body")
         parsed = parse_resume_page_text(body)
         skills_val = parsed.get("skills")
         skills = [str(s) for s in skills_val] if isinstance(skills_val, list) else []
         summary_val = parsed.get("summary")
         summary = str(summary_val) if isinstance(summary_val, str) and summary_val else None
+        rendered = parse_indeed_profile_html(browser.page.content())
+        # A resume that did not render is not a resume that lost its history.
+        previous = load_snapshot(self.config.output_dir, "indeed")
+        experience = rendered.experience or (previous.experience if previous else [])
+        education = rendered.education or (previous.education if previous else [])
         observed = ExternalProfile(
             source="indeed",
             headline=candidate.personal.headline,
             summary=summary,
             location=candidate.personal.location_line(),
-            experience=[],
-            education=[],
-            skills=skills,
+            experience=experience,
+            education=education,
+            skills=skills or (previous.skills if previous else []),
             captured_at=datetime.now(UTC),
         )
         save_snapshot(observed, self.config.output_dir)
@@ -316,6 +346,32 @@ class IndeedAdapter:
 def _is_auth_url(url: str) -> bool:
     u = url.lower()
     return any(x in u for x in ("/auth", "login", "signin", "secure.indeed.com/account"))
+
+
+def normalize_indeed_continue_url(url: str) -> str:
+    """Accept only Indeed auth / continue links (magic link from email)."""
+    raw = url.strip()
+    if not raw:
+        raise ValueError("Empty continue URL")
+    # Accidental double-paste from iOS share / mail clients.
+    second = raw.find("https://", 8)
+    if second > 0:
+        raw = raw[:second]
+    lowered = raw.casefold()
+    host_ok = any(
+        h in lowered
+        for h in (
+            "indeed.com/",
+            "secure.indeed.com",
+            "smartredirect.indeed.com",
+        )
+    )
+    if not host_ok or "://" not in raw:
+        raise ValueError(
+            "Continue URL must be an Indeed link from the sign-in email "
+            f"(got {raw!r})"
+        )
+    return raw
 
 
 def _looks_like_marketing_headline(headline: str | None) -> bool:

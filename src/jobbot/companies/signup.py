@@ -1,12 +1,14 @@
-"""Prepare a portal registration for the candidate to complete themselves.
+"""Assemble what a portal registration will ask — and what the profile already answers.
 
-Creating an account is the candidate's act: it accepts terms, sets a credential and
-starts a relationship with an employer. So this module only assembles what the
-portal will ask and what the profile already answers. It has no writer, no browser
-driver and no HTTP client, which is what makes the guarantee checkable rather than
-promised.
+Creating an account is still the candidate's irreversible act: password, terms acceptance
+and the final create/submit click. This module builds the **sheet** only (no HTTP, no
+browser driver), which is what makes that purity checkable in tests.
+
+Allowed automation (issue #44) lives in portal adapters behind ``companies signup --apply``:
+fill fields ``profile.yaml`` already answers and attach the built CV. Never invent a
+password, never accept terms alone, never solve CAPTCHA/2FA, never click create without
+HITL confirmation.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,7 +17,9 @@ from enum import StrEnum
 from jobbot.companies.models import CareerSite
 from jobbot.models.candidate import Candidate
 from jobbot.portals.detect import AtsKind
+from jobbot.portals.field_homologation import answer_for_label
 from jobbot.portals.form_learn import FieldKind, FormKnowledge
+from jobbot.portals.sso import SsoProvider, provider_label
 
 
 class AccountNeed(StrEnum):
@@ -35,6 +39,10 @@ _ACCOUNT_BY_ATS: dict[AtsKind, AccountNeed] = {
     AtsKind.SUCCESSFACTORS: AccountNeed.NEEDED,
     AtsKind.ORACLE: AccountNeed.NEEDED,
     AtsKind.TEAMTAILOR: AccountNeed.NOT_NEEDED,
+    AtsKind.TORRE: AccountNeed.NEEDED,
+    AtsKind.GETONBOARD: AccountNeed.NEEDED,
+    AtsKind.INDEED: AccountNeed.NEEDED,
+    AtsKind.LINKEDIN: AccountNeed.NEEDED,
 }
 
 _NOTES: dict[AccountNeed, str] = {
@@ -44,7 +52,8 @@ _NOTES: dict[AccountNeed, str] = {
     ),
     AccountNeed.NEEDED: (
         "This platform keeps a candidate profile, so it will ask you to register. "
-        "JobBot fills nothing and creates nothing: you type the password."
+        "JobBot may fill fields the profile already answers and attach the CV "
+        "(signup --apply); you type the password, accept terms, and confirm create."
     ),
     AccountNeed.UNKNOWN: (
         "Unknown whether it needs an account. Open the portal and look for "
@@ -76,8 +85,12 @@ class SignupItem:
         return not self.value
 
 
+def account_need(ats: AtsKind) -> AccountNeed:
+    return _ACCOUNT_BY_ATS.get(ats, AccountNeed.UNKNOWN)
+
+
 def signup_target(site: CareerSite) -> SignupTarget:
-    need = _ACCOUNT_BY_ATS.get(site.ats, AccountNeed.UNKNOWN)
+    need = account_need(site.ats)
     return SignupTarget(url=site.url, need=need, note=_NOTES[need])
 
 
@@ -92,10 +105,32 @@ def signup_sheet(
     one it is the set every portal asks. Either way a question the profile cannot
     answer is handed back empty, never filled with something plausible.
     """
-    answers = _profile_answers(candidate)
     if form is not None and form.readable:
-        return [_item_for(field.label, answers) for field in form.fields]
-    return [_item_for(label, answers) for label in _USUAL_FIELDS]
+        items = [_item_for(candidate, field.label) for field in form.fields]
+    else:
+        items = [_item_for(candidate, label) for label in _USUAL_FIELDS]
+    items.extend(_sso_items(form))
+    return items
+
+
+def _sso_items(form: FormKnowledge | None) -> list[SignupItem]:
+    """Provider buttons are HITL: named so you can click, never started for you."""
+    if form is None or not form.sso_providers:
+        return []
+    items: list[SignupItem] = []
+    for raw in form.sso_providers:
+        try:
+            provider = SsoProvider(raw)
+        except ValueError:
+            continue
+        items.append(
+            SignupItem(
+                label=provider_label(provider),
+                value="",
+                source="portal SSO — you click; JobBot never starts OAuth",
+            )
+        )
+    return items
 
 
 def screening_to_prepare(form: FormKnowledge | None) -> list[str]:
@@ -122,39 +157,7 @@ _USUAL_FIELDS: tuple[str, ...] = (
 )
 
 
-def _profile_answers(candidate: Candidate) -> dict[str, tuple[str, str]]:
-    """label (folded) → (value, where in the profile it comes from)."""
-    personal = candidate.personal
-    pairs: dict[str, tuple[str, str]] = {}
-
-    def put(label: str, value: object, source: str) -> None:
-        text = str(value or "").strip()
-        if text:
-            pairs[label.casefold()] = (text, source)
-
-    put("full name", personal.name, "personal.name")
-    put("name", personal.name, "personal.name")
-    if personal.name:
-        parts = personal.name.split(None, 1)
-        put("first name", parts[0], "personal.name")
-        if len(parts) > 1:
-            put("last name", parts[1], "personal.name")
-    put("email", personal.email, "personal.email")
-    put("phone", personal.phone, "personal.phone")
-    put("city", personal.city, "personal.city")
-    put("country", personal.country, "personal.country")
-    put("location", personal.location_line(), "personal.city + country")
-    put("current role", personal.headline, "personal.headline")
-    put("headline", personal.headline, "personal.headline")
-    put("linkedin", personal.linkedin, "personal.linkedin")
-    put("linkedin profile", personal.linkedin, "personal.linkedin")
-    put("github", personal.github, "personal.github")
-    put("resume/cv", "output/base/cv.pdf", "cv build")
-    put("resume", "output/base/cv.pdf", "cv build")
-    put("cv", "output/base/cv.pdf", "cv build")
-    return pairs
-
-
-def _item_for(label: str, answers: dict[str, tuple[str, str]]) -> SignupItem:
-    value, source = answers.get(label.casefold(), ("", "you decide: not a fact in the profile"))
+def _item_for(candidate: Candidate, label: str) -> SignupItem:
+    """Map a portal label through the homologation table (#94)."""
+    value, source = answer_for_label(candidate, label)
     return SignupItem(label=label, value=value, source=source)

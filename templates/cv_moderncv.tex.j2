@@ -4,7 +4,8 @@
 \moderncvcolor{blue}
 
 \usepackage[scale=0.84]{geometry}
-\usepackage{hyperref}
+% moderncv loads hyperref itself (with options); do not load it here or XeLaTeX
+% hits "Option clash for package hyperref" at \begin{document}.
 \usepackage{graphicx}
 \usepackage{fontspec}
 \usepackage{polyglossia}
@@ -13,12 +14,39 @@
 \usepackage{url}
 \def\UrlBreaks{\do\/\do-\do?\do&\do=}
 
+% banking's stock \cventry uses non-wrapping `l` columns (moderncvbodyiii).
+% Long Spanish org / degree strings then overflow the page as Overfull \hbox.
+% Keep the banking layout, but wrap title (#3) and company (#4) to a fixed width.
+% Reserve ~20em for the right column: Spanish ranges like
+% "Abr 2022 – May 2025 (3 años, 2 meses)" are ~184pt wide.
+{% raw %}
+\makeatletter
+\renewcommand*{\cventry}[7][.25em]{%
+  \begin{tabular*}{\maincolumnwidth}{@{}p{\dimexpr\maincolumnwidth-20em\relax}@{\extracolsep{\fill}}r@{}}%
+  \ifboolexpr{%
+    test {\ifstrempty{#4}}
+    and
+    test {\ifstrempty{#5}}}%
+  {}%
+  {{\bfseries #4} & {\bfseries #5}\\}%
+  {\itshape #3\ifstrempty{#6}{}{, #6}} & {\itshape #2}\\%
+  \end{tabular*}%
+  \ifx&#7&%
+  \else{%
+    \\%
+    \begin{minipage}{\maincolumnwidth}%
+      \small#7%
+    \end{minipage}}\fi%
+  \par\addvspace{#1}}
+\makeatother
+{% endraw %}
+
 \name{ {{- name_first | latex -}} }{ {{- name_last | latex -}} }
 {% if personal.headline %}
 \title{ {{- personal.headline | latex -}} }
 {% endif %}
 {% if personal.city or personal.country %}
-\address{ {{- personal.city | latex -}} }{ {{- personal.country | latex -}} }{}
+\address{ {{- (personal.city or '') | latex -}} }{ {{- (personal.country or '') | latex -}} }{}
 {% endif %}
 {% if personal.phone %}
 \phone[mobile]{ {{- personal.phone | latex -}} }
@@ -32,6 +60,9 @@
 {% if github_handle %}
 \social[github]{ {{- github_handle -}} }
 {% endif %}
+{% if personal.orcid_url %}
+\extrainfo{ {{- href(personal.orcid_url) -}} }
+{% endif %}
 
 \begin{document}
 \makecvtitle
@@ -44,7 +75,7 @@
 {% if experiences %}
 \section{Experiencia Profesional}
 {% for exp, achievements in experiences %}
-\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp.company | latex -}} }{ {{- exp.location | latex -}} }{}{}
+\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp.company | latex -}} }{ {{- (exp.location or '') | latex -}} }{}{}
 {% if exp.description %}
 {{ exp.description | latex_para }}
 {% endif %}
@@ -59,6 +90,16 @@
 {% endfor %}
 {% endif %}
 
+{% if projects %}
+\section{Proyectos Personales}
+{% for project in projects %}
+\cventry{}{ {%- if project.url -%}{{ href(project.url) }}{%- endif -%} }{ {{- project.name | latex -}} }{}{}{}
+{{ project.description | latex_para }}{% if project.tags %} \textit{({{ project.tags | map('latex') | join(', ') }})}{% endif %}
+
+
+{% endfor %}
+{% endif %}
+
 {% if candidate.education %}
 \section{Formación Académica}
 {% for edu in candidate.education %}
@@ -67,17 +108,42 @@
 {% endif %}
 
 {% if skills %}
-\section{Habilidades Técnicas}
+\section{Habilidades}
 {% for group, items in skills.items() %}
 \cvitem{ {{- group_label(group) | latex -}} }{ {{- items | map('latex') | join(', ') -}} }
 {% endfor %}
 {% endif %}
 
 {% if publications %}
-\section{Publicaciones Científicas}
+\section{Publicaciones}
 {% for pub in publications %}
 \cvitem{ {{- pub.year if pub.year else '' -}} }{{ '{' }}{% if pub.journal %}\textbf{ {{- pub.journal | latex -}} } – {% endif %}\emph{ {{- pub.title | latex -}} }{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %} \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% endif %}{{ '}' }}
 {% endfor %}
+{% endif %}
+
+{% if cv_credit %}
+\vspace{1.2em}
+{\footnotesize {{ mark | latex }} --- \url{ {{- repo_url -}} }}
+{% endif %}
+{% if application_log %}
+{% set log = application_log %}
+% jobbot:application-log
+\clearpage
+\section{ {{- log.text.title | latex -}} }
+\cvitem{}{ {{- log.text.created | latex }}{% if log.project_url %} ({{ href(log.project_url) }}){% endif %} {{ log.text.for_posting | latex }} \textbf{ {{- (log.job_title ~ ' @ ' ~ log.company) | latex -}} }}
+{% if log.job_url %}
+\cvitem{}{ {{- href(log.job_url) -}} }
+{% endif %}
+\cvitem{}{ {{- log.text.generated | latex }}: {{ log.generated_on.isoformat() }}}
+\cvitem{}{ {{- log.text.match | latex }}: {{ log.percent }}\% ({{ log.text.match_note | latex }})}
+{% if log.evidence %}
+\medskip
+\cvitem{}{\textbf{ {{- log.text.evidence | latex -}} }}
+{% for line in log.evidence %}
+{% set where = {'skills': 'Habilidades', 'experience': 'Experiencia Profesional', 'project': 'Proyectos Personales', 'education': 'Formación Académica', 'summary': 'Resumen Profesional'}[line.kind] %}
+\cvitem{}{ {{- line.requirement | latex }} $\rightarrow$ {{ where }}{% if line.pointer %} ({{ line.pointer | latex }}){% endif %}}
+{% endfor %}
+{% endif %}
 {% endif %}
 
 \end{document}

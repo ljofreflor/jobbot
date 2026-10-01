@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 
 from jobbot.config import JobbotConfig, PathsConfig
 from jobbot.db.engine import make_engine, make_session_factory
-from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, UI_CHANGED, VALIDATION_FAILURE
+from jobbot.exit_codes import (
+    GENERIC_FAILURE,
+    SUCCESS,
+    UI_CHANGED,
+    USER_CANCEL,
+    VALIDATION_FAILURE,
+)
 from jobbot.ops.failures import (
     capture_cli_failure,
     failure_fingerprint,
@@ -56,6 +62,26 @@ def test_fingerprint_stable_across_numeric_noise() -> None:
     assert len(a) == 16
 
 
+def test_normalize_command_stabilizes_job_urls() -> None:
+    """Hard-link argv must drop tracking so the failure-work re-run stays clean."""
+    from jobbot.ops.failures import normalize_command
+
+    cmd = normalize_command(
+        [
+            "jobbot",
+            "get",
+            "https://cl.indeed.com/viewjob?jk=abc123&from=email&tk=xyz",
+        ]
+    )
+    assert cmd == "jobbot get https://cl.indeed.com/viewjob?jk=abc123"
+
+    linkedin = normalize_command(
+        ["jobbot", "get", "https://www.linkedin.com/jobs/view/123?trk=flagship"]
+    )
+    assert "trk=" not in linkedin
+    assert "linkedin.com/jobs/view/123" in linkedin
+
+
 def test_normalize_message_collapses_noise() -> None:
     assert "j0016" not in normalize_message("see J0016 path /tmp/x")
     assert "<id>" in normalize_message("see J0016")
@@ -72,6 +98,52 @@ def test_redact_strips_secrets_and_url_query() -> None:
     ctx = redact_context({"ats_url": "https://boards.greenhouse.io/x?key=1", "note": "ok"})
     assert "key=" not in str(ctx["ats_url"])
     assert ctx["note"] == "ok"
+
+
+def test_redact_strips_contact_pii_not_only_secrets() -> None:
+    """Failures leave the machine via ops failure issue; contact data must go too."""
+    sample = (
+        "Failed for ana.ejemplo@gmail.com phone +56 9 1234 5678 "
+        "RUT 12.345.678-9 path /Users/someone/jobbot/data/profile.yaml "
+        "token=sekrit"
+    )
+    text = redact_text(sample)
+    assert "ana.ejemplo@gmail.com" not in text
+    assert "+56 9 1234 5678" not in text
+    assert "12.345.678-9" not in text
+    assert "/Users/someone/" not in text
+    assert "sekrit" not in text
+
+
+def test_issue_body_does_not_leak_contact_pii(tmp_path: Path) -> None:
+    from jobbot.ops.failures import issue_body, record_failure
+
+    session, config = _session(tmp_path)
+    try:
+        rec = record_failure(
+            session,
+            config=config,
+            exit_code=GENERIC_FAILURE,
+            argv=["jobbot", "indeed", "sync"],
+            error_class="RuntimeError",
+            message=(
+                "sync failed for ana.candidato@gmail.com at /Users/candidato/jobbot "
+                "tel +56 9 8765 4321"
+            ),
+            context={"note": "RUT 11.222.333-4 also in context"},
+            tb=(
+                'File "/Users/candidato/jobbot/src/jobbot/cli.py", line 1\n'
+                "RuntimeError: ana.candidato@gmail.com"
+            ),
+        )
+        body = issue_body(rec)
+    finally:
+        session.close()
+
+    assert "ana.candidato@gmail.com" not in body
+    assert "/Users/candidato/" not in body
+    assert "+56 9 8765 4321" not in body
+    assert "11.222.333-4" not in body
 
 
 def test_record_and_list_failure(tmp_path: Path) -> None:
@@ -108,45 +180,16 @@ def test_should_not_record_success_or_ops() -> None:
     assert not should_record_cli_failure(["jobbot", "profile", "validate"], SUCCESS)
     assert not should_record_cli_failure(["jobbot", "ops", "failures"], GENERIC_FAILURE)
     assert should_record_cli_failure(["jobbot", "probe-exit", "5"], UI_CHANGED)
+    assert not should_record_cli_failure(["jobbot", "jobs", "add"], USER_CANCEL)
 
 
-def test_should_not_record_validation_failure() -> None:
-    """Regression: validation errors (bad input) should not be recorded as ops failures."""
+def test_should_not_record_help_invocations() -> None:
+    """Exploring CLI help is not an ops failure — even when the command is wrong."""
+    assert not should_record_cli_failure(["jobbot", "cv", "build", "--help"], GENERIC_FAILURE)
+    assert not should_record_cli_failure(["jobbot", "cv", "build", "-h"], GENERIC_FAILURE)
     assert not should_record_cli_failure(
-        ["jobbot", "cv", "propagate", "--targets", "companies"], VALIDATION_FAILURE
+        ["jobbot", "ops failure show", "--help"], GENERIC_FAILURE
     )
-
-
-def test_cv_propagate_invalid_target_not_recorded(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Regression for F0082 / issue #47: unknown propagation target must not record ops_failure."""
-    from jobbot.cli import run_cli
-
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "data").mkdir()
-    (tmp_path / "data" / "profile.yaml").write_text(
-        """
-name: Test User
-email: test@example.com
-phone: "+1234567890"
-location: Test City
-summary: Test summary
-experience: []
-education: []
-skills: []
-"""
-    )
-    code = run_cli(["cv", "propagate", "--targets", "companies"], standalone_mode=False)
-    assert code == VALIDATION_FAILURE
-    engine = make_engine(tmp_path / "data" / "jobbot.sqlite")
-    session = make_session_factory(engine)()
-    try:
-        rows = list_failures(session, status="new")
-        assert len(rows) == 0, "Invalid target should not record an ops_failure"
-    finally:
-        session.close()
-
 
 
 def test_capture_cli_failure_ui_changed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -286,3 +329,39 @@ def test_issue_body_includes_runtime_context(tmp_path: Path) -> None:
     body = issue_body(record)
     assert "stdin_tty" in body
     assert "Regression unit test" in body
+
+def test_cv_propagate_invalid_target_not_recorded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression for F0082 / issue #47: unknown propagation target must not record ops_failure."""
+    from jobbot.cli import run_cli
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "profile.yaml").write_text(
+        """
+name: Test User
+email: test@example.com
+phone: "+1234567890"
+location: Test City
+summary: Test summary
+experience: []
+education: []
+skills: []
+"""
+    )
+    code = run_cli(["cv", "propagate", "--targets", "companies"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    engine = make_engine(tmp_path / "data" / "jobbot.sqlite")
+    session = make_session_factory(engine)()
+    try:
+        rows = list_failures(session, status="new")
+        assert len(rows) == 0, "Invalid target should not record an ops_failure"
+    finally:
+        session.close()
+
+def test_should_not_record_validation_failure() -> None:
+    """Regression: validation errors (bad input) should not be recorded as ops failures."""
+    assert not should_record_cli_failure(
+        ["jobbot", "cv", "propagate", "--targets", "companies"], VALIDATION_FAILURE
+    )

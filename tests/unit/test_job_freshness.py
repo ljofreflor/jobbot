@@ -72,11 +72,15 @@ def test_is_fresh_tolerates_naive_datetimes() -> None:
 def test_age_label_reads_like_the_feed() -> None:
     assert age_label(None) == "?"
     assert age_label(NOW, now=NOW) == "hoy"
-    assert age_label(NOW - timedelta(days=1), now=NOW) == "1 d"
-    assert age_label(NOW - timedelta(days=20), now=NOW) == "2 sem"
+    assert age_label(NOW - timedelta(days=1), now=NOW) == "1 día"
+    assert age_label(NOW - timedelta(days=5), now=NOW) == "5 días"
+    assert age_label(NOW - timedelta(days=20), now=NOW) == "3 semanas"  # 2.9 semanas
     assert age_label(NOW - timedelta(days=60), now=NOW) == "2 meses"
+    assert age_label(NOW - timedelta(days=31), now=NOW) == "1 mes"
     assert age_label(posted_at_from_url(J0048_URL), now=NOW) == "10 meses"
     assert age_label(NOW - timedelta(days=800), now=NOW) == "2 años"
+    # 315 days is 10 months, not "1 año": babel's default threshold would round it up.
+    assert age_label(NOW - timedelta(days=315), now=NOW) == "10 meses"
 
 
 def test_config_defaults_and_reads_max_age_days(tmp_path: Path) -> None:

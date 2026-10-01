@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from email_validator import EmailNotValidError, validate_email
+
 _EMAIL_RE = re.compile(
     r"\b([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})\b"
 )
@@ -35,6 +37,29 @@ _APPLY_HINTS = (
     "manda tu cv",
 )
 
+# Same invitations with a pronoun in between ("send me your CV", "envíame tu currículum"),
+# which substring hints cannot cover.
+_APPLY_HINT_RES: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"\b(?:send|email|share|forward)\s+(?:me|us|it)?\s*(?:your|me|us)?\s*"
+        r"(?:\w+\s+){0,2}?(?:cv|resume|r[ée]sum[ée])\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:env[ií]a|env[ií]ar|env[ií][ae]me|env[ií]enme|manda|mandar|mand[áa]me|"
+        r"comparte|comp[áa]rteme)\s*(?:me|nos)?\s*(?:tu|su|el|un)?\s*"
+        r"(?:\w+\s+){0,2}?(?:cv|curr[ií]culum|curriculum|hoja de vida)\b",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _has_apply_hint(text: str) -> bool:
+    lowered = text.casefold()
+    if any(hint in lowered for hint in _APPLY_HINTS):
+        return True
+    return any(pattern.search(text) for pattern in _APPLY_HINT_RES)
+
 # Local-part tokens that look like hiring inboxes
 _MAILBOX_LOCAL_TOKENS = (
     "seleccion",
@@ -55,16 +80,31 @@ _MAILBOX_LOCAL_TOKENS = (
 )
 
 
+def is_valid_email(addr: str) -> bool:
+    """
+    RFC-aware check, no DNS lookup (JobBot must work offline).
+
+    The extraction regex is deliberately loose so it can find addresses in prose;
+    this is what stops a loose match from becoming an apply route.
+    """
+    try:
+        validate_email(addr, check_deliverability=False)
+    except EmailNotValidError:
+        return False
+    return True
+
+
 def extract_emails(text: str) -> list[str]:
-    """Return unique emails in appearance order."""
+    """Return unique, valid emails in appearance order."""
     out: list[str] = []
     seen: set[str] = set()
     for match in _EMAIL_RE.finditer(text or ""):
         addr = match.group(1).rstrip(".,;:)")
         key = addr.casefold()
-        if key not in seen:
-            seen.add(key)
-            out.append(addr)
+        if key in seen or not is_valid_email(addr):
+            continue
+        seen.add(key)
+        out.append(addr)
     return out
 
 
@@ -89,13 +129,13 @@ def first_apply_email(text: str) -> str | None:
             return addr
     for match in _EMAIL_RE.finditer(body):
         addr = match.group(1).rstrip(".,;:)")
+        if not is_valid_email(addr):
+            continue
         start = max(0, match.start() - 80)
         end = min(len(body), match.end() + 40)
-        window = body[start:end].casefold()
-        if any(hint in window for hint in _APPLY_HINTS):
+        if _has_apply_hint(body[start:end]):
             return addr
-    lowered = body.casefold()
-    if any(hint in lowered for hint in _APPLY_HINTS) and len(emails) == 1:
+    if _has_apply_hint(body) and len(emails) == 1:
         return emails[0]
     return None
 

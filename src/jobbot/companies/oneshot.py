@@ -283,7 +283,11 @@ def load_search_hits(path: Path) -> dict[str, list[str]]:
 
 
 def candidate_urls(seed: CompanySeed) -> list[str]:
-    """Official-domain paths and career subdomains first (public sources, in order)."""
+    """Known hard URLs first, then official-domain path/subdomain probes.
+
+    ``career_url_hints`` is how a once-found portal is reused without rediscovery.
+    Path probes are a fallback when only the corporate domain is known.
+    """
     urls: list[str] = []
     seen: set[str] = set()
 

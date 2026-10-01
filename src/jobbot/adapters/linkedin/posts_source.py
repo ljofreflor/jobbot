@@ -11,15 +11,16 @@ from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
 
 from jobbot.adapters.linkedin.sweep import (
-    is_data_relevant,
+    dedupe_jobs_by_apply_target,
+    looks_like_job_post,
     parse_post_blob,
     parse_posts_fixture,
-    post_to_job,
+    post_offers_wanted_country,
+    post_to_jobs,
 )
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
 from jobbot.jobs.freshness import age_label, is_fresh
-from jobbot.jobs.geo import country_allows
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind
@@ -198,7 +199,7 @@ class LinkedInPostJobSource:
         from jobbot.browser.cdp import resolve_cdp_url
 
         self.cdp_url = resolve_cdp_url(cdp_url)
-        self.profile_dir = self.config.root / "browser-data" / "linkedin"
+        self.profile_dir = self.config.browser_profile_dir("linkedin")
 
     def search_jobs(self, query: JobSearchQuery) -> list[JobPosting]:
         """Live LinkedIn content search for posts (HITL / CDP)."""
@@ -218,9 +219,11 @@ class LinkedInPostJobSource:
         jobs: list[JobPosting] = []
         q = (query or "").casefold()
         for post in posts:
-            if not is_data_relevant(post.text):
+            if not post.vacancies and not looks_like_job_post(post.text):
                 continue
-            if not country_allows(post.text, wanted=countries, allow_remote=allow_remote):
+            if not post_offers_wanted_country(
+                post.text, wanted=countries, allow_remote=allow_remote
+            ):
                 continue
             if not is_fresh(post.posted_at, max_age_days=max_age_days):
                 continue
@@ -229,10 +232,11 @@ class LinkedInPostJobSource:
                 and q not in post.text.casefold()
                 and q not in (post.author or "").casefold()
                 and post.ats_kind == AtsKind.UNKNOWN
+                and not post.vacancies
             ):
                 continue
-            jobs.append(post_to_job(post))
-        return jobs
+            jobs.extend(post_to_jobs(post, countries=countries))
+        return dedupe_jobs_by_apply_target(jobs)
 
     def search_live(self, query: JobSearchQuery) -> list[JobPosting]:
         """Open LinkedIn content search; user assists; scrape visible post texts."""
@@ -307,9 +311,11 @@ def collect_jobs_from_feed_page(
         if len(text) < 40 or text in seen:
             continue
         seen.add(text)
-        if not is_data_relevant(text):
+        # Vacancies are parsed after the card is accepted; hiring language or
+        # an explicit apply hint is enough to keep the card for parsing.
+        if not looks_like_job_post(text):
             continue
-        if not country_allows(
+        if not post_offers_wanted_country(
             text,
             wanted=query.countries,
             allow_remote=query.allow_remote,
@@ -350,8 +356,8 @@ def collect_jobs_from_feed_page(
                 query.max_age_days,
             )
             continue
-        jobs.append(post_to_job(post))
-    return jobs
+        jobs.extend(post_to_jobs(post, countries=query.countries))
+    return dedupe_jobs_by_apply_target(jobs)
 
 
 def _permalink_from_card(card: Any) -> str | None:

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from jobbot.config import JobbotConfig
 from jobbot.models.job import JobPosting
 
-JobSourceName = Literal["indeed", "linkedin_post", "getonboard"]
+JobSourceName = Literal["indeed", "linkedin_post", "getonboard", "torre"]
 
 
 class JobSearchQuery(BaseModel):
@@ -48,5 +48,9 @@ def get_job_source(
         from jobbot.adapters.getonboard.jobs import GetOnBoardJobSource
 
         return GetOnBoardJobSource(config)
+    if name == "torre":
+        from jobbot.adapters.torre.jobs import TorreJobSource
+
+        return TorreJobSource(config)
     msg = f"Unknown job source: {name}"
     raise ValueError(msg)

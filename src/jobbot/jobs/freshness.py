@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+
+from babel.dates import format_timedelta
 
 DEFAULT_MAX_AGE_DAYS = 30
 
@@ -40,18 +42,16 @@ def is_fresh(
 
 
 def age_label(posted_at: datetime | None, *, now: datetime | None = None) -> str:
-    """Short age for the sweep table, in the feed's own units."""
+    """Age for the sweep table; units and plurals come from CLDR, not from us."""
     days = age_in_days(posted_at, now=now)
     if days is None:
         return "?"
     if days == 0:
         return "hoy"
-    if days < 7:
-        return f"{days} d"
-    if days < 30:
-        return f"{days // 7} sem"
-    if days < 365:
-        months = days // 30
-        return f"{months} mes" if months == 1 else f"{months} meses"
-    years = days // 365
-    return f"{years} año" if years == 1 else f"{years} años"
+    # threshold=1.0: never round 10 months up to "1 año"; the age must not flatter a post.
+    return format_timedelta(
+        timedelta(days=days),
+        locale="es",
+        granularity="day",
+        threshold=1.0,
+    )

@@ -33,3 +33,14 @@ def test_publication_coauthors_exclude_self() -> None:
         "Iván Gutiérrez",
         "Sandra Ramírez",
     ]
+
+
+def test_publication_coauthors_work_for_any_surname() -> None:
+    """Self-exclusion used to require one hardcoded surname; a namesake still stays."""
+    pub = Publication(
+        id="p2",
+        title="T",
+        authors=["Rocío Paredes Lagos", "Rocío Salinas", "Camila Núñez"],
+    )
+
+    assert pub.coauthors("Rocío Paredes Lagos") == ["Rocío Salinas", "Camila Núñez"]

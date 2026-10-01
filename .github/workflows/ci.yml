@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Python
+        run: uv python install 3.12
+      - name: Sync
+        run: uv sync --group dev
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Mypy
+        run: uv run mypy src
+
+      - name: Resolve gates
+        id: gates
+        run: |
+          REF="${{ github.base_ref || github.ref_name }}"
+          if [ "$REF" = "main" ]; then
+            # develop → main: at least 95% of unit tests must pass
+            PASS_RATE=0.95
+          else
+            # feature → develop: the suite must be fully green
+            PASS_RATE=1.0
+          fi
+          COVERAGE=80
+          echo "pass_rate=$PASS_RATE" >> "$GITHUB_OUTPUT"
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+          echo "Gates for $REF: unit pass-rate ≥ $PASS_RATE, coverage ≥ ${COVERAGE}%"
+
+      - name: Unit tests + coverage
+        id: pytest
+        continue-on-error: true
+        run: |
+          uv run pytest tests/unit \
+            --junitxml=junit.xml \
+            --cov=jobbot \
+            --cov-report=term-missing:skip-covered \
+            --cov-fail-under=0
+
+      - name: Unit pass-rate gate
+        run: |
+          uv run python -m jobbot.ops.test_gate junit.xml \
+            --min-pass-rate "${{ steps.gates.outputs.pass_rate }}"
+
+      - name: Coverage gate
+        run: |
+          uv run coverage report --fail-under="${{ steps.gates.outputs.coverage }}"

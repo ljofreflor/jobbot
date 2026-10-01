@@ -1,0 +1,17 @@
+Marco Vidal Ruiz 
+Contador Público | Analista de Datos 
+marco.vidal@example.com | +56 9 00000001 
+Educación 
+Universidad del Valle - Contador Público y Auditor     Ene 2015 - Dic 2020 
+Perfil 
+Analista con experiencia en auditoría de procesos y análisis de datos. 
+Habilidades 
+Lenguajes de programación: SQL, Python 
+Experiencia Profesional 
+Auditora Consultores - Forensic 
+Investigaciones y análisis                    Sep 2022 – Oct 2023 
+• Resolví problemas de negocio con grandes volúmenes de datos. 
+• Construí tableros de visualización para detectar patrones irregulares. 
+Contadores del Sur - Auditoría 
+Asistente de auditoría                        Jun 2019 – Ene 2020 
+• Revisé controles internos y documentación de procesos. 

@@ -29,7 +29,20 @@ class SessionStatus(StrEnum):
     NEEDS_LOGIN = "needs_login"
     UNKNOWN = "unknown"
     PROFILE_BUSY = "profile_busy"
+    WRONG_ACCOUNT = "wrong_account"
     NO_ENDPOINT = "no_endpoint"
+
+
+def session_blocks_open(status: SessionStatus) -> bool:
+    """A busy profile or somebody else's login must not be driven."""
+    return status in {SessionStatus.PROFILE_BUSY, SessionStatus.WRONG_ACCOUNT}
+
+
+def refuse_to_open(status: SessionStatus, evidence: str) -> str | None:
+    """Evidence to show instead of launching. Never includes the other account."""
+    if not session_blocks_open(status):
+        return None
+    return evidence
 
 
 @dataclass(frozen=True)
@@ -91,6 +104,14 @@ def site_spec(site: str) -> SiteSpec | None:
     """The one registry both `browser sessions` and `chrome-debug` read."""
     key = (site or "").strip().casefold()
     return next((spec for spec in SITES if spec.site == key), None)
+
+
+@dataclass(frozen=True)
+class AccountExpectation:
+    """Identity the workspace profile owns. Empty fields are not evidence."""
+
+    email: str | None = None
+    linkedin: str | None = None
 
 
 @dataclass(frozen=True)
@@ -238,17 +259,31 @@ def inspect_sessions(
     ports: Sequence[int] = DEFAULT_PORTS,
     fetch: JsonFetcher = fetch_local_json,
     processes: Sequence[ChromeProcess] | None = None,
+    account: AccountExpectation | None = None,
+    page_text: dict[str, str] | None = None,
 ) -> list[SessionState]:
     """Session state per site, from open pages plus the persistent-profile locks."""
+    from jobbot.config import load_config
+
     procs = list(processes if processes is not None else list_chrome_processes())
     endpoints = discover_endpoints(ports, fetch=fetch, processes=procs)
     wanted = {site.casefold() for site in sites} if sites else None
+    browser_root = load_config(root=root).browser_data_dir
     states: list[SessionState] = []
     for spec in SITES:
         if wanted is not None and spec.site not in wanted:
             continue
-        holders = profile_holders(root / "browser-data" / spec.site, procs)
-        states.append(_state_for(spec, endpoints, holders, ports))
+        holders = profile_holders(browser_root / spec.site, procs)
+        states.append(
+            _state_for(
+                spec,
+                endpoints,
+                holders,
+                ports,
+                account=account,
+                page_text=page_text,
+            )
+        )
     return states
 
 
@@ -256,11 +291,34 @@ def session_for(states: Sequence[SessionState], site: str) -> SessionState | Non
     return next((state for state in states if state.site == site), None)
 
 
+def judge_account(site: str, html: str, expected: AccountExpectation) -> SessionStatus:
+    """Match a signed-in page to this workspace. No identity on the page is unknown."""
+    if site == "gmail":
+        found = _EMAIL_RE.findall(html or "")
+        if not found or not expected.email:
+            return SessionStatus.UNKNOWN
+        if any(item.casefold() == expected.email.casefold() for item in found):
+            return SessionStatus.READY
+        return SessionStatus.WRONG_ACCOUNT
+    if site == "linkedin":
+        found = _LINKEDIN_RE.findall(html or "")
+        want = _linkedin_handle(expected.linkedin)
+        if not found or not want:
+            return SessionStatus.UNKNOWN
+        if any(item.casefold() == want.casefold() for item in found):
+            return SessionStatus.READY
+        return SessionStatus.WRONG_ACCOUNT
+    return SessionStatus.UNKNOWN
+
+
 def _state_for(
     spec: SiteSpec,
     endpoints: Sequence[CdpEndpoint],
     holders: tuple[int, ...],
     ports: Sequence[int],
+    *,
+    account: AccountExpectation | None = None,
+    page_text: dict[str, str] | None = None,
 ) -> SessionState:
     weak: tuple[CdpEndpoint, str] | None = None
     for endpoint in endpoints:
@@ -278,10 +336,13 @@ def _state_for(
                     holders=holders,
                 )
             if any(marker in url.casefold() for marker in spec.signed_in):
+                status, evidence = _signed_in_verdict(
+                    spec, url, short, account=account, page_text=page_text
+                )
                 return SessionState(
                     site=spec.site,
-                    status=SessionStatus.READY,
-                    evidence=f"signed-in page open: {short}",
+                    status=status,
+                    evidence=evidence,
                     cdp_url=endpoint.url,
                     hint=f"--cdp {endpoint.url}",
                     holders=holders,
@@ -334,6 +395,38 @@ def _debug_command(
     taken = {endpoint.port for endpoint in endpoints}
     port = next((candidate for candidate in ports if candidate not in taken), DEFAULT_PORTS[0])
     return f"jobbot browser chrome-debug --site {spec.site} --port {port}"
+
+
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.\w+")
+_LINKEDIN_RE = re.compile(r"linkedin\.com/in/([A-Za-z0-9_-]+)", re.IGNORECASE)
+
+
+def _linkedin_handle(value: str | None) -> str | None:
+    if not value:
+        return None
+    match = _LINKEDIN_RE.search(value)
+    if match:
+        return match.group(1)
+    tail = value.rstrip("/").rsplit("/", 1)[-1]
+    return tail or None
+
+
+def _signed_in_verdict(
+    spec: SiteSpec,
+    url: str,
+    short: str,
+    *,
+    account: AccountExpectation | None,
+    page_text: dict[str, str] | None,
+) -> tuple[SessionStatus, str]:
+    if account is None or page_text is None:
+        return SessionStatus.READY, f"signed-in page open: {short}"
+    status = judge_account(spec.site, page_text.get(url, ""), account)
+    if status is SessionStatus.WRONG_ACCOUNT:
+        return status, "signed-in account does not match this workspace"
+    if status is SessionStatus.READY:
+        return status, f"signed-in page matches this workspace: {short}"
+    return SessionStatus.UNKNOWN, "signed-in page has no identity for this workspace"
 
 
 def _matches_host(url: str, spec: SiteSpec) -> bool:

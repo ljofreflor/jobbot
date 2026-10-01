@@ -1,0 +1,118 @@
+# Seed company ↔ career platform knowledge (public data only; no candidate PII).
+# Copy to companies.yaml after clone; JobBot learns more during normal use.
+#
+# Three architectures on purpose:
+#   1. own corporate career portal
+#   2. corporate page that redirects to an external ATS
+#   3. one company with several portals (corporate + Workday + subsidiary Greenhouse)
+version: 1
+companies:
+  - id: portal-propio
+    name: Empresa Portal Propio
+    country: CL
+    sector: retail
+    domains:
+      - empresa.cl
+    career_sites:
+      - url: https://empresa.cl/trabaja-con-nosotros
+        domain: empresa.cl
+        site_type: company_career_portal
+        ats: unknown
+        status: active
+        first_seen: 2026-09-01T12:00:00Z
+        last_verified: 2026-09-01T12:00:00Z
+        reached_from: null
+        observations:
+          - source: user_observation
+            checked_at: 2026-09-01T12:00:00Z
+            ats: unknown
+            site_type: company_career_portal
+            evidence: "career naming pattern: path segment 'trabaja-con-nosotros'"
+            observed_url: https://empresa.cl/trabaja-con-nosotros
+        conflicts: []
+        notes: no ATS marker found; stays unknown on purpose
+
+  - id: redirige-a-ats
+    name: Empresa Redirige A ATS
+    country: CL
+    sector: technology
+    domains:
+      - empresa-redirige.cl
+    career_sites:
+      - url: https://empresa-redirige.wd3.myworkdayjobs.com/External
+        domain: empresa-redirige.wd3.myworkdayjobs.com
+        site_type: ats_instance
+        ats: workday
+        status: active
+        first_seen: 2026-09-02T12:00:00Z
+        last_verified: 2026-09-02T12:00:00Z
+        reached_from: https://empresa-redirige.cl/careers
+        observations:
+          - source: official_site
+            checked_at: 2026-09-02T12:00:00Z
+            ats: workday
+            site_type: ats_instance
+            evidence: "redirect: https://empresa-redirige.cl/careers → workday tenant host"
+            observed_url: https://empresa-redirige.cl/careers
+        conflicts: []
+        notes: null
+
+  - id: multi-portal
+    name: Empresa Multi Portal
+    country: CL
+    sector: banking
+    domains:
+      - multiportal.cl
+      - trabajaenmultiportal.cl
+    career_sites:
+      - url: https://trabajaenmultiportal.cl
+        domain: trabajaenmultiportal.cl
+        site_type: company_career_portal
+        ats: unknown
+        status: active
+        first_seen: 2026-09-03T12:00:00Z
+        last_verified: 2026-09-03T12:00:00Z
+        reached_from: null
+        observations:
+          - source: user_observation
+            checked_at: 2026-09-03T12:00:00Z
+            ats: unknown
+            site_type: company_career_portal
+            evidence: "career naming pattern: host label 'trabajaenmultiportal'"
+            observed_url: https://trabajaenmultiportal.cl
+        conflicts: []
+        notes: main employer brand portal
+      - url: https://multiportal.wd1.myworkdayjobs.com/Careers
+        domain: multiportal.wd1.myworkdayjobs.com
+        site_type: ats_instance
+        ats: workday
+        status: active
+        first_seen: 2026-09-03T12:05:00Z
+        last_verified: 2026-09-03T12:05:00Z
+        reached_from: null
+        observations:
+          - source: linkedin_post
+            checked_at: 2026-09-03T12:05:00Z
+            ats: workday
+            site_type: ats_instance
+            evidence: "host rule: multiportal.wd1.myworkdayjobs.com matches workday"
+            observed_url: https://multiportal.wd1.myworkdayjobs.com/Careers
+        conflicts: []
+        notes: applications for corporate roles
+      - url: https://boards.greenhouse.io/multiportallabs
+        domain: boards.greenhouse.io
+        site_type: ats_instance
+        ats: greenhouse
+        status: candidate
+        first_seen: 2026-09-04T12:00:00Z
+        last_verified: null
+        reached_from: null
+        observations:
+          - source: web_discovery
+            checked_at: 2026-09-04T12:00:00Z
+            ats: greenhouse
+            site_type: ats_instance
+            evidence: "host rule: boards.greenhouse.io matches greenhouse"
+            observed_url: https://boards.greenhouse.io/multiportallabs
+        conflicts: []
+        notes: subsidiary/lab hiring; verify it is the same employer before promoting
