@@ -119,6 +119,11 @@ def looks_like_page_metadata(phrase: str) -> bool:
         return False
     if text in _CURRENCY_CODES or fold_text(text) in _PAGE_FIELD_LABELS:
         return True
+    if ":" in text:
+        label_part = fold_text(text.split(":", 1)[0].strip())
+        if label_part in _PAGE_FIELD_LABELS:
+            # ATS rows like "Primary Location: Santiago" (value has no digit).
+            return True
     if _DATE_RE.search(text) or _CLOCK_RE.search(text) or _MONEY_RE.search(text):
         return True
     if _LABEL_VALUE_RE.match(text):

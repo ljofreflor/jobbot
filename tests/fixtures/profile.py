@@ -203,14 +203,18 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "id": "zoonosis-vigilancia",
                         "text": "Referente regional de la vigilancia epidemiológica de rabia "
                         "e hidatidosis; investigación de brotes de enfermedades zoonóticas.",
-                        "tags": [],
+                        "tags": [
+                            "autoridad_sanitaria",
+                            "relacionamiento_institucional",
+                            "regulatorio",
+                        ],
                         "metrics": {},
                     },
                     {
                         "id": "zoonosis-informes",
                         "text": "Elaboré informes de situación para la toma de decisiones "
                         "en salud pública.",
-                        "tags": [],
+                        "tags": ["autoridad_sanitaria", "coordinacion_interinstitucional"],
                         "metrics": {},
                     },
                 ],
@@ -229,7 +233,11 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "text": "Apoyo técnico a doce países en la puesta en marcha de un "
                         "sistema de información de vigilancia epidemiológica para "
                         "inmunoprevenibles.",
-                        "tags": [],
+                        "tags": [
+                            "relacionamiento_institucional",
+                            "coordinacion_interinstitucional",
+                            "regulatorio",
+                        ],
                         "metrics": {},
                     }
                 ],
@@ -247,14 +255,14 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "id": "red-laboratorios",
                         "text": "Coordiné una red de 150 laboratorios clínicos para el "
                         "diagnóstico durante la pandemia.",
-                        "tags": [],
+                        "tags": ["gestion_de_redes", "coordinacion_interinstitucional"],
                         "metrics": {},
                     },
                     {
                         "id": "red-emergencias",
                         "text": "Investigación de brotes y vigilancia intensificada en "
                         "emergencias sanitarias.",
-                        "tags": [],
+                        "tags": ["gestion_de_redes", "autoridad_sanitaria"],
                         "metrics": {},
                     },
                 ],
@@ -272,7 +280,7 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "id": "municipio-programa",
                         "text": "Implementé el programa municipal de zoonosis y tenencia "
                         "responsable de mascotas.",
-                        "tags": [],
+                        "tags": ["regulatorio", "relacionamiento_institucional"],
                         "metrics": {},
                     }
                 ],
