@@ -46,6 +46,7 @@ from jobbot.models.application import ApplicationStatus
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.ops.narrate import ExplorationOutcome, Narrator, Phase
+from jobbot.portals.detect import AtsKind
 from jobbot.profile.diff import compare_summaries, summarize_profile
 from jobbot.profile.importer_common import write_generated_profile
 from jobbot.profile.importer_latex import LatexImportError, import_latex_cv
@@ -2583,6 +2584,72 @@ def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
     console.print(f"Opened {target}")
 
 
+def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | None) -> None:
+    from urllib.parse import urlparse
+
+    from jobbot.applications.login_gate import login_warning, session_site
+    from jobbot.browser import sessions as browser_sessions
+    from jobbot.companies.signup import AccountNeed, account_need
+
+    if account_need(ats_kind) is not AccountNeed.NEEDED:
+        return
+    site = session_site(ats_kind)
+    states: list[browser_sessions.SessionState] = []
+    if site is not None:
+        ports = list(browser_sessions.DEFAULT_PORTS)
+        cdp_port = urlparse(cdp).port if cdp else None
+        if cdp_port is not None and cdp_port not in ports:
+            ports.append(cdp_port)
+        states = browser_sessions.inspect_sessions(config.root, sites=[site], ports=ports)
+    warning = login_warning(ats_kind, states)
+    if warning:
+        console.print(f"[bold yellow]{warning}[/bold yellow]")
+
+
+def _ats_target_url(adapter: Any, job: JobPosting, ats_url: str) -> str:
+    """The page `adapter.open` would show (Indeed routes to its apply step)."""
+    from jobbot.adapters.ats.indeed_apply import IndeedApplyAdapter, apply_target
+
+    if isinstance(adapter, IndeedApplyAdapter):
+        return apply_target(job) or ats_url
+    return ats_url
+
+
+def _fill_ats_over_cdp(
+    cdp: str, url: str, candidate: Candidate, config: JobbotConfig, job_id: str
+) -> bool:
+    """Open the ATS in a new tab of your Chrome and fill known fields. False → fall back."""
+    from jobbot.adapters.ats import apply_fill
+    from jobbot.adapters.ats.email_apply import resolve_cv_path
+
+    cv_pdf = resolve_cv_path(config.output_dir, job_id)
+    try:
+        result = apply_fill.open_and_fill_over_cdp(cdp, url, candidate, cv_path=cv_pdf)
+    except apply_fill.ApplyFillError as exc:
+        err_console.print(f"[yellow]{exc}[/yellow]")
+        err_console.print("[yellow]Falling back to your default browser + prefill sheet.[/yellow]")
+        return False
+    console.print(f"[bold]Opened in a new tab of[/bold] {cdp}: {result.url}")
+    if result.login_required:
+        console.print(
+            "[yellow]The page asks you to sign in. JobBot typed nothing: sign in in that "
+            "tab yourself, then re-run this command.[/yellow]"
+        )
+    elif not result.readable:
+        console.print(f"[yellow]{result.note}. Fill it by hand with the prefill sheet.[/yellow]")
+    for label in result.filled:
+        console.print(f"  [green]filled[/green] {label}")
+    for label in result.kept:
+        console.print(f"  [cyan]kept (already had a value)[/cyan] {label}")
+    if result.attached and cv_pdf is not None:
+        console.print(f"  [green]attached[/green] {cv_pdf.name}  ({cv_pdf})")
+    console.print("Left for you:")
+    for label in result.left_for_human:
+        console.print(f"  • {label}")
+    console.print("Tab left open. Review everything; you submit — JobBot never clicks it.")
+    return True
+
+
 @application_app.command("apply")
 def application_apply(
     job_id: Annotated[str, typer.Argument()],
@@ -2636,6 +2703,7 @@ def application_apply(
     console.print(f"ATS: {plan.ats_kind.value}  adapter={adapter_name}  {plan.ats_url or '(none)'}")
     console.print(f"Method: {plan.method.value}")
     console.print(plan.message)
+    _warn_if_login_needed(config, plan.ats_kind, cdp)
 
     if plan.method == ApplyMethod.EMAIL:
         from jobbot.adapters.ats.email_apply import is_tailored_cv, resolve_cv_path
@@ -2771,12 +2839,16 @@ def application_apply(
     app_dir = prepare_application_package(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
     )
-    if adapter is not None and hasattr(adapter, "open"):
-        adapter.open(job)
-    else:
-        from jobbot.adapters.ats.apply import open_ats_in_browser
+    filled_in_cdp = bool(cdp) and _fill_ats_over_cdp(
+        str(cdp), _ats_target_url(adapter, job, plan.ats_url), candidate, config, job.id
+    )
+    if not filled_in_cdp:
+        if adapter is not None and hasattr(adapter, "open"):
+            adapter.open(job)
+        else:
+            from jobbot.adapters.ats.apply import open_ats_in_browser
 
-        open_ats_in_browser(plan.ats_url)
+            open_ats_in_browser(plan.ats_url)
     # Write prefill cheat-sheet next to package. Contact stays in profile.yaml.
     cheat = app_dir / "ats_prefill.yaml"
     import yaml
@@ -2799,7 +2871,8 @@ def application_apply(
         ),
         encoding="utf-8",
     )
-    console.print(f"[green]Opened ATS[/green] {plan.ats_url}")
+    where = "in your Chrome (CDP tab left open)" if filled_in_cdp else ""
+    console.print(f"[green]Opened ATS[/green] {plan.ats_url} {where}".rstrip())
     console.print(f"Prefill sheet: {cheat}")
     console.print("Submit manually after reviewing HITL fields.")
     _learn_form_from_apply(config, plan.ats_url, job.company)

@@ -131,6 +131,7 @@ writing it again — the promotion rule lives in
 ### `adapters/ats`
 
 - `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `split_personal_name`, `prefill_field_map`, `prefill_sheet_fields`, `describe_prefill`
+- `apply_fill.py` — Fill an external ATS form in your own Chrome (CDP) and stop before submit. · `ApplyFillError`, `FieldFill`, `ApplyFillPlan`, `ApplyFillResult`, `profile_key_for`, `plan_apply_fill`, `looks_like_login`, `has_captcha`, `fill_open_page`, `open_and_fill_over_cdp`
 - `ashby.py` — Ashby ATS adapter — open + known-field map only (HITL submit). · `AshbyAdapter`
 - `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`
 - `getonboard.py` — Get on Board adapter — open job page + known-field map (HITL submit). · `GetOnBoardAdapter`
@@ -181,6 +182,7 @@ writing it again — the promotion rule lives in
 
 ### `applications`
 
+- `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
 
 ### `browser`
@@ -203,7 +205,7 @@ writing it again — the promotion rule lives in
 - `oneshot.py` — One-shot seeding of company career portals from public sources (not a crawler). · `CompanySeed`, `CompanyPortalCandidate`, `FetchResult`, `Fetcher`, `UrllibFetcher`, `OneshotReport`, `CandidateGroups`, `group_candidates`, `RobotsVerdict`, `RobotsPolicy`, `load_seeds`, `load_search_hits`, `candidate_urls`, `is_refusal`, `www_variant`, `CompanyProbe`, `discover_company`, `run_oneshot`, `write_candidates`, `load_candidates`, `import_candidates`
 - `recon.py` — Learn portal truth from a page you are already on (issue #45). · `ReconReport`, `ReconError`, `resolve_recon_site`, `recon_from_html`, `plan_recon`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
-- `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `signup_target`, `signup_sheet`, `screening_to_prepare`
+- `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `account_need`, `signup_target`, `signup_sheet`, `screening_to_prepare`
 - `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `public_url`, `canonical_key`, `host_of`, `registrable_domain`, `slugify`, `company_hint_from_url`
 
 ### `cv`
