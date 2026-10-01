@@ -95,6 +95,10 @@
 \end{itemize}
 {% endif %}
 
+{% if cv_credit %}
+\vspace{1.2em}
+{\footnotesize {{ mark | latex }} --- \url{ {{- repo_url -}} }}
+{% endif %}
 {% if application_log %}
 {% set log = application_log %}
 % jobbot:application-log

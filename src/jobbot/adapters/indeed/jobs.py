@@ -47,7 +47,7 @@ class IndeedJobSource:
     ) -> None:
         self.config = config or load_config()
         self.base = selectors.indeed_jobs_base(self._country())
-        self.profile_dir = self.config.root / "browser-data" / "indeed"
+        self.profile_dir = self.config.browser_profile_dir("indeed")
         self.debug_root = self.config.output_dir / "debug"
         from jobbot.browser.cdp import resolve_cdp_url
 

@@ -9,6 +9,7 @@ from pathlib import Path
 from babel.units import format_unit
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from jobbot.branding import CV_CREDIT, MARK, REPO_URL
 from jobbot.cv.application_log import ApplicationLog
 from jobbot.cv.latex import escape_latex, escape_latex_multiline, escape_latex_url
 from jobbot.cv.selection import SelectionResult, filter_experiences, select_for_base_cv
@@ -223,6 +224,7 @@ def render_cv_tex(
     *,
     style: CvStyle = CvStyle.MODERNCV,
     application_log: ApplicationLog | None = None,
+    credit: bool = False,
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
@@ -250,6 +252,9 @@ def render_cv_tex(
         edu_years=lambda edu: es_year_range(edu.start_date, edu.end_date),
         linkedin_handle=social_handle(candidate.personal.linkedin),
         github_handle=social_handle(candidate.personal.github),
+        repo_url=REPO_URL,
+        mark=MARK,
+        cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.CV,
     )
 
@@ -258,6 +263,8 @@ def render_cv_ats(
     candidate: Candidate,
     templates_dir: Path,
     selection: SelectionResult | None = None,
+    *,
+    credit: bool = False,
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
@@ -273,5 +280,6 @@ def render_cv_ats(
         metrics_line=_metrics_line,
         edu_dates=_edu_dates,
         group_label=_group_label,
+        cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.ATS,
     )

@@ -408,3 +408,24 @@ def test_turning_the_setting_on_rebuilds_a_cv_that_is_otherwise_current(
     assert build_adapted_cv(_config(tmp_path, project_root, on=False), candidate, job, match)
     tex, _ = _job_outputs(tmp_path)
     assert "Registro de la postulación" not in tex
+
+
+def test_signature_setting_also_controls_the_repository_credit(
+    project_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Off by default: neither the PDF source nor the ATS text names the tool."""
+    from jobbot.cv.build import build_adapted_cv
+
+    _fake_xelatex(monkeypatch)
+    candidate, job = _candidate(), _job()
+    match = RuleBasedJobAnalyzer().analyze(candidate, job)
+
+    build_adapted_cv(_config(tmp_path, project_root, on=False), candidate, job, match)
+    tex, ats = _job_outputs(tmp_path)
+    assert "powered by Jobbot" not in tex
+    assert "powered by Jobbot" not in ats
+
+    build_adapted_cv(_config(tmp_path, project_root, on=True), candidate, job, match)
+    tex, ats = _job_outputs(tmp_path)
+    assert "powered by Jobbot sync CV" in tex
+    assert "powered by Jobbot sync CV" in ats

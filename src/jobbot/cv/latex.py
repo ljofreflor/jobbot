@@ -22,8 +22,14 @@ _ESCAPE_RE = re.compile(
 )
 
 
-def escape_latex(text: str) -> str:
-    """Escape characters that are special in LaTeX text mode."""
+def escape_latex(text: str | None) -> str:
+    """Escape characters that are special in LaTeX text mode.
+
+    ``None`` becomes an empty string so optional profile fields (city,
+    location, …) do not crash Jinja's ``latex`` filter mid-render.
+    """
+    if text is None:
+        return ""
     return _ESCAPE_RE.sub(lambda m: _LATEX_SPECIALS[m.group(0)], text)
 
 
@@ -32,7 +38,9 @@ def escape_latex_url(url: str) -> str:
     return url.replace("%", r"\%").replace("#", r"\#")
 
 
-def escape_latex_multiline(text: str) -> str:
+def escape_latex_multiline(text: str | None) -> str:
     """Escape LaTeX and normalize whitespace for paragraph fields."""
+    if text is None:
+        return ""
     cleaned = " ".join(text.split())
     return escape_latex(cleaned)

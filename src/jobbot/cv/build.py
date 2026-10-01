@@ -58,11 +58,13 @@ def build_cv(
     match: JobMatch | None = None,
     style: CvStyle = CvStyle.MODERNCV,
     application_log: ApplicationLogOptions | None = None,
+    credit: bool = False,
 ) -> list[Path]:
     """Build CV artifacts under output/base/ or output/jobs/<id>/.
 
     ``application_log`` adds a last page to a job PDF; the base CV and the ATS text
-    never carry it, since the ATS text is what gets pasted into forms.
+    never carry it, since the ATS text is what gets pasted into forms. ``credit``
+    closes the CV with the repository link, only when the candidate opted in.
     """
     if not templates_dir.is_dir():
         msg = f"Templates directory not found: {templates_dir}"
@@ -93,7 +95,7 @@ def build_cv(
     if target == BuildTarget.ATS:
         ats_path = out_dir / "cv_ats.txt"
         ats_path.write_text(
-            build_ats_text(candidate, templates_dir, selection),
+            build_ats_text(candidate, templates_dir, selection, credit=credit),
             encoding="utf-8",
         )
         logger.info("Wrote ATS CV: %s", ats_path)
@@ -113,7 +115,7 @@ def build_cv(
             fallback_language=cv_language(style),
         )
     tex_content = render_cv_tex(
-        candidate, templates_dir, selection, style=style, application_log=log
+        candidate, templates_dir, selection, style=style, application_log=log, credit=credit
     )
     tex_path.write_text(tex_content, encoding="utf-8")
     logger.info("Wrote LaTeX CV: %s", tex_path)
@@ -125,7 +127,7 @@ def build_cv(
     if job is not None:
         ats_path = out_dir / "cv_ats.txt"
         ats_path.write_text(
-            render_cv_ats(candidate, templates_dir, selection),
+            render_cv_ats(candidate, templates_dir, selection, credit=credit),
             encoding="utf-8",
         )
         written.append(ats_path)
@@ -189,6 +191,7 @@ def build_adapted_cv(
             job=job,
             match=match,
             application_log=options,
+            credit=config.cv.jobbot_signature,
         )
     except RuntimeError as exc:
         logger.warning("%s", exc)
@@ -199,6 +202,7 @@ def build_adapted_cv(
             target=BuildTarget.ATS,
             job=job,
             match=match,
+            credit=config.cv.jobbot_signature,
         )
 
 

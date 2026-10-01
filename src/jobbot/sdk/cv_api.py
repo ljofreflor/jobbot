@@ -79,6 +79,7 @@ class CvApi:
             target=target,
             job=job,
             style=cv_style,
+            credit=self.config.cv.jobbot_signature,
         )
 
         # Find PDF in returned paths

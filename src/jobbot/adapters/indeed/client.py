@@ -48,7 +48,7 @@ class IndeedAdapter:
         cdp_url: str | None = None,
     ) -> None:
         self.config = config
-        self.profile_dir = config.root / "browser-data" / "indeed"
+        self.profile_dir = config.browser_profile_dir("indeed")
         self.debug_root = config.output_dir / "debug"
         from jobbot.browser.cdp import resolve_cdp_url
 
