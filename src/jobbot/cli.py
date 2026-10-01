@@ -4505,6 +4505,7 @@ def companies_list(
 ) -> None:
     """List known companies and their career platforms."""
     from jobbot.companies.models import KnowledgeStatus
+    from jobbot.companies.urls import display_url
 
     config = load_config()
     registry, path = _companies_registry(config)
@@ -4521,10 +4522,10 @@ def companies_list(
             raise typer.Exit(GENERIC_FAILURE)
         wanted = {status}
     table = Table(title=f"Company career platforms ({path.name})")
-    table.add_column("Company")
+    table.add_column("Company", overflow="fold")
     table.add_column("Country")
-    table.add_column("Career site")
-    table.add_column("Type")
+    table.add_column("Career site", overflow="fold", min_width=24, ratio=3)
+    table.add_column("Type", overflow="fold")
     table.add_column("ATS")
     table.add_column("Status")
     table.add_column("Conf.")
@@ -4536,7 +4537,7 @@ def companies_list(
             table.add_row(
                 record.id,
                 record.country or "—",
-                site.url[:52],
+                display_url(site.url),
                 site.site_type.value,
                 site.ats.value,
                 site.status.value,
@@ -4678,6 +4679,8 @@ def companies_recon(
             console.print(f"  … +{len(report.field_labels) - 12} more")
     if report.conflict:
         err_console.print(f"[yellow]Contradiction:[/yellow] {report.conflict}")
+    if report.refused:
+        err_console.print(f"[yellow]Not stored:[/yellow] {report.refused}")
     console.print(report.hint)
     if not apply_changes:
         console.print(
