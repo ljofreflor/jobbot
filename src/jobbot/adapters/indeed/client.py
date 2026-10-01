@@ -81,11 +81,33 @@ class IndeedAdapter:
             timeout_seconds=300,
         )
 
-    def login(self) -> None:
+    def login(self, *, continue_url: str | None = None) -> None:
+        """HITL Indeed login. Prefer email / magic link; never type a password.
+
+        ``continue_url`` is the link from Indeed's email (magic link / verify).
+        Paste it from your phone mail into this command on the desktop session.
+        JobBot cannot force Indeed to offer magic link — only open what they sent.
+        """
         with self._session() as browser:
-            browser.page.goto(selectors.INDEED_LOGIN, wait_until="domcontentloaded")
+            if continue_url:
+                target = normalize_indeed_continue_url(continue_url)
+                console.print(
+                    "[bold]Opening Indeed continue / magic link[/bold] "
+                    "(HITL; JobBot does not invent credentials)."
+                )
+                browser.page.goto(target, wait_until="domcontentloaded")
+            else:
+                browser.page.goto(selectors.INDEED_LOGIN, wait_until="domcontentloaded")
+                console.print(
+                    "[bold]Indeed login (HITL)[/bold]\n"
+                    "1. Prefer [bold]email / magic link / código[/bold] if Indeed shows it.\n"
+                    "2. JobBot [bold]never[/bold] types your password or solves CAPTCHA.\n"
+                    "3. If the mail arrives on your phone, copy the link and run:\n"
+                    "   [dim]jobbot indeed login --continue-url 'PEGAR_LINK'[/dim]"
+                )
             ok = browser.pause_for_manual(
-                "Log in to Indeed (including 2FA if prompted).",
+                "Finish Indeed sign-in in the browser (magic link, OTP, or CAPTCHA). "
+                "Password stays yours.",
                 is_clear=lambda: not _is_auth_url(browser.page.url),
                 timeout_seconds=300,
             )
@@ -324,6 +346,32 @@ class IndeedAdapter:
 def _is_auth_url(url: str) -> bool:
     u = url.lower()
     return any(x in u for x in ("/auth", "login", "signin", "secure.indeed.com/account"))
+
+
+def normalize_indeed_continue_url(url: str) -> str:
+    """Accept only Indeed auth / continue links (magic link from email)."""
+    raw = url.strip()
+    if not raw:
+        raise ValueError("Empty continue URL")
+    # Accidental double-paste from iOS share / mail clients.
+    second = raw.find("https://", 8)
+    if second > 0:
+        raw = raw[:second]
+    lowered = raw.casefold()
+    host_ok = any(
+        h in lowered
+        for h in (
+            "indeed.com/",
+            "secure.indeed.com",
+            "smartredirect.indeed.com",
+        )
+    )
+    if not host_ok or "://" not in raw:
+        raise ValueError(
+            "Continue URL must be an Indeed link from the sign-in email "
+            f"(got {raw!r})"
+        )
+    return raw
 
 
 def _looks_like_marketing_headline(headline: str | None) -> bool:
