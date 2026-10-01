@@ -102,6 +102,14 @@ as ops failures with class+message — tracking stripped from the stored command
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
 
+## Job URLs (always validate before handing one out)
+
+- Before giving the user any posting URL, validate it: HTTP 200 after redirects, the page is the detail of **that** role (title and employer match), and it is not closed or expired as of today.
+- Hand out the posting's canonical URL — never a search page, the portal home, or an ID-only URL when that form fails (e.g. trabajando.cl needs the slug).
+- If the site blocks curl (Workday, LinkedIn, Computrabajo), check it in a browser in public view: no login, no CAPTCHA bypass.
+- If it cannot be verified, mark it **"not verified"** and say why; never invent one or swap in another role.
+- `jobbot jobs add --url` gets the already validated, canonical URL.
+
 ## MVP decisions (LinkedIn → ATS loop)
 
 - **LinkedIn discovery:** recruiter **posts** with external ATS links (`linkedin sweep`); LinkedIn Jobs official is secondary.
@@ -220,6 +228,19 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
   corrida (`--max-llm-calls`) y `--dry-run` que imprime qué se enviaría y cuánto sin gastar. Toda
   salida del LLM pasa la misma validación determinista: si inventa o borra, se descarta y queda la
   sugerencia determinista. La suite corre sin red, sin API key y sin el extra `llm`.
+- **Mejora diaria del CV (ritual):** el CV debe seguir mejorando con lo que enseñan los JD
+  guardados, así que el agente **propone una mejora por día** sin que se la pidan y el candidato
+  **confirma**. Con datos locales (`data/profile.yaml` + jobs guardados), toca si el marcador
+  `output/cv/improvement_proposal.yaml` (gitignored) no existe o su `last_proposed` es anterior a
+  hoy (fecha local). Si toca: `jobbot cv advise` (dry-run) + `jobbot profile suggest-from-market`
+  (sin stdin) y proponer **una sola**: la de mayor impacto que no esté en `proposed:` del marcador
+  ni rechazada en `output/cv/advice_log.yaml` (preferir presentación respaldada por muchos JD; una
+  brecha va solo como pregunta para que el candidato confirme el hecho). Algo ya propuesto vuelve
+  solo si su evidencia en los JD creció de forma material. Sin nada nuevo, decirlo en una línea.
+  Siempre actualizar el marcador: `last_proposed: AAAA-MM-DD`, `jobs_seen: N` (IDs únicos en
+  `jobbot jobs shortlist`) y `proposed:` con `key` (`advise:<id>`, `gap:<término>`,
+  `market:<slug>`), `date` y `jds`. Nada se aplica sin un sí explícito (`cv advise --apply` y
+  `suggest-from-market --promote` confirman); nunca inventar. Un clon sin datos locales lo omite.
 - **Conocimiento de reclutamiento:** `recruiters discover|list|show|promote|reject|export` guarda
   **prácticas públicas**, no personas: el modelo no tiene campo para autor, empleador ni contacto.
   Respeta `robots.txt`, deja fuera lo que está detrás de login (no fue publicado para nosotros) y
@@ -376,6 +397,34 @@ an issue already holds acceptance tests wastes everyone's time.
    a write invite open — then retry `--add-assignee cursoragent`. Prefer the real assignee
    over the label alone.
 
+## Local branches (periodic cleanup)
+
+A deleted remote branch leaves the local one behind. Once per local day, ask (HITL)
+before removing locals whose upstream is already gone. Do not ask again the same day.
+
+The marker is `output/ops/branch_cleanup.yaml` (under `output/`, gitignored):
+`last_asked: YYYY-MM-DD`. A clone with no `output/` skips the sweep. Update
+`last_asked` after the question, whether the answer is yes or no.
+
+When it is due:
+
+1. `git fetch --prune`.
+2. List local branches other than `main` and `develop` whose upstream is `gone`.
+   A branch that was never pushed is not in this list.
+3. Ask once, naming each branch. The delete set is whatever is already contained in
+   `develop` (`git merge-base --is-ancestor`). A tip that is not in `develop` stays;
+   do not merge it into `develop` and do not force-delete it unless the human names
+   that branch and asks for it.
+4. On yes: if the current branch is one of them, `git switch develop` first. If that
+   branch has uncommitted work, say so and stop — do not switch, do not stash. Then
+   `git branch -d` each merged branch. Never delete `main` or `develop`.
+
+When this same turn deletes a remote branch (`git push origin --delete`, a PR merge
+that deletes the head, `gh pr close` after the remote is gone), delete the matching
+local in that turn: switch to `develop` first if you are on it, `-d` only, and stop
+to ask before a force-delete if the local tip is not in `develop`. The daily question
+covers whatever that turn missed.
+
 ## Remote agents (issues, cloud, CI)
 
 An agent working from a clone only has what git tracks, and the PII lives outside git:
@@ -409,6 +458,11 @@ Branch gates:
 
 - **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%.
 - **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%.
+
+Every feature, fix or docs PR targets **`develop`** (`gh pr create --base develop`), whoever
+opens it, cloud agents included. `main` only receives the `develop` → `main` release PR.
+A PR merged straight into `main` forks the history: `develop` then has to merge `main`
+back, and every conflict that merge resolves is a chance to drop a fix.
 
 A change is not delivered until its behaviour has a unit test. `cli.py` and live
 Playwright portal clients are omitted from the line count (they still have focused
