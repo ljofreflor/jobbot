@@ -101,6 +101,70 @@ def test_login_wall_reports_needs_login(tmp_path: Path) -> None:
     assert state.hint is not None and "--cdp http://127.0.0.1:9223" in state.hint
 
 
+@pytest.mark.parametrize(
+    ("login_port", "signed_in_port"),
+    [(9223, 9224), (9224, 9223)],
+)
+def test_signed_in_page_on_any_endpoint_beats_a_login_wall_on_another(
+    tmp_path: Path, login_port: int, signed_in_port: int
+) -> None:
+    """Regression: a login tab on one port hid the signed-in tab on another."""
+    fetch = FakeCdp(
+        {
+            login_port: ["https://www.getonbrd.com/login"],
+            signed_in_port: ["https://www.getonbrd.com/webpros/edit"],
+        }
+    )
+    states = inspect_sessions(
+        tmp_path, sites=["getonboard"], ports=(9223, 9224), fetch=fetch, processes=[]
+    )
+    state = session_for(states, "getonboard")
+    assert state is not None and state.status is SessionStatus.READY
+    assert state.cdp_url == f"http://127.0.0.1:{signed_in_port}"
+    assert state.hint == f"--cdp http://127.0.0.1:{signed_in_port}"
+    assert "getonbrd.com/webpros/edit" in state.evidence
+
+
+def test_login_wall_beats_a_tab_that_proves_nothing(tmp_path: Path) -> None:
+    fetch = FakeCdp(
+        {
+            9222: ["https://www.getonbrd.com/empleos"],
+            9223: ["https://www.getonbrd.com/users/sign_in"],
+        }
+    )
+    states = inspect_sessions(
+        tmp_path, sites=["getonboard"], ports=(9222, 9223), fetch=fetch, processes=[]
+    )
+    state = session_for(states, "getonboard")
+    assert state is not None and state.status is SessionStatus.NEEDS_LOGIN
+    assert state.cdp_url == "http://127.0.0.1:9223"
+
+
+def test_matching_account_on_one_endpoint_beats_another_account_elsewhere(
+    tmp_path: Path,
+) -> None:
+    from jobbot.browser.sessions import AccountExpectation
+
+    other = "https://mail.google.com/mail/u/1/"
+    mine = "https://mail.google.com/mail/u/0/"
+    fetch = FakeCdp({9222: [other], 9223: [mine]})
+    states = inspect_sessions(
+        tmp_path,
+        sites=["gmail"],
+        ports=(9222, 9223),
+        fetch=fetch,
+        processes=[],
+        account=AccountExpectation(email="ana.ejemplo@example.com"),
+        page_text={
+            other: "<div>otra.persona@example.com</div>",
+            mine: "<div>ana.ejemplo@example.com</div>",
+        },
+    )
+    state = session_for(states, "gmail")
+    assert state is not None and state.status is SessionStatus.READY
+    assert state.cdp_url == "http://127.0.0.1:9223"
+
+
 def test_no_endpoint_suggests_chrome_debug(tmp_path: Path) -> None:
     fetch = FakeCdp({})
     states = inspect_sessions(tmp_path, sites=["indeed"], ports=(9222,), fetch=fetch, processes=[])
@@ -170,6 +234,44 @@ def test_foreign_chrome_tabs_are_never_read(tmp_path: Path) -> None:
     assert "9222" in state.evidence and "not read" in state.evidence
     assert not [url for url in fetch.requested if ":9222/" in url]
     assert state.hint is not None and "--port 9222" not in state.hint
+
+
+def test_foreign_signed_in_tab_never_outranks_a_login_wall_on_an_own_port(
+    tmp_path: Path,
+) -> None:
+    fetch = FakeCdp(
+        {
+            9222: ["https://www.getonbrd.com/webpros/edit"],
+            9223: ["https://www.getonbrd.com/login"],
+        }
+    )
+    states = inspect_sessions(
+        tmp_path,
+        sites=["getonboard"],
+        ports=(9222, 9223),
+        fetch=fetch,
+        processes=[_foreign_chrome(9222)],
+    )
+    state = session_for(states, "getonboard")
+    assert state is not None and state.status is SessionStatus.NEEDS_LOGIN
+    assert state.cdp_url == "http://127.0.0.1:9223"
+    assert not [url for url in fetch.requested if ":9222/" in url]
+
+
+def test_foreign_endpoint_is_skipped_even_when_it_carries_tabs() -> None:
+    from jobbot.browser.sessions import SITES, CdpEndpoint, _state_for
+
+    spec = next(site for site in SITES if site.site == "getonboard")
+    foreign = CdpEndpoint(
+        url="http://127.0.0.1:9222",
+        port=9222,
+        page_urls=("https://www.getonbrd.com/webpros/edit",),
+        foreign=True,
+    )
+    state = _state_for(spec, [foreign], (), (9222,))
+    assert state.status is SessionStatus.UNKNOWN
+    assert state.cdp_url is None
+    assert "not read" in state.evidence
 
 
 def test_jobbot_profile_endpoint_is_still_read(tmp_path: Path) -> None:
