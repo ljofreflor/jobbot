@@ -215,3 +215,29 @@ def test_shipped_example_covers_three_architectures(project_root: Path) -> None:
     multi = by_id["multi-portal"].career_sites
     assert len(multi) == 3
     assert {site.status for site in multi} == {KnowledgeStatus.ACTIVE, KnowledgeStatus.CANDIDATE}
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://careers.example.com/global/en",
+        "https://example.org/jobs",
+        "https://careers.acme.example/join",
+        "https://empresa.test/careers",
+        "https://empresa.invalid/careers",
+        "http://localhost:8000/careers",
+    ],
+)
+def test_reserved_example_domains_are_refused(url: str) -> None:
+    """Regression: nothing stopped fixture domains from reaching the real base."""
+    from jobbot.companies.urls import ReservedDomainRejected
+
+    registry = CompanyRegistry()
+    with pytest.raises(ReservedDomainRejected, match="reserved"):
+        registry.observe(
+            company="Empresa Demo",
+            url=url,
+            source=DiscoverySource.USER_OBSERVATION,
+            site_type=CareerSiteType.COMPANY_CAREER_PORTAL,
+        )
+    assert registry.companies == []

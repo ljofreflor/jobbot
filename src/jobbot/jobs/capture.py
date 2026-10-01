@@ -19,7 +19,7 @@ from jobbot.companies.registry import (
     load_companies,
     save_companies,
 )
-from jobbot.companies.urls import company_hint_from_url
+from jobbot.companies.urls import ReservedDomainRejected, company_hint_from_url
 from jobbot.config import JobbotConfig
 from jobbot.jobs.inbox import inbox_path, list_parked, normalize_park_url, park_url
 from jobbot.portals.detect import AtsKind
@@ -110,15 +110,18 @@ def capture_url(
     if classification.is_company_specific:
         registry = load_companies(default_companies_path(config.root))
         name = (company or company_hint_from_url(normalized) or classification.domain).strip()
-        outcome = learn_from_url(
-            registry,
-            company=name,
-            url=normalized,
-            source=DiscoverySource.USER_OBSERVATION,
-            country=country,
-            resolve=False,
-            notes="captured from share URL (candidate; not yet recon/promoted)",
-        )
+        try:
+            outcome = learn_from_url(
+                registry,
+                company=name,
+                url=normalized,
+                source=DiscoverySource.USER_OBSERVATION,
+                country=country,
+                resolve=False,
+                notes="captured from share URL (candidate; not yet recon/promoted)",
+            )
+        except ReservedDomainRejected as exc:
+            return CaptureResult(kind=CaptureKind.UNRECOGNIZED, url=normalized, detail=str(exc))
         if outcome is not None and outcome.site is not None:
             save_companies(registry, default_companies_path(config.root))
             return CaptureResult(
