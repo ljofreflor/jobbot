@@ -40,10 +40,10 @@ vos decidís; el bot prepara, difiere, prefill y espera.
 
 1. **Fuente de verdad** — `profile.yaml` (y lo que de ahí derive). Los portales son vistas. Los hechos no se fabrican.
 2. **Pensar despacio una vez** — el vibecodeo descubre; el síntoma marca el retorno; comprimimos **condiciones de posibilidad** en comandos baratos. No cobramos System 2 dos veces en tokens del cliente.
-3. **Fenomenología, no requerimientos clásicos** — no “satisfacemos un deseo”. Preguntamos qué hace *posible* que esa necesidad aparezca, y lo dejamos en código. Ver [software-design.md](software-design.md) §3.8 y [AGENTS.md](../AGENTS.md).
+3. **Fenomenología, no requerimientos clásicos** — no “satisfacemos un deseo”. Preguntamos qué hace *posible* que esa necesidad aparezca, y lo dejamos en código. Ver [software-design.md](software-design.md) §3.8 y [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md).
 4. **Local por defecto** — PII, sesiones y base viven en tu máquina. Sin telemetría. Sin cloud de tu CV.
 5. **Dry-run primero** — escribir en un portal o “aplicar” exige confirmación explícita (`--apply`). Un “sí” en un prompt no es comprobante de envío.
-6. **LLM adentro, no en el chat eterno** — si hace falta prosa, vive dentro de una función (`--llm`), con hechos anclados y fallback determinista ([`nlp/gateway`](../src/jobbot/nlp/gateway.py)).
+6. **LLM adentro, no en el chat eterno** — si hace falta prosa, vive dentro de una función (`--llm`), con hechos anclados y fallback determinista ([`nlp/gateway`](https://github.com/ljofreflor/jobbot/blob/main/src/jobbot/nlp/gateway.py)).
 7. **Dominio-agnóstico** — enfermera, periodista o data scientist: ninguna regla gatea por el vocabulario de un solo oficio.
 
 ---

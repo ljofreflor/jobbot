@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-95 commands, 140 modules, 662 public symbols.
+103 commands, 150 modules, 721 public symbols.
 
 ## Commands
 
@@ -62,6 +62,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
+- `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
 - `jobbot jobs search` — Search Indeed and store job postings locally (small volumes).
 - `jobbot jobs shortlist` — Rank stored jobs by match score.
 - `jobbot jobs show` — Show a stored job posting.
@@ -79,6 +80,12 @@ writing it again — the promotion rule lives in
 - `jobbot ops failure work` — Print (or open) the bash maintainer lane: issue → branch → PR → retry (#46).
 - `jobbot ops failures` — List stored failures (grouped by fingerprint).
 - `jobbot ops loop` — Run a maintainer step continuously; persist Fxxxx on crash and continue.
+- `jobbot ops symptom issue` — Create a GitHub issue from a redacted symptom (HITL; uses gh). Never auto.
+- `jobbot ops symptom list` — List latent requirements (symptoms), newest first.
+- `jobbot ops symptom note` — Capture a latent requirement. Same fingerprint increments sightings.
+- `jobbot ops symptom plan` — Print the System 2 → System 1 compression plan (does not write code).
+- `jobbot ops symptom show` — Show one symptom (already redacted at write time).
+- `jobbot ops symptom triage` — Update symptom status after review / compression.
 - `jobbot portals add` — Add or update a portal in data/portals.yaml.
 - `jobbot portals detect` — Detect ATS kind for a URL.
 - `jobbot portals form-learn` — Learn what an application form asks. Reads only; never fills or submits.
@@ -211,7 +218,7 @@ writing it again — the promotion rule lives in
 
 ### `cv`
 
-- `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
+- `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `char_delta`, `compress_phrase`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
 - `application_log.py` — Opt-in last page of a job CV: which posting it was built for, the match, and where · `LogText`, `ApplicationLogOptions`, `EvidenceLine`, `ApplicationLog`, `posting_url`, `build_application_log`, `strong_requirement_evidence`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
 - `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
@@ -228,10 +235,11 @@ writing it again — the promotion rule lives in
 ### `db`
 
 - `engine.py` — SQLAlchemy engine and session helpers. · `make_engine`, `make_session_factory`
-- `models.py` — SQLAlchemy ORM tables. · `Base`, `JobRow`, `ApplicationRow`, `ApplicationEventRow`, `ExternalProfileSnapshotRow`, `OpsFailureRow`
+- `models.py` — SQLAlchemy ORM tables. · `Base`, `JobRow`, `ApplicationRow`, `ApplicationEventRow`, `ExternalProfileSnapshotRow`, `OpsFailureRow`, `OpsSymptomRow`
 
 ### `jobs`
 
+- `ats_queries.py` — ATS host search-query templates — conditions of possibility for board discovery. · `AtsSearchQuery`, `build_ats_search_queries`, `format_queries_help`
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
 - `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
@@ -239,7 +247,7 @@ writing it again — the promotion rule lives in
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `GetFromUrlResult`, `ingest_hard_link`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
-- `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`
+- `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`, `next_symptom_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
 - `language.py` — Spanish or English? Deterministic, from function words only — never a guess on a tie. · `detect_language`, `posting_language`
@@ -269,12 +277,14 @@ writing it again — the promotion rule lives in
 
 ### `nlp`
 
+- `gateway.py` — Optional LLM gateway — deterministic first; LLM only inside promoted functions. · `LlmOutcome`, `llm_extras_available`, `build_chat_model`, `run_optional_llm`
 - `langchain_refine.py` — Optional LangChain-backed cumulative refine (facts from Candidate only). · `LangChainProfileRefiner`
 - `refine.py` — Cumulative text refinement for portal profile blurbs. · `ProfileTextRefiner`, `RefineResult`, `refine_permanent_profile`, `CumulativeProfileRefiner`
 
 ### `ops`
 
 - `capabilities.py` — Index of what JobBot already does, so nobody re-derives it (see AGENTS.md). · `ModuleEntry`, `CommandEntry`, `collect_modules`, `collect_commands`, `render_index`, `build_index`, `write_index`, `modules_without_summary`
+- `compile.py` — Knowledge compilation — phenomenology of software → System 1.
 - `failure_work.py` — Bash lane from a stored failure → issue → branch → PR → retry (issue #46). · `branch_name`, `original_command`, `work_script`, `open_branch_commands`
 - `failures.py` — Persist local CLI/loop failures for issue → hotfix planning. · `FailureRecord`, `normalize_message`, `failure_fingerprint`, `infer_component`, `normalize_command`, `record_failure`, `should_record_cli_failure`, `runtime_context`, `capture_cli_failure`, `list_failures`, `get_failure`, `mark_status`, `group_by_fingerprint`, `issue_title`, `issue_body`
 - `loop.py` — Minimal continuous runner that records failures and continues. · `LoopTickResult`, `run_loop_tick`, `run_loop`, `describe_loop_commands`
@@ -282,6 +292,7 @@ writing it again — the promotion rule lives in
 - `pii_guard.py` — Block real PII from entering git (pre-commit guard). Local only, no network. · `Finding`, `is_blocked_path`, `is_allowed_content_path`, `scan_text`, `redact`, `is_binary_path`, `looks_binary`, `staged_paths`, `staged_content`, `scan_staged`, `tracked_paths`, `scan_tracked`, `format_report`, `main`
 - `precommit.py` — Decide whether a commit has to run the unit suite. Local only, no network. · `tests_needed`, `staged_paths`, `main`
 - `redact.py` — Redact secrets and contact PII from failure payloads. · `redact_text`, `host_only_url`, `redact_context`
+- `symptoms.py` — Symptoms: appearances that return — local, redacted; not a requirements backlog. · `SymptomRecord`, `sanitize_symptom_text`, `normalize_for_fingerprint`, `symptom_fingerprint`, `note_symptom`, `list_symptoms`, `get_symptom`, `mark_symptom_status`, `promote_plan`, `issue_title`, `issue_body`
 - `test_gate.py` — CI gates for unit-test pass rate (develop→main requires ≥95%). · `pass_rate`, `read_junit_counts`, `enforce_pass_rate`, `main`
 
 ### `portals`
