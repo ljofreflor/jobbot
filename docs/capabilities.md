@@ -7,7 +7,7 @@ Read this before searching the tree. It exists so that reusing a function is che
 writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), section
 "Design economics".
 
-87 commands, 125 modules, 584 public symbols.
+89 commands, 136 modules, 620 public symbols.
 
 ## Commands
 
@@ -17,9 +17,10 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot application show` — Show application package path and status for a job.
 - `jobbot applications list` — List tracked applications.
 - `jobbot applications status` — Alias for applications list.
-- `jobbot browser chrome-debug` — Open a normal Chrome with CDP so challenges can be completed by hand.
+- `jobbot browser chrome-debug` — Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
 - `jobbot browser login` — List permanent, active and candidate portals that still need you to sign in.
 - `jobbot browser sessions` — Report which browser sessions JobBot can reach (read-only; never attaches).
+- `jobbot capture` — Keep a share URL as a candidate — no fetch, no CAPTCHA (phone-friendly).
 - `jobbot companies detect` — Classify a URL (posting / career portal / ATS / redirect). Writes nothing.
 - `jobbot companies discover` — One-shot: seed candidate career portals for a company list (never canonical).
 - `jobbot companies export` — Write a shareable snapshot: active entries only, no candidate PII.
@@ -30,7 +31,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot companies recon` — Learn ATS markers and form questions from a page you entered (issue #45).
 - `jobbot companies reject` — Mark a discovered portal as wrong so it stops coming back.
 - `jobbot companies show` — Show one company with every portal, observation and contradiction.
-- `jobbot companies signup` — Open a company portal and list what registering will ask. Creates nothing.
+- `jobbot companies signup` — Sheet of what registering asks; --apply fills known fields (HITL create).
 - `jobbot companies sites` — Career portals reusable by later job discovery.
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
@@ -47,7 +48,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot getonboard upload-cv` — Validate the local CV PDF, then upload it to Get on Board Tus CVs.
 - `jobbot indeed diff` — Diff local profile vs Indeed snapshot.
 - `jobbot indeed inspect` — Inspect Indeed page roles/labels for selector development.
-- `jobbot indeed login` — Open Indeed login with persistent browser profile.
+- `jobbot indeed login` — Open Indeed login (HITL). Prefer email/magic link; optional --continue-url.
 - `jobbot indeed prepare` — Write Indeed sync package markdown from profile.yaml (no portal write).
 - `jobbot indeed pull` — Pull Indeed profile snapshot (read).
 - `jobbot indeed status` — Check whether an Indeed session appears valid.
@@ -81,6 +82,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml.
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
+- `jobbot profile queries` — Job searches derived from your experience; --apply saves them for you to edit.
 - `jobbot profile show` — Show a summary of the local profile.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
@@ -104,6 +106,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `jobbot`
 
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
+- `cli_sdk_demo.py` — CLI SDK Integration Demo.
 - `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `JobbotConfig`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`
@@ -125,6 +128,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `indeed_apply.py` — Indeed apply handoff — open the right page and stop before submit. · `IndeedApplyAdapter`, `apply_target`
 - `lever.py` — Lever ATS adapter — open + known-field map only (HITL submit). · `LeverAdapter`
 - `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `adapter_for_kind`, `adapter_for_job`
+- `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
 - `workday.py` — Workday ATS adapter stub — open + known-field map only (HITL submit). · `WorkdayAdapter`
 
 ### `adapters/getonboard`
@@ -143,7 +147,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `adapters/indeed`
 
-- `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`
+- `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `normalize_indeed_continue_url`
 - `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
@@ -161,7 +165,9 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 
 ### `adapters/torre`
 
-- `jobs.py` — Torre job source (LATAM / remote-first) via its public opportunity search. · `Fetcher`, `UrllibFetcher`, `TorreJobSource`, `search_opportunities`, `job_from_api_item`
+- `apply.py` — Torre application adapter - delegates to external ATS or manual Torre profile. · `TorreApplicationAdapter`
+- `field_extraction.py` — Extract structured fields from Torre API responses for portal learning. · `extract_torre_fields`
+- `jobs.py` — Torre job source (LATAM / remote-first) via its public opportunity search. · `Fetcher`, `UrllibFetcher`, `TorreJobSource`, `search_opportunities`, `is_remote_opportunity`, `job_from_api_item`
 
 ### `applications`
 
@@ -213,6 +219,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 ### `jobs`
 
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
+- `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
 - `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `visible_soup`, `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
@@ -221,15 +228,15 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
-- `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `normalize_many`
-- `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
+- `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `stem_word`, `WordIndex`, `normalize_many`
+- `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `repository.py` — Job persistence repository. · `JobRepository`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
 
 ### `matching`
 
 - `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`
-- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `format_match_report`
+- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `blind_matcher_warning`, `format_match_report`
 
 ### `models`
 
@@ -256,7 +263,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `failures.py` — Persist local CLI/loop failures for issue → hotfix planning. · `FailureRecord`, `normalize_message`, `failure_fingerprint`, `infer_component`, `normalize_command`, `record_failure`, `should_record_cli_failure`, `runtime_context`, `capture_cli_failure`, `list_failures`, `get_failure`, `mark_status`, `group_by_fingerprint`, `issue_title`, `issue_body`
 - `loop.py` — Minimal continuous runner that records failures and continues. · `LoopTickResult`, `run_loop_tick`, `run_loop`, `describe_loop_commands`
 - `narrate.py` — Phase narration for long JobBot loops (local stdout only; no telemetry). · `Phase`, `ExplorationOutcome`, `outcome_line`, `phase_line`, `Narrator`
-- `pii_guard.py` — Block real PII from entering git (pre-commit guard). Local only, no network. · `Finding`, `is_blocked_path`, `is_allowed_content_path`, `scan_text`, `redact`, `staged_paths`, `staged_content`, `scan_staged`, `format_report`, `main`
+- `pii_guard.py` — Block real PII from entering git (pre-commit guard). Local only, no network. · `Finding`, `is_blocked_path`, `is_allowed_content_path`, `scan_text`, `redact`, `is_binary_path`, `looks_binary`, `staged_paths`, `staged_content`, `scan_staged`, `format_report`, `main`
 - `precommit.py` — Decide whether a commit has to run the unit suite. Local only, no network. · `tests_needed`, `staged_paths`, `main`
 - `redact.py` — Redact secrets and contact PII from failure payloads. · `redact_text`, `host_only_url`, `redact_context`
 - `test_gate.py` — CI gates for unit-test pass rate (develop→main requires ≥95%). · `pass_rate`, `read_junit_counts`, `enforce_pass_rate`, `main`
@@ -270,6 +277,11 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `follow_redirect_url`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
+- `sso.py` — Identity providers offered on a login or signup page. · `SsoProvider`, `detect_sso_providers`, `provider_label`
+
+### `portals/detectors`
+
+- `torre_detector.py` — Torre.ai job board portal detector. · `PortalDetectionResult`, `TorrePortalDetector`
 
 ### `profile`
 
@@ -280,6 +292,7 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `loader.py` — Load Candidate from profile.yaml. · `ProfileLoadError`, `load_profile`, `load_profile_raw`
 - `market.py` — Market-language suggestions for baseline CV (no invention; no deletions). · `MarketGapQuestion`, `MarketSuggestion`, `suggest_from_market`, `render_suggestion_markdown`, `apply_confirmed_skills`, `merge_confirmed_skills_into_raw`
 - `pdf_glyphs.py` — Recover the ligature glyphs a PDF's /ToUnicode map forgets. · `repair_missing_ligatures`
+- `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`
 
 ### `publications`
@@ -291,3 +304,9 @@ writing it again — the promotion rule lives in [AGENTS.md](../AGENTS.md), sect
 - `discover.py` — Read public pages about hiring practice, politely and without logging in. · `DiscoveryReport`, `discover_sources`, `asks_for_login`, `page_title`
 - `playbook.py` — Turn a public page about hiring into practices the CV advisor can use. · `PracticeKind`, `Practice`, `extract_practices`, `advisor_notes`
 - `sources.py` — Registry of public sources about hiring practice, with the same lifecycle as companies. · `RecruiterSource`, `default_recruiters_path`, `load_sources`, `save_sources`, `upsert_source`, `promote_source`, `reject_source`, `active_sources`, `export_payload`
+
+### `sdk`
+
+- `client.py` — JobBot SDK client: unified entry point for all SDK operations. · `JobBotClient`
+- `cv_api.py` — CV API: build tailored CVs for job applications. · `CvApi`
+- `jobs_api.py` — Jobs API: search, retrieve, and match job opportunities. · `JobsApi`

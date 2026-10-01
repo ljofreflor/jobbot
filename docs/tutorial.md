@@ -76,11 +76,18 @@ reached. It does not create the account (that is `companies signup` / #44).
 
 ```bash
 uv run jobbot jobs search "Senior Data Scientist" --location Santiago
+uv run jobbot profile queries                                 # searches your experience backs
+uv run jobbot profile queries --apply                         # save them (edit freely after)
 uv run jobbot getonboard search
 uv run jobbot torre search --remote
 uv run jobbot linkedin sweep "enviar CV" --country CL
 uv run jobbot get https://www.getonbrd.com/empleos/.../slug   # hard link when you have one
 ```
+
+With no query typed, `getonboard search`, `torre search` and `linkedin sweep` run the
+`search_queries` saved in your profile (or, until you save them, the ones derived from your
+experience — `--max-queries` caps how many). If every job then scores 0%, the command says so:
+that points at the matcher, not at the market.
 
 Every source stores postings locally and teaches the registries what it saw: the platform in
 `data/portals.yaml`, and the company↔portal relation in `data/companies.yaml` when the posting
@@ -105,7 +112,7 @@ What the search teaches you comes back as proposals, never as silent edits:
 uv run jobbot companies discover data/companies-cl.example.yaml   # map portals (candidates)
 uv run jobbot companies recon NOMBRE --fixture page.html --apply  # truth from inside (#45)
 uv run jobbot portals form-learn URL --fetch     # what a form asks; it submits nothing
-uv run jobbot companies signup NOMBRE            # sheet + open; you finish irreversible steps
+uv run jobbot companies signup NOMBRE --apply --cdp URL  # fill known; you finish create
 uv run jobbot recruiters discover URL            # public hiring practice, then promote it
 uv run jobbot profile suggest-from-market        # market wording and gap questions
 ```

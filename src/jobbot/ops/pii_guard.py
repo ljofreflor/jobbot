@@ -38,6 +38,33 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"^\.cursor/", "local editor/agent config"),
 )
 
+# Binary / non-text suffixes: never decode as UTF-8 for content scanning.
+_BINARY_SUFFIXES = frozenset(
+    {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".ico",
+        ".pdf",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".otf",
+        ".zip",
+        ".gz",
+        ".bz2",
+        ".xz",
+        ".pyc",
+        ".so",
+        ".dylib",
+        ".sqlite",
+        ".sqlite3",
+        ".db",
+    }
+)
+
 # Files allowed to contain example-looking PII (fixtures, templates, this guard).
 _ALLOWED_PATHS: tuple[str, ...] = (
     r"^tests/",
@@ -134,13 +161,48 @@ def _git(args: list[str]) -> str:
     return proc.stdout
 
 
+def _git_bytes(args: list[str]) -> bytes:
+    proc = subprocess.run(  # noqa: S603
+        ["git", *args],
+        check=False,
+        capture_output=True,
+    )
+    return proc.stdout
+
+
+def is_binary_path(path: str) -> bool:
+    """True when the path suffix is a known non-text artefact."""
+    suffix = PurePosixPath(path).suffix.casefold()
+    return suffix in _BINARY_SUFFIXES
+
+
+def looks_binary(data: bytes) -> bool:
+    """Heuristic: NUL in the first chunk means not text for the PII scanner."""
+    if not data:
+        return False
+    sample = data[:8192]
+    return b"\0" in sample
+
+
 def staged_paths() -> list[str]:
     out = _git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"])
     return [line.strip() for line in out.splitlines() if line.strip()]
 
 
-def staged_content(path: str) -> str:
-    return _git(["show", f":{path}"])
+def staged_content(path: str) -> str | None:
+    """Return staged text, or None when the blob is binary / undecodable.
+
+    Architecture PNGs and similar must not crash the guard with UnicodeDecodeError.
+    """
+    if is_binary_path(path):
+        return None
+    raw = _git_bytes(["show", f":{path}"])
+    if looks_binary(raw):
+        return None
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
 
 
 def scan_staged() -> list[Finding]:
@@ -151,7 +213,10 @@ def scan_staged() -> list[Finding]:
         if reason is not None:
             findings.append(Finding(path, f"blocked path ({reason})"))
             continue
-        findings.extend(scan_text(staged_content(path), path))
+        text = staged_content(path)
+        if text is None:
+            continue
+        findings.extend(scan_text(text, path))
     return findings
 
 

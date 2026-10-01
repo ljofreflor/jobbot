@@ -292,6 +292,21 @@ def test_form_learning_reads_any_field_s_application(project_root: Path) -> None
     assert form.screening_questions() == ["N° de registro en la Superintendencia de Salud"]
 
 
+def test_sso_buttons_are_identity_hosts_not_a_trade() -> None:
+    """Google/LinkedIn on a clinic login are still SSO, not a field of work."""
+    from jobbot.portals.sso import SsoProvider, detect_sso_providers
+
+    html = (
+        "<html><body>"
+        "<button type='button'>Iniciar sesión con Google</button>"
+        "<a href='https://www.linkedin.com/oauth/v2/authorization'>Continuar con LinkedIn</a>"
+        "</body></html>"
+    )
+    found = detect_sso_providers(html)
+    assert SsoProvider.GOOGLE in found
+    assert SsoProvider.LINKEDIN in found
+
+
 def test_the_cv_advisor_speaks_about_documents_not_about_a_trade() -> None:
     """Every suggestion must make sense for a nurse and for an engineer alike."""
     from jobbot.cv.advisor import advise
@@ -347,3 +362,20 @@ def test_career_page_reads_any_field_s_vacancy() -> None:
     assert job.title == "Enfermera Clínica"
     assert job.company == "Clínica Cordillera"
     assert "ventilación mecánica" in job.description.casefold()
+
+
+def test_board_searches_come_from_each_profile_s_own_experience() -> None:
+    """No default role: a nurse and a journalist search for their own work."""
+    from jobbot.profile.search_queries import search_queries_for
+
+    def searches(raw: dict[str, object]) -> str:
+        return " | ".join(search_queries_for(Candidate.model_validate(raw)).queries)
+
+    nurse = searches(nurse_profile_dict())
+    journalist = searches(journalist_profile_dict())
+
+    assert nurse and journalist
+    assert nurse != journalist
+    for blob in (nurse.casefold(), journalist.casefold()):
+        assert "data" not in blob
+        assert "python" not in blob

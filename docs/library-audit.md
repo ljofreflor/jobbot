@@ -22,6 +22,7 @@ that one is generated from the code, this one records decisions.
 | Apply emails (`portals/email_apply.py`) | regex extraction, no validation | regex + `email-validator` | The dependency was already declared and unused; it drops malformed hits the regex accepts |
 | Country names (`jobs/geo.py`) | hand-written `_COUNTRY_ALIASES` | `babel.Locale(...).territories` | Country names in Spanish and English are CLDR data; the list stops drifting |
 | PDF text extraction (`profile/importer_pdf.py`) | nothing: PDFs could not be imported | `pypdf` | Pure-python, offline, no models; it also tells us when a PDF has no text layer, which is the signal we need to refuse a scan instead of importing an empty profile. The CV layout rules (sections, bullets, date lines) stay ours: no library knows them |
+| Architecture diagrams (`docs/images/`) | hand-drawn ASCII in the README | `diagrams` (docs group only) + Graphviz | README needs a committed PNG; `make architecture` regenerates from `scripts/render_architecture.py`. Not a runtime dependency — Graphviz stays a system tool like XeLaTeX |
 
 ## Kept ours, on purpose
 

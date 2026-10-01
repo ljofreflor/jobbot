@@ -58,9 +58,46 @@ def test_search_stores_jobs_and_learns_the_portal(
     out = capsys.readouterr().out
     assert "Torre results" in out
     assert "Estudio Neutro" in out
-    assert "Stored 4 jobs" in out
+    assert "Stored 5 jobs" in out
     assert bodies[0]["skill/role"]["text"] == "analista de datos"
     assert (workspace / "data" / "portals.yaml").is_file()
+
+
+def test_remote_flag_does_not_store_office_roles(
+    workspace: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """``--remote`` must drop physical_location / on_site even if the API leaks them."""
+    from jobbot.cli import run_cli
+    from jobbot.config import load_config
+    from jobbot.db.engine import make_engine, make_session_factory
+    from jobbot.jobs.repository import JobRepository
+
+    bodies = _install_fixture_fetcher(monkeypatch, project_root)
+
+    assert (
+        run_cli(
+            ["torre", "search", "cientifico", "--remote", "--limit", "20"],
+            standalone_mode=False,
+        )
+        == SUCCESS
+    )
+    out = capsys.readouterr().out
+    assert bodies[0]["remote"] == {"term": True}
+    assert "Oficina Asia" not in out
+    assert "Singapore" not in out
+    assert "Clínica Neutra" not in out
+
+    config = load_config()
+    session = make_session_factory(make_engine(config.database_path))()
+    try:
+        jobs = JobRepository(session).list_all()
+    finally:
+        session.close()
+    assert jobs
+    assert all(j.remote_type not in {"physical_location", "on_site"} for j in jobs)
 
 
 def test_an_opportunity_on_an_external_ats_feeds_the_company_registry(
