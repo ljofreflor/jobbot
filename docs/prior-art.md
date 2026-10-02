@@ -40,3 +40,12 @@ nuevas. Lo que JobBot agrega es el ciclo completo en un solo CLI local —
 descubrimiento, matching, CV derivado y paquete de postulación — con la regla de
 que nada se envía sin que una persona lo revise y que ningún dato tuyo sale de tu
 máquina.
+
+## Anti-patrones comerciales (no clonar)
+
+Herramientas tipo **AI Apply / Resumly Autopilot / xApply** venden el contraste
+*3 horas · 2 respuestas · 0 entrevistas* → *30 minutos · inbox lleno* vía
+auto-submit y volumen. JobBot **roba el outcome medible** (tiempo de ciclo,
+respuestas e entrevistas registradas) y **rechaza el medio** (autopilot, OAuth
+de bandeja, spray del mismo CV). Ver [#105](https://github.com/ljofreflor/jobbot/issues/105)
+y el mapa de casos en [#155](https://github.com/ljofreflor/jobbot/issues/155).
