@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-103 commands, 153 modules, 753 public symbols.
+104 commands, 154 modules, 759 public symbols.
 
 ## Commands
 
@@ -42,6 +42,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
+- `jobbot empleospublicos search` — List Empleos Públicos concursos from a saved search dump and store leads.
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
@@ -149,6 +150,10 @@ writing it again — the promotion rule lives in
 - `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `supported_kinds`, `adapter_for_kind`, `adapter_for_job`
 - `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
 - `workday.py` — Workday ATS adapter stub — open + known-field map only (HITL submit). · `WorkdayAdapter`
+
+### `adapters/empleospublicos`
+
+- `jobs.py` — Empleos Públicos (Chile) — public concurso board. · `EmpleosPublicosParseError`, `canonical_ficha_url`, `job_from_ficha_html`, `jobs_from_search_payload`, `load_search_fixture`, `EmpleosPublicosJobSource`
 
 ### `adapters/getonboard`
 

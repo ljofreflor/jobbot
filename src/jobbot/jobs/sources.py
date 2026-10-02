@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
@@ -9,7 +10,9 @@ from pydantic import BaseModel, Field
 from jobbot.config import JobbotConfig
 from jobbot.models.job import JobPosting
 
-JobSourceName = Literal["indeed", "linkedin_post", "getonboard", "torre"]
+JobSourceName = Literal[
+    "indeed", "linkedin_post", "getonboard", "torre", "empleos_publicos"
+]
 
 
 class JobSearchQuery(BaseModel):
@@ -34,6 +37,7 @@ def get_job_source(
     config: JobbotConfig,
     *,
     cdp_url: str | None = None,
+    fixture: Path | None = None,
 ) -> JobSourceAdapter:
     """Factory for job discovery adapters."""
     if name == "indeed":
@@ -52,5 +56,9 @@ def get_job_source(
         from jobbot.adapters.torre.jobs import TorreJobSource
 
         return TorreJobSource(config)
+    if name == "empleos_publicos":
+        from jobbot.adapters.empleospublicos.jobs import EmpleosPublicosJobSource
+
+        return EmpleosPublicosJobSource(config, fixture=fixture)
     msg = f"Unknown job source: {name}"
     raise ValueError(msg)

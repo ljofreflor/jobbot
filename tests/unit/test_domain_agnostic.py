@@ -271,6 +271,23 @@ def test_torre_maps_an_opportunity_from_any_field(project_root: Path) -> None:
     assert newsroom.description.startswith("Redactor de Contenidos")
 
 
+def test_empleos_publicos_ficha_is_field_agnostic(project_root: Path) -> None:
+    """A public-sector concurso parse must not assume a tech role vocabulary."""
+    from jobbot.adapters.empleospublicos.jobs import job_from_ficha_html
+
+    html = (
+        project_root / "tests/fixtures/empleospublicos/aviso_ficha.html"
+    ).read_text(encoding="utf-8")
+    job = job_from_ficha_html(
+        html,
+        url="https://www.empleospublicos.cl/pub/convocatorias/avisotrabajoficha.aspx?i=990001",
+    )
+
+    assert "Epidemiólogo" in job.title
+    assert "vigilancia" in (job.description or "").casefold()
+    assert job.ats_kind == "empleos_publicos"
+
+
 def test_form_learning_reads_any_field_s_application(project_root: Path) -> None:
     """A form is read by its markup, so a clinic's form works like a studio's."""
     from jobbot.portals.form_learn import learn_form_html

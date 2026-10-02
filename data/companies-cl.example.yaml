@@ -115,6 +115,15 @@ companies:
     sector: mining
     domain: angloamerican.com
 
+  # ── sector público (fuentes consultables — #118) ─────────────────────────
+  - name: Empleos Públicos (Servicio Civil)
+    country: CL
+    sector: public
+    domain: empleospublicos.cl
+    # Board of many employers — never a single-company career root.
+    career_url_hints:
+      - https://www.empleospublicos.cl/pub/convocatorias/convocatorias.aspx
+
   # ── tecnología ───────────────────────────────────────────────────────────
   - name: Mercado Libre Chile
     country: CL
