@@ -105,6 +105,10 @@ getonboard_app = typer.Typer(
     no_args_is_help=True,
 )
 torre_app = typer.Typer(help="Torre: job discovery (LATAM / remoto)", no_args_is_help=True)
+empleospublicos_app = typer.Typer(
+    help="Empleos Públicos (Chile): concursos — fixture-first (#118)",
+    no_args_is_help=True,
+)
 portals_app = typer.Typer(help="Recruitment portal registry (ATS)", no_args_is_help=True)
 companies_app = typer.Typer(
     help="Company ↔ career platform knowledge (candidate → promote; public data only)",
@@ -138,6 +142,7 @@ app.add_typer(indeed_app, name="indeed")
 app.add_typer(linkedin_app, name="linkedin")
 app.add_typer(getonboard_app, name="getonboard")
 app.add_typer(torre_app, name="torre")
+app.add_typer(empleospublicos_app, name="empleospublicos")
 app.add_typer(browser_app, name="browser")
 app.add_typer(portals_app, name="portals")
 app.add_typer(companies_app, name="companies")
@@ -4130,6 +4135,96 @@ def torre_search(
     console.print(table)
     console.print(
         f"Stored {len(stored)} jobs (portal torre.ai learned). "
+        f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
+    )
+    if candidate is not None:
+        _warn_if_matcher_blind(scores)
+
+
+@empleospublicos_app.command("search")
+def empleospublicos_search(
+    query: Annotated[
+        str | None,
+        typer.Argument(help="Filter text (default: profile searches)"),
+    ] = None,
+    fixture: Annotated[
+        Path,
+        typer.Option(
+            "--fixture",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            help="Saved search JSON dump (required — live board is JS / often 403)",
+        ),
+    ] = ...,
+    limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
+    max_queries: Annotated[
+        int,
+        typer.Option("--max-queries", help="Profile searches when no query is given"),
+    ] = _DEFAULT_MAX_QUERIES,
+) -> None:
+    """List Empleos Públicos concursos from a saved search dump and store leads."""
+    from jobbot.adapters.empleospublicos.jobs import (
+        EmpleosPublicosJobSource,
+        EmpleosPublicosParseError,
+    )
+    from jobbot.jobs.sources import JobSearchQuery
+
+    if limit < 1 or limit > 50:
+        err_console.print("--limit must be between 1 and 50")
+        raise typer.Exit(GENERIC_FAILURE)
+
+    session, config = _session()
+    queries = _search_queries(config, query, max_queries)
+    source = EmpleosPublicosJobSource(config, fixture=fixture.expanduser().resolve())
+    found: list[JobPosting] = []
+    for text in queries:
+        try:
+            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit)))
+        except EmpleosPublicosParseError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(GENERIC_FAILURE) from exc
+    found = _unique_postings(found)
+    if not found:
+        console.print("No concursos matched.")
+        raise typer.Exit(SUCCESS)
+
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError:
+        candidate = None
+    analyzer = RuleBasedJobAnalyzer()
+    repo = JobRepository(session)
+    table = Table(title="Empleos Públicos (leads)")
+    table.add_column("ID")
+    table.add_column("Institución")
+    table.add_column("Cargo")
+    table.add_column("Región")
+    table.add_column("Match")
+    stored: list[str] = []
+    scores: list[float] = []
+    for raw in found:
+        job = repo.upsert_external(raw)
+        if candidate is not None:
+            match = analyzer.analyze(candidate, job)
+            repo.update_match_score(job.id, match.score)
+            job.match_score = match.score
+            scores.append(match.score)
+        write_job_json(job, config.output_dir)
+        _learn_company_knowledge(config, job)
+        stored.append(job.id)
+        score = f"{job.match_score:.0f}%" if job.match_score is not None else "-"
+        table.add_row(
+            job.id,
+            job.company[:28],
+            job.title[:36],
+            (job.location or "-")[:20],
+            score,
+        )
+    console.print(table)
+    console.print(
+        f"Stored {len(stored)} leads. Detail: "
+        f"[bold]jobbot get URL --fixture ficha.html[/bold]. "
         f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
     )
     if candidate is not None:

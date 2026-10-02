@@ -37,3 +37,9 @@ portals:
     last_seen: null
     notes: Vacantes.com (LATAM job board; never identifies one employer)
     example_url: https://vacantes.com/es/vacantes/back-end-engineer-senior-llm-y-agentic-ai-witi-5d091ba5
+  - domain: empleospublicos.cl
+    ats_kind: empleos_publicos
+    registered: false
+    last_seen: null
+    notes: Empleos Públicos Chile (concursos; fixture-first search/detail)
+    example_url: https://www.empleospublicos.cl/pub/convocatorias/avisotrabajoficha.aspx?i=990001

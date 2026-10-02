@@ -51,6 +51,7 @@ _LABELS: dict[str, str] = {
     "remoteyeah": "RemoteYeah",
     "jobgether": "Jobgether",
     "vacantes": "Vacantes.com",
+    "empleos_publicos": "Empleos Públicos",
     "indeed": "Indeed",
     "linkedin": "LinkedIn",
     "email": "Correo al reclutador",
@@ -84,10 +85,13 @@ def source_kinds() -> tuple[AtsKind, ...]:
     """Platform behind each discovery source (``linkedin_post`` → LinkedIn), in order."""
     kinds: list[AtsKind] = []
     for name in get_args(JobSourceName):
-        try:
-            kinds.append(AtsKind(str(name).split("_", 1)[0]))
-        except ValueError:
-            continue
+        raw = str(name)
+        for candidate in (raw, raw.split("_", 1)[0]):
+            try:
+                kinds.append(AtsKind(candidate))
+                break
+            except ValueError:
+                continue
     return tuple(dict.fromkeys(kinds))
 
 

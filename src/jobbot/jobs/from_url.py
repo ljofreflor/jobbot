@@ -140,6 +140,8 @@ def _fetch_job(
         return job_from_hard_link(portal.url, html=html, on_chunk=on_chunk)
     if portal.ats_kind == AtsKind.INDEED:
         return _fetch_indeed_job(portal, html=html, cdp_url=cdp_url)
+    if portal.ats_kind == AtsKind.EMPLEOS_PUBLICOS:
+        return _fetch_empleos_publicos_job(portal, html=html)
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)
@@ -162,6 +164,36 @@ def _fetch_job(
         "or pass --fixture with saved career HTML."
     )
     raise UnsupportedPortalFetchError(msg)
+
+
+def _fetch_empleos_publicos_job(
+    portal: PortalKnowledge,
+    *,
+    html: str | None,
+) -> JobPosting:
+    """Parse an Empleos Públicos ficha (fixture-first; live board often 403)."""
+    from jobbot.adapters.empleospublicos.jobs import (
+        EmpleosPublicosParseError,
+        canonical_ficha_url,
+        job_from_ficha_html,
+    )
+
+    try:
+        canonical = canonical_ficha_url(portal.url)
+    except EmpleosPublicosParseError as exc:
+        raise UnsupportedPortalFetchError(str(exc)) from exc
+    if html is None:
+        msg = (
+            "Empleos Públicos ficha needs --fixture with saved HTML "
+            "(live portal is JS-loaded and often refuses automated fetch)."
+        )
+        raise UnsupportedPortalFetchError(msg)
+    try:
+        job = job_from_ficha_html(html, url=canonical)
+    except EmpleosPublicosParseError as exc:
+        raise UnsupportedPortalFetchError(str(exc)) from exc
+    job.url = canonical
+    return job
 
 
 def _fetch_indeed_job(
