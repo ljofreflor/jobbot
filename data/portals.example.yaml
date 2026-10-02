@@ -31,3 +31,9 @@ portals:
     last_seen: null
     notes: Get on Board (LATAM job board)
     example_url: https://www.getonbrd.com/jobs/data-scientist-example-santiago
+  - domain: vacantes.com
+    ats_kind: vacantes
+    registered: false
+    last_seen: null
+    notes: Vacantes.com (LATAM job board; never identifies one employer)
+    example_url: https://vacantes.com/es/vacantes/back-end-engineer-senior-llm-y-agentic-ai-witi-5d091ba5

@@ -176,6 +176,8 @@ def test_vacancies_listing_is_not_a_posting() -> None:
         "https://remoteyeah.com/jobs/senior-analyst-at-empresa-123",
         "https://jobgether.com/offer/abc123-senior-analyst",
         "https://jobs.lever.co/jobgether/0f1e2d3c-4b5a-6978-8899-aabbccddeeff",
+        "https://vacantes.com/es/vacantes/back-end-engineer-senior-llm-y-agentic-ai-witi-5d091ba5",
+        "https://vacantes.com/es/",
     ],
 )
 def test_job_boards_and_aggregators_are_not_companies(url: str) -> None:

@@ -56,7 +56,18 @@ def test_first_external_prefers_the_employer_page_over_an_aggregator() -> None:
 def test_aggregators_never_identify_an_employer() -> None:
     assert AtsKind.JOBTOME in JOB_BOARD_KINDS
     assert AtsKind.REMOSHIFT in JOB_BOARD_KINDS
+    assert AtsKind.VACANTES in JOB_BOARD_KINDS
     assert AtsKind.BREEZY not in JOB_BOARD_KINDS
+
+
+def test_vacantes_com_is_a_job_board() -> None:
+    """A vacantes.com opening never becomes a company career portal."""
+    url = (
+        "https://vacantes.com/es/vacantes/"
+        "back-end-engineer-senior-llm-y-agentic-ai-witi-5d091ba5"
+    )
+    assert detect_ats(url) == AtsKind.VACANTES
+    assert first_external_ats_url([url]) == (url, AtsKind.VACANTES)
 
 
 def test_first_external_skips_lnkd_and_keeps_unknown_career() -> None:
