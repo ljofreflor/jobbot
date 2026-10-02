@@ -4148,7 +4148,7 @@ def empleospublicos_search(
         typer.Argument(help="Filter text (default: profile searches)"),
     ] = None,
     fixture: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--fixture",
             exists=True,
@@ -4156,7 +4156,7 @@ def empleospublicos_search(
             readable=True,
             help="Saved search JSON dump (required — live board is JS / often 403)",
         ),
-    ] = ...,
+    ] = None,
     limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
     max_queries: Annotated[
         int,
@@ -4170,6 +4170,12 @@ def empleospublicos_search(
     )
     from jobbot.jobs.sources import JobSearchQuery
 
+    if fixture is None:
+        err_console.print(
+            "[red]--fixture PATH is required[/red] "
+            "(Empleos Públicos search is fixture-first; live board is JS / often 403)."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
     if limit < 1 or limit > 50:
         err_console.print("--limit must be between 1 and 50")
         raise typer.Exit(GENERIC_FAILURE)
