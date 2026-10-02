@@ -136,6 +136,15 @@ companies:
     country: CL
     sector: technology
     domain: buk.cl
+  - name: WiTI
+    country: CL
+    sector: technology
+    domain: witi.cl
+    # Corporate site lists roles under /vacantes/<slug>; LevelUp is their hiring app.
+    # Postings also appear on vacantes.com (a job board — never a WiTI career root).
+    career_url_hints:
+      - https://hunterapp.witi.cl/
+      - https://www.witi.cl/
 
   # ── seguros ──────────────────────────────────────────────────────────────
   - name: Consorcio

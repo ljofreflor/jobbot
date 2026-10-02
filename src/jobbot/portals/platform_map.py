@@ -50,6 +50,7 @@ _LABELS: dict[str, str] = {
     "remoshift": "Remoshift",
     "remoteyeah": "RemoteYeah",
     "jobgether": "Jobgether",
+    "vacantes": "Vacantes.com",
     "indeed": "Indeed",
     "linkedin": "LinkedIn",
     "email": "Correo al reclutador",
