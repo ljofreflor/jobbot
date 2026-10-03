@@ -10,6 +10,7 @@ from jobbot.browser import background
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind, detect_ats
+from jobbot.portals.message_apply import asks_for_linkedin_message
 
 logger = logging.getLogger("jobbot.ats")
 
@@ -42,6 +43,10 @@ def resolve_ats_url(job: JobPosting) -> tuple[str | None, AtsKind]:
         kind = detect_ats(job.url)
         if kind != AtsKind.LINKEDIN:
             return job.url, kind
+        # LinkedIn permalinks are not an ATS. They are the apply surface only when
+        # the posting itself asks for a message (no mailbox, no external form).
+        if asks_for_linkedin_message(job.description or job.raw_description or ""):
+            return job.url, AtsKind.LINKEDIN
     return None, AtsKind.UNKNOWN
 
 
@@ -81,11 +86,25 @@ def build_apply_plan(candidate: Candidate, job: JobPosting) -> AtsApplyPlan:
                 "attach CV, press Send yourself."
             ),
         )
-    if kind == AtsKind.UNKNOWN:
-        message = (
-            "Open the URL and use the cheat sheet. "
-            "JobBot does not fill fields on this host."
+    if kind == AtsKind.LINKEDIN:
+        return AtsApplyPlan(
+            job_id=job.id,
+            ats_url=url,
+            ats_kind=AtsKind.LINKEDIN,
+            method=ApplyMethod.LINKEDIN_MESSAGE,
+            fields_to_fill=[],
+            needs_review=[
+                "Write the message yourself",
+                "JobBot never sends InMail or clicks Message/Send",
+                "LinkedIn login if prompted",
+            ],
+            message=(
+                "HITL LinkedIn message apply: open the post, you write to the author. "
+                "JobBot never sends."
+            ),
         )
+    if kind == AtsKind.UNKNOWN:
+        message = "Open the URL and use the cheat sheet. JobBot does not fill fields on this host."
     else:
         message = f"Open {kind.value} and prefill known Candidate fields only."
     return AtsApplyPlan(
