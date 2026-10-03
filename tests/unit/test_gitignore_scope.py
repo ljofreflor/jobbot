@@ -11,7 +11,14 @@ from pathlib import Path
 
 import pytest
 
-PRIVATE_PATHS = ("cv/cv.tex", "vitae/old.tex", "legacy/notes.md", "private/secrets.yaml")
+PRIVATE_PATHS = (
+    "cv/cv.tex",
+    "vitae/old.tex",
+    "legacy/notes.md",
+    "private/secrets.yaml",
+    "data/.vault.yaml",
+    "sandboxes/rocio/data/.vault.yaml",
+)
 
 
 def _ignored(project_root: Path, paths: list[str]) -> list[str]:
@@ -60,6 +67,7 @@ DATA_BACKUPS = (
 
 DATA_TEMPLATES = (
     "data/profile.example.yaml",
+    "data/vault.example.yaml",
     "data/portals.example.yaml",
     "data/companies.example.yaml",
     "data/companies-cl.example.yaml",

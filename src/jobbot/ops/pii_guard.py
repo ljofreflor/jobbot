@@ -36,6 +36,14 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"^sandboxes/", "another candidate's workspace (test CVs are their PII)"),
     (r"(^|/)consent\.yaml$", "client consent and retention record"),
     (r"^browser-data/", "browser session data"),
+    (
+        r"(^|/)\.vault\.ya?ml$",
+        "local portal passwords (opt-in vault; never commit)",
+    ),
+    (
+        r"(^|/)\.vault\.ya?ml\..+$",
+        "backup of the local password vault",
+    ),
     (r"^output/", "generated artefacts with PII"),
     (r"\.sqlite3?$", "local database"),
     (r"\.db$", "local database"),

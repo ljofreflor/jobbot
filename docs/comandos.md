@@ -139,6 +139,19 @@ Escribe en `output/` y nunca toca el registro de empresas del workspace.
 
 No hay telemetría: las fallas se guardan en tu base local y se quedan ahí.
 
+## Contraseñas (opt-in)
+
+| Comando | Qué hace |
+|---------|----------|
+| `secrets init` | Crea `data/.vault.yaml` (o `.local/.vault.yaml`) con modo 0600. Vacío; no inventa. |
+| `secrets list` | Sitios guardados. Nunca imprime el valor. |
+| `secrets set SITIO` | Pide la contraseña dos veces (`getpass`). `--password-stdin` para scripts; nunca argv. |
+| `secrets delete SITIO` | Borra esa entrada. |
+| `secrets allow-fill` | Bandera de consentimiento para un fill futuro. CAPTCHA/2FA/enviar siguen tuyos. |
+| `secrets deny-fill` | Apaga `fill_login`. |
+
+Oculto ≠ cifrado. No sincronices el archivo a Drive/Dropbox. Ver issue #157.
+
 ## Misceláneos
 
 | Comando | Qué hace |

@@ -44,6 +44,16 @@ already answers** (and attach the built CV). It never invents a password, never 
 terms alone, never solves CAPTCHA/2FA, and never clicks the final create/submit without
 HITL confirmation. Irreversible steps stay human. Own accounts only.
 
+**Local vault (opt-in, trusting users).** Some candidates keep portal passwords in
+`data/.vault.yaml` (or `.local/.vault.yaml` after `jobbot init`) — hidden, `chmod 0600`,
+gitignored, blocked by `pii_guard`. Hidden is **not** encryption: the OS user is the
+trust boundary; disk encryption covers the disk; do not sync the file to Drive/Dropbox.
+`jobbot secrets init` creates an empty vault; `secrets set` stores a value the human
+types (`getpass` / `--password-stdin`, never argv). JobBot never invents an entry,
+never prints one, never logs one (ops redaction strips vault values). `fill_login`
+defaults false: CAPTCHA, 2FA, terms and submit stay human even when a password is
+stored. Typing into a login form is a later opt-in ([#157](https://github.com/ljofreflor/jobbot/issues/157)).
+
 **Oneshot ≠ presence.** `companies discover` only seeds *candidate* career URLs. It does
 not create accounts or upload CVs. Presence is `cv sync` / propagate + assisted signup
 against portals that were reviewed and `promote`d.
@@ -339,7 +349,8 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
   `jobbot browser login` is the first pass over permanent sites plus company portals that are
   `active` or `candidate` and may need an account ([#56](https://github.com/ljofreflor/jobbot/issues/56)):
   dry-run by default; `--apply` opens the next gap and stops. The password, CAPTCHA and 2FA stay
-  human. A company tab is `unknown`, never `ready`. Visiting a candidate does not promote it.
+  human unless the local vault has `fill_login` (not shipped yet; [#157](https://github.com/ljofreflor/jobbot/issues/157)).
+  A company tab is `unknown`, never `ready`. Visiting a candidate does not promote it.
 - **Focus:** JobBot abre páginas en segundo plano; no roba el foco. Todo pasa por
   `jobbot.browser.background` (`open -g` en macOS, `webbrowser` con `autoraise=False` fuera,
   pestañas CDP con `Target.createTarget` `background: true`) e imprime dónde quedó la página.
@@ -578,6 +589,9 @@ uv run jobbot application apply --all --apply --cdp http://127.0.0.1:9222
 uv run jobbot browser sessions # preflight: ready | needs_login | unknown | profile_busy
 uv run jobbot browser login            # permanentes + active + candidate; sin credenciales (#56)
 uv run jobbot browser login --apply    # abre el siguiente portal sin sesión probada; tú entras
+uv run jobbot secrets init             # vault local 0600 (opt-in; no inventa) (#157)
+uv run jobbot secrets set indeed       # getpass; never argv
+uv run jobbot secrets list             # sitios, sin valores
 uv run jobbot browser chrome-debug --site gmail --port 9223
 uv run jobbot application apply J0001 --apply --cdp http://127.0.0.1:9223
 uv run jobbot profile suggest-from-market
