@@ -396,3 +396,34 @@ def test_board_searches_come_from_each_profile_s_own_experience() -> None:
     for blob in (nurse.casefold(), journalist.casefold()):
         assert "data" not in blob
         assert "python" not in blob
+
+
+def test_application_answers_are_checked_for_any_field() -> None:
+    """A nurse's answer is traced to her own entries; her motivation stays hers."""
+    from jobbot.applications.answer_check import Verdict, check_answer
+
+    candidate = Candidate.model_validate(nurse_profile_dict())
+    job = parse_job_text(NURSE_JOB, job_id="J0606")
+    question = "Describe tu experiencia en ventilación mecánica."
+
+    backed = check_answer(
+        question,
+        "En Hospital del Puerto implementé el protocolo de prevención de neumonía asociada "
+        "a ventilación mecánica en 12 camas.",
+        candidate,
+        job,
+    )
+    invented = check_answer(
+        question, "En Hospital del Puerto implementé el protocolo en 30 camas.", candidate, job
+    )
+    why = check_answer(
+        "¿Por qué quieres trabajar en Clínica Cordillera?",
+        "Capacité a seis enfermeras nuevas en registro clínico.",
+        candidate,
+        job,
+    )
+
+    assert backed.verdict is Verdict.OK
+    assert invented.verdict is Verdict.REJECTED
+    assert why.verdict is Verdict.NEEDS_CANDIDATE
+    assert any("does not address the company" in w for w in why.warnings)
