@@ -242,9 +242,7 @@ def run_cli(
             argv=["jobbot", *args],
             exc=caught if not isinstance(caught, typer.Exit) else None,
             error_class=(
-                recorded_class
-                if recorded_class is not None
-                else ("Abort" if aborted else None)
+                recorded_class if recorded_class is not None else ("Abort" if aborted else None)
             ),
             message=(
                 recorded_message
@@ -310,6 +308,7 @@ def version_cmd() -> None:
     """Show JobBot version."""
     console.print(__version__)
 
+
 @app.command("init")
 def workspace_init(
     directory: Annotated[
@@ -350,6 +349,7 @@ def workspace_init(
         )
     )
 
+
 @app.command("update")
 def update_cmd(
     ref: Annotated[
@@ -368,7 +368,6 @@ def update_cmd(
         console.print(f"Now: {result.version_line}")
     else:
         console.print("Run [bold]jobbot version[/bold] in a new shell if PATH changed.")
-
 
 
 @app.command("status")
@@ -618,9 +617,7 @@ def _drain_parked_hard_links(
                     f"[yellow]Recorded failure[/yellow] {record.id} "
                     f"(fingerprint={record.fingerprint})"
                 )
-            err_console.print(
-                f"[yellow]Left in inbox[/yellow] (exit {exc.code}): {item}"
-            )
+            err_console.print(f"[yellow]Left in inbox[/yellow] (exit {exc.code}): {item}")
             continue
         except (_QuietExit, typer.Exit) as exc:
             failures += 1
@@ -691,9 +688,7 @@ def _ingest_one_hard_link(
             cdp_url=cdp_url,
         )
     except ClosedPostingError as exc:
-        err_console.print(
-            f"[red]Vacancy looks filled[/red] ({exc.evidence}). Not stored."
-        )
+        err_console.print(f"[red]Vacancy looks filled[/red] ({exc.evidence}). Not stored.")
         raise _QuietExit(VALIDATION_FAILURE) from exc
     except UnknownPortalError as exc:
         err_console.print(f"[red]{exc}[/red]")
@@ -797,9 +792,7 @@ def capture_share_url(
         return
 
     if url is None:
-        err_console.print(
-            "[red]Provide a URL[/red], or [bold]jobbot capture --list[/bold]."
-        )
+        err_console.print("[red]Provide a URL[/red], or [bold]jobbot capture --list[/bold].")
         raise typer.Exit(VALIDATION_FAILURE)
 
     try:
@@ -2421,7 +2414,6 @@ def jobs_search(
     source = IndeedJobSource(config, cdp_url=cdp_url)
     q = JobSearchQuery(query=query, location=location, remote=remote, limit=limit)
 
-
     if cdp_url:
         console.print(f"Using CDP Chrome at [bold]{cdp_url}[/bold]")
     console.print(f"Searching Indeed ({source.base}) for [bold]{query}[/bold]…")
@@ -2490,9 +2482,7 @@ def jobs_queries(
             try:
                 parsed.append(AtsKind(raw.casefold().strip()))
             except ValueError:
-                err_console.print(
-                    f"[red]Unknown --ats {raw!r}[/red]; use ashby, greenhouse, lever"
-                )
+                err_console.print(f"[red]Unknown --ats {raw!r}[/red]; use ashby, greenhouse, lever")
                 raise typer.Exit(VALIDATION_FAILURE) from None
         kinds = tuple(parsed)
 
@@ -2918,9 +2908,7 @@ def _application_apply_all(
     opened = 0
     for index, item in enumerate(items):
         console.print()
-        console.print(
-            f"[bold]({index + 1}/{len(items)})[/bold] {item.label}"
-        )
+        console.print(f"[bold]({index + 1}/{len(items)})[/bold] {item.label}")
         if not yes and not typer.confirm(
             f"Open assisted apply for {item.job.id}? "
             "(finish Next/Submit yourself before continuing)",
@@ -3001,6 +2989,33 @@ def _application_apply_one(
     console.print(f"Method: {plan.method.value}")
     console.print(plan.message)
     _warn_if_login_needed(config, plan.ats_kind, cdp)
+
+    if plan.method == ApplyMethod.LINKEDIN_MESSAGE:
+        from jobbot.adapters.ats.apply import open_ats_in_browser
+
+        if not apply_changes:
+            console.print(
+                "Dry-run only. Re-run with [bold]--apply[/bold] to open the LinkedIn post "
+                "(you write the message; JobBot never sends)."
+            )
+            return
+        if not yes and not typer.confirm(
+            "¿Abrir la publicación de LinkedIn para que le escribas vos? "
+            "JobBot no envía el mensaje.",
+            default=False,
+        ):
+            console.print("Aborted.")
+            raise typer.Exit(SUCCESS)
+        job_dir = config.output_dir / "jobs" / job.id
+        app_dir = prepare_application_package(
+            job, config.output_dir, job_dir=job_dir, candidate=candidate
+        )
+        console.print(open_ats_in_browser(plan.ats_url))
+        console.print(
+            "[green]Opened the post.[/green] Write the message yourself. JobBot never sends InMail."
+        )
+        _note_no_receipt(session, job.id, str(app_dir), plan.ats_url)
+        return
 
     if plan.method == ApplyMethod.EMAIL:
         from jobbot.adapters.ats.email_apply import is_tailored_cv, resolve_cv_path
@@ -4088,9 +4103,7 @@ def torre_search(
     for text in queries:
         narrator.phase(Phase.RECEIVING_WORLD, f"Torre: {text}")
         try:
-            found.extend(
-                source.search_jobs(JobSearchQuery(query=text, limit=limit, remote=remote))
-            )
+            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit, remote=remote)))
         except Exception as exc:
             err_console.print(f"[red]Torre search failed: {exc}[/red]")
             raise typer.Exit(GENERIC_FAILURE) from exc
@@ -4414,10 +4427,7 @@ def _print_form_knowledge(form: Any) -> None:
     console.print(f"[bold]{form.url}[/bold]  ats={form.ats.value}")
     if form.sso_providers:
         names = ", ".join(form.sso_providers)
-        console.print(
-            f"Sign in with: {names}  "
-            "[dim](you click; JobBot never starts OAuth)[/dim]"
-        )
+        console.print(f"Sign in with: {names}  [dim](you click; JobBot never starts OAuth)[/dim]")
     if not form.readable:
         console.print(f"[yellow]{form.evidence}[/yellow]")
         console.print("Tip: open the page, save the HTML, and pass it with --fixture.")
@@ -5327,7 +5337,7 @@ def browser_chrome_debug(
     ] = True,
 ) -> None:
     """Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
-    
+
     Automatically detects and launches any available Chromium-based browser:
     Chrome, Microsoft Edge, Brave, or Chromium.
     """
