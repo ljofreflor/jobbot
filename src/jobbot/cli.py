@@ -3178,6 +3178,49 @@ def _application_apply_one(
     _note_no_receipt(session, job.id, str(app_dir), plan.ats_url)
 
 
+@application_app.command("check-answer")
+def application_check_answer(
+    job_id: Annotated[str, typer.Argument()],
+    question: Annotated[str, typer.Option("--question", "-q", help="The form's question")],
+    text: Annotated[str | None, typer.Option("--text", help="The answer to check")] = None,
+    file: Annotated[
+        Path | None, typer.Option("--file", help="Read the answer from this file")
+    ] = None,
+) -> None:
+    """Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
+
+    Exit 0 when every claim is backed, 2 when a claim is unbacked or misattributed,
+    4 when the question asks for motivation (only you can answer it).
+    """
+    from jobbot.applications.answer_check import Verdict, check_answer, render_answer_check
+
+    if text is not None and file is None:
+        answer = text
+    elif file is not None and text is None:
+        answer = file.read_text(encoding="utf-8")
+    else:
+        err_console.print("[red]Give the answer with --text or --file (one of them).[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    session, config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    check = check_answer(question, answer, candidate, job)
+    for line in render_answer_check(check, job):
+        console.print(line, markup=False, highlight=False)
+    if check.verdict is Verdict.REJECTED:
+        raise _QuietExit(VALIDATION_FAILURE)
+    if check.verdict is Verdict.NEEDS_CANDIDATE:
+        raise _QuietExit(MANUAL_CHALLENGE)
+
+
 @application_app.command("show")
 def application_show(job_id: Annotated[str, typer.Argument()]) -> None:
     """Show application package path and status for a job."""

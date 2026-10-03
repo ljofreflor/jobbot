@@ -75,6 +75,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `application show JOB_ID` | Ruta y estado del paquete. |
 | `application open JOB_ID` | Abre la URL de la vacante o del ATS en el navegador (no postula). |
 | `application apply JOB_ID` | Plan de prellenado ATS/Gmail. `--apply` abre; el envío lo haces tú. |
+| `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso: cifras, nombres, pares título–institución y lo dicho de la empresa. La motivación queda para ti (no pega nada). |
 | `applications list` | Lista las postulaciones registradas (alias: `applications status`). |
 
 ## Portales

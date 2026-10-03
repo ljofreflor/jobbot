@@ -138,6 +138,15 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  (`mailto:`), with the post body as JD. `application apply --apply` builds the CV adapted to the
  job, opens Gmail compose and **uploads the PDF** (Playwright; `--cdp` to reuse your logged-in
  Chrome, `--no-attach` for compose URL only). JobBot never clicks Send.
+- **Free-text answers ([#159](https://github.com/ljofreflor/jobbot/issues/159)):** a cover letter
+ or "why us" box is checked before it is pasted, whoever wrote it: `application check-answer`
+ traces each sentence to `profile.yaml` or to the stored posting. Figures, proper names,
+ institutions and skills the posting asks for must be in the profile; a degree, role or figure
+ named next to an institution or employer must belong to that same entry (otherwise
+ *misattributed*, with the right pairing); a claim about the employer must be in the posting.
+ Motivation questions are `needs_candidate`, never approved: the check lists posting phrases and
+ profile facts to write from, and flags an answer that names nothing from the posting.
+ Deterministic; exit `2` rejected, `4` needs the candidate.
 - **Market feedback:** `profile suggest-from-market` writes suggestions with no stdin by
   default (`--no-ask`). Gap prompts only with `--ask`; `--promote` still confirms before
   writing `profile.yaml`. Never invent; never delete baseline facts.
@@ -574,6 +583,7 @@ uv run jobbot companies recon NOMBRE --cdp URL --apply
 uv run jobbot application apply J0001
 uv run jobbot application apply J0001 --apply           # email: adapted CV attached in Gmail
 uv run jobbot application apply --all                   # dry-run queue (#75)
+uv run jobbot application check-answer J0001 -q "¿Por qué…?" --text "…"  # or --file (#159)
 uv run jobbot application apply --all --apply --cdp http://127.0.0.1:9222
 uv run jobbot browser sessions # preflight: ready | needs_login | unknown | profile_busy
 uv run jobbot browser login            # permanentes + active + candidate; sin credenciales (#56)
