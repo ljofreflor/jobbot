@@ -49,3 +49,13 @@ auto-submit y volumen. JobBot **roba el outcome medible** (tiempo de ciclo,
 respuestas e entrevistas registradas) y **rechaza el medio** (autopilot, OAuth
 de bandeja, spray del mismo CV). Ver [#105](https://github.com/ljofreflor/jobbot/issues/105)
 y el mapa de casos en [#155](https://github.com/ljofreflor/jobbot/issues/155).
+
+## Talleres de «IA que busca por ti»
+
+Una clase en Luma ([Pon la IA a buscar trabajo por ti](https://luma.com/o156agl9),
+Arcon Labs) vende el mismo ciclo como **tres miniagentes**: uno afina el CV, otro
+rastrea vacantes que encajan, otro se ocupa de las postulaciones para que dejes
+de copiar datos. Eso **ya es** JobBot (`cv advise` / match / `application apply`)
+y el frente de tres comandos ([#108](https://github.com/ljofreflor/jobbot/issues/108)).
+Se roba el *equipo de tres* y el CV frío de entrada; se rechaza el título «por ti»
+y el envío automático. Mapa en [#168](https://github.com/ljofreflor/jobbot/issues/168).
