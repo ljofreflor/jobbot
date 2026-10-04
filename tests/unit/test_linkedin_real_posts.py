@@ -181,3 +181,24 @@ def test_real_peopletrust_cddo_is_named_from_mailbox_and_kept_for_chile(
     assert "para empresa" not in job.title.casefold()
     assert job.ats_url == "mailto:postulaciones@peopletrust.cl"
     assert job.ats_kind == "email"
+
+
+def test_real_macal_data_governance_architect_is_named_from_mailbox(
+    monkeypatch: object,
+) -> None:
+    """https://lnkd.in/p/dYGD3B6J — Macal BizOps; apply by email, .cl mailbox."""
+    post = _load_real_post("macal_data_governance_architect", monkeypatch)
+
+    assert post.vacancies == ()  # type: ignore[attr-defined]
+    assert post.ats_url == "mailto:talento@macal.cl"  # type: ignore[attr-defined]
+    assert post.ats_kind == AtsKind.EMAIL  # type: ignore[attr-defined]
+    assert first_apply_email(post.text) == "talento@macal.cl"  # type: ignore[attr-defined]
+    assert detect_country(post.text) == "CL"  # type: ignore[attr-defined]
+    assert post_offers_wanted_country(post.text, wanted=["CL"]) is True  # type: ignore[attr-defined]
+
+    job = post_to_job(post)  # type: ignore[arg-type]
+    assert job.company == "Macal"
+    assert job.title == "Data Governance Architect"
+    assert "diseñar" not in job.title.casefold()
+    assert job.ats_url == "mailto:talento@macal.cl"
+    assert job.ats_kind == "email"

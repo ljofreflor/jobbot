@@ -495,11 +495,13 @@ def _guess_title(text: str) -> str | None:
         (
             # Articles must be their own word. Otherwise "(?i)a" eats the A of "Applied".
             # "Estoy buscando" is the first-person form recruiters use instead of "buscamos".
+            # "un/a" is the inclusive Spanish article; treat it as one token.
             # Stop before "para empresa …" so a length cap cannot leave "para emp".
+            # Stop before "para diseñar/desarrollar/…" — the mission, not the role.
             r"(?i)(?:hiring|buscamos|estoy buscando|estamos buscando|"
             r"looking for|we(?:'re| are) looking for)\s+"
-            r"(?:(?:a|an|un|una)\s+)?([^\n.!?;]{8,160}?)"
-            r"(?=\s+para\s+empresa\b|[;.!?\n]|$)"
+            r"(?:(?:a|an|un/a|un\(a\)|una|un)\s+)?([^\n.!?;]{8,160}?)"
+            r"(?=\s+para\s+empresa\b|\s+para\s+[a-záéíóúñü]+(?:ar|er|ir)\b|[;.!?\n]|$)"
         ),
         r"(?i)(?:role|puesto|cargo|posici[oó]n|vacante)\s*[:\-]\s*([^\n]{5,80})",
     ]

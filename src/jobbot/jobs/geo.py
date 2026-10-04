@@ -144,6 +144,23 @@ def normalize_countries(values: Sequence[str] | None) -> tuple[str, ...]:
     return tuple(out)
 
 
+# ccTLD on an @mailbox in the post body (talento@macal.cl → Chile).
+_EMAIL_CCTLD_RE = re.compile(
+    r"@[a-z0-9.-]+\.(?P<tld>cl|pe|ar|co|mx|uy|br|es)\b",
+    re.IGNORECASE,
+)
+_EMAIL_CCTLD_TO_COUNTRY: dict[str, str] = {
+    "cl": "CL",
+    "pe": "PE",
+    "ar": "AR",
+    "co": "CO",
+    "mx": "MX",
+    "uy": "UY",
+    "br": "BR",
+    "es": "ES",
+}
+
+
 def detect_country(text: str) -> str | None:
     """Best-effort country of a posting; None when the text does not say."""
     lowered = (text or "").casefold()
@@ -155,7 +172,12 @@ def detect_country(text: str) -> str | None:
         )
         if hit >= 0 and (best is None or hit < best[0]):
             best = (hit, code)
-    return best[1] if best else None
+    if best:
+        return best[1]
+    match = _EMAIL_CCTLD_RE.search(text or "")
+    if match:
+        return _EMAIL_CCTLD_TO_COUNTRY.get(match.group("tld").casefold())
+    return None
 
 
 def mentions_remote(text: str) -> bool:

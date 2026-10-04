@@ -277,6 +277,17 @@ def test_title_reads_estoy_buscando_and_stops_before_para_empresa() -> None:
     assert "fintech" not in title.casefold()
 
 
+def test_title_reads_buscamos_un_slash_a_and_stops_before_infinitive() -> None:
+    """Inclusive 'un/a' is an article; 'para diseñar' is the mission, not the title."""
+    from jobbot.adapters.linkedin.sweep import _guess_title
+
+    title = _guess_title(
+        "Buscamos un/a Data Governance Architect para diseñar desde la base "
+        "la arquitectura y el gobierno de datos de Macal."
+    )
+    assert title == "Data Governance Architect"
+
+
 def test_mailto_company_domain_beats_recruiter_author() -> None:
     """postulaciones@peopletrust.cl names Peopletrust, not the LinkedIn author."""
     from jobbot.adapters.linkedin.sweep import employer_from_post
