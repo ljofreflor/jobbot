@@ -98,9 +98,8 @@ def set_summary(page: Page, summary: str) -> None:
 def set_headline_via_contact(page: Page, headline: str) -> None:
     page.goto(INDEED_CONTACT_EDIT, wait_until="domcontentloaded", timeout=60_000)
     page.wait_for_timeout(1000)
-    field: Locator | None = page.get_by_test_id(HEADLINE_INPUT)
-    if field.count() == 0:
-        field = _headline_field_by_label(page)
+    by_testid = page.get_by_test_id(HEADLINE_INPUT)
+    field = by_testid if by_testid.count() else _headline_field_by_label(page)
     if field is None:
         msg = "Could not find editable Título/headline field on contact edit"
         raise RuntimeError(msg)
