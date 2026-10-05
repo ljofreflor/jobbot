@@ -468,3 +468,16 @@ def test_eligibility_judges_a_nurse_against_a_clinical_posting() -> None:
     residency = [v for v in verdicts if v.condition.kind is ConditionKind.RESIDENCY]
     assert residency[0].status is VerdictStatus.MEETS
     assert not has_dealbreaker(verdicts)
+
+
+def test_inbound_chat_classifies_shape_not_a_trade() -> None:
+    """A nurse and a journalist get the same HITL gates on WhatsApp."""
+    from jobbot.advisor_inbox import InboundKind, classify_inbound
+
+    nurse = classify_inbound("Tengo registro vigente en la Superintendencia de Salud.")
+    journalist = classify_inbound("Tengo cierre diario en el medio regional.")
+    assert nurse.kind is InboundKind.FACT_OFFER
+    assert journalist.kind is InboundKind.FACT_OFFER
+    assert nurse.writes_profile is False
+    assert journalist.writes_profile is False
+    assert nurse.may_submit is journalist.may_submit is False

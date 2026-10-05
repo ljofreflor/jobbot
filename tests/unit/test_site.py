@@ -283,3 +283,24 @@ def test_pages_pins_setup_uv_to_a_published_tag(project_root: Path) -> None:
     assert pins
     for pin in pins:
         assert re.fullmatch(r"v\d+\.\d+\.\d+", pin), pin
+
+
+def test_whatsapp_is_the_enrolled_client_channel_not_public_contact(
+    soup: BeautifulSoup, html: str
+) -> None:
+    """After the written agreement the client can always write to JobBot on WhatsApp.
+
+    The public CTA stays LinkedIn: publishing a number or a wa.me link would be
+    contact data on a static page (#130).
+    """
+    text = " ".join(soup.get_text(" ").split()).casefold()
+    assert "whatsapp" in text
+    assert "no envía una postulación" in text
+    assert "después del acuerdo escrito" in text
+    assert "no está publicado" in text
+    assert "códigos ni 2fa" in text
+    assert "wa.me" not in html.casefold()
+    assert "api.whatsapp" not in html.casefold()
+    hrefs = {str(a.get("href", "")).rstrip("/") for a in soup.find_all("a")}
+    assert LINKEDIN in hrefs
+    assert not any("whatsapp" in href.casefold() for href in hrefs)

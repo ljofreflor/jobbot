@@ -313,6 +313,12 @@ file names, silently.
   name), job count, prepared applications, whether today's CV proposal exists, and a
   retention warning. `jobbot --workspace NAME advisor report` writes that client's
   summary only, redacted. Consent lives in `data/consent.yaml` inside the sandbox.
+- **WhatsApp (advisory service):** an enrolled client can always message JobBot
+  there for questions and to answer a CV doubt. Transport only
+  (`jobbot.advisor_inbox`): a yes confirms a fact; it never submits; passwords,
+  OTP and 2FA are refused and not stored. The number is given after written
+  consent, never published on the advisory page (contact there stays LinkedIn).
+  OSS CLI users keep the terminal; there is no WhatsApp daemon in the local tool.
 - **Browser account:** a signed-in tab is `ready` for Gmail or LinkedIn only when the
   page text matches this workspace. Another account is `wrong_account` and blocks
   `browser login --apply` and `application apply --apply`. The other identity is not printed.

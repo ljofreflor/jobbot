@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-105 commands, 157 modules, 778 public symbols.
+105 commands, 158 modules, 782 public symbols.
 
 ## Commands
 
@@ -123,6 +123,7 @@ writing it again — the promotion rule lives in
 ### `jobbot`
 
 - `advisor.py` — Advisor view across workspaces: status, a client report, consent, deletion. · `WorkspaceDeleteRefused`, `Consent`, `WorkspaceActivity`, `consent_path`, `read_consent`, `write_consent`, `retention_due`, `retention_warning`, `workspace_activity`, `status_lines`, `write_report`, `parse_since`, `delete_workspace`
+- `advisor_inbox.py` — Inbound client messages (WhatsApp): questions and CV HITL, never submit, never secrets. · `InboundKind`, `PendingPrompt`, `InboundDecision`, `classify_inbound`
 - `branding.py` — One closing mark on texts Jobbot publishes. · `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.

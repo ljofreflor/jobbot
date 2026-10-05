@@ -341,6 +341,9 @@ Do not expand the hand-rolled dict into a second migration framework.
 ### 5.4 What is explicitly out of stack
 
 - Web frontend / React / REST API server
+- WhatsApp Cloud API webhook or chatbot framework inside the OSS CLI (the
+  advisory service may host a gateway later; classification is
+  `advisor_inbox.py`, not a second product)
 - Cloud-hosted **candidate** database (CV, vault, sessions, applications)
 - Captcha solvers, stealth/anti-detect browsers, residential proxies
 - Auto-commit of agent maintainer lanes (ops failure work stays HITL bash)
@@ -383,6 +386,20 @@ JobSourceAdapter.search/get
   → ApplicationPortalAdapter.prefill
   → human submit
 ```
+
+### Advisory WhatsApp (enrolled clients)
+
+```text
+inbound message
+  → classify_inbound (secrets / submit / confirm / question / fact / advisor)
+  → QUESTION: read that workspace only
+  → FACT_CONFIRM: write profile.yaml (same HITL as cv advise --apply)
+  → FACT_OFFER: ask for a yes; write nothing yet
+  → SECRET / SUBMIT: refuse (never store a secret; never send)
+  → ADVISOR: queue the human
+```
+
+OSS CLI users do not get this transport. The local channel stays the terminal.
 
 ### Collaborative knowledge (no PII)
 

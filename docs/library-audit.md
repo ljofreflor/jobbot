@@ -41,6 +41,7 @@ that one is generated from the code, this one records decisions.
 | Posting language (`jobs/language.py`) | `langdetect`, `lingua-language-detector` | Only Spanish vs English is needed, and an unclear text must fall back to the CV's language instead of guessing. `langdetect` is random unless seeded and unreliable on short summaries; `lingua` ships large models. A function-word majority is deterministic and testable |
 | ORCID check digit (`models/candidate.py`) | `python-stdnum` (`iso7064.mod_11_2`) | A whole dependency for a six-line ISO 7064 11,2 loop that never changes; the shape regex and the checksum are covered by unit tests |
 | City to country markers (`_COUNTRY_MARKERS`) | `geonamescache` | Ambiguity ("Santiago", "Córdoba") needs a tie-breaker before it can replace the curated list — tracked as [#8](https://github.com/ljofreflor/jobbot/issues/8). Country detection stays curated for the same reason: a wrong hit drops a job, and an undetectable country is kept on purpose |
+| Inbound WhatsApp / chat (`advisor_inbox.py`) | Twilio, Meta Cloud API SDKs, LangChain agents | The policy is HITL, not messaging: a yes confirms a fact, nothing submits, secrets are refused. A vendor SDK would still need that gate, and a chatbot framework would hide it. The webhook, if the advisory service hosts one, stays outside the OSS CLI; this module is the in-process classifier |
 
 ## Tracked as issues (behaviour changes or weight)
 
