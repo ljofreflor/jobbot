@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-106 commands, 158 modules, 786 public symbols.
+106 commands, 158 modules, 792 public symbols.
 
 ## Commands
 
@@ -177,8 +177,8 @@ writing it again — the promotion rule lives in
 - `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
-- `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `parse_resume_page_text`
-- `selectors.py` — Indeed selector hints (prefer role/label over obfuscated CSS). · `indeed_jobs_base`
+- `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `parse_resume_page_text`, `clamp_portal_ym`, `role_identity`, `roles_already_listed`, `add_missing_experiences`, `headline_visible_in_contact`
+- `selectors.py` — Indeed selector hints (prefer role/label over obfuscated CSS). · `indeed_jobs_base`, `select_list_testid`
 
 ### `adapters/linkedin`
 

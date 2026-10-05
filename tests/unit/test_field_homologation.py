@@ -40,6 +40,11 @@ def test_bare_name_is_full_name_not_middle_name() -> None:
     assert resolve_fact("Middle Name") is not ProfileFact.FULL_NAME
 
 
+def test_indeed_titulo_is_the_headline() -> None:
+    assert resolve_fact("Título") is ProfileFact.HEADLINE
+    assert resolve_fact("Title") is ProfileFact.HEADLINE
+
+
 def test_given_name_aliases_include_workday_wording() -> None:
     aliases = aliases_for(ProfileFact.GIVEN_NAME)
     assert any("given name" in a for a in aliases)
