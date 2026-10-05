@@ -412,3 +412,59 @@ def test_board_searches_come_from_each_profile_s_own_experience() -> None:
     for blob in (nurse.casefold(), journalist.casefold()):
         assert "data" not in blob
         assert "python" not in blob
+
+
+NURSE_CONDITIONS_JOB = (
+    "Title: Enfermera Clínica\n"
+    "Company: Clínica Cordillera\n"
+    "Location: Valparaíso, Chile\n"
+    "Requisitos excluyentes:\n"
+    "- Registro clínico en ficha electrónica.\n"
+    "- Curso de manejo de heridas avanzadas vigente.\n"
+    "Deseable:\n"
+    "- Diplomado en gestión del cuidado.\n"
+    "Debe residir en Chile.\n"
+    "Contrato indefinido, turnos rotativos.\n"
+)
+
+
+def test_posting_conditions_read_a_clinical_posting() -> None:
+    """Mandatory/desirable and residency come from the wording, not from a field's terms."""
+    from jobbot.jobs.conditions import ConditionKind, posting_conditions
+
+    conditions = posting_conditions(parse_job_text(NURSE_CONDITIONS_JOB, job_id="J0620"))
+    requirements = {
+        c.detail: c.mandatory for c in conditions if c.kind is ConditionKind.REQUIREMENT
+    }
+
+    assert requirements["Registro clínico en ficha electrónica"] is True
+    assert requirements["Diplomado en gestión del cuidado"] is False
+    residency = [c for c in conditions if c.kind is ConditionKind.RESIDENCY]
+    assert residency[0].countries == ("CL",)
+    assert [c.contract for c in conditions if c.kind is ConditionKind.CONTRACT] == ["indefinite"]
+
+
+def test_eligibility_judges_a_nurse_against_a_clinical_posting() -> None:
+    """The nurse's own skills back an excluyente; what she never claimed becomes a question."""
+    from jobbot.jobs.conditions import ConditionKind, posting_conditions
+    from jobbot.jobs.eligibility import (
+        ApplicationAnswers,
+        VerdictStatus,
+        assess_conditions,
+        has_dealbreaker,
+    )
+
+    candidate = Candidate.model_validate(nurse_profile_dict())
+    job = parse_job_text(NURSE_CONDITIONS_JOB, job_id="J0621")
+    verdicts = assess_conditions(posting_conditions(job), candidate, ApplicationAnswers())
+    mandatory = {
+        v.condition.detail: v.status
+        for v in verdicts
+        if v.condition.kind is ConditionKind.REQUIREMENT and v.condition.mandatory
+    }
+
+    assert mandatory["Registro clínico en ficha electrónica"] is VerdictStatus.MEETS
+    assert mandatory["Curso de manejo de heridas avanzadas vigente"] is VerdictStatus.ASK
+    residency = [v for v in verdicts if v.condition.kind is ConditionKind.RESIDENCY]
+    assert residency[0].status is VerdictStatus.MEETS
+    assert not has_dealbreaker(verdicts)

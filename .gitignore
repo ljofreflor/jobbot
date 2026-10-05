@@ -24,6 +24,9 @@ data/hard-link-inbox.txt
 data/url-candidates.txt
 # Hiring-practice sources you read; share the practices via `recruiters export`.
 data/recruiters.yaml
+# Answers profile.yaml does not hold (language level, contract, pay): local only.
+data/application_answers.yaml
+data/application_answers.yaml.*
 
 # Keep sanitized templates tracked
 !data/profile.example.yaml

@@ -1,0 +1,23 @@
+# Answers to what profile.yaml does not hold, used by `jobbot jobs conditions`.
+# Copy to data/application_answers.yaml (gitignored) and fill only what you know.
+# These are preferences you edit, not professional facts. A blank stays a question:
+# JobBot asks instead of guessing. A posting's own
+# output/jobs/Jxxxx/application/answers.yaml overrides these for that posting.
+
+# Where you live (country name or ISO code). Blank: profile.yaml personal.country.
+residence_country:
+# Countries where you may work without sponsorship.
+work_authorization: []
+# Language → level: CEFR A1–C2, or native / fluent / conversational / basic.
+languages:
+  english:
+# true / false: a contractor or service contract instead of an employment contract.
+accepts_contractor:
+# true / false: an onsite or hybrid seat in another country.
+relocation:
+# remote / hybrid / onsite (blank: no preference).
+remote_preference:
+# e.g. "two weeks", "immediate".
+notice_period:
+# e.g. "USD 3000 monthly gross".
+salary_expectation:
