@@ -1,0 +1,29 @@
+author: Dalma Merlo
+url: https://www.linkedin.com/posts/dalma-merlo_datascience-advancedanalytics-dataleadership-activity-7511877806738411520-MJ5G
+👀 Seguimos buscando un(a) Data Team Lead – Advanced Analytics | Chile 🇨🇱 | Híbrido
+
+¿Sos Data Scientist con base técnica sólida y ganas de dar el salto al liderazgo (o ya estás liderando)? Esta posición es para vos.
+
+Es un rol en el equipo corporativo de Data & Analytics de una compañía líder de la región: vas a liderar a un equipo de Data Scientists y ser responsable del roadmap y del delivery de proyectos de ML, desde el framing del problema hasta producción y adopción por negocio.
+
+POR QUÉ ES UN BUEN DESAFÍO
+💡 Foco en impacto medible, no en sofisticación técnica
+💡 Autonomía: recibís objetivos, no instrucciones paso a paso
+💡 Contacto directo con áreas de negocio y jefatura
+💡 Desarrollo de personas y definición de ways of working
+
+PERFIL QUE BUSCAMOS
+🔹 Experiencia liderando equipos de data o ganas concretas de hacerlo
+🔹 Trayectoria como Data Scientist con proyectos en producción
+🔹 Python, SQL y Machine Learning aplicado
+🔹 Capacidad de priorizar y manejar varios proyectos en paralelo
+🔹 Comunicación clara con audiencias técnicas y de negocio
+
+SUMA PUNTOS
+⭐ GCP, MLOps y GenAI
+⭐ Experiencia en retail / e-commerce
+⭐ Inglés avanzado
+
+📩 Si te interesa, mandame un mensaje indicando que te interesa este puesto y te comparto la información para avanzar!
+
+#DataScience #AdvancedAnalytics #DataLeadership #MachineLearning #Hiring #IntermediaIT
