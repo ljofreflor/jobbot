@@ -179,6 +179,7 @@ def test_record_and_list_failure(tmp_path: Path) -> None:
 def test_should_not_record_success_or_ops() -> None:
     assert not should_record_cli_failure(["jobbot", "profile", "validate"], SUCCESS)
     assert not should_record_cli_failure(["jobbot", "ops", "failures"], GENERIC_FAILURE)
+    assert not should_record_cli_failure(["jobbot", "update"], GENERIC_FAILURE)
     assert should_record_cli_failure(["jobbot", "probe-exit", "5"], UI_CHANGED)
     assert not should_record_cli_failure(["jobbot", "jobs", "add"], USER_CANCEL)
 
