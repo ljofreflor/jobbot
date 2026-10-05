@@ -137,6 +137,13 @@ class RuleBasedJobAnalyzer:
         return JobMatch(job_id=job.id, score=score, items=items)
 
 
+def requirement_evidence(
+    candidate: Candidate, requirement: str
+) -> tuple[MatchStrength, str] | None:
+    """The profile's own wording behind one requirement sentence, or None."""
+    return _requirement_evidence(requirement, _candidate_vocabulary(candidate))
+
+
 def _candidate_tokens(candidate: Candidate) -> set[str]:
     tokens: set[str] = set()
     for skill in candidate.skills.all_skills():

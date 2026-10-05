@@ -2561,6 +2561,80 @@ def jobs_match(
     console.print(format_match_report(match))
 
 
+@jobs_app.command("conditions")
+def jobs_conditions(
+    job_ids: Annotated[list[str] | None, typer.Argument(help="Job IDs (J0001 …)")] = None,
+    all_prepared: Annotated[
+        bool, typer.Option("--all-prepared", help="Every job with a prepared application")
+    ] = False,
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Review a posting's special conditions against you before applying (exit 1: dealbreaker)."""
+    from jobbot.jobs.conditions import posting_conditions
+    from jobbot.jobs.eligibility import (
+        assess_conditions,
+        default_answers_path,
+        format_conditions_report,
+        has_dealbreaker,
+        job_answers_path,
+        load_application_answers,
+    )
+
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    ids = list(job_ids or [])
+    if all_prepared:
+        for application in ApplicationRepository(session).list_all():
+            if application.status == ApplicationStatus.PREPARED and application.job_id not in ids:
+                ids.append(application.job_id)
+    if not ids:
+        err_console.print("Give one or more job IDs, or --all-prepared.")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    repo = JobRepository(session)
+    answers_path = default_answers_path(config.root)
+    reports: list[dict[str, object]] = []
+    texts: list[str] = []
+    blocked = False
+    for job_id in ids:
+        job = repo.get(job_id)
+        if job is None:
+            err_console.print(f"[red]Job not found: {job_id}[/red]")
+            raise typer.Exit(GENERIC_FAILURE)
+        try:
+            answers = load_application_answers(
+                answers_path, job_answers=job_answers_path(config.output_dir, job.id)
+            )
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        verdicts = assess_conditions(posting_conditions(job), candidate, answers)
+        blocked = blocked or has_dealbreaker(verdicts)
+        reports.append(
+            {
+                "job_id": job.id,
+                "title": job.title,
+                "company": job.company,
+                "dealbreaker": has_dealbreaker(verdicts),
+                "verdicts": [v.to_dict() for v in verdicts],
+            }
+        )
+        texts.append(format_conditions_report(job, verdicts))
+
+    if as_json:
+        console.print_json(data=reports)
+    else:
+        state = "found" if answers_path.is_file() else "missing; copy the .example.yaml"
+        texts.append(f"Answers: {answers_path} ({state})")
+        console.print("\n\n".join(texts), markup=False, highlight=False, soft_wrap=True)
+    if blocked:
+        raise _QuietExit(GENERIC_FAILURE)
+
+
 @jobs_app.command("shortlist")
 def jobs_shortlist() -> None:
     """Rank stored jobs by match score."""
