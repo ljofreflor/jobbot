@@ -4,14 +4,22 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 from jobbot.adapters.indeed.package import build_indeed_sync_package
+from jobbot.adapters.indeed.selectors import (
+    CONTACT_SAVE,
+    HEADLINE_INPUT,
+    select_list_testid,
+)
 from jobbot.models.candidate import Candidate
 from jobbot.models.experience import Experience
+from jobbot.portals.field_homologation import ProfileFact, aliases_for
 
 logger = logging.getLogger("jobbot.indeed.resume_edit")
 
@@ -90,36 +98,27 @@ def set_summary(page: Page, summary: str) -> None:
 def set_headline_via_contact(page: Page, headline: str) -> None:
     page.goto(INDEED_CONTACT_EDIT, wait_until="domcontentloaded", timeout=60_000)
     page.wait_for_timeout(1000)
-    # Indeed sometimes exposes Título as a button that reveals an input
-    title_btn = page.get_by_role("button", name="Título")
-    if title_btn.count() and title_btn.first.is_visible():
-        title_btn.first.click()
-        page.wait_for_timeout(500)
-    filled = False
-    for name in ("Título", "Title", "Headline"):
-        field = page.get_by_label(name, exact=False)
-        for i in range(field.count()):
-            el = field.nth(i)
-            try:
-                if el.is_visible() and el.is_editable():
-                    el.fill(headline)
-                    filled = True
-                    break
-            except Exception:  # noqa: BLE001
-                continue
-        if filled:
-            break
-    if not filled:
-        # Visible text inputs: Nombre, Apellido, then Título often 3rd
-        inputs = page.locator('input[type="text"]:visible')
-        if inputs.count() >= 3:
-            inputs.nth(2).fill(headline)
-            filled = True
-    if not filled:
+    by_testid = page.get_by_test_id(HEADLINE_INPUT)
+    field = by_testid if by_testid.count() else _headline_field_by_label(page)
+    if field is None:
         msg = "Could not find editable Título/headline field on contact edit"
         raise RuntimeError(msg)
-    _click_guardar(page)
+    field.fill(headline)
+    save = page.get_by_test_id(CONTACT_SAVE)
+    if save.count():
+        save.first.click(timeout=10_000)
+    else:
+        _click_guardar(page)
     page.wait_for_timeout(1200)
+    open_resume(page)
+    try:
+        contact = page.get_by_test_id("contact-info-section").inner_text()
+    except Exception as exc:  # noqa: BLE001
+        msg = "headline not visible under the name on the resume"
+        raise RuntimeError(msg) from exc
+    if not headline_visible_in_contact(contact, headline):
+        msg = "headline not visible under the name on the resume"
+        raise RuntimeError(msg)
 
 
 def add_experience(page: Page, exp: Experience) -> None:
@@ -245,7 +244,6 @@ def apply_full_resume_from_candidate(
     package = build_indeed_sync_package(candidate)
     errors: list[str] = []
     summary_ok = headline_ok = False
-    exp_added = 0
     skills_added = 0
     edu_added = 0
 
@@ -261,37 +259,15 @@ def apply_full_resume_from_candidate(
     except Exception as exc:  # noqa: BLE001
         errors.append(f"headline: {exc}")
 
-    existing_companies: set[str] = set()
+    section_text = ""
     if skip_existing_companies:
         try:
             open_resume(page)
-            text = page.get_by_test_id("work-experience-section").inner_text().casefold()
-            existing_companies = {
-                e.company.casefold()
-                for e in candidate.experience
-                if e.company.casefold() in text
-                or e.company.split(",")[0].casefold() in text
-            }
-            # Also match partial "Centro de modelamiento"
-            for e in candidate.experience:
-                key = e.company.casefold()
-                short = key.split(",")[0].strip()
-                if short and short in text:
-                    existing_companies.add(key)
+            section_text = page.get_by_test_id("work-experience-section").inner_text()
         except Exception:  # noqa: BLE001
-            existing_companies = set()
-
-    for exp in candidate.experience:
-        if exp.company.casefold() in existing_companies:
-            logger.info("skip existing company %s", exp.company)
-            continue
-        try:
-            add_experience(page, exp)
-            exp_added += 1
-            existing_companies.add(exp.company.casefold())
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"experience {exp.company}: {exc}")
-            logger.warning("experience add failed: %s", exc)
+            section_text = ""
+    exp_added, exp_errors = add_missing_experiences(page, list(candidate.experience), section_text)
+    errors.extend(exp_errors)
 
     try:
         skills_added = add_skills(page, package.skills)
@@ -363,6 +339,90 @@ def _parse_ym(ym: str) -> tuple[int, int]:
     return int(year_s), int(month_s)
 
 
+def clamp_portal_ym(year: int, month: int, today: date) -> tuple[int, int]:
+    """Keep a date inside the months Indeed's year menu will list.
+
+    The end-year menu omits a year when the month already chosen is still in
+    the future. On 3 Oct 2026, December 2026 is not an option, so 2026 itself
+    disappears from the list. Moving that month back to today leaves the
+    candidate's year selectable. A date that is already past is unchanged.
+    """
+    if (year, month) <= (today.year, today.month):
+        return year, month
+    return today.year, today.month
+
+
+def role_identity(exp: Experience) -> tuple[str, str]:
+    return (exp.company.casefold().strip(), exp.title.casefold().strip())
+
+
+def roles_already_listed(
+    section_text: str, experiences: Sequence[Experience]
+) -> set[tuple[str, str]]:
+    """Roles whose title and employer are each their own line.
+
+    A company name inside another role's bullet is not that employer. One title
+    at an employer does not cover a second title there.
+    """
+    lines = {line.strip().casefold() for line in section_text.splitlines() if line.strip()}
+    found: set[tuple[str, str]] = set()
+    for exp in experiences:
+        key = role_identity(exp)
+        if key[0] in lines and key[1] in lines:
+            found.add(key)
+    return found
+
+
+def add_missing_experiences(
+    page: Page,
+    experiences: Sequence[Experience],
+    section_text: str,
+) -> tuple[int, list[str]]:
+    """Add each role that is not already a line on the resume.
+
+    A failed add does not mark the employer done, so the next title at the same
+    employer is still attempted.
+    """
+    saved = roles_already_listed(section_text, experiences)
+    added = 0
+    errors: list[str] = []
+    for exp in experiences:
+        if role_identity(exp) in saved:
+            logger.info("skip role already on resume %s @ %s", exp.title, exp.company)
+            continue
+        try:
+            add_experience(page, exp)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"experience {exp.company} / {exp.title}: {exc}")
+            logger.warning("experience add failed: %s", exc)
+            continue
+        saved.add(role_identity(exp))
+        added += 1
+    return added, errors
+
+
+def headline_visible_in_contact(contact_text: str, headline: str) -> bool:
+    """True only when the open CV shows the title under the name."""
+    needle = " ".join(headline.split()).casefold()
+    if not needle:
+        return False
+    hay = " ".join(contact_text.split()).casefold()
+    return needle in hay
+
+
+def _headline_field_by_label(page: Page) -> Locator | None:
+    for name in aliases_for(ProfileFact.HEADLINE):
+        field = page.get_by_label(name, exact=False)
+        for i in range(field.count()):
+            el = field.nth(i)
+            try:
+                if el.is_visible() and el.is_editable():
+                    return el
+            except Exception:  # noqa: BLE001
+                continue
+    return None
+
+
 def _select_month_year(page: Page, which: str, month: int, year: int) -> None:
     """which: 'from' or 'to' (work experience testids)."""
     month_id = f"work-experience-date-range-{which}-month"
@@ -376,22 +436,23 @@ def _select_education_month_year(page: Page, which: str, month: int, year: int) 
     _select_month_year_ids(page, month_id, year_id, month, year)
 
 
-def _select_month_year_ids(
-    page: Page, month_id: str, year_id: str, month: int, year: int
-) -> None:
-    month_label = _MONTHS_ES[month]
-    year_label = str(year)
+def _select_month_year_ids(page: Page, month_id: str, year_id: str, month: int, year: int) -> None:
+    year, month = clamp_portal_ym(year, month, date.today())
+    _choose_select_option(page, month_id, _MONTHS_ES[month])
+    _choose_select_option(page, year_id, str(year))
 
-    page.get_by_test_id(month_id).locator('[data-testid="select-button"]').click()
-    page.wait_for_timeout(400)
-    if not _click_visible_text(page, month_label):
-        logger.warning("month option %s not visible; continuing with year", month_label)
 
-    page.get_by_test_id(year_id).locator('[data-testid="select-button"]').click()
+def _choose_select_option(page: Page, control_testid: str, label: str) -> None:
+    """Open this Indeed select and click its option, not any matching text."""
+    page.get_by_test_id(control_testid).locator('[data-testid="select-button"]').click()
     page.wait_for_timeout(400)
-    if not _click_visible_text(page, year_label):
-        msg = f"Year option not found: {year_label}"
+    list_id = select_list_testid(control_testid)
+    option = page.get_by_test_id(list_id).get_by_role("option", name=label, exact=True)
+    if option.count() == 0:
+        msg = f"Option not found in {list_id}: {label}"
         raise RuntimeError(msg)
+    option.first.click(timeout=5_000)
+    page.wait_for_timeout(200)
 
 
 def _click_visible_text(page: Page, name: str) -> bool:
