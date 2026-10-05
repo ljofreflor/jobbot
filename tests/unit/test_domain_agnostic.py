@@ -147,6 +147,22 @@ def test_sweep_keeps_a_hiring_post_from_any_field() -> None:
     assert not looks_like_job_post(chatter)
 
 
+def test_linkedin_message_apply_is_a_channel_not_a_trade() -> None:
+    """A clinic or a newsroom can ask for a DM; the detector must not require a stack."""
+    from jobbot.portals.message_apply import asks_for_linkedin_message
+
+    clinical = (
+        "Seguimos buscando un(a) Enfermera Clínica | Chile | Híbrido. "
+        "Si te interesa, mandame un mensaje indicando que te interesa este puesto."
+    )
+    chatter = "Te mandé un mensaje ayer sobre el trekking en el cajón del Maipo."
+
+    assert looks_like_job_post(clinical)
+    assert asks_for_linkedin_message(clinical)
+    assert not asks_for_linkedin_message(chatter)
+    assert not looks_like_job_post(chatter)
+
+
 def test_refine_keeps_a_paragraph_backed_by_a_non_data_profile() -> None:
     """The old rule kept a paragraph only if it mentioned data-science words."""
     candidate = Candidate.model_validate(nurse_profile_dict())
@@ -275,9 +291,9 @@ def test_empleos_publicos_ficha_is_field_agnostic(project_root: Path) -> None:
     """A public-sector concurso parse must not assume a tech role vocabulary."""
     from jobbot.adapters.empleospublicos.jobs import job_from_ficha_html
 
-    html = (
-        project_root / "tests/fixtures/empleospublicos/aviso_ficha.html"
-    ).read_text(encoding="utf-8")
+    html = (project_root / "tests/fixtures/empleospublicos/aviso_ficha.html").read_text(
+        encoding="utf-8"
+    )
     job = job_from_ficha_html(
         html,
         url="https://www.empleospublicos.cl/pub/convocatorias/avisotrabajoficha.aspx?i=990001",

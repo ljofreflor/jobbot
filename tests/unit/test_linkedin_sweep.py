@@ -140,8 +140,7 @@ def test_one_labelled_vacancy_uses_vacancy_title_and_url() -> None:
     from jobbot.adapters.linkedin.sweep import parse_post_blob
 
     post = parse_post_blob(
-        "We're hiring!\n"
-        "🔹 Lead Data Scientist – Chile: https://career.example.com/lead-ds-42\n",
+        "We're hiring!\n🔹 Lead Data Scientist – Chile: https://career.example.com/lead-ds-42\n",
         author="Ana Recruiter",
         post_url="https://www.linkedin.com/posts/ana-activity-1234567890123456789-abcd",
     )
@@ -261,6 +260,10 @@ def test_title_drops_the_word_naming_whom_the_recruiter_wants() -> None:
     assert _guess_title("Buscamos Data Scientist Senior para Airport Operations.") == (
         "Data Scientist Senior para Airport Operations"
     )
+    assert (
+        _guess_title("Seguimos buscando un(a) Editor de Contenidos | Chile | Híbrido")
+        == "Editor de Contenidos"
+    )
 
 
 def test_title_reads_estoy_buscando_and_stops_before_para_empresa() -> None:
@@ -297,6 +300,19 @@ def test_mailto_company_domain_beats_recruiter_author() -> None:
         )
         == "Ana Recruiter"
     )
+
+
+def test_unnamed_client_is_not_the_agency_hashtag_or_the_author() -> None:
+    from jobbot.adapters.linkedin.sweep import employer_from_post
+
+    text = (
+        "Seguimos buscando un(a) Editor de Contenidos | Chile | Híbrido\n"
+        "Es un rol en el equipo de una compañía líder de la región.\n"
+        "Si te interesa, mandame un mensaje.\n"
+        "#NewsroomAgency #Hiring"
+    )
+    permalink = "https://www.linkedin.com/posts/recruiter_activity-7511877806738411520-MJ5G"
+    assert employer_from_post(text, permalink, author="Ana Recruiter") == "Unknown company"
 
 
 def test_title_keeps_the_first_letter_of_applied_scientist() -> None:
