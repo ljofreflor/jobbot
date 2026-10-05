@@ -438,7 +438,9 @@ an issue already holds acceptance tests wastes everyone's time.
    to appear in assignable users (read via the Cursor GitHub App is not enough). Until that
    write collaborator is in place, apply the `cursor` label as the ownership signal and keep
    a write invite open — then retry `--add-assignee cursoragent`. Prefer the real assignee
-   over the label alone.
+   over the label alone. `.github/workflows/issue-ownership.yml` stamps `cursor` on every
+   new issue (and backfills on `workflow_dispatch`); it does not assign, because the App
+   token cannot.
 
 ## Local branches (periodic cleanup)
 

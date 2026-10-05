@@ -1,0 +1,64 @@
+# Stamp the `cursor` label on product issues so they are never ownerless.
+# The App bot cannot be an assignee (`cursoragent` needs write collaborator);
+# the label is the ownership signal until that invite is accepted (AGENTS.md).
+name: Issue ownership
+
+on:
+  issues:
+    types: [opened, transferred, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  stamp-cursor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure cursor label
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const LABEL = "cursor";
+            const { owner, repo } = context.repo;
+
+            async function stamp(issue_number) {
+              const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+                owner,
+                repo,
+                issue_number,
+              });
+              if (labels.some((item) => item.name === LABEL)) {
+                return;
+              }
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels: [LABEL],
+              });
+            }
+
+            if (context.eventName === "issues") {
+              await stamp(context.issue.number);
+              return;
+            }
+
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+            for (const issue of open) {
+              if (issue.pull_request) {
+                continue;
+              }
+              const names = (issue.labels || []).map((item) =>
+                typeof item === "string" ? item : item.name,
+              );
+              if (!names.includes(LABEL)) {
+                await stamp(issue.number);
+              }
+            }
