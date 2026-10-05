@@ -30,6 +30,11 @@ class AtsKind(StrEnum):
     JOBGETHER = "jobgether"
     VACANTES = "vacantes"
     EMPLEOS_PUBLICOS = "empleos_publicos"
+    TRABAJANDO = "trabajando"
+    LABORUM = "laborum"
+    COMPUTRABAJO = "computrabajo"
+    BUMERAN = "bumeran"
+    CHILETRABAJOS = "chiletrabajos"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -49,6 +54,11 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.JOBGETHER,
         AtsKind.VACANTES,
         AtsKind.EMPLEOS_PUBLICOS,
+        AtsKind.TRABAJANDO,
+        AtsKind.LABORUM,
+        AtsKind.COMPUTRABAJO,
+        AtsKind.BUMERAN,
+        AtsKind.CHILETRABAJOS,
     }
 )
 
@@ -92,9 +102,26 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("jobgether.com", AtsKind.JOBGETHER),
     ("vacantes.com", AtsKind.VACANTES),
     ("empleospublicos.cl", AtsKind.EMPLEOS_PUBLICOS),
+    ("trabajando.cl", AtsKind.TRABAJANDO),
+    ("laborum.cl", AtsKind.LABORUM),
+    ("computrabajo.com", AtsKind.COMPUTRABAJO),
+    ("computrabajo.cl", AtsKind.COMPUTRABAJO),
+    ("bumeran.cl", AtsKind.BUMERAN),
+    ("bumeran.com", AtsKind.BUMERAN),
+    ("chiletrabajos.cl", AtsKind.CHILETRABAJOS),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
+
+# Shared board host with a company subdomain (``acme.trabajando.cl``). Apex and
+# ``www.`` stay the bolsa; the tenant is that employer's career site.
+_WHITE_LABEL_BOARDS: dict[AtsKind, str] = {
+    AtsKind.TRABAJANDO: "trabajando.cl",
+}
+_SHARED_BOARD_LABELS: frozenset[str] = frozenset(
+    {"www", "www2", "m", "mobile", "empleo", "empleos", "jobs", "trabajo"}
+)
+BOARD_HOST_REVIEW = "host de bolsa: revisar"
 
 # Embedded markers that prove an ATS behind a corporate page (technical evidence only).
 _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
@@ -174,6 +201,33 @@ def detect_ats(url: str) -> AtsKind:
         if host == needle or host.endswith("." + needle) or needle in host:
             return kind
     return AtsKind.UNKNOWN
+
+
+def is_white_label_tenant(url: str) -> bool:
+    """True when the host is a company subdomain of a board (``acme.trabajando.cl``)."""
+    kind = detect_ats(url)
+    suffix = _WHITE_LABEL_BOARDS.get(kind)
+    if not suffix:
+        return False
+    raw = url.strip()
+    if raw and not re.match(r"^https?://", raw, re.I):
+        raw = "https://" + raw
+    host = (urlparse(raw).hostname or "").lower()
+    if host in {suffix, f"www.{suffix}"} or not host.endswith("." + suffix):
+        return False
+    extra = host[: -(len(suffix) + 1)]
+    if not extra or "." in extra:
+        return False
+    return extra not in _SHARED_BOARD_LABELS
+
+
+def job_board_host_review(url: str) -> str | None:
+    """Flag a stored career URL whose host is a shared job board, not one employer."""
+    if is_white_label_tenant(url):
+        return None
+    if detect_ats(url) not in JOB_BOARD_KINDS:
+        return None
+    return BOARD_HOST_REVIEW
 
 
 def aggregator_board(url: str) -> AtsKind | None:
@@ -284,6 +338,8 @@ def first_external_ats_url(urls: list[str]) -> tuple[str | None, AtsKind]:
         ranked.append((url, kind))
     for url, kind in ranked:
         if kind != AtsKind.UNKNOWN and kind not in JOB_BOARD_KINDS:
+            return url, kind
+        if is_white_label_tenant(url):
             return url, kind
     for url, kind in ranked:
         if kind == AtsKind.UNKNOWN:

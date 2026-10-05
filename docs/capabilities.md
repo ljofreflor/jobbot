@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-105 commands, 157 modules, 778 public symbols.
+105 commands, 157 modules, 780 public symbols.
 
 ## Commands
 
@@ -307,7 +307,7 @@ writing it again — the promotion rule lives in
 
 ### `portals`
 
-- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `aggregator_board`, `html_marker_kinds`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
+- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `is_white_label_tenant`, `job_board_host_review`, `aggregator_board`, `html_marker_kinds`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`

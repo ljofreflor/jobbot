@@ -4755,6 +4755,7 @@ def companies_list(
     """List known companies and their career platforms."""
     from jobbot.companies.models import KnowledgeStatus
     from jobbot.companies.urls import display_url
+    from jobbot.portals.detect import job_board_host_review
 
     config = load_config()
     registry, path = _companies_registry(config)
@@ -4779,15 +4780,21 @@ def companies_list(
     table.add_column("Status")
     table.add_column("Conf.")
     rows = 0
+    flagged = 0
     for record in registry.companies:
         for site in record.career_sites:
             if wanted is not None and site.status.value not in wanted:
                 continue
+            site_type = site.site_type.value
+            review = job_board_host_review(site.url)
+            if review:
+                site_type = f"{site_type} · {review}"
+                flagged += 1
             table.add_row(
                 record.id,
                 record.country or "—",
                 display_url(site.url),
-                site.site_type.value,
+                site_type,
                 site.ats.value,
                 site.status.value,
                 str(site.confidence),
@@ -4797,6 +4804,11 @@ def companies_list(
         console.print(f"No career sites with status {status!r}.")
         return
     console.print(table)
+    if flagged:
+        console.print(
+            "Host de bolsa: revisar. Nada se borra solo — "
+            "[bold]jobbot companies reject ID[/bold] si el sitio no es de la empresa."
+        )
 
 
 @companies_app.command("show")
