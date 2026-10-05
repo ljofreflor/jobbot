@@ -3,7 +3,8 @@
 Drives the diagram on the advisory page (``asesoria/index.html``). Every group is read from
 the code — ``AtsKind``, the adapter registry, the account-need table and the job sources — so
 the page cannot name a platform JobBot does not know, nor miss one it learned. ``make site``
-rewrites the figure between the page markers; a stale page fails the suite.
+rewrites the figure and the Luma comparison table between their markers; a stale page fails
+the suite.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from typing import get_args
 
 from jobbot.adapters.ats.registry import supported_kinds
 from jobbot.adapters.base import ApplyMethod
+from jobbot.advisory.compare import COMPARE_END, COMPARE_START, render_comparison
 from jobbot.companies.signup import AccountNeed, account_need
 from jobbot.jobs.sources import JobSourceName
 from jobbot.portals.detect import JOB_BOARD_KINDS, AtsKind, html_marker_kinds
@@ -603,23 +605,46 @@ def render_figure() -> str:
     )
 
 
-def inject_figure(page: str, figure: str) -> str:
-    """Replace what sits between the page markers, keeping the markers' indentation."""
-    start, end = page.find(MAP_START), page.find(MAP_END)
+def inject_between(page: str, start_mark: str, end_mark: str, body: str, *, missing: str) -> str:
+    """Swap the block between two HTML comment markers, keeping indentation."""
+    start, end = page.find(start_mark), page.find(end_mark)
     if start < 0 or end < start:
-        msg = "page has no platform-map markers"
-        raise ValueError(msg)
+        raise ValueError(missing)
     indent = page[page.rfind("\n", 0, start) + 1 : start]
     if indent.strip():
         indent = ""
-    body = "\n".join(f"{indent}{line}" if line else line for line in figure.splitlines())
-    return f"{page[: start + len(MAP_START)]}\n{body}\n{indent}{page[end:]}"
+    rendered = "\n".join(f"{indent}{line}" if line else line for line in body.splitlines())
+    return f"{page[: start + len(start_mark)]}\n{rendered}\n{indent}{page[end:]}"
+
+
+def inject_figure(page: str, figure: str) -> str:
+    """Replace what sits between the page markers, keeping the markers' indentation."""
+    return inject_between(
+        page,
+        MAP_START,
+        MAP_END,
+        figure,
+        missing="page has no platform-map markers",
+    )
+
+
+def inject_comparison(page: str, table: str) -> str:
+    """Replace the Luma comparison table between its markers."""
+    return inject_between(
+        page,
+        COMPARE_START,
+        COMPARE_END,
+        table,
+        missing="page has no comparison markers",
+    )
 
 
 def write_page(root: Path) -> Path:
     target = root / PAGE_RELPATH
     page = target.read_text(encoding="utf-8")
-    target.write_text(inject_figure(page, render_figure()), encoding="utf-8")
+    page = inject_figure(page, render_figure())
+    page = inject_comparison(page, render_comparison())
+    target.write_text(page, encoding="utf-8")
     return target
 
 

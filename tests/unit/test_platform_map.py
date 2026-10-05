@@ -11,6 +11,7 @@ import yaml
 from bs4 import BeautifulSoup, Tag
 
 from jobbot.adapters.ats.registry import supported_kinds
+from jobbot.advisory.compare import COMPARE_END, COMPARE_START, render_comparison
 from jobbot.companies.signup import AccountNeed, account_need
 from jobbot.jobs.sources import JobSourceName
 from jobbot.ops import pii_guard
@@ -21,6 +22,7 @@ from jobbot.portals.platform_map import (
     PAGE_RELPATH,
     featured_platforms,
     feedback_loop,
+    inject_comparison,
     inject_figure,
     main,
     platform_flavours,
@@ -47,6 +49,9 @@ def test_committed_page_carries_the_current_diagram() -> None:
     committed = (repo_root() / PAGE_RELPATH).read_text(encoding="utf-8")
     assert committed == inject_figure(committed, render_figure()), (
         "asesoria/index.html diagram is stale — run `make site` and commit the result"
+    )
+    assert committed == inject_comparison(committed, render_comparison()), (
+        "asesoria/index.html comparison is stale — run `make site` and commit the result"
     )
 
 
@@ -276,20 +281,30 @@ def test_inject_refuses_a_page_without_markers() -> None:
 def test_write_page_updates_the_file(tmp_path: Path) -> None:
     page = tmp_path / PAGE_RELPATH
     page.parent.mkdir(parents=True)
-    page.write_text(f"{MAP_START}\n{MAP_END}\n", encoding="utf-8")
+    page.write_text(
+        f"{MAP_START}\n{MAP_END}\n{COMPARE_START}\n{COMPARE_END}\n",
+        encoding="utf-8",
+    )
 
     assert write_page(tmp_path) == page
-    assert "<svg" in page.read_text(encoding="utf-8")
+    written = page.read_text(encoding="utf-8")
+    assert "<svg" in written
+    assert 'class="compare"' in written
 
 
 def test_main_writes_or_prints(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     page = tmp_path / PAGE_RELPATH
     page.parent.mkdir(parents=True)
-    page.write_text(f"{MAP_START}\n{MAP_END}\n", encoding="utf-8")
+    page.write_text(
+        f"{MAP_START}\n{MAP_END}\n{COMPARE_START}\n{COMPARE_END}\n",
+        encoding="utf-8",
+    )
 
     assert main([], root=tmp_path) == 0
     assert "<figure" in capsys.readouterr().out
     assert "<svg" not in page.read_text(encoding="utf-8")
 
     assert main(["--write"], root=tmp_path) == 0
-    assert "<svg" in page.read_text(encoding="utf-8")
+    written = page.read_text(encoding="utf-8")
+    assert "<svg" in written
+    assert 'class="compare"' in written

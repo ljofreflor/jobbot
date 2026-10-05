@@ -398,6 +398,96 @@ a:focus-visible {
   margin-top: 1.75rem;
 }
 
+.compare-wrap {
+  overflow-x: auto;
+  margin-top: 1.25rem;
+}
+
+table.compare {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.compare caption {
+  caption-side: bottom;
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-top: 0.75rem;
+  max-width: 68ch;
+}
+
+.compare th,
+.compare td {
+  border: 1px solid var(--line);
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+  text-align: left;
+}
+
+.compare thead th {
+  background: var(--band);
+  font-size: 0.95rem;
+}
+
+.compare tbody th {
+  font-weight: 500;
+  color: var(--muted);
+  width: 46%;
+}
+
+.compare tbody td {
+  font-weight: 600;
+}
+
+@media (max-width: 40rem) {
+  .compare thead {
+    display: none;
+  }
+
+  .compare,
+  .compare tbody,
+  .compare tr,
+  .compare th,
+  .compare td {
+    display: block;
+    width: 100%;
+  }
+
+  .compare tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .compare tbody th,
+  .compare tbody td {
+    border: none;
+    border-bottom: 1px solid var(--line);
+    width: auto;
+  }
+
+  .compare tbody th::before,
+  .compare tbody td::before {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+    color: var(--muted);
+  }
+
+  .compare tbody th::before {
+    content: "El taller";
+  }
+
+  .compare tbody td::before {
+    content: "Acá";
+  }
+}
+
 .closing {
   text-align: center;
 }

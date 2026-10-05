@@ -265,6 +265,42 @@ def test_platform_map_section_explains_the_feedback_loop(soup: BeautifulSoup) ->
     assert "vuelve" in text and "solo si tú las confirmas" in text
 
 
+def test_luma_comparison_section_follows_what_i_do(soup: BeautifulSoup) -> None:
+    main = soup.find("main")
+    assert main is not None
+    sections = main.find_all("section", recursive=False)
+    ids = [section.find(["h1", "h2"]).get("id") for section in sections]
+    assert "equipo" in ids
+    assert ids.index("equipo") == ids.index("que-hago") + 1
+
+
+def test_luma_comparison_table_contrasts_hitl_not_autopilot(soup: BeautifulSoup) -> None:
+    heading = soup.find(id="equipo")
+    assert heading is not None and heading.name == "h2"
+    assert "equipo" in heading.get_text().casefold()
+    section = heading.find_parent("section")
+    assert section is not None
+    text = " ".join(section.get_text(" ").split()).casefold()
+    assert "miniagentes" in text
+    assert "quién aprieta enviar" in text
+    table = section.find("table", class_="compare")
+    assert table is not None
+    ours = " ".join(td.get_text(" ") for td in table.select("tbody td")).casefold()
+    workshop = " ".join(th.get_text(" ") for th in table.select("tbody th")).casefold()
+    assert "por ti" in workshop
+    assert "por ti" not in ours
+    assert "tú envías" in ours
+    link = table.find("a")
+    assert link is not None
+    assert str(link.get("href", "")).startswith("https://luma.com/")
+    assert "tk=" not in str(link.get("href"))
+
+
+def test_luma_comparison_css_stacks_on_small_viewports(css: str) -> None:
+    assert "table.compare" in css
+    assert re.search(r"@media\s*\(max-width:[^)]+\)\s*\{[^}]*\.compare", css, re.S)
+
+
 def test_pages_has_one_workflow_that_ships_the_page(project_root: Path) -> None:
     """A repo has one Pages site: two deploying workflows overwrite each other."""
     workflows = project_root / ".github" / "workflows"
