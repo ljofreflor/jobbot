@@ -187,9 +187,9 @@ def test_should_not_record_help_invocations() -> None:
     """Exploring CLI help is not an ops failure — even when the command is wrong."""
     assert not should_record_cli_failure(["jobbot", "cv", "build", "--help"], GENERIC_FAILURE)
     assert not should_record_cli_failure(["jobbot", "cv", "build", "-h"], GENERIC_FAILURE)
-    assert not should_record_cli_failure(
-        ["jobbot", "ops failure show", "--help"], GENERIC_FAILURE
-    )
+    assert not should_record_cli_failure(["jobbot", "ops failure show", "--help"], GENERIC_FAILURE)
+    assert not should_record_cli_failure(["jobbot", "--version"], GENERIC_FAILURE)
+    assert not should_record_cli_failure(["jobbot", "-V"], GENERIC_FAILURE)
 
 
 def test_capture_cli_failure_ui_changed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -330,6 +330,7 @@ def test_issue_body_includes_runtime_context(tmp_path: Path) -> None:
     assert "stdin_tty" in body
     assert "Regression unit test" in body
 
+
 def test_cv_propagate_invalid_target_not_recorded(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -359,6 +360,7 @@ skills: []
         assert len(rows) == 0, "Invalid target should not record an ops_failure"
     finally:
         session.close()
+
 
 def test_should_not_record_validation_failure() -> None:
     """Regression: validation errors (bad input) should not be recorded as ops failures."""

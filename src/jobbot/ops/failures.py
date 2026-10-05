@@ -213,10 +213,10 @@ def record_failure(
 
 
 def should_record_cli_failure(argv: Sequence[str], exit_code: int) -> bool:
-    """Skip success, user cancel, validation errors, help probes, and ops/version."""
+    """Skip success, user cancel, validation errors, help/version probes, and ops/version."""
     if exit_code in {SUCCESS, USER_CANCEL, VALIDATION_FAILURE}:
         return False
-    if any(flag in {"--help", "-h"} for flag in argv):
+    if any(flag in {"--help", "-h", "--version", "-V"} for flag in argv):
         return False
     parts = [a for a in argv if a and not a.startswith("-")]
     if parts and Path(parts[0]).name in {"jobbot", "python", "python3"}:

@@ -177,6 +177,13 @@ class _RecordedExit(Exception):
         self.message = message
 
 
+def _usage_error() -> type[BaseException]:
+    """Typer 0.27 vendors Click as ``typer._click``; UsageError is not re-exported."""
+    from typer._click.exceptions import UsageError
+
+    return UsageError
+
+
 def run_cli(
     argv: Sequence[str] | None = None,
     *,
@@ -217,6 +224,17 @@ def run_cli(
         # Pointing a profile at somebody else's data is a wrong invocation, not a bug:
         # report it and stop, without recording an ops failure or writing anything.
         err_console.print(f"[bold red]Wrong workspace[/bold red]\n{exc}")
+        if standalone_mode:
+            raise SystemExit(VALIDATION_FAILURE) from exc
+        return VALIDATION_FAILURE
+    except _usage_error() as exc:
+        # Unknown options, missing params, `jobbot jobs` with no subcommand:
+        # Click already printed help for NoArgsIsHelpError. Anything else needs
+        # the same usage text Click would have shown. Never an ops failure (#187).
+        if type(exc).__name__ != "NoArgsIsHelpError":
+            show = getattr(exc, "show", None)
+            if callable(show):
+                show()
         if standalone_mode:
             raise SystemExit(VALIDATION_FAILURE) from exc
         return VALIDATION_FAILURE
@@ -276,11 +294,27 @@ def _session() -> tuple[Session, JobbotConfig]:
     return make_session_factory(engine)(), config
 
 
+def _print_version(value: bool) -> None:
+    if value:
+        console.print(__version__)
+        raise typer.Exit()
+
+
 @app.callback()
 def main(
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Enable debug logging"),
+    ] = False,
+    _version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            help="Show JobBot version and exit",
+            is_eager=True,
+            callback=_print_version,
+        ),
     ] = False,
     workspace: Annotated[
         str | None,
