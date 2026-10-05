@@ -1,8 +1,9 @@
 """Empleos Públicos (Chile) — public concurso board.
 
-Live listing is JS-loaded and often refuses datacenter fetches (403). Search and
-detail ingest are fixture-first: pass saved ficha HTML or a search JSON dump.
-Nothing here invents experience or bypasses the portal login for apply.
+The portal answers 403 to any client that names itself, so the ficha stays
+fixture-first (saved HTML). Search reads the Servicio Civil open data instead
+(``open_data.py``), or a saved search JSON dump. Nothing here invents experience,
+dresses up as a browser, or bypasses the portal login for apply.
 """
 
 from __future__ import annotations
@@ -15,15 +16,21 @@ from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
 
+from jobbot.adapters.empleospublicos.open_data import (
+    FICHA_PATH,
+    SITE_ORIGIN,
+    Convocatoria,
+    OpenDataCache,
+    job_from_convocatoria,
+    parse_open_data_csv,
+    search_convocatorias,
+)
 from jobbot.config import JobbotConfig, load_config
 from jobbot.jobs.normalization import fold_text
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind
-
-SITE_ORIGIN = "https://www.empleospublicos.cl"
-FICHA_PATH = "/pub/convocatorias/avisotrabajoficha.aspx"
 
 _INSTITUTION_RE = re.compile(
     r"(?i)^\s*instituci[oó]n\s*:\s*(.+?)\s*$"
@@ -148,24 +155,27 @@ def load_search_fixture(path: Path) -> list[JobPosting]:
 
 
 class EmpleosPublicosJobSource:
-    """Discover concursos from a saved search dump (offline / HITL export)."""
+    """Discover open concursos from the Servicio Civil open data, or a saved dump.
+
+    Without a fixture the source reads the published open-data CSV (one download per
+    run). ``fixture`` replays that CSV offline, or a saved search JSON dump.
+    """
 
     def __init__(
         self,
         config: JobbotConfig | None = None,
         *,
         fixture: Path | None = None,
+        open_data: OpenDataCache | None = None,
     ) -> None:
         self.config = config or load_config()
         self.fixture = fixture
+        self.open_data = open_data or OpenDataCache()
+        self.seen: dict[str, Convocatoria] = {}
 
     def search_jobs(self, query: JobSearchQuery) -> list[JobPosting]:
-        if self.fixture is None:
-            msg = (
-                "Empleos Públicos search is fixture-first (live board is JS + often 403). "
-                "Pass --fixture with a saved search JSON dump."
-            )
-            raise EmpleosPublicosParseError(msg)
+        if self.fixture is None or self.fixture.suffix.casefold() == ".csv":
+            return self._search_open_data(query)
         jobs = load_search_fixture(self.fixture)
         needle = fold_text(query.query or "").strip()
         if needle:
@@ -177,6 +187,26 @@ class EmpleosPublicosJobSource:
                 or needle in fold_text(job.description or "")
             ]
         return jobs[: query.limit]
+
+    def _search_open_data(self, query: JobSearchQuery) -> list[JobPosting]:
+        if self.fixture is not None:
+            items = parse_open_data_csv(self.fixture.read_text(encoding="utf-8-sig"))
+        else:
+            items = self.open_data.items()
+        hits = search_convocatorias(items, query.query or "", region=query.location)
+        hits = hits[: query.limit]
+        self.seen.update((item.id, item) for item in hits)
+        return [job_from_convocatoria(item) for item in hits]
+
+    def remember_portal(self) -> None:
+        from jobbot.adapters.getonboard.jobs import remember_portal
+
+        remember_portal(
+            self.config,
+            url=f"{SITE_ORIGIN}/",
+            ats_kind=AtsKind.EMPLEOS_PUBLICOS,
+            notes="Empleos Públicos Chile (search: Servicio Civil open data; ficha: --fixture)",
+        )
 
     def get_job(self, job_id: str) -> JobPosting:
         msg = "Use jobbot get URL --fixture PATH for an Empleos Públicos ficha"

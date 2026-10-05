@@ -103,6 +103,20 @@ Sin `QUERY`, usa las búsquedas del perfil; `--max-queries N` limita cuántas.
 
 `torre search [QUERY]` — mismas reglas de query / `--max-queries` que Get on Board.
 
+### Sector público (Chile)
+
+`empleospublicos search [QUERY] [--region R]` — concursos **abiertos** (cierre futuro, no
+desiertos ni sin efecto) desde los
+[datos abiertos del Servicio Civil](https://reporte.serviciocivil.cl/datos/convocatorias-empleos-publicos/),
+que se actualizan a diario. Guarda cada aviso con fecha límite y renta bruta en el texto, así
+`jobs conditions` las lee offline. Una descarga por corrida (~11 MB); `--fixture` reproduce un
+CSV guardado o un volcado JSON. El portal `empleospublicos.cl` responde 403 a cualquier cliente
+que se identifica y JobBot no se disfraza de navegador: la ficha se abre a mano y entra con
+`jobbot get URL --fixture ficha.html`.
+
+Alta Dirección Pública (`adp.serviciocivil.cl`) se reconoce como bolsa, pero su `robots.txt`
+prohíbe todo agente (`Disallow: /`): JobBot no la lee. Ficha guardada: `jobbot get URL --fixture`.
+
 ### Navegador
 
 `browser chrome-debug` abre un Chrome normal con CDP para que resuelvas a mano los

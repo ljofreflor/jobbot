@@ -41,7 +41,10 @@ portals:
     ats_kind: empleos_publicos
     registered: false
     last_seen: null
-    notes: Empleos Públicos Chile (concursos; fixture-first search/detail)
+    notes: >-
+      Empleos Públicos Chile (concursos). Búsqueda: datos abiertos del Servicio Civil
+      (reporte.serviciocivil.cl). Ficha: --fixture; el portal responde 403 a clientes
+      que se identifican y JobBot no se disfraza de navegador.
     example_url: https://www.empleospublicos.cl/pub/convocatorias/avisotrabajoficha.aspx?i=990001
   - domain: adp.serviciocivil.cl
     ats_kind: alta_direccion_publica

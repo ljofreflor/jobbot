@@ -8,7 +8,6 @@ import pytest
 
 from jobbot.adapters.empleospublicos.jobs import (
     EmpleosPublicosJobSource,
-    EmpleosPublicosParseError,
     canonical_ficha_url,
     job_from_ficha_html,
     load_search_fixture,
@@ -80,9 +79,19 @@ def test_search_filters_by_query() -> None:
     assert all("epidemiol" in fold_text(job.title) for job in hits)
 
 
-def test_search_without_fixture_explains_fixture_first() -> None:
-    source = EmpleosPublicosJobSource(fixture=None)
-    with pytest.raises(EmpleosPublicosParseError, match="fixture-first"):
+def test_search_without_fixture_reports_an_unreachable_open_data_source() -> None:
+    """No fixture means the open data; a refusal surfaces as an error, never as 'no jobs'."""
+    from jobbot.adapters.empleospublicos.open_data import OpenDataCache, OpenDataError
+    from jobbot.companies.oneshot import FetchResult
+
+    class Refusing:
+        def fetch(self, url: str) -> FetchResult:
+            return FetchResult(url=url, status=403)
+
+    source = EmpleosPublicosJobSource(
+        fixture=None, open_data=OpenDataCache(fetcher=Refusing(), sleep_fn=lambda _: None)
+    )
+    with pytest.raises(OpenDataError):
         source.search_jobs(JobSearchQuery(query="salud", limit=5))
 
 

@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-106 commands, 158 modules, 787 public symbols.
+106 commands, 159 modules, 795 public symbols.
 
 ## Commands
 
@@ -43,7 +43,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
-- `jobbot empleospublicos search` — List Empleos Públicos concursos from a saved search dump and store leads.
+- `jobbot empleospublicos search` — Search open Empleos Públicos concursos (Servicio Civil open data) and store leads.
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
@@ -156,6 +156,7 @@ writing it again — the promotion rule lives in
 ### `adapters/empleospublicos`
 
 - `jobs.py` — Empleos Públicos (Chile) — public concurso board. · `EmpleosPublicosParseError`, `canonical_ficha_url`, `job_from_ficha_html`, `jobs_from_search_payload`, `load_search_fixture`, `EmpleosPublicosJobSource`
+- `open_data.py` — Empleos Públicos convocatorias from the Servicio Civil open-data file. · `OpenDataError`, `Convocatoria`, `OpenDataFetcher`, `download_open_data`, `parse_open_data_csv`, `search_convocatorias`, `job_from_convocatoria`, `OpenDataCache`
 
 ### `adapters/getonboard`
 

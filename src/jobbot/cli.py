@@ -106,7 +106,7 @@ getonboard_app = typer.Typer(
 )
 torre_app = typer.Typer(help="Torre: job discovery (LATAM / remoto)", no_args_is_help=True)
 empleospublicos_app = typer.Typer(
-    help="Empleos Públicos (Chile): concursos — fixture-first (#118)",
+    help="Empleos Públicos (Chile): concursos abiertos vía datos abiertos del Servicio Civil",
     no_args_is_help=True,
 )
 portals_app = typer.Typer(help="Recruitment portal registry (ATS)", no_args_is_help=True)
@@ -4288,46 +4288,56 @@ def empleospublicos_search(
             exists=True,
             dir_okay=False,
             readable=True,
-            help="Saved search JSON dump (required — live board is JS / often 403)",
+            help="Offline: saved open-data CSV or search JSON dump (default: live open data)",
         ),
     ] = None,
-    limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
+    region: Annotated[
+        str | None,
+        typer.Option("--region", help="Only this region (e.g. 'Biobío', 'Metropolitana')"),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", help="Max results per query (1-50)")] = 20,
     max_queries: Annotated[
         int,
         typer.Option("--max-queries", help="Profile searches when no query is given"),
     ] = _DEFAULT_MAX_QUERIES,
 ) -> None:
-    """List Empleos Públicos concursos from a saved search dump and store leads."""
+    """Search open Empleos Públicos concursos (Servicio Civil open data) and store leads."""
     from jobbot.adapters.empleospublicos.jobs import (
         EmpleosPublicosJobSource,
         EmpleosPublicosParseError,
     )
+    from jobbot.adapters.empleospublicos.open_data import OpenDataError
     from jobbot.jobs.sources import JobSearchQuery
 
-    if fixture is None:
-        err_console.print(
-            "[red]--fixture PATH is required[/red] "
-            "(Empleos Públicos search is fixture-first; live board is JS / often 403)."
-        )
-        raise typer.Exit(VALIDATION_FAILURE)
     if limit < 1 or limit > 50:
         err_console.print("--limit must be between 1 and 50")
         raise typer.Exit(GENERIC_FAILURE)
 
     session, config = _session()
     queries = _search_queries(config, query, max_queries)
-    source = EmpleosPublicosJobSource(config, fixture=fixture.expanduser().resolve())
+    source = EmpleosPublicosJobSource(
+        config, fixture=fixture.expanduser().resolve() if fixture is not None else None
+    )
+    if fixture is None:
+        console.print("Reading Servicio Civil open data (one download, ~11 MB)…")
     found: list[JobPosting] = []
+    failed: list[str] = []
     for text in queries:
         try:
-            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit)))
-        except EmpleosPublicosParseError as exc:
-            err_console.print(f"[red]{exc}[/red]")
-            raise typer.Exit(GENERIC_FAILURE) from exc
+            found.extend(
+                source.search_jobs(JobSearchQuery(query=text, location=region, limit=limit))
+            )
+        except (EmpleosPublicosParseError, OpenDataError) as exc:
+            failed.append(text)
+            err_console.print(f"[red]Empleos Públicos search failed for {text!r}: {exc}[/red]")
+    if failed and len(failed) == len(queries):
+        raise typer.Exit(GENERIC_FAILURE)
     found = _unique_postings(found)
     if not found:
-        console.print("No concursos matched.")
+        console.print("No open concursos matched.")
         raise typer.Exit(SUCCESS)
+    if fixture is None:
+        source.remember_portal()
 
     try:
         candidate = load_profile(config.profile_path)
@@ -4340,10 +4350,17 @@ def empleospublicos_search(
     table.add_column("Institución")
     table.add_column("Cargo")
     table.add_column("Región")
+    table.add_column("Cierre")
+    table.add_column("Renta bruta")
     table.add_column("Match")
     stored: list[str] = []
     scores: list[float] = []
     for raw in found:
+        facts = source.seen.get(raw.source_job_id or "")
+        closes = f"{facts.closes_at:%Y-%m-%d}" if facts and facts.closes_at else "-"
+        salary = (
+            f"${facts.gross_salary:,}".replace(",", ".") if facts and facts.gross_salary else "-"
+        )
         job = repo.upsert_external(raw)
         if candidate is not None:
             match = analyzer.analyze(candidate, job)
@@ -4359,6 +4376,8 @@ def empleospublicos_search(
             job.company[:28],
             job.title[:36],
             (job.location or "-")[:20],
+            closes,
+            salary,
             score,
         )
     console.print(table)

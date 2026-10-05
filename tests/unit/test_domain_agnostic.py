@@ -304,6 +304,32 @@ def test_empleos_publicos_ficha_is_field_agnostic(project_root: Path) -> None:
     assert job.ats_kind == "empleos_publicos"
 
 
+def test_empleos_publicos_open_data_search_is_field_agnostic(project_root: Path) -> None:
+    """The candidate's own words find a clinical or a legal concurso alike."""
+    from datetime import datetime
+
+    from jobbot.adapters.empleospublicos.open_data import (
+        SANTIAGO,
+        parse_open_data_csv,
+        search_convocatorias,
+    )
+
+    items = parse_open_data_csv(
+        (project_root / "tests/fixtures/empleospublicos/open_data_convocatorias.csv").read_text(
+            encoding="utf-8-sig"
+        )
+    )
+    now = datetime(2026, 10, 5, 16, 0, tzinfo=SANTIAGO)
+
+    clinical = search_convocatorias(items, "enfermera paciente crítico", now=now)
+    legal = search_convocatorias(items, "abogada litigante", now=now)
+
+    assert [item.title for item in clinical] == [
+        "Enfermera(o) Clínica(o) Unidad de Paciente Crítico"
+    ]
+    assert [item.title for item in legal] == ["Abogado(a) Litigante Procuraduría Fiscal"]
+
+
 def test_form_learning_reads_any_field_s_application(project_root: Path) -> None:
     """A form is read by its markup, so a clinic's form works like a studio's."""
     from jobbot.portals.form_learn import learn_form_html

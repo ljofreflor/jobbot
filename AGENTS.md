@@ -195,6 +195,12 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  esa URL es la que se guarda y alimenta el registro de empresas. Estado cerrado, fecha límite,
  idiomas con su fluidez, países de residencia y si la compensación es visible quedan escritos en
  el texto guardado para que `jobs conditions` los lea offline.
+- **Empleos Públicos ([#191](https://github.com/ljofreflor/jobbot/issues/191)):** el portal
+ responde 403 a todo cliente que se identifica (incluso su `robots.txt`); no se suplanta un
+ navegador. `empleospublicos search` lee el CSV de datos abiertos que publica el mismo Servicio
+ Civil (`reporte.serviciocivil.cl`, robots lo permite), una descarga por corrida, y guarda solo
+ concursos abiertos con `Fecha límite:` y `Renta:` en el texto. Los conteos de postulantes y
+ seleccionados del archivo son de otras personas: nunca llegan a un `JobPosting`.
 - **Condiciones del aviso ([#166](https://github.com/ljofreflor/jobbot/issues/166)):** antes de
  postular, `jobs conditions Jxxxx` lee del aviso guardado (offline, determinista, sin LLM) lo que
  condiciona la postulación: cerrado o fecha límite vencida, residencia o permiso de trabajo,
@@ -575,6 +581,7 @@ uv run jobbot getonboard upload-cv --apply --cdp http://127.0.0.1:9224  # sube +
 uv run jobbot getonboard sync --apply
 uv run jobbot getonboard search                 # queries del perfil (profile queries)
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
+uv run jobbot empleospublicos search "jefe jurídico" --region Biobío  # datos abiertos Servicio Civil
 uv run jobbot ops failures
 uv run jobbot ops failure show F0001
 uv run jobbot ops failure triage F0001 --status fixed
