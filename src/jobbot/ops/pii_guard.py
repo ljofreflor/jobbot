@@ -27,7 +27,12 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
         "hiring-practice sources you read (share via recruiters export)",
     ),
     (
-        r"^data/(profile|portals|companies|recruiters|form_knowledge)\.yaml\..+$",
+        r"^data/application_answers\.yaml$",
+        "your answers to application questions (language level, contract, pay)",
+    ),
+    (
+        r"^data/(profile|portals|companies|recruiters|form_knowledge|application_answers)"
+        r"\.yaml\..+$",
         "backup or variant of a local data file (same data as the original)",
     ),
     (r"^data/.*\.(bak|orig)([.\-]|$)", "backup of a local data file"),
