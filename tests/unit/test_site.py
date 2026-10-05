@@ -265,6 +265,38 @@ def test_platform_map_section_explains_the_feedback_loop(soup: BeautifulSoup) ->
     assert "vuelve" in text and "solo si tú las confirmas" in text
 
 
+
+def test_lifecycle_section_follows_the_map(soup: BeautifulSoup) -> None:
+    main = soup.find("main")
+    assert main is not None
+    sections = main.find_all("section", recursive=False)
+    ids = [section.find(["h1", "h2"]).get("id") for section in sections]
+    assert "ciclo" in ids
+    assert ids.index("ciclo") == ids.index("mapa") + 1
+    assert ids.index("que-hago") == ids.index("ciclo") + 1
+
+
+def test_lifecycle_section_shows_commands_and_hitl(
+    soup: BeautifulSoup, html: str, css: str
+) -> None:
+    heading = soup.find(id="ciclo")
+    assert heading is not None and heading.name == "h2"
+    assert "ciclo" in heading.get_text().casefold()
+    section = heading.find_parent("section")
+    assert section is not None
+    text = " ".join(section.get_text(" ").split()).casefold()
+    assert "comandos" in text
+    assert "tú envías" in text
+    assert "por ti" not in text
+    figure = section.find("figure", class_="lifecycle")
+    assert figure is not None
+    svgs = figure.find_all("svg")
+    assert len(svgs) == 2
+    assert all(svg.get("role") == "img" for svg in svgs)
+    assert html.count("cargo-lifecycle:start") == 1
+    assert ".lc-narrow" in css and ".lc-wide" in css
+
+
 def test_luma_comparison_section_follows_what_i_do(soup: BeautifulSoup) -> None:
     main = soup.find("main")
     assert main is not None

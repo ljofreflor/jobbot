@@ -220,6 +220,48 @@ a:focus-visible {
   font-weight: 700;
 }
 
+.lifecycle {
+  margin: 2rem 0 0;
+}
+
+.lifecycle svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.lifecycle .lc-narrow {
+  display: none;
+  max-width: 30rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 40rem) {
+  .lifecycle .lc-wide {
+    display: none;
+  }
+
+  .lifecycle .lc-narrow {
+    display: block;
+  }
+}
+
+.lifecycle figcaption {
+  margin-top: 1rem;
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.lc-gate .pm-box {
+  stroke: var(--feedback);
+  stroke-width: 2.5;
+}
+
+.pm-chip .pm-cmd {
+  fill: var(--feedback);
+}
+
 .platform-map {
   margin: 2rem 0 0;
 }

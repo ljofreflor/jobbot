@@ -3,8 +3,8 @@
 Drives the diagram on the advisory page (``asesoria/index.html``). Every group is read from
 the code — ``AtsKind``, the adapter registry, the account-need table and the job sources — so
 the page cannot name a platform JobBot does not know, nor miss one it learned. ``make site``
-rewrites the figure and the Luma comparison table between their markers; a stale page fails
-the suite.
+rewrites the figure, the cargo lifecycle and the Luma comparison table between their markers;
+a stale page fails the suite.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from typing import get_args
 from jobbot.adapters.ats.registry import supported_kinds
 from jobbot.adapters.base import ApplyMethod
 from jobbot.advisory.compare import COMPARE_END, COMPARE_START, render_comparison
+from jobbot.advisory.lifecycle import LIFECYCLE_END, LIFECYCLE_START, render_lifecycle
 from jobbot.companies.signup import AccountNeed, account_need
 from jobbot.jobs.sources import JobSourceName
 from jobbot.portals.detect import JOB_BOARD_KINDS, AtsKind, html_marker_kinds
@@ -639,10 +640,22 @@ def inject_comparison(page: str, table: str) -> str:
     )
 
 
+def inject_lifecycle(page: str, figure: str) -> str:
+    """Replace the cargo-lifecycle figure between its markers."""
+    return inject_between(
+        page,
+        LIFECYCLE_START,
+        LIFECYCLE_END,
+        figure,
+        missing="page has no cargo-lifecycle markers",
+    )
+
+
 def write_page(root: Path) -> Path:
     target = root / PAGE_RELPATH
     page = target.read_text(encoding="utf-8")
     page = inject_figure(page, render_figure())
+    page = inject_lifecycle(page, render_lifecycle())
     page = inject_comparison(page, render_comparison())
     target.write_text(page, encoding="utf-8")
     return target
