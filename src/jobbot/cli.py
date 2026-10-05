@@ -7,7 +7,7 @@ import logging
 import re
 import shutil
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -3782,33 +3782,29 @@ def linkedin_sweep(
         console.print(
             f"Age filter: posts newer than [bold]{max_age} days[/bold] (--any-age to lift)"
         )
-    found: list[JobPosting] = []
-    for text in queries:
+
+    def search_one(text: str) -> list[JobPosting]:
         if fixture is not None:
-            found.extend(
-                source.search_from_fixture(
-                    fixture.expanduser().resolve(),
-                    query=text,
-                    countries=countries,
-                    allow_remote=config.search.allow_remote,
-                    max_age_days=max_age,
-                )
+            return source.search_from_fixture(
+                fixture.expanduser().resolve(),
+                query=text,
+                countries=countries,
+                allow_remote=config.search.allow_remote,
+                max_age_days=max_age,
             )
-        else:
-            console.print(f"Sweeping LinkedIn content for [bold]{text}[/bold]…")
-            found.extend(
-                source.search_jobs(
-                    JobSearchQuery(
-                        query=text,
-                        limit=limit,
-                        countries=countries,
-                        allow_remote=config.search.allow_remote,
-                        copy_permalinks=copy_links,
-                        max_age_days=max_age,
-                    )
-                )
+        console.print(f"Sweeping LinkedIn content for [bold]{text}[/bold]…")
+        return source.search_jobs(
+            JobSearchQuery(
+                query=text,
+                limit=limit,
+                countries=countries,
+                allow_remote=config.search.allow_remote,
+                copy_permalinks=copy_links,
+                max_age_days=max_age,
             )
-    found = _unique_postings(found)
+        )
+
+    found = _unique_postings(_run_portal_queries(queries, search_one, portal="LinkedIn"))
 
     if not found:
         console.print("No relevant posts found.")
@@ -4136,15 +4132,12 @@ def getonboard_search(
     session, config = _session()
     queries = _search_queries(config, query, max_queries)
     source = GetOnBoardJobSource(config)
-    found: list[JobPosting] = []
-    for text in queries:
+
+    def search_one(text: str) -> list[JobPosting]:
         console.print(f"Searching Get on Board for [bold]{text}[/bold]…")
-        try:
-            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit)))
-        except Exception as exc:
-            err_console.print(f"[red]Get on Board search failed: {exc}[/red]")
-            raise typer.Exit(GENERIC_FAILURE) from exc
-    found = _unique_postings(found)
+        return source.search_jobs(JobSearchQuery(query=text, limit=limit))
+
+    found = _unique_postings(_run_portal_queries(queries, search_one, portal="Get on Board"))
 
     if not found:
         console.print("No jobs found.")
@@ -4216,15 +4209,12 @@ def torre_search(
 
     narrator = _narrator()
     source = TorreJobSource(config)
-    found: list[JobPosting] = []
-    for text in queries:
+
+    def search_one(text: str) -> list[JobPosting]:
         narrator.phase(Phase.RECEIVING_WORLD, f"Torre: {text}")
-        try:
-            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit, remote=remote)))
-        except Exception as exc:
-            err_console.print(f"[red]Torre search failed: {exc}[/red]")
-            raise typer.Exit(GENERIC_FAILURE) from exc
-    found = _unique_postings(found)
+        return source.search_jobs(JobSearchQuery(query=text, limit=limit, remote=remote))
+
+    found = _unique_postings(_run_portal_queries(queries, search_one, portal="Torre"))
 
     if not found:
         console.print("No jobs found.")
@@ -4594,6 +4584,31 @@ def _companies_registry(config: JobbotConfig) -> tuple[CompanyRegistry, Path]:
 
     path = default_companies_path(config.root)
     return load_companies(path), path
+
+
+def _run_portal_queries(
+    queries: list[str],
+    search: Callable[[str], list[JobPosting]],
+    *,
+    portal: str,
+) -> list[JobPosting]:
+    """Run every query. One portal error is reported; the other queries still run."""
+    found: list[JobPosting] = []
+    failed: list[str] = []
+    for text in queries:
+        try:
+            found.extend(search(text))
+        except Exception as exc:
+            failed.append(text)
+            err_console.print(f"[red]{portal} search failed for {text}: {exc}[/red]")
+    if failed and len(failed) == len(queries):
+        err_console.print(f"[red]{portal}: every search failed.[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    if failed:
+        err_console.print(
+            f"[yellow]{portal}: {len(failed)} search(es) failed; the rest finished.[/yellow]"
+        )
+    return found
 
 
 def _search_queries(config: JobbotConfig, query: str | None, max_queries: int) -> list[str]:
