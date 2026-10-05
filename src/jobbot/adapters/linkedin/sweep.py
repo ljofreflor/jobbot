@@ -14,6 +14,7 @@ from jobbot.jobs.normalization import fold_text
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import (
+    JOB_BOARD_KINDS,
     AtsKind,
     detect_ats,
     extract_http_urls,
@@ -21,6 +22,7 @@ from jobbot.portals.detect import (
     sniff_ats,
 )
 from jobbot.portals.email_apply import first_apply_email, mailto_url
+from jobbot.portals.message_apply import asks_for_linkedin_message
 from jobbot.portals.redirect import expand_url_map
 
 # Roles / themes relevant to this candidate's data career (title-agnostic filter)
@@ -35,7 +37,10 @@ _HIRING_HINTS = (
     "contratando",
     "reclutando",
     "buscamos",
+    "estoy buscando",
     "estamos buscando",
+    "seguimos buscando",
+    "sigo buscando",
     "se busca",
     "se necesita",
     "looking for",
@@ -73,7 +78,10 @@ _APPLY_HINTS = (
 def looks_like_job_post(text: str) -> bool:
     """A post is a job post when it says it is hiring or how to apply."""
     lowered = text.casefold()
-    return any(hint in lowered for hint in (*_HIRING_HINTS, *_APPLY_HINTS))
+    if any(hint in lowered for hint in (*_HIRING_HINTS, *_APPLY_HINTS)):
+        return True
+    return asks_for_linkedin_message(text)
+
 
 @dataclass(frozen=True)
 class PostVacancy:
@@ -169,8 +177,6 @@ def strip_feed_chrome(text: str) -> tuple[str | None, str]:
     head = [line for line in rest[1 : 1 + _CHROME_WINDOW] if not _CHROME_LINE.match(line)]
     body = strip_engagement_chrome(head + rest[1 + _CHROME_WINDOW :])
     return author, "\n".join(body).strip()
-
-
 
 
 # A post offering several roles lists them as "🔹 Lead Data Scientist: <url>". Cards keep one
@@ -308,6 +314,10 @@ def parse_post_blob(
         if first:
             ats_url = first if first.startswith("mailto:") else mailto_url(first)
             ats_kind = AtsKind.EMAIL
+    if ats_url is None and post_url and asks_for_linkedin_message(text):
+        # The permalink (or author-profile fallback) is the apply surface.
+        ats_url = post_url
+        ats_kind = AtsKind.LINKEDIN
     digest = hashlib.sha1(text.encode("utf-8")).hexdigest()[:12]  # noqa: S324 — id only
     post_id = digest
     if post_url:
@@ -490,15 +500,20 @@ def _vacancy_source_id(url: str) -> str:
     return hashlib.sha1(url.encode("utf-8")).hexdigest()[:12]  # noqa: S324 — id only
 
 
+_GENDERED_ARTICLE_RE = re.compile(r"^(?:un\(a\)|un/a)\s+", re.IGNORECASE)
+
+
 def _guess_title(text: str) -> str | None:
     patterns = [
         (
             # Articles must be their own word. Otherwise "(?i)a" eats the A of "Applied".
-            # "Estoy buscando" is the first-person form recruiters use instead of "buscamos".
-            # Stop before "para empresa …" so a length cap cannot leave "para emp".
+            # "Estoy buscando" / "seguimos buscando" are the first-person forms recruiters
+            # use instead of "buscamos". Stop before "para empresa …" so a length cap
+            # cannot leave "para emp". Gendered "un(a)" is not a Latin article token.
             r"(?i)(?:hiring|buscamos|estoy buscando|estamos buscando|"
+            r"seguimos buscando|sigo buscando|"
             r"looking for|we(?:'re| are) looking for)\s+"
-            r"(?:(?:a|an|un|una)\s+)?([^\n.!?;]{8,160}?)"
+            r"(?:(?:a|an|un|una|un\(a\)|un/a)\s+)?([^\n.!?;]{8,160}?)"
             r"(?=\s+para\s+empresa\b|[;.!?\n]|$)"
         ),
         r"(?i)(?:role|puesto|cargo|posici[oó]n|vacante)\s*[:\-]\s*([^\n]{5,80})",
@@ -507,9 +522,21 @@ def _guess_title(text: str) -> str | None:
         match = re.search(pat, text)
         if match:
             title = re.sub(r"\s+", " ", match.group(1)).strip(" -:")
+            title = _GENDERED_ARTICLE_RE.sub("", title)
             title = _TITLE_LEAD_IN_RE.sub("", title).strip(" -:,")
+            title = _strip_location_bars(title)
             return title[:120] or None
     return None
+
+
+def _strip_location_bars(title: str) -> str:
+    """'Role – Specialty | Chile | Híbrido' keeps the role, drops the place bars."""
+    parts = re.split(r"\s*\|\s*", title)
+    if len(parts) < 2:
+        return title
+    if any(detect_country(part) for part in parts[1:]):
+        return parts[0].strip(" -:")
+    return title
 
 
 # "Buscamos talento | Machine Learning & Customer Analytics": the word after the verb says
@@ -682,7 +709,24 @@ def employer_from_post(text: str, apply_url: str | None, *, author: str | None) 
     from_url = _company_from_apply_url(apply_url)
     if from_url:
         return from_url
+    if _unnamed_client(text):
+        # Headhunter post: "una compañía líder" is not a name, and neither is the author.
+        return "Unknown company"
     return author or named or "Unknown company"
+
+
+_UNNAMED_CLIENT_RE = re.compile(
+    r"(?i)(?:una?\s+)?(?:compa[ñn][ií]a|empresa|company|cliente?)\s+"
+    r"l[ií]der(?:\s+de\s+la\s+regi[oó]n)?"
+    r"|cliente\s+confidencial"
+    r"|confidential\s+(?:client|company)"
+    r"|unnamed\s+(?:company|client)",
+)
+
+
+def _unnamed_client(text: str) -> bool:
+    """Whether the post says the employer is unnamed rather than naming one."""
+    return bool(_UNNAMED_CLIENT_RE.search(text or ""))
 
 
 def _company_from_apply_url(url: str | None) -> str | None:
@@ -693,6 +737,10 @@ def _company_from_apply_url(url: str | None) -> str | None:
     if raw.casefold().startswith("mailto:"):
         host = raw.partition("@")[2].split("?", 1)[0].strip().rstrip(">")
     else:
+        # A LinkedIn permalink used as the DM apply surface is not the employer.
+        kind = detect_ats(raw)
+        if kind in JOB_BOARD_KINDS:
+            return None
         host = urlparse(raw if "://" in raw else f"https://{raw}").hostname or ""
     host = host.casefold().removeprefix("www.")
     if not host or "." not in host:
@@ -752,9 +800,7 @@ def _org_context_names(text: str, company: str) -> bool:
     if _looks_like_place(company) or _looks_like_field(company):
         return False
     pattern = re.compile(
-        r"(?:^|[\s(])(?:[Aa]t|[Ee]n|@)\s+"
-        + re.escape(company)
-        + r"\s*(?:"
+        r"(?:^|[\s(])(?:[Aa]t|[Ee]n|@)\s+" + re.escape(company) + r"\s*(?:"
         r"[–—]\s+\S|"
         r"\b(?:buscamos|estamos|busca|hiring)\b"
         r")",

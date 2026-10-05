@@ -28,6 +28,8 @@ class AtsKind(StrEnum):
     REMOSHIFT = "remoshift"
     REMOTEYEAH = "remoteyeah"
     JOBGETHER = "jobgether"
+    VACANTES = "vacantes"
+    EMPLEOS_PUBLICOS = "empleos_publicos"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -45,6 +47,8 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.REMOSHIFT,
         AtsKind.REMOTEYEAH,
         AtsKind.JOBGETHER,
+        AtsKind.VACANTES,
+        AtsKind.EMPLEOS_PUBLICOS,
     }
 )
 
@@ -86,6 +90,8 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("remoshift.com", AtsKind.REMOSHIFT),
     ("remoteyeah.com", AtsKind.REMOTEYEAH),
     ("jobgether.com", AtsKind.JOBGETHER),
+    ("vacantes.com", AtsKind.VACANTES),
+    ("empleospublicos.cl", AtsKind.EMPLEOS_PUBLICOS),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]

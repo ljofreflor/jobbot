@@ -8,13 +8,14 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-103 commands, 153 modules, 753 public symbols.
+106 commands, 158 modules, 786 public symbols.
 
 ## Commands
 
 - `jobbot advisor report` — Write a redacted report into the selected workspace's output/.
 - `jobbot advisor status` — One line per sandbox: fingerprint, counts, proposal, retention. No profile PII.
 - `jobbot application apply` — Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
+- `jobbot application check-answer` — Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
 - `jobbot application open` — Open the job URL (or ATS URL) in the default browser (does not apply).
 - `jobbot application prepare` — Prepare application package for a job (does not invent answers).
 - `jobbot application show` — Show application package path and status for a job.
@@ -42,6 +43,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
+- `jobbot empleospublicos search` — List Empleos Públicos concursos from a saved search dump and store leads.
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
@@ -60,6 +62,7 @@ writing it again — the promotion rule lives in
 - `jobbot init` — Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone).
 - `jobbot jobs add` — Add a job posting from a text file or stdin (manual fallback).
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
+- `jobbot jobs conditions` — Review a posting's special conditions against you before applying (exit 1: dealbreaker).
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
 - `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
@@ -150,6 +153,10 @@ writing it again — the promotion rule lives in
 - `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
 - `workday.py` — Workday ATS adapter stub — open + known-field map only (HITL submit). · `WorkdayAdapter`
 
+### `adapters/empleospublicos`
+
+- `jobs.py` — Empleos Públicos (Chile) — public concurso board. · `EmpleosPublicosParseError`, `canonical_ficha_url`, `job_from_ficha_html`, `jobs_from_search_payload`, `load_search_fixture`, `EmpleosPublicosJobSource`
+
 ### `adapters/getonboard`
 
 - `client.py` — Get on Board profile HITL client — permanent profile maintainer. · `GetOnBoardProfileClient`
@@ -177,7 +184,7 @@ writing it again — the promotion rule lives in
 
 - `client.py` — LinkedIn adapter — read-only audit + publications sync (HITL). · `LinkedInAdapter`
 - `package.py` — LinkedIn publications sync package from Candidate (facts only). · `LinkedInPublicationItem`, `doi_url`, `build_linkedin_publication_items`, `publications_missing_from_remote`
-- `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
+- `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
 - `publications.py` — Playwright helpers for LinkedIn Publications (Spanish UI; HITL; no CAPTCHA bypass). · `profile_publications_new_url`, `profile_publications_details_url`, `vanity_from_linkedin_url`, `list_remote_publication_titles`, `open_new_publication_form`, `open_edit_publication_form`, `fill_publication_form`, `save_publication`
 - `selectors.py` — LinkedIn selector hints.
 - `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `looks_like_job_post`, `PostVacancy`, `LinkedInPostCandidate`, `posted_at_from_url`, `strip_engagement_chrome`, `strip_feed_chrome`, `labelled_vacancy_links`, `split_vacancy_links`, `post_offers_wanted_country`, `parse_post_blob`, `parse_posts_fixture`, `post_to_jobs`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`, `employer_from_post`
@@ -190,6 +197,7 @@ writing it again — the promotion rule lives in
 
 ### `applications`
 
+- `answer_check.py` — Check a free-text application answer against the profile and the posting. · `QuestionKind`, `Verdict`, `Evidence`, `SentenceTrace`, `AnswerCheck`, `classify_question`, `check_answer`, `render_answer_check`
 - `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
@@ -246,9 +254,11 @@ writing it again — the promotion rule lives in
 - `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
 - `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `visible_soup`, `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
+- `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`
+- `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `GetFromUrlResult`, `ingest_hard_link`
-- `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
+- `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `countries_in_text`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`, `next_symptom_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
@@ -260,7 +270,7 @@ writing it again — the promotion rule lives in
 
 ### `matching`
 
-- `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`
+- `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`, `requirement_evidence`
 - `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `blind_matcher_warning`, `format_match_report`
 
 ### `models`
@@ -305,6 +315,7 @@ writing it again — the promotion rule lives in
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
+- `message_apply.py` — Detect apply-by-LinkedIn-message (DM / InMail). Never send. · `asks_for_linkedin_message`
 - `platform_map.py` — Which platforms one profile reaches, grouped by how each one takes a candidate. · `Platform`, `Flavour`, `platform_label`, `source_kinds`, `platform_flavours`, `featured_platforms`, `LearningStep`, `feedback_loop`, `render_figure`, `inject_figure`, `write_page`, `main`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`

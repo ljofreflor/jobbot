@@ -72,9 +72,18 @@ def draft_getonboard_fields(
     *,
     permanent: PermanentProfileFields | None = None,
 ) -> dict[str, str]:
-    """Application-form fields; prefer permanent profile when available."""
+    """Application-form fields; prefer permanent profile when available.
+
+    A stored permanent profile keeps its wording, but it may predate profile.yaml
+    (a new role, an end date), so it is refined against the profile before use.
+    """
     _ = job
-    fields = permanent or build_permanent_profile_fields(candidate)
+    if permanent is None:
+        fields = build_permanent_profile_fields(candidate)
+    else:
+        from jobbot.nlp.refine import refine_permanent_profile
+
+        fields = refine_permanent_profile(candidate, permanent).fields
     return {
         "experiencia_y_perfil": fields.experiencia_y_perfil,
         "formacion_academica": fields.formacion_academica,

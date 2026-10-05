@@ -341,9 +341,28 @@ Do not expand the hand-rolled dict into a second migration framework.
 ### 5.4 What is explicitly out of stack
 
 - Web frontend / React / REST API server
-- Cloud-hosted database
+- Cloud-hosted **candidate** database (CV, vault, sessions, applications)
 - Captcha solvers, stealth/anti-detect browsers, residential proxies
 - Auto-commit of agent maintainer lanes (ops failure work stays HITL bash)
+- Running JobBot itself on GCP / Cloud Run / GCE against job boards — datacenter
+  IPs are the disqualifying variable ([measured](blog/posts/2026-09-24-datacenter-ip-blocking.md))
+
+### 5.5 GCP, if ever: the map, not JobBot
+
+JobBot is the **traveller** (local CLI). Shared knowledge is the **map**
+(who hires where). Those are different products. [#162](https://github.com/ljofreflor/jobbot/issues/162)
+
+```text
+JobBot  = profile, vault, browser, apply     ← this machine, this name
+commons = companies / portals export         ← no candidate PII
+```
+
+Do not stretch the name JobBot over a cloud. If GCP appears, it is a later host
+for **commons snapshots only** (a bucket of `companies export`, after file merge
+[#106](https://github.com/ljofreflor/jobbot/issues/106) is not enough). No
+Playwright in Cloud Run, no Secret Manager for `.vault.yaml`, no Cloud SQL of
+profiles. Until then, git is the commons. The bounded context is called
+`commons` / *el mapa* until a public name is actually required.
 
 ## 6. Key flows (pattern view)
 

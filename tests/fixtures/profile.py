@@ -332,6 +332,79 @@ def public_health_profile_dict() -> dict[str, Any]:
     }
 
 
+def two_degrees_profile_dict() -> dict[str, Any]:
+    """Two degrees from two institutions and two employers, each with its own figure."""
+    return {
+        "personal": {
+            "name": "Daniela Rojas Ejemplo",
+            "headline": "Analista de Datos | Magíster en Estadística",
+            "city": "Santiago",
+            "country": "Chile",
+            "email": "daniela.rojas@example.com",
+        },
+        "summary": "Analista de datos con foco en pronóstico de demanda.",
+        "specialties": ["Pronóstico de Demanda"],
+        "experience": [
+            {
+                "id": "northwind-analista",
+                "company": "Northwind Analítica",
+                "title": "Analista de Datos",
+                "location": "Santiago, Chile",
+                "start_date": "2021-03",
+                "current": True,
+                "description": "Modelos de demanda para clientes de retail.",
+                "achievements": [
+                    {
+                        "id": "northwind-quiebre",
+                        "text": "Reduje en 18% el quiebre de stock con un modelo de "
+                        "pronóstico semanal.",
+                        "tags": ["pronóstico"],
+                        "metrics": {"quiebre_stock_pct": 18},
+                    }
+                ],
+            },
+            {
+                "id": "contoso-ingeniera",
+                "company": "Contoso Retail",
+                "title": "Ingeniera de Software",
+                "location": "Santiago, Chile",
+                "start_date": "2017-01",
+                "end_date": "2021-02",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "contoso-servicios",
+                        "text": "Migré 40 servicios a contenedores.",
+                        "tags": ["docker"],
+                        "metrics": {"servicios": 40},
+                    }
+                ],
+            },
+        ],
+        "education": [
+            {
+                "id": "litoral-ingenieria",
+                "institution": "Universidad del Litoral",
+                "degree": "Ingeniería Civil en Computación",
+                "start_date": "2010-03",
+                "end_date": "2016-12",
+            },
+            {
+                "id": "sur-magister",
+                "institution": "Universidad del Sur",
+                "degree": "Magíster en Estadística",
+                "start_date": "2018-03",
+                "end_date": "2020-12",
+            },
+        ],
+        "skills": {
+            "datos": ["Python", "SQL", "Pronóstico de Demanda"],
+            "software": ["Docker"],
+        },
+        "publications": [],
+    }
+
+
 def sample_profile_dict() -> dict[str, Any]:
     return {
         "personal": {

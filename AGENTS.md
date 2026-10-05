@@ -77,6 +77,7 @@ jobbot browser chrome-debug --site indeed
 # jobbot indeed login --continue-url 'PEGAR_LINK_DEL_MAIL'
 jobbot get --parked --cdp http://127.0.0.1:9222
 jobbot jobs match J0001
+jobbot jobs conditions J0001 # condiciones del aviso vs perfil (#166)
 jobbot jobs shortlist
 jobbot cv build --job J0001
 jobbot cv advise # mejoras de presentación (determinista; --apply confirma una por una)
@@ -138,6 +139,10 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  (`mailto:`), with the post body as JD. `application apply --apply` builds the CV adapted to the
  job, opens Gmail compose and **uploads the PDF** (Playwright; `--cdp` to reuse your logged-in
  Chrome, `--no-attach` for compose URL only). JobBot never clicks Send.
+- **LinkedIn-message apply:** posts whose only apply route is a DM / «mandame un mensaje» /
+ `mensaje interno` keep the permalink as the apply surface (`ats_kind=linkedin`).
+ `application apply --apply` opens the post (HITL). JobBot never sends InMail, never clicks
+ Message/Send, and does not invent the unnamed client a headhunter is hiring for.
 - **Market feedback:** `profile suggest-from-market` writes suggestions with no stdin by
   default (`--no-ask`). Gap prompts only with `--ask`; `--promote` still confirms before
   writing `profile.yaml`. Never invent; never delete baseline facts.
@@ -187,7 +192,24 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  prosa; el JD completo vive en una página client-rendered, por lo que una oferta de Torre es una
  pista para abrir, no un JD completo. El payload también lista a las personas detrás del aviso:
  nada bajo `members` llega nunca a un `JobPosting`. Cuando la oportunidad apunta a un ATS externo,
- esa URL es la que se guarda y alimenta el registro de empresas.
+ esa URL es la que se guarda y alimenta el registro de empresas. Estado cerrado, fecha límite,
+ idiomas con su fluidez, países de residencia y si la compensación es visible quedan escritos en
+ el texto guardado para que `jobs conditions` los lea offline.
+- **Condiciones del aviso ([#166](https://github.com/ljofreflor/jobbot/issues/166)):** antes de
+ postular, `jobs conditions Jxxxx` lee del aviso guardado (offline, determinista, sin LLM) lo que
+ condiciona la postulación: cerrado o fecha límite vencida, residencia o permiso de trabajo,
+ idioma con nivel CEFR, requisitos excluyentes vs deseables, contrato (prestador de servicios vs
+ indefinido), renta visible u oculta, modalidad, disponibilidad e instrucciones. Las pistas son
+ estructurales (frases como "must reside in", niveles A1–C2, "excluyente"/"required"), nunca el
+ vocabulario de una profesión. Cada condición recibe ✅ cumple (cita la evidencia), ⚠️ pregunta
+ exacta al candidato o ❌ impedimento (exit 1, sin registrar falla de ops). Los hechos salen de
+ `profile.yaml`; lo que el perfil no tiene (nivel de idioma, países donde puede trabajar, si acepta
+ contrato de prestador, reubicación, preaviso, expectativa de renta) sale de
+ `data/application_answers.yaml` — local, gitignored y bloqueado por `pii_guard`; plantilla en
+ `data/application_answers.example.yaml` — y el `answers.yaml` del paquete del aviso lo pisa
+ para ese aviso. Es preferencia del candidato, no un hecho profesional. Respuesta en blanco =
+ pregunta, nunca suposición. Un excluyente que el perfil no respalda es ⚠️, no ❌: solo el
+ candidato sabe si lo cumple, y nunca se agrega al perfil sin que lo confirme.
 - **Company career platforms:** `jobbot companies` mantiene conocimiento **público** empresa↔portales
  (0..N career sites por empresa: portal propio, Workday, Greenhouse de filial…). Provenance por
  observación, dedup por URL canónica (sin query/fragment), contradicción → `stale` sin sobreescribir,
@@ -526,6 +548,8 @@ uv run jobbot jobs add --file tests/fixtures/jobs/senior_ds_retail.txt
 uv run jobbot get https://www.getonbrd.com/empleos/.../slug   # hard link → CV + package
 uv run jobbot get URL --apply --cdp http://127.0.0.1:9224     # + open ATS (HITL)
 uv run jobbot jobs match J0001
+uv run jobbot jobs conditions J0001 # ✅/⚠️/❌; exit 1 si hay impedimento
+uv run jobbot jobs conditions --all-prepared --json
 uv run jobbot application prepare J0001
 uv run jobbot indeed login|pull|diff|sync --section headline
 uv run jobbot linkedin login|pull|diff
@@ -574,6 +598,7 @@ uv run jobbot companies recon NOMBRE --cdp URL --apply
 uv run jobbot application apply J0001
 uv run jobbot application apply J0001 --apply           # email: adapted CV attached in Gmail
 uv run jobbot application apply --all                   # dry-run queue (#75)
+uv run jobbot application check-answer J0001 -q "¿Por qué…?" --text "…"  # or --file (#159)
 uv run jobbot application apply --all --apply --cdp http://127.0.0.1:9222
 uv run jobbot browser sessions # preflight: ready | needs_login | unknown | profile_busy
 uv run jobbot browser login            # permanentes + active + candidate; sin credenciales (#56)

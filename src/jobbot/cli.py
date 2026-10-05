@@ -105,6 +105,10 @@ getonboard_app = typer.Typer(
     no_args_is_help=True,
 )
 torre_app = typer.Typer(help="Torre: job discovery (LATAM / remoto)", no_args_is_help=True)
+empleospublicos_app = typer.Typer(
+    help="Empleos Públicos (Chile): concursos — fixture-first (#118)",
+    no_args_is_help=True,
+)
 portals_app = typer.Typer(help="Recruitment portal registry (ATS)", no_args_is_help=True)
 companies_app = typer.Typer(
     help="Company ↔ career platform knowledge (candidate → promote; public data only)",
@@ -138,6 +142,7 @@ app.add_typer(indeed_app, name="indeed")
 app.add_typer(linkedin_app, name="linkedin")
 app.add_typer(getonboard_app, name="getonboard")
 app.add_typer(torre_app, name="torre")
+app.add_typer(empleospublicos_app, name="empleospublicos")
 app.add_typer(browser_app, name="browser")
 app.add_typer(portals_app, name="portals")
 app.add_typer(companies_app, name="companies")
@@ -237,9 +242,7 @@ def run_cli(
             argv=["jobbot", *args],
             exc=caught if not isinstance(caught, typer.Exit) else None,
             error_class=(
-                recorded_class
-                if recorded_class is not None
-                else ("Abort" if aborted else None)
+                recorded_class if recorded_class is not None else ("Abort" if aborted else None)
             ),
             message=(
                 recorded_message
@@ -305,6 +308,7 @@ def version_cmd() -> None:
     """Show JobBot version."""
     console.print(__version__)
 
+
 @app.command("init")
 def workspace_init(
     directory: Annotated[
@@ -345,6 +349,7 @@ def workspace_init(
         )
     )
 
+
 @app.command("update")
 def update_cmd(
     ref: Annotated[
@@ -363,7 +368,6 @@ def update_cmd(
         console.print(f"Now: {result.version_line}")
     else:
         console.print("Run [bold]jobbot version[/bold] in a new shell if PATH changed.")
-
 
 
 @app.command("status")
@@ -613,9 +617,7 @@ def _drain_parked_hard_links(
                     f"[yellow]Recorded failure[/yellow] {record.id} "
                     f"(fingerprint={record.fingerprint})"
                 )
-            err_console.print(
-                f"[yellow]Left in inbox[/yellow] (exit {exc.code}): {item}"
-            )
+            err_console.print(f"[yellow]Left in inbox[/yellow] (exit {exc.code}): {item}")
             continue
         except (_QuietExit, typer.Exit) as exc:
             failures += 1
@@ -686,9 +688,7 @@ def _ingest_one_hard_link(
             cdp_url=cdp_url,
         )
     except ClosedPostingError as exc:
-        err_console.print(
-            f"[red]Vacancy looks filled[/red] ({exc.evidence}). Not stored."
-        )
+        err_console.print(f"[red]Vacancy looks filled[/red] ({exc.evidence}). Not stored.")
         raise _QuietExit(VALIDATION_FAILURE) from exc
     except UnknownPortalError as exc:
         err_console.print(f"[red]{exc}[/red]")
@@ -792,9 +792,7 @@ def capture_share_url(
         return
 
     if url is None:
-        err_console.print(
-            "[red]Provide a URL[/red], or [bold]jobbot capture --list[/bold]."
-        )
+        err_console.print("[red]Provide a URL[/red], or [bold]jobbot capture --list[/bold].")
         raise typer.Exit(VALIDATION_FAILURE)
 
     try:
@@ -2416,7 +2414,6 @@ def jobs_search(
     source = IndeedJobSource(config, cdp_url=cdp_url)
     q = JobSearchQuery(query=query, location=location, remote=remote, limit=limit)
 
-
     if cdp_url:
         console.print(f"Using CDP Chrome at [bold]{cdp_url}[/bold]")
     console.print(f"Searching Indeed ({source.base}) for [bold]{query}[/bold]…")
@@ -2485,9 +2482,7 @@ def jobs_queries(
             try:
                 parsed.append(AtsKind(raw.casefold().strip()))
             except ValueError:
-                err_console.print(
-                    f"[red]Unknown --ats {raw!r}[/red]; use ashby, greenhouse, lever"
-                )
+                err_console.print(f"[red]Unknown --ats {raw!r}[/red]; use ashby, greenhouse, lever")
                 raise typer.Exit(VALIDATION_FAILURE) from None
         kinds = tuple(parsed)
 
@@ -2564,6 +2559,80 @@ def jobs_match(
         console.print_json(data=match.to_dict())
         return
     console.print(format_match_report(match))
+
+
+@jobs_app.command("conditions")
+def jobs_conditions(
+    job_ids: Annotated[list[str] | None, typer.Argument(help="Job IDs (J0001 …)")] = None,
+    all_prepared: Annotated[
+        bool, typer.Option("--all-prepared", help="Every job with a prepared application")
+    ] = False,
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Review a posting's special conditions against you before applying (exit 1: dealbreaker)."""
+    from jobbot.jobs.conditions import posting_conditions
+    from jobbot.jobs.eligibility import (
+        assess_conditions,
+        default_answers_path,
+        format_conditions_report,
+        has_dealbreaker,
+        job_answers_path,
+        load_application_answers,
+    )
+
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    ids = list(job_ids or [])
+    if all_prepared:
+        for application in ApplicationRepository(session).list_all():
+            if application.status == ApplicationStatus.PREPARED and application.job_id not in ids:
+                ids.append(application.job_id)
+    if not ids:
+        err_console.print("Give one or more job IDs, or --all-prepared.")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    repo = JobRepository(session)
+    answers_path = default_answers_path(config.root)
+    reports: list[dict[str, object]] = []
+    texts: list[str] = []
+    blocked = False
+    for job_id in ids:
+        job = repo.get(job_id)
+        if job is None:
+            err_console.print(f"[red]Job not found: {job_id}[/red]")
+            raise typer.Exit(GENERIC_FAILURE)
+        try:
+            answers = load_application_answers(
+                answers_path, job_answers=job_answers_path(config.output_dir, job.id)
+            )
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        verdicts = assess_conditions(posting_conditions(job), candidate, answers)
+        blocked = blocked or has_dealbreaker(verdicts)
+        reports.append(
+            {
+                "job_id": job.id,
+                "title": job.title,
+                "company": job.company,
+                "dealbreaker": has_dealbreaker(verdicts),
+                "verdicts": [v.to_dict() for v in verdicts],
+            }
+        )
+        texts.append(format_conditions_report(job, verdicts))
+
+    if as_json:
+        console.print_json(data=reports)
+    else:
+        state = "found" if answers_path.is_file() else "missing; copy the .example.yaml"
+        texts.append(f"Answers: {answers_path} ({state})")
+        console.print("\n\n".join(texts), markup=False, highlight=False, soft_wrap=True)
+    if blocked:
+        raise _QuietExit(GENERIC_FAILURE)
 
 
 @jobs_app.command("shortlist")
@@ -2913,9 +2982,7 @@ def _application_apply_all(
     opened = 0
     for index, item in enumerate(items):
         console.print()
-        console.print(
-            f"[bold]({index + 1}/{len(items)})[/bold] {item.label}"
-        )
+        console.print(f"[bold]({index + 1}/{len(items)})[/bold] {item.label}")
         if not yes and not typer.confirm(
             f"Open assisted apply for {item.job.id}? "
             "(finish Next/Submit yourself before continuing)",
@@ -2996,6 +3063,33 @@ def _application_apply_one(
     console.print(f"Method: {plan.method.value}")
     console.print(plan.message)
     _warn_if_login_needed(config, plan.ats_kind, cdp)
+
+    if plan.method == ApplyMethod.LINKEDIN_MESSAGE:
+        from jobbot.adapters.ats.apply import open_ats_in_browser
+
+        if not apply_changes:
+            console.print(
+                "Dry-run only. Re-run with [bold]--apply[/bold] to open the LinkedIn post "
+                "(you write the message; JobBot never sends)."
+            )
+            return
+        if not yes and not typer.confirm(
+            "¿Abrir la publicación de LinkedIn para que le escribas vos? "
+            "JobBot no envía el mensaje.",
+            default=False,
+        ):
+            console.print("Aborted.")
+            raise typer.Exit(SUCCESS)
+        job_dir = config.output_dir / "jobs" / job.id
+        app_dir = prepare_application_package(
+            job, config.output_dir, job_dir=job_dir, candidate=candidate
+        )
+        console.print(open_ats_in_browser(plan.ats_url))
+        console.print(
+            "[green]Opened the post.[/green] Write the message yourself. JobBot never sends InMail."
+        )
+        _note_no_receipt(session, job.id, str(app_dir), plan.ats_url)
+        return
 
     if plan.method == ApplyMethod.EMAIL:
         from jobbot.adapters.ats.email_apply import is_tailored_cv, resolve_cv_path
@@ -3171,6 +3265,49 @@ def _application_apply_one(
     console.print("Submit manually after reviewing HITL fields.")
     _learn_form_from_apply(config, plan.ats_url, job.company)
     _note_no_receipt(session, job.id, str(app_dir), plan.ats_url)
+
+
+@application_app.command("check-answer")
+def application_check_answer(
+    job_id: Annotated[str, typer.Argument()],
+    question: Annotated[str, typer.Option("--question", "-q", help="The form's question")],
+    text: Annotated[str | None, typer.Option("--text", help="The answer to check")] = None,
+    file: Annotated[
+        Path | None, typer.Option("--file", help="Read the answer from this file")
+    ] = None,
+) -> None:
+    """Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
+
+    Exit 0 when every claim is backed, 2 when a claim is unbacked or misattributed,
+    4 when the question asks for motivation (only you can answer it).
+    """
+    from jobbot.applications.answer_check import Verdict, check_answer, render_answer_check
+
+    if text is not None and file is None:
+        answer = text
+    elif file is not None and text is None:
+        answer = file.read_text(encoding="utf-8")
+    else:
+        err_console.print("[red]Give the answer with --text or --file (one of them).[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    session, config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    check = check_answer(question, answer, candidate, job)
+    for line in render_answer_check(check, job):
+        console.print(line, markup=False, highlight=False)
+    if check.verdict is Verdict.REJECTED:
+        raise _QuietExit(VALIDATION_FAILURE)
+    if check.verdict is Verdict.NEEDS_CANDIDATE:
+        raise _QuietExit(MANUAL_CHALLENGE)
 
 
 @application_app.command("show")
@@ -4083,9 +4220,7 @@ def torre_search(
     for text in queries:
         narrator.phase(Phase.RECEIVING_WORLD, f"Torre: {text}")
         try:
-            found.extend(
-                source.search_jobs(JobSearchQuery(query=text, limit=limit, remote=remote))
-            )
+            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit, remote=remote)))
         except Exception as exc:
             err_console.print(f"[red]Torre search failed: {exc}[/red]")
             raise typer.Exit(GENERIC_FAILURE) from exc
@@ -4130,6 +4265,102 @@ def torre_search(
     console.print(table)
     console.print(
         f"Stored {len(stored)} jobs (portal torre.ai learned). "
+        f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
+    )
+    if candidate is not None:
+        _warn_if_matcher_blind(scores)
+
+
+@empleospublicos_app.command("search")
+def empleospublicos_search(
+    query: Annotated[
+        str | None,
+        typer.Argument(help="Filter text (default: profile searches)"),
+    ] = None,
+    fixture: Annotated[
+        Path | None,
+        typer.Option(
+            "--fixture",
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            help="Saved search JSON dump (required — live board is JS / often 403)",
+        ),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", help="Max results (1-50)")] = 20,
+    max_queries: Annotated[
+        int,
+        typer.Option("--max-queries", help="Profile searches when no query is given"),
+    ] = _DEFAULT_MAX_QUERIES,
+) -> None:
+    """List Empleos Públicos concursos from a saved search dump and store leads."""
+    from jobbot.adapters.empleospublicos.jobs import (
+        EmpleosPublicosJobSource,
+        EmpleosPublicosParseError,
+    )
+    from jobbot.jobs.sources import JobSearchQuery
+
+    if fixture is None:
+        err_console.print(
+            "[red]--fixture PATH is required[/red] "
+            "(Empleos Públicos search is fixture-first; live board is JS / often 403)."
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+    if limit < 1 or limit > 50:
+        err_console.print("--limit must be between 1 and 50")
+        raise typer.Exit(GENERIC_FAILURE)
+
+    session, config = _session()
+    queries = _search_queries(config, query, max_queries)
+    source = EmpleosPublicosJobSource(config, fixture=fixture.expanduser().resolve())
+    found: list[JobPosting] = []
+    for text in queries:
+        try:
+            found.extend(source.search_jobs(JobSearchQuery(query=text, limit=limit)))
+        except EmpleosPublicosParseError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(GENERIC_FAILURE) from exc
+    found = _unique_postings(found)
+    if not found:
+        console.print("No concursos matched.")
+        raise typer.Exit(SUCCESS)
+
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError:
+        candidate = None
+    analyzer = RuleBasedJobAnalyzer()
+    repo = JobRepository(session)
+    table = Table(title="Empleos Públicos (leads)")
+    table.add_column("ID")
+    table.add_column("Institución")
+    table.add_column("Cargo")
+    table.add_column("Región")
+    table.add_column("Match")
+    stored: list[str] = []
+    scores: list[float] = []
+    for raw in found:
+        job = repo.upsert_external(raw)
+        if candidate is not None:
+            match = analyzer.analyze(candidate, job)
+            repo.update_match_score(job.id, match.score)
+            job.match_score = match.score
+            scores.append(match.score)
+        write_job_json(job, config.output_dir)
+        _learn_company_knowledge(config, job)
+        stored.append(job.id)
+        score = f"{job.match_score:.0f}%" if job.match_score is not None else "-"
+        table.add_row(
+            job.id,
+            job.company[:28],
+            job.title[:36],
+            (job.location or "-")[:20],
+            score,
+        )
+    console.print(table)
+    console.print(
+        f"Stored {len(stored)} leads. Detail: "
+        f"[bold]jobbot get URL --fixture ficha.html[/bold]. "
         f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
     )
     if candidate is not None:
@@ -4313,10 +4544,7 @@ def _print_form_knowledge(form: Any) -> None:
     console.print(f"[bold]{form.url}[/bold]  ats={form.ats.value}")
     if form.sso_providers:
         names = ", ".join(form.sso_providers)
-        console.print(
-            f"Sign in with: {names}  "
-            "[dim](you click; JobBot never starts OAuth)[/dim]"
-        )
+        console.print(f"Sign in with: {names}  [dim](you click; JobBot never starts OAuth)[/dim]")
     if not form.readable:
         console.print(f"[yellow]{form.evidence}[/yellow]")
         console.print("Tip: open the page, save the HTML, and pass it with --fixture.")
@@ -5226,7 +5454,7 @@ def browser_chrome_debug(
     ] = True,
 ) -> None:
     """Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
-    
+
     Automatically detects and launches any available Chromium-based browser:
     Chrome, Microsoft Edge, Brave, or Chromium.
     """

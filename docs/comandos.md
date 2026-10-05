@@ -64,6 +64,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs show JOB_ID` | Muestra una vacante guardada. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
 | `jobs shortlist` | Ordena las vacantes guardadas por score. |
+| `jobs conditions JOB_ID… [--all-prepared]` | Lee las condiciones del aviso (cerrado, residencia, idioma, excluyentes, contrato, renta, modalidad) contra tu perfil y `data/application_answers.yaml`: ✅ cumple, ⚠️ pregunta exacta, ❌ impedimento (exit 1). Offline. |
 | `jobs backfill-dates` | Data vacantes ya guardadas usando el activity id de la URL (offline). |
 | `jobs note JOB_ID TEXTO` | Adjunta una nota libre a una vacante. |
 
@@ -75,6 +76,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `application show JOB_ID` | Ruta y estado del paquete. |
 | `application open JOB_ID` | Abre la URL de la vacante o del ATS en el navegador (no postula). |
 | `application apply JOB_ID` | Plan de prellenado ATS/Gmail. `--apply` abre; el envío lo haces tú. |
+| `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso: cifras, nombres, pares título–institución y lo dicho de la empresa. La motivación queda para ti (no pega nada). |
 | `applications list` | Lista las postulaciones registradas (alias: `applications status`). |
 
 ## Portales

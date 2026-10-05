@@ -79,3 +79,8 @@ def test_unread_page_is_unknown_not_open() -> None:
         raise OSError("connection dropped")
 
     assert closure_evidence_for_job(job, fetch=fetch) is None
+
+
+def test_get_on_board_spanish_closed_banner_is_evidence() -> None:
+    text = "Empleo finalizado - No se reciben más postulantes\n\nBuscamos analista."
+    assert closure_evidence(text) == "no se reciben más postulantes"
