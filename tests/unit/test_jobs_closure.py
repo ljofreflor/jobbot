@@ -40,13 +40,18 @@ def test_unhidden_expire_view_is_evidence() -> None:
       <h2>We're sorry… the job you are trying to apply for has been filled.</h2>
     </div>
     """
-    assert (
-        closure_evidence(html) == "the job you are trying to apply for has been filled"
-    )
+    assert closure_evidence(html) == "the job you are trying to apply for has been filled"
 
 
-def test_ordinary_description_is_not_closed() -> None:
-    text = "The team closed the books each quarter and filled the warehouse."
+def test_spanish_indeed_caduco_banner_is_evidence() -> None:
+    """Indeed's expired banner uses caducó, which filled-vacancy phrases missed (#81)."""
+    assert closure_evidence("Este empleo caducó en Indeed") == "este empleo caducó"
+    assert closure_evidence("Este empleo ha caducado en Indeed") == "este empleo ha caducado"
+    assert closure_evidence("esta oferta ha caducado") == "esta oferta ha caducado"
+
+
+def test_unrelated_caducar_in_a_jd_is_not_closed() -> None:
+    text = "Los insumos no deben caducar en bodega. El equipo cierra los libros cada trimestre."
     assert closure_evidence(text) is None
 
 

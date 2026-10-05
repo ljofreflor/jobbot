@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from jobbot.adapters.ats.indeed_apply import IndeedApplyAdapter
@@ -50,11 +52,7 @@ def test_indeed_apply_url_when_the_posting_stays_on_indeed() -> None:
 
 def test_external_apply_link_wins_over_indeed_apply() -> None:
     url = "https://mx.indeed.com/viewjob?jk=abc123"
-    html = _html(
-        extra=(
-            '<a href="https://jobs.lever.co/acme/role-1">Apply on company site</a>'
-        )
-    )
+    html = _html(extra=('<a href="https://jobs.lever.co/acme/role-1">Apply on company site</a>'))
     job = card_to_job_posting(_card(url), detail_html=html, placeholder_id="TMP")
 
     assert job.ats_url == "https://jobs.lever.co/acme/role-1"
@@ -67,6 +65,16 @@ def test_a_closed_posting_is_refused() -> None:
 
     with pytest.raises(IndeedJobClosed):
         card_to_job_posting(_card(url), detail_html=html, placeholder_id="TMP")
+
+
+def test_spanish_caduco_banner_is_refused(project_root: Path) -> None:
+    url = "https://cl.indeed.com/viewjob?jk=abc123"
+    html = (project_root / "tests/fixtures/jobs/indeed_viewjob_caduco.html").read_text(
+        encoding="utf-8"
+    )
+    with pytest.raises(IndeedJobClosed) as exc:
+        card_to_job_posting(_card(url), detail_html=html, placeholder_id="TMP")
+    assert "caduc" in str(exc.value).casefold()
 
 
 def test_open_uses_the_external_ats_when_one_was_stored(

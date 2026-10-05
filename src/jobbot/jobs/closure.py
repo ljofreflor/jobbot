@@ -46,6 +46,12 @@ _CLOSED_PHRASES: tuple[str, ...] = (
     "la oferta ya no está disponible",
     "la oferta ya no esta disponible",
     "esta oferta ha expirado",
+    "esta oferta ha caducado",
+    "esta oferta caducó",
+    "este empleo caducó",
+    "este empleo ha caducado",
+    "este empleo ha expirado",
+    "ya no acepta aplicaciones",
     "esta vacante ya no está disponible",
     "esta vacante ya no esta disponible",
 )

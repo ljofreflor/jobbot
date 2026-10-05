@@ -15,6 +15,7 @@ from rich.console import Console
 from jobbot.adapters.indeed import selectors
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
+from jobbot.jobs.closure import closure_evidence
 from jobbot.jobs.parsing import parse_job_text
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
@@ -22,14 +23,14 @@ from jobbot.models.job import JobPosting
 logger = logging.getLogger("jobbot.indeed.jobs")
 console = Console()
 
-# Wording Indeed uses when a posting is closed. Not a list of job families.
-_CLOSED_MARKERS: tuple[str, ...] = (
-    "this job has expired",
-    "no longer accepting",
-    "ya no acepta",
-    "este empleo ha expirado",
-    "esta oferta ha caducado",
-)
+
+def posting_is_closed(html: str) -> bool:
+    """True when the page says the vacancy is no longer open.
+
+    Shared with ``closure_evidence`` so Indeed caducó / expired banners and
+    filled-vacancy copy cannot drift (#81).
+    """
+    return closure_evidence(html) is not None
 
 
 class IndeedJobClosed(ValueError):
@@ -155,9 +156,7 @@ class IndeedJobSource:
         )
         if not cleared:
             browser.dump_debug("indeed", "challenge_timeout", context=context)
-            console.print(
-                f"[red]Challenge on {context} not cleared within 5 minutes.[/red]"
-            )
+            console.print(f"[red]Challenge on {context} not cleared within 5 minutes.[/red]")
             return False
         return True
 
@@ -251,12 +250,6 @@ def parse_indeed_search_html(html: str, *, base_url: str) -> list[dict[str, Any]
     return unique
 
 
-def posting_is_closed(html: str) -> bool:
-    """True when the page says the vacancy is no longer open."""
-    folded = (html or "").casefold()
-    return any(marker in folded for marker in _CLOSED_MARKERS)
-
-
 def indeed_apply_url(viewjob_url: str | None, jk: str | None) -> str | None:
     """Indeed Apply handoff for one vacancy: same country host, only jk."""
     if not viewjob_url or not jk:
@@ -298,10 +291,10 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
             r'data-testid="job-description"[^>]*>(.*?)</',
         ],
     )
-    
+
     # Detect external ATS URL (Apply on company site button)
     ats_url = None
-    
+
     # Look for "Apply on company site" or similar external apply links
     apply_patterns = [
         r'href="([^"]+)"[^>]*>Apply on company site',
@@ -309,7 +302,7 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
         r'href="([^"]+)"[^>]*>Aplicar en el sitio de la empresa',
         r'data-tn-element="[^"]*externalApply[^"]*"[^>]*href="([^"]+)"',
     ]
-    
+
     for pattern in apply_patterns:
         match = re.search(pattern, html, flags=re.I)
         if match:
@@ -317,12 +310,13 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
             # Clean up Indeed redirect wrapper if present
             if "indeed.com" in ats_url and ("rclk?jk=" in ats_url or "/rc/clk" in ats_url):
                 # Extract actual URL from Indeed redirect
-                redirect_match = re.search(r'[?&]dest=([^&]+)', ats_url)
+                redirect_match = re.search(r"[?&]dest=([^&]+)", ats_url)
                 if redirect_match:
                     from urllib.parse import unquote
+
                     ats_url = unquote(redirect_match.group(1))
             break
-    
+
     return {
         "title": _clean(title),
         "company": _clean(company),
@@ -338,10 +332,12 @@ def card_to_job_posting(
     detail_html: str | None,
     placeholder_id: str,
 ) -> JobPosting:
-    if detail_html and posting_is_closed(detail_html):
-        raise IndeedJobClosed(
-            "This Indeed job is no longer accepting applications (expired)."
-        )
+    if detail_html:
+        evidence = closure_evidence(detail_html)
+        if evidence:
+            raise IndeedJobClosed(
+                f"This Indeed job is no longer accepting applications ({evidence})."
+            )
     detail = parse_indeed_job_detail_html(detail_html) if detail_html else {}
     title = detail.get("title") or card.get("title") or "Untitled"
     company = detail.get("company") or card.get("company") or "Unknown"
@@ -349,12 +345,9 @@ def card_to_job_posting(
     description = detail.get("description") or card.get("snippet") or ""
     raw = description
     # Reuse text parser for skills/requirements heuristics
-    stub = (
-        f"Title: {title}\nCompany: {company}\n"
-        f"Location: {location or ''}\n\n{description}"
-    )
+    stub = f"Title: {title}\nCompany: {company}\nLocation: {location or ''}\n\n{description}"
     parsed = parse_job_text(stub, job_id=placeholder_id, source="indeed", url=card.get("url"))
-    
+
     ats_url = detail.get("ats_url") if detail else None
     if isinstance(ats_url, str) and "indeed.com" in ats_url.casefold():
         ats_url = None
@@ -365,7 +358,7 @@ def card_to_job_posting(
         from jobbot.portals.detect import detect_ats
 
         ats_kind = detect_ats(ats_url).value
-    
+
     return JobPosting(
         id=placeholder_id,
         source="indeed",
@@ -392,9 +385,7 @@ def _parse_card_block(block: str, base_url: str) -> dict[str, Any]:
     jk = _first(block, [r'data-jk="([^"]+)"', r'data-testid="jk-([^"]+)"']) or ""
     href = _first(block, [r'href="([^"]+)"'])
     url = urljoin(base_url + "/", href) if href else (f"{base_url}/viewjob?jk={jk}" if jk else None)
-    title = _clean(
-        _first(block, [r'data-testid="job-title"[^>]*>(.*?)</', r"<h2[^>]*>(.*?)</h2>"])
-    )
+    title = _clean(_first(block, [r'data-testid="job-title"[^>]*>(.*?)</', r"<h2[^>]*>(.*?)</h2>"]))
     return {
         "source_job_id": jk or (href or "unknown"),
         "url": url,

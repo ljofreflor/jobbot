@@ -128,3 +128,49 @@ def test_filled_posting_is_not_opened(
     assert "Not opening" in err
     assert "not applied" in err.casefold()
     assert "Recorded failure" not in err
+
+
+def test_caduco_live_banner_is_not_opened(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    import jobbot.cli as cli
+    from jobbot.cli import run_cli
+    from jobbot.db.engine import make_engine, make_session_factory
+    from jobbot.jobs.repository import JobRepository
+    from jobbot.models.job import JobPosting
+
+    opened: list[str] = []
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
+    banner = (project_root / "tests/fixtures/jobs/indeed_viewjob_caduco.html").read_text(
+        encoding="utf-8"
+    )
+    monkeypatch.setattr("jobbot.jobs.closure.fetch_posting_text", lambda _url: banner)
+    config = cli.load_config()
+    session = make_session_factory(make_engine(config.database_path))()
+    stored = JobRepository(session).upsert_external(
+        JobPosting.model_validate(
+            {
+                "id": "PENDING",
+                "source": "indeed",
+                "title": "Analista de registros",
+                "company": "Servicio Ficticio",
+                "url": "https://cl.indeed.com/viewjob?jk=abc123",
+                "description": "Registro clínico en ficha electrónica.",
+            }
+        )
+    )
+    code = run_cli(
+        ["application", "apply", stored.id, "--apply", "--yes"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    assert opened == []
+    err = capsys.readouterr().err
+    assert "Not opening" in err
+    assert "caduc" in err.casefold()
