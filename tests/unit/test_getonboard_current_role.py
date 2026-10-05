@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 from jobbot.adapters.getonboard.draft import (
     EDUCATION_MAX,
     EXPERIENCE_MAX,
     build_permanent_profile_fields,
+    draft_getonboard_fields,
     fields_from_seed_text,
+    save_permanent_profile,
 )
+from jobbot.applications.manager import prepare_application_package
 from jobbot.models.candidate import Candidate
+from jobbot.models.job import JobPosting
 from jobbot.nlp.refine import refine_permanent_profile
 
 CURRENT_HEAD = "Jefa de Operaciones en Logística Austral (2026-08–actualidad)."
@@ -166,6 +171,40 @@ def test_refining_the_fixed_draft_again_is_stable() -> None:
     first = refine_permanent_profile(_today(), previous)
     second = refine_permanent_profile(_today(), first.fields)
     assert first.fields.experiencia_y_perfil == second.fields.experiencia_y_perfil
+
+
+def test_application_fields_correct_a_stale_stored_permanent_profile() -> None:
+    stale = build_permanent_profile_fields(_draft_from_before_the_new_job())
+
+    text = draft_getonboard_fields(_today(), permanent=stale)["experiencia_y_perfil"]
+
+    assert CURRENT_HEAD in text
+    assert ENDED_HEAD in text
+    assert STALE_HEAD not in text
+    assert text.count("actualidad") == 1
+
+
+def test_application_prepare_sheet_states_the_current_role(tmp_path: Path) -> None:
+    """Regression: the per-job sheet pasted a stored draft saved before the new job."""
+    stale = build_permanent_profile_fields(_draft_from_before_the_new_job())
+    save_permanent_profile(stale, tmp_path)
+    job = JobPosting(
+        id="J0001",
+        title="Coordinadora de Operaciones",
+        company="Operaciones Demo",
+        ats_kind="getonboard",
+        ats_url="https://www.getonbrd.com/jobs/x",
+        description="Coordinación de centros de distribución.",
+    )
+
+    app_dir = prepare_application_package(job, tmp_path, candidate=_today())
+    sheet = (app_dir / "getonboard_es.md").read_text(encoding="utf-8")
+
+    assert CURRENT_HEAD in sheet
+    assert ENDED_HEAD in sheet
+    assert STALE_HEAD not in sheet
+    assert sheet.count("actualidad") == 1
+    assert sheet.index(CURRENT_HEAD) < sheet.index(ENDED_HEAD)
 
 
 def test_seed_without_education_falls_back_on_a_word_boundary() -> None:

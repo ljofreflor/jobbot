@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-110 commands, 155 modules, 776 public symbols.
+104 commands, 155 modules, 760 public symbols.
 
 ## Commands
 
@@ -189,7 +189,7 @@ writing it again — the promotion rule lives in
 
 - `client.py` — LinkedIn adapter — read-only audit + publications sync (HITL). · `LinkedInAdapter`
 - `package.py` — LinkedIn publications sync package from Candidate (facts only). · `LinkedInPublicationItem`, `doi_url`, `build_linkedin_publication_items`, `publications_missing_from_remote`
-- `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
+- `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
 - `publications.py` — Playwright helpers for LinkedIn Publications (Spanish UI; HITL; no CAPTCHA bypass). · `profile_publications_new_url`, `profile_publications_details_url`, `vanity_from_linkedin_url`, `list_remote_publication_titles`, `open_new_publication_form`, `open_edit_publication_form`, `fill_publication_form`, `save_publication`
 - `selectors.py` — LinkedIn selector hints.
 - `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `looks_like_job_post`, `PostVacancy`, `LinkedInPostCandidate`, `posted_at_from_url`, `strip_engagement_chrome`, `strip_feed_chrome`, `labelled_vacancy_links`, `split_vacancy_links`, `post_offers_wanted_country`, `parse_post_blob`, `parse_posts_fixture`, `post_to_jobs`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`, `employer_from_post`
@@ -317,6 +317,7 @@ writing it again — the promotion rule lives in
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
+- `message_apply.py` — Detect apply-by-LinkedIn-message (DM / InMail). Never send. · `asks_for_linkedin_message`
 - `platform_map.py` — Which platforms one profile reaches, grouped by how each one takes a candidate. · `Platform`, `Flavour`, `platform_label`, `source_kinds`, `platform_flavours`, `featured_platforms`, `LearningStep`, `feedback_loop`, `render_figure`, `inject_figure`, `write_page`, `main`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
