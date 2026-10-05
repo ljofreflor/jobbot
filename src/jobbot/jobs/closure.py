@@ -117,6 +117,11 @@ def _is_hidden(node: Tag) -> bool:
 
 def fetch_posting_text(url: str, *, timeout: float = 20.0) -> str:
     """Read a public posting page. Raises OSError when it cannot be read."""
+    from jobbot.portals.detect import ROBOTS_DISALLOWED_KINDS, detect_ats
+
+    if detect_ats(url) in ROBOTS_DISALLOWED_KINDS:
+        msg = f"robots.txt disallows automated reading of {url}"
+        raise OSError(msg)
     req = urllib.request.Request(
         url,
         headers={

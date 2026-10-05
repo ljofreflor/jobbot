@@ -646,6 +646,7 @@ def _ingest_one_hard_link(
     from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.jobs.from_url import (
         ClosedPostingError,
+        PortalDisallowedError,
         UnknownPortalError,
         UnsupportedPortalFetchError,
         ingest_hard_link,
@@ -689,6 +690,9 @@ def _ingest_one_hard_link(
         )
     except ClosedPostingError as exc:
         err_console.print(f"[red]Vacancy looks filled[/red] ({exc.evidence}). Not stored.")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    except PortalDisallowedError as exc:
+        err_console.print(f"[yellow]{exc}[/yellow]")
         raise _QuietExit(VALIDATION_FAILURE) from exc
     except UnknownPortalError as exc:
         err_console.print(f"[red]{exc}[/red]")

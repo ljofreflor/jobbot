@@ -26,13 +26,14 @@ from jobbot.models.application import ApplicationStatus
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch
-from jobbot.portals.detect import AtsKind
+from jobbot.portals.detect import ROBOTS_DISALLOWED_KINDS, AtsKind
 from jobbot.portals.knowledge import PortalKnowledge, lookup_portal
 
 # Re-export so CLI/tests catch filled career fixtures without a second import.
 __all__ = [
     "ClosedPostingError",
     "GetFromUrlResult",
+    "PortalDisallowedError",
     "UnknownPortalError",
     "UnsupportedPortalFetchError",
     "ingest_hard_link",
@@ -45,6 +46,10 @@ class UnknownPortalError(ValueError):
 
 class UnsupportedPortalFetchError(ValueError):
     """Portal is known but JobBot cannot fetch a JD from that host yet."""
+
+
+class PortalDisallowedError(ValueError):
+    """The portal's robots.txt forbids automated reading: a decision, not a missing fetcher."""
 
 
 @dataclass(frozen=True)
@@ -142,6 +147,13 @@ def _fetch_job(
         return _fetch_indeed_job(portal, html=html, cdp_url=cdp_url)
     if portal.ats_kind == AtsKind.EMPLEOS_PUBLICOS:
         return _fetch_empleos_publicos_job(portal, html=html)
+    if portal.ats_kind in ROBOTS_DISALLOWED_KINDS and html is None:
+        msg = (
+            f"{portal.domain} asks robots not to read it (robots.txt: Disallow: /), "
+            "so JobBot does not fetch it. Open the page in your browser and pass "
+            "--fixture with the saved HTML, or use `jobbot jobs add --file`."
+        )
+        raise PortalDisallowedError(msg)
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)
