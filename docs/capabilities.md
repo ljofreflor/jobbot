@@ -108,7 +108,7 @@ writing it again — the promotion rule lives in
 - `jobbot recruiters show` — Show one source with every practice it taught.
 - `jobbot status` — Show which permanent CVs / profiles and active company portals are up.
 - `jobbot torre search` — Search Torre (LATAM / remote) and store jobs locally.
-- `jobbot update` — Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub).
+- `jobbot update` — Upgrade the ``jobbot`` executable on PATH from production (GitHub ``main``).
 - `jobbot version` — Show JobBot version.
 - `jobbot workspace adopt` — Hand this workspace's data and output over to the profile now in place.
 - `jobbot workspace consent` — Record local consent and a retention date for one sandbox.

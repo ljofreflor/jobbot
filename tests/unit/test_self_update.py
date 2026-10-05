@@ -23,10 +23,7 @@ def test_dockerenv_file_is_the_only_docker_signal(
 ) -> None:
     """A k8s/devcontainer cgroup must not block updating a uv-tool install."""
     dockerenv = tmp_path / "dockerenv"
-    cgroup = tmp_path / "cgroup"
-    cgroup.write_text("0::/system.slice/containerd.service\n", encoding="utf-8")
     monkeypatch.setattr(self_update, "_DOCKERENV", dockerenv)
-    monkeypatch.setattr(self_update, "_CGROUP", cgroup)
     assert self_update._in_docker() is False
     dockerenv.write_text("", encoding="utf-8")
     assert self_update._in_docker() is True
