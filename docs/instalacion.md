@@ -28,12 +28,18 @@ curl -fsSL "https://raw.githubusercontent.com/ljofreflor/jobbot/${REF}/scripts/i
   | JOBBOT_REF="$REF" bash
 ```
 
-Actualizar el ejecutable más adelante:
+Actualizar el ejecutable más adelante (reemplaza el `jobbot` del `PATH` con
+**producción**: la rama `main` de GitHub, no el checkout local ni `develop`):
 
 ```bash
-jobbot update                    # tipicamente main
+jobbot update                    # uv tool install desde GitHub @main
 JOBBOT_REF=v0.1.0 jobbot update  # o un tag / SHA / rama
+jobbot update --ref main
 ```
+
+Si ya estás en el commit de `main`, el comando lo dice y sale 0. Sin `uv` en el
+`PATH` (ni al lado del ejecutable), sale distinto de 0 y apunta al instalador.
+Dentro de la imagen Docker no muta el contenedor: actualiza la imagen en el host.
 
 ## Opción B — Docker (imagen lista)
 

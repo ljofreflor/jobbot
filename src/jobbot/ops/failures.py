@@ -24,7 +24,7 @@ from jobbot.jobs.ids import next_failure_id
 from jobbot.ops.redact import redact_context, redact_text
 
 STATUSES = frozenset({"new", "triaged", "fixed", "wontfix"})
-_OPS_SKIP_PREFIXES = ("ops", "version")
+_OPS_SKIP_PREFIXES = ("ops", "version", "update")
 
 
 @dataclass(frozen=True)

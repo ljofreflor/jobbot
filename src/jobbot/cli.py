@@ -354,10 +354,13 @@ def workspace_init(
 def update_cmd(
     ref: Annotated[
         str | None,
-        typer.Option("--ref", help="Git ref to install (default: JOBBOT_REF or main)"),
+        typer.Option(
+            "--ref",
+            help="Git ref to install (default: production branch main, or JOBBOT_REF)",
+        ),
     ] = None,
 ) -> None:
-    """Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub)."""
+    """Upgrade the ``jobbot`` executable on PATH from production (GitHub ``main``)."""
     console.print(f"Current: {__version__}")
     result = update_jobbot(ref=ref)
     if not result.ok:

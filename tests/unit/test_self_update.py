@@ -226,8 +226,7 @@ def test_cli_update_already_latest_is_success(
     from jobbot.cli import run_cli
 
     monkeypatch.setattr(
-        self_update,
-        "update_jobbot",
+        "jobbot.cli.update_jobbot",
         lambda **_k: self_update.UpdateResult(
             ok=True,
             message="Already on latest production (main).",
