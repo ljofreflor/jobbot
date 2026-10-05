@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import logging
 import re
+import sys
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse
@@ -36,6 +37,31 @@ class IndeedJobClosed(ValueError):
     """The posting is no longer accepting applications."""
 
 
+class ChallengeBlocked(RuntimeError):
+    """Indeed asked for a human check; JobBot does not solve CAPTCHA or stealth."""
+
+    def __init__(self, context: str) -> None:
+        self.context = context
+        super().__init__("Indeed pidió verificación anti-bot y no se resolvió")
+
+
+def challenge_wait_seconds(
+    explicit: float | None = None,
+    *,
+    stdin_is_tty: bool | None = None,
+) -> float:
+    """How long to wait for a human to clear a challenge.
+
+    Interactive sessions default to 5 minutes. Agent / no-TTY runs default to 0
+    so a block is reported immediately instead of looking like an empty search.
+    ``--challenge-wait`` overrides either way (0 still fails fast on a TTY).
+    """
+    if explicit is not None:
+        return max(0.0, float(explicit))
+    tty = sys.stdin.isatty() if stdin_is_tty is None else stdin_is_tty
+    return 300.0 if tty else 0.0
+
+
 class IndeedJobSource:
     """JobSourceAdapter for Indeed (cl.indeed.com by default)."""
 
@@ -44,6 +70,7 @@ class IndeedJobSource:
         config: JobbotConfig | None = None,
         *,
         cdp_url: str | None = None,
+        challenge_wait: float | None = None,
     ) -> None:
         self.config = config or load_config()
         self.base = selectors.indeed_jobs_base(self._country())
@@ -52,6 +79,7 @@ class IndeedJobSource:
         from jobbot.browser.cdp import resolve_cdp_url
 
         self.cdp_url = resolve_cdp_url(cdp_url)
+        self.challenge_wait = challenge_wait_seconds(challenge_wait)
 
     def _country(self) -> str:
         # Loaded from .jobbot.toml [indeed].country when present
@@ -90,12 +118,12 @@ class IndeedJobSource:
             browser.page.goto(self.base + "/", wait_until="domcontentloaded")
             browser.page.goto(url, wait_until="domcontentloaded")
             if not self._clear_challenge(browser, context="search results"):
-                return []
+                raise ChallengeBlocked("search results")
             html = browser.page.content()
             cards = parse_indeed_search_html(html, base_url=self.base)
             if not cards and _looks_like_challenge_html(html):
                 if not self._clear_challenge(browser, context="search results"):
-                    return []
+                    raise ChallengeBlocked("search results")
                 browser.page.goto(url, wait_until="domcontentloaded")
                 html = browser.page.content()
                 cards = parse_indeed_search_html(html, base_url=self.base)
@@ -108,9 +136,10 @@ class IndeedJobSource:
                 return []
 
             results: list[JobPosting] = []
+            enrich_details = enrich
             for card in cards[:limit]:
                 detail_html = None
-                if enrich and card.get("url"):
+                if enrich_details and card.get("url"):
                     try:
                         browser.page.goto(
                             card["url"],
@@ -118,8 +147,15 @@ class IndeedJobSource:
                             timeout=20_000,
                         )
                         if not self._clear_challenge(browser, context="job detail"):
-                            continue
-                        detail_html = browser.page.content()
+                            enrich_details = False
+                            console.print(
+                                "[yellow]Indeed pidió verificación en el detalle; "
+                                "se devuelven las tarjetas ya leídas sin abrir más avisos.[/yellow]"
+                            )
+                        else:
+                            detail_html = browser.page.content()
+                    except ChallengeBlocked:
+                        raise
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("detail fetch failed for %s: %s", card.get("url"), exc)
                 job = card_to_job_posting(card, detail_html=detail_html, placeholder_id="TMP")
@@ -131,7 +167,8 @@ class IndeedJobSource:
         url = job_id if job_id.startswith("http") else f"{self.base}/viewjob?jk={job_id}"
         with self._session() as browser:
             browser.page.goto(url, wait_until="domcontentloaded")
-            self._clear_challenge(browser, context="job detail")
+            if not self._clear_challenge(browser, context="job detail"):
+                raise ChallengeBlocked("job detail")
             html = browser.page.content()
             card = {
                 "source_job_id": _extract_jk(url) or job_id,
@@ -146,18 +183,20 @@ class IndeedJobSource:
     def _clear_challenge(self, browser: BrowserSession, *, context: str) -> bool:
         if not _looks_like_challenge(browser.page):
             return True
+        wait = self.challenge_wait
+        if wait <= 0:
+            browser.dump_debug("indeed", "challenge_blocked", context=context)
+            return False
         cleared = browser.pause_for_manual(
             f"Indeed showed a challenge/CAPTCHA/consent on {context}. "
             "Complete it in the Chromium window, then press Enter "
             "(or wait — this run polls until the page clears).",
             is_clear=lambda: not _looks_like_challenge(browser.page),
-            timeout_seconds=300,
+            timeout_seconds=wait,
         )
         if not cleared:
             browser.dump_debug("indeed", "challenge_timeout", context=context)
-            console.print(
-                f"[red]Challenge on {context} not cleared within 5 minutes.[/red]"
-            )
+            console.print(f"[red]Challenge on {context} not cleared within {wait:.0f}s.[/red]")
             return False
         return True
 
@@ -298,10 +337,10 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
             r'data-testid="job-description"[^>]*>(.*?)</',
         ],
     )
-    
+
     # Detect external ATS URL (Apply on company site button)
     ats_url = None
-    
+
     # Look for "Apply on company site" or similar external apply links
     apply_patterns = [
         r'href="([^"]+)"[^>]*>Apply on company site',
@@ -309,7 +348,7 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
         r'href="([^"]+)"[^>]*>Aplicar en el sitio de la empresa',
         r'data-tn-element="[^"]*externalApply[^"]*"[^>]*href="([^"]+)"',
     ]
-    
+
     for pattern in apply_patterns:
         match = re.search(pattern, html, flags=re.I)
         if match:
@@ -317,12 +356,13 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
             # Clean up Indeed redirect wrapper if present
             if "indeed.com" in ats_url and ("rclk?jk=" in ats_url or "/rc/clk" in ats_url):
                 # Extract actual URL from Indeed redirect
-                redirect_match = re.search(r'[?&]dest=([^&]+)', ats_url)
+                redirect_match = re.search(r"[?&]dest=([^&]+)", ats_url)
                 if redirect_match:
                     from urllib.parse import unquote
+
                     ats_url = unquote(redirect_match.group(1))
             break
-    
+
     return {
         "title": _clean(title),
         "company": _clean(company),
@@ -339,9 +379,7 @@ def card_to_job_posting(
     placeholder_id: str,
 ) -> JobPosting:
     if detail_html and posting_is_closed(detail_html):
-        raise IndeedJobClosed(
-            "This Indeed job is no longer accepting applications (expired)."
-        )
+        raise IndeedJobClosed("This Indeed job is no longer accepting applications (expired).")
     detail = parse_indeed_job_detail_html(detail_html) if detail_html else {}
     title = detail.get("title") or card.get("title") or "Untitled"
     company = detail.get("company") or card.get("company") or "Unknown"
@@ -349,12 +387,9 @@ def card_to_job_posting(
     description = detail.get("description") or card.get("snippet") or ""
     raw = description
     # Reuse text parser for skills/requirements heuristics
-    stub = (
-        f"Title: {title}\nCompany: {company}\n"
-        f"Location: {location or ''}\n\n{description}"
-    )
+    stub = f"Title: {title}\nCompany: {company}\nLocation: {location or ''}\n\n{description}"
     parsed = parse_job_text(stub, job_id=placeholder_id, source="indeed", url=card.get("url"))
-    
+
     ats_url = detail.get("ats_url") if detail else None
     if isinstance(ats_url, str) and "indeed.com" in ats_url.casefold():
         ats_url = None
@@ -365,7 +400,7 @@ def card_to_job_posting(
         from jobbot.portals.detect import detect_ats
 
         ats_kind = detect_ats(ats_url).value
-    
+
     return JobPosting(
         id=placeholder_id,
         source="indeed",
@@ -392,9 +427,7 @@ def _parse_card_block(block: str, base_url: str) -> dict[str, Any]:
     jk = _first(block, [r'data-jk="([^"]+)"', r'data-testid="jk-([^"]+)"']) or ""
     href = _first(block, [r'href="([^"]+)"'])
     url = urljoin(base_url + "/", href) if href else (f"{base_url}/viewjob?jk={jk}" if jk else None)
-    title = _clean(
-        _first(block, [r'data-testid="job-title"[^>]*>(.*?)</', r"<h2[^>]*>(.*?)</h2>"])
-    )
+    title = _clean(_first(block, [r'data-testid="job-title"[^>]*>(.*?)</', r"<h2[^>]*>(.*?)</h2>"]))
     return {
         "source_job_id": jk or (href or "unknown"),
         "url": url,
