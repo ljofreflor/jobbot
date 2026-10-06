@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-106 commands, 158 modules, 786 public symbols.
+112 commands, 159 modules, 803 public symbols.
 
 ## Commands
 
