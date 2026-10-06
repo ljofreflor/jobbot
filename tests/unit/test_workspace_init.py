@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from jobbot.config import CONFIG_FILENAME, load_config, resolve_workspace
-from jobbot.workspace import WorkspaceExistsError, init_workspace
+from jobbot.workspace import WorkspaceExistsError, ensure_gitignore, init_workspace
 from tests.fixtures.cv_pdf import write_sample_cv
 
 
@@ -56,6 +57,56 @@ def test_init_creates_local_layout(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert config.portals_path == (target / ".local" / "portals.yaml").resolve()
     assert config.companies_path == (target / ".local" / "companies.yaml").resolve()
     assert config.browser_data_dir == (target / ".local" / "browser-data").resolve()
+
+
+def test_init_writes_gitignore_with_local_and_tmp(tmp_path: Path) -> None:
+    """#212: cold install must ignore private state and scratch dirs."""
+    target = tmp_path / "postulaciones"
+    init_workspace(target)
+    gitignore = (target / ".gitignore").read_text(encoding="utf-8")
+    assert ".local/" in gitignore
+    assert "tmp/" in gitignore
+
+
+def test_init_merges_gitignore_without_duplicates(tmp_path: Path) -> None:
+    target = tmp_path / "ws"
+    target.mkdir()
+    (target / ".gitignore").write_text("*.pdf\n.local/\n", encoding="utf-8")
+    init_workspace(target)
+    first = (target / ".gitignore").read_text(encoding="utf-8")
+    assert first.count(".local/") == 1
+    assert "tmp/" in first
+    assert "*.pdf" in first
+    init_workspace(target, force=True)
+    second = (target / ".gitignore").read_text(encoding="utf-8")
+    assert second == first
+
+
+def test_ensure_gitignore_is_idempotent(tmp_path: Path) -> None:
+    path = tmp_path / ".gitignore"
+    ensure_gitignore(path)
+    ensure_gitignore(path)
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert lines.count(".local/") == 1
+    assert lines.count("tmp/") == 1
+
+
+def test_init_gitignore_covers_paths_in_a_git_repo(tmp_path: Path) -> None:
+    target = tmp_path / "ws"
+    init_workspace(target)
+    (target / "tmp").mkdir()
+    (target / "tmp" / "x").write_text("scratch\n", encoding="utf-8")
+    (target / ".local" / "probe").write_text("private\n", encoding="utf-8")
+    subprocess.run(["git", "init"], cwd=target, check=True, capture_output=True)
+    check = subprocess.run(
+        ["git", "check-ignore", "-v", "tmp/x", ".local/probe"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "tmp/x" in check.stdout
+    assert ".local/probe" in check.stdout
 
 
 def test_init_local_under_absolute_target_when_cwd_differs(
@@ -119,6 +170,7 @@ def test_cli_init_writes_local_inside_directory_arg(
     assert outcome.exit_code == 0, outcome.stdout
     assert (target / CONFIG_FILENAME).is_file()
     assert (target / ".local" / "profile.yaml").is_file()
+    assert (target / ".gitignore").is_file()
     assert not (cwd / ".local").exists()
 
 

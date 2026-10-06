@@ -68,6 +68,7 @@ jobbot init
 ```text
 ~/postulaciones/
   .jobbot.toml
+  .gitignore          # .local/ y tmp/ (andamiaje temporal)
   .local/
     profile.yaml
     jobbot.sqlite
@@ -76,7 +77,11 @@ jobbot init
     browser-data/
     output/
     templates/
+  tmp/                # dumps y probes; ignorado por git
 ```
+
+`jobbot init` escribe o completa `.gitignore` con `.local/` y `tmp/` (sin borrar
+líneas tuyas). El estado privado y el andamiaje temporal no deben versionarse.
 
 Importa un CV en PDF (o edita el YAML a mano):
 

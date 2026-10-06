@@ -17,6 +17,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy.orm import Session
+from typer._click.exceptions import UsageError as _UsageError
 
 from jobbot import __version__
 from jobbot.applications.manager import (
@@ -220,6 +221,16 @@ def run_cli(
         if standalone_mode:
             raise SystemExit(VALIDATION_FAILURE) from exc
         return VALIDATION_FAILURE
+    except _UsageError as exc:
+        # Bad flags / missing args / bare groups: show Click's usage, exit 2, never ops.
+        # Regression: `jobbot --version` used to land here as NoSuchOption + Fxxxx (#187).
+        try:
+            exc.show()
+        except Exception:  # noqa: BLE001 — still exit as validation if show() fails
+            err_console.print(str(exc) or exc.__class__.__name__)
+        if standalone_mode:
+            raise SystemExit(VALIDATION_FAILURE) from exc
+        return VALIDATION_FAILURE
     except _QuietExit as exc:
         if standalone_mode:
             raise SystemExit(exc.code) from exc
@@ -276,8 +287,25 @@ def _session() -> tuple[Session, JobbotConfig]:
     return make_session_factory(engine)(), config
 
 
+def _eager_version(value: bool) -> None:
+    """``jobbot --version`` / ``-V`` (same text as ``jobbot version``). Issue #187."""
+    if value:
+        console.print(__version__)
+        raise typer.Exit(SUCCESS)
+
+
 @app.callback()
 def main(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            callback=_eager_version,
+            is_eager=True,
+            help="Show version and exit",
+        ),
+    ] = False,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Enable debug logging"),
@@ -2638,6 +2666,8 @@ def jobs_conditions(
 @jobs_app.command("shortlist")
 def jobs_shortlist() -> None:
     """Rank stored jobs by match score."""
+    from jobbot.jobs.shortlist_flags import shortlist_flags
+
     session, config = _session()
     try:
         candidate = load_profile(config.profile_path)
@@ -2647,15 +2677,17 @@ def jobs_shortlist() -> None:
 
     repo = JobRepository(session)
     analyzer = RuleBasedJobAnalyzer()
-    rows: list[tuple[float, str, str, str]] = []
+    rows: list[tuple[float, str, str, str, tuple[str, ...]]] = []
     for job in repo.list_all():
         match = analyzer.analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
-        rows.append((match.score, job.id, job.title, job.company))
+        flags = shortlist_flags(job)
+        rows.append((match.score, job.id, job.title, job.company, flags.labels))
     rows.sort(key=lambda r: r[0], reverse=True)
     console.print("[bold]TOP MATCHES[/bold]")
-    for score, jid, title, company in rows:
-        console.print(f"{score:5.1f}%  {jid}  {title}  {company}")
+    for score, jid, title, company, labels in rows:
+        tag = f"  [{' '.join(labels)}]" if labels else ""
+        console.print(f"{score:5.1f}%  {jid}  {title}  {company}{tag}")
     _warn_if_matcher_blind([row[0] for row in rows])
 
 

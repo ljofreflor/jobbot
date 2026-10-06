@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import unicodedata
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -236,6 +237,9 @@ allow_remote = true
 max_age_days = 30
 """
 
+# Private state and scratch: never commit. Issue #212.
+INIT_GITIGNORE_ENTRIES: tuple[str, ...] = (".local/", "tmp/")
+
 
 @dataclass(frozen=True)
 class InitResult:
@@ -246,6 +250,44 @@ class InitResult:
 
 class WorkspaceExistsError(FileExistsError):
     """``.jobbot.toml`` already present and ``--force`` was not set."""
+
+
+def ensure_gitignore(path: Path, *, entries: Sequence[str] = INIT_GITIGNORE_ENTRIES) -> Path:
+    """Create or merge a ``.gitignore`` so private workspace paths stay out of git.
+
+    Existing lines are kept; missing entries are appended. Idempotent: a second
+    call with the same entries does not rewrite the file.
+    """
+    needed = [entry.strip() for entry in entries if entry.strip()]
+    existing_lines: list[str] = []
+    if path.is_file():
+        existing_lines = path.read_text(encoding="utf-8").splitlines()
+    present = {
+        line.strip()
+        for line in existing_lines
+        if line.strip() and not line.strip().startswith("#")
+    }
+    missing = [entry for entry in needed if entry not in present]
+    if not missing and path.is_file():
+        return path
+    lines = list(existing_lines)
+    if lines and lines[-1].strip():
+        lines.append("")
+    if not path.is_file():
+        lines.extend(
+            [
+                "# JobBot — private workspace state and scratch (jobbot init)",
+                *needed,
+                "",
+            ]
+        )
+    else:
+        lines.extend(missing)
+        if lines and lines[-1].strip():
+            lines.append("")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
 
 
 def init_workspace(target: Path, *, force: bool = False) -> InitResult:
@@ -289,4 +331,7 @@ def init_workspace(target: Path, *, force: bool = False) -> InitResult:
     written.append(companies)
 
     written.extend(copy_templates(templates))
+    gitignore = ensure_gitignore(root / ".gitignore")
+    if gitignore not in written:
+        written.append(gitignore)
     return InitResult(root=root, created=tuple(written), forced=force)

@@ -8,6 +8,7 @@ from typing import Protocol
 
 from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill, skills_in_text
 from jobbot.jobs.parsing import extract_skills_from_text, looks_like_page_metadata
+from jobbot.jobs.untrusted import scoring_text
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch, MatchItem, MatchStrength
@@ -187,7 +188,7 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
         if token and token not in seen and len(req) <= _MAX_REQUIREMENT_CHARS:
             seen.add(token)
             pairs.append((token, req[:80], req))
-    blob = f"{job.title}\n{job.description}\n{job.raw_description}"
+    blob = _posting_blob(job)
     if len(pairs) < 3:
         for hint in extract_skills_from_text(blob):
             token = normalize_skill(hint)
@@ -195,6 +196,17 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
                 seen.add(token)
                 pairs.append((token, hint, hint))
     return pairs
+
+
+def _posting_blob(job: JobPosting) -> str:
+    """Title + JD text used for scoring: injection lines and body URLs dropped (#201)."""
+    return "\n".join(
+        [
+            job.title,
+            scoring_text(job.description),
+            scoring_text(job.raw_description),
+        ]
+    )
 
 
 def _candidate_vocabulary(candidate: Candidate) -> _Vocabulary:
@@ -261,9 +273,7 @@ def _profile_evidence(
     found in the posting's text are evidence of fit in any field. Only what is found
     is added: a claim the posting does not mention is not a gap, so it costs nothing.
     """
-    posting = WordIndex(
-        frozenset(_keyword_candidates(f"{job.title}\n{job.description}\n{job.raw_description}"))
-    )
+    posting = WordIndex(frozenset(_keyword_candidates(_posting_blob(job))))
     if not posting.words:
         return []
     already = [

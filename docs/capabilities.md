@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-106 commands, 158 modules, 786 public symbols.
+106 commands, 160 modules, 791 public symbols.
 
 ## Commands
 
@@ -130,7 +130,7 @@ writing it again — the promotion rule lives in
 - `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `update_jobbot`
-- `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`, `InitResult`, `WorkspaceExistsError`, `init_workspace`
+- `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`, `InitResult`, `WorkspaceExistsError`, `ensure_gitignore`, `init_workspace`
 
 ### `adapters`
 
@@ -266,7 +266,9 @@ writing it again — the promotion rule lives in
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `stem_word`, `WordIndex`, `normalize_many`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `repository.py` — Job persistence repository. · `JobRepository`, `write_job_json`
+- `shortlist_flags.py` — Flags for ``jobs shortlist``: expired / closing soon — never invent a date (#205). · `ShortlistFlags`, `parse_closes_on`, `shortlist_flags`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
+- `untrusted.py` — Treat a job posting as untrusted input when scoring or prompting. · `scoring_text`
 
 ### `matching`
 
