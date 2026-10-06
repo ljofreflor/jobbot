@@ -609,6 +609,7 @@ uv run jobbot companies recon NOMBRE --cdp URL --apply
 uv run jobbot application apply J0001
 uv run jobbot application apply J0001 --apply           # email: adapted CV attached in Gmail
 uv run jobbot application apply --all                   # dry-run queue (#75)
+uv run jobbot application check-answer J0001 -q "¿Por qué…?" --text "…"  # or --file (#159)
 uv run jobbot application apply --all --apply --cdp http://127.0.0.1:9222
 uv run jobbot browser sessions # preflight: ready | needs_login | unknown | profile_busy
 uv run jobbot browser login            # permanentes + active + candidate; sin credenciales (#56)
