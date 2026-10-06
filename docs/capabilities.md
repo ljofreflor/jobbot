@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-106 commands, 158 modules, 786 public symbols.
+112 commands, 159 modules, 803 public symbols.
 
 ## Commands
 
@@ -108,6 +108,12 @@ writing it again — the promotion rule lives in
 - `jobbot recruiters promote` — Let one source's practices reach `cv advise`.
 - `jobbot recruiters reject` — Keep one source out for good.
 - `jobbot recruiters show` — Show one source with every practice it taught.
+- `jobbot secrets allow-fill` — Consent flag only: a later fill driver may type the password. Submit stays HITL.
+- `jobbot secrets delete` — Drop one stored login. Does not delete the vault file.
+- `jobbot secrets deny-fill` — Turn off the fill_login flag. Stored entries stay.
+- `jobbot secrets init` — Create an empty 0600 vault next to profile.yaml. Does not invent passwords.
+- `jobbot secrets list` — List stored site keys. Never prints a password.
+- `jobbot secrets set` — Store a password the human types. Empty values are refused, never invented.
 - `jobbot status` — Show which permanent CVs / profiles and active company portals are up.
 - `jobbot torre search` — Search Torre (LATAM / remote) and store jobs locally.
 - `jobbot update` — Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub).
@@ -130,6 +136,7 @@ writing it again — the promotion rule lives in
 - `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `update_jobbot`
+- `vault.py` — Local opt-in credential vault — hygiene, not encryption (#157). · `VaultError`, `VaultPermissionError`, `VaultMissingError`, `VaultEntry`, `Vault`, `vault_path`, `normalize_site`, `secret_needles`, `can_type_password`, `load_vault`, `require_vault`, `init_vault`, `put_entry`, `delete_entry`, `set_fill_login`, `needles_for_profile`, `redact_known_secrets`
 - `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`, `InitResult`, `WorkspaceExistsError`, `init_workspace`
 
 ### `adapters`

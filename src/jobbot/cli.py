@@ -131,8 +131,13 @@ workspace_app = typer.Typer(
     help="Isolated homes for extra candidates (test CVs) in this checkout",
     no_args_is_help=True,
 )
+secrets_app = typer.Typer(
+    help="Opt-in local password vault (0600; never invents; never prints)",
+    no_args_is_help=True,
+)
 
 app.add_typer(workspace_app, name="workspace")
+app.add_typer(secrets_app, name="secrets")
 app.add_typer(profile_app, name="profile")
 app.add_typer(cv_app, name="cv")
 app.add_typer(jobs_app, name="jobs")
@@ -344,7 +349,8 @@ def workspace_init(
             "  1. Edit .local/profile.yaml  (or: jobbot profile import-pdf CV.pdf)\n"
             "  2. jobbot profile validate\n"
             "  3. jobbot getonboard search\n"
-            "Sync this whole folder (including .local/) with Drive/Dropbox/Syncthing/…",
+            "Sync this whole folder (including .local/) with Drive/Dropbox/Syncthing/…\n"
+            "If you later run jobbot secrets init, exclude .local/.vault.yaml from sync.",
             title="Cold start",
         )
     )
@@ -938,6 +944,141 @@ def workspace_consent(
         Consent(consented_at=consented_at, scope=scope, delete_after=delete_after),
     )
     console.print(f"Wrote {path}")
+
+
+def _vault_file() -> Path:
+    from jobbot.vault import vault_path
+
+    return vault_path(load_config().profile_path)
+
+
+def _die_vault(exc: BaseException) -> None:
+    err_console.print(f"[red]{exc}[/red]")
+    raise typer.Exit(VALIDATION_FAILURE) from exc
+
+
+@secrets_app.command("init")
+def secrets_init() -> None:
+    """Create an empty 0600 vault next to profile.yaml. Does not invent passwords."""
+    from jobbot.vault import VaultError, init_vault
+
+    path = _vault_file()
+    try:
+        init_vault(path)
+    except VaultError as exc:
+        _die_vault(exc)
+    console.print(f"Created {path} (mode 0600). JobBot never invents entries.")
+    console.print("[dim]Do not sync this file to Drive/Dropbox. Hidden is not encryption.[/dim]")
+
+
+@secrets_app.command("list")
+def secrets_list() -> None:
+    """List stored site keys. Never prints a password."""
+    from jobbot.vault import VaultError, load_vault
+
+    path = _vault_file()
+    try:
+        vault = load_vault(path, missing_ok=True)
+    except VaultError as exc:
+        _die_vault(exc)
+    if vault is None:
+        console.print(f"No vault at {path} — run [bold]jobbot secrets init[/bold].")
+        return
+    sites = vault.sites()
+    fill = "on" if vault.fill_login else "off"
+    console.print(f"Vault {path}  fill_login={fill}  entries={len(sites)}")
+    if not sites:
+        console.print("[dim]Empty. jobbot secrets set SITE stores a password you type.[/dim]")
+        return
+    for site in sites:
+        entry = vault.get(site)
+        user = entry.username if entry and entry.username else "(profile email)"
+        console.print(f"  {site}  user={user}  password=***")
+
+
+@secrets_app.command("set")
+def secrets_set(
+    site: Annotated[str, typer.Argument(help="Portal key, e.g. indeed / getonboard / acme")],
+    username: Annotated[
+        str | None,
+        typer.Option("--username", help="Login id if not the profile email"),
+    ] = None,
+    password_stdin: Annotated[
+        bool,
+        typer.Option(
+            "--password-stdin",
+            help="Read the password from stdin (never from argv / ps)",
+        ),
+    ] = False,
+) -> None:
+    """Store a password the human types. Empty values are refused, never invented."""
+    import getpass
+
+    from jobbot.vault import VaultError, put_entry
+
+    if password_stdin:
+        password = sys.stdin.read().rstrip("\r\n")
+    else:
+        password = getpass.getpass(f"Password for {site}: ")
+        again = getpass.getpass("Repeat password: ")
+        if password != again:
+            _die_vault(VaultError("passwords do not match"))
+    path = _vault_file()
+    try:
+        put_entry(path, site, password, username=username)
+    except VaultError as exc:
+        _die_vault(exc)
+    console.print(f"Stored {site} in the vault (password not shown).")
+
+
+@secrets_app.command("delete")
+def secrets_delete(
+    site: Annotated[str, typer.Argument(help="Portal key to remove")],
+) -> None:
+    """Drop one stored login. Does not delete the vault file."""
+    from jobbot.vault import VaultError, delete_entry
+
+    try:
+        delete_entry(_vault_file(), site)
+    except VaultError as exc:
+        _die_vault(exc)
+    console.print(f"Removed {site}.")
+
+
+@secrets_app.command("allow-fill")
+def secrets_allow_fill(
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the confirmation prompt")] = False,
+) -> None:
+    """Consent flag only: a later fill driver may type the password. Submit stays HITL."""
+    from jobbot.vault import VaultError, set_fill_login
+
+    if not yes and not typer.confirm(
+        "Allow JobBot to type stored passwords into login fields later? "
+        "CAPTCHA, 2FA, terms and submit stay yours.",
+        default=False,
+    ):
+        console.print("fill_login left off.")
+        return
+    try:
+        set_fill_login(_vault_file(), True)
+    except VaultError as exc:
+        _die_vault(exc)
+    console.print(
+        "fill_login=on. Typing into the browser is not shipped yet; "
+        "CAPTCHA/2FA/submit stay human."
+    )
+
+
+@secrets_app.command("deny-fill")
+def secrets_deny_fill() -> None:
+    """Turn off the fill_login flag. Stored entries stay."""
+    from jobbot.vault import VaultError, set_fill_login
+
+    try:
+        set_fill_login(_vault_file(), False)
+    except VaultError as exc:
+        _die_vault(exc)
+    console.print("fill_login=off.")
 
 
 advisor_app = typer.Typer(
