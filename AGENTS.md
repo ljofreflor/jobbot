@@ -439,7 +439,8 @@ an issue already holds acceptance tests wastes everyone's time.
    / assisted signup → [#44](https://github.com/ljofreflor/jobbot/issues/44)
    / portal recon inside → [#45](https://github.com/ljofreflor/jobbot/issues/45)).
 3. If the work is genuinely new, open or update an issue first (HITL), then plan against that
-   number.
+   number. New issues follow **spec-driven development** below: the issue *is* the contract,
+   not a sticky note for later design.
 4. Cite issue numbers in the plan and in PR bodies.
 5. **Assign every GitHub issue to Cursor.** On `gh issue create` and on
    `jobbot ops failure issue`, pass `--assignee cursoragent` (or
@@ -450,6 +451,36 @@ an issue already holds acceptance tests wastes everyone's time.
    write collaborator is in place, apply the `cursor` label as the ownership signal and keep
    a write invite open — then retry `--add-assignee cursoragent`. Prefer the real assignee
    over the label alone.
+
+### Spec-driven issues (SDD)
+
+Prefer issues that an agent (or a human) can implement **without rediscovering the design in
+chat**. The issue states the observable contract; the PR proves it with a fail-first unit
+test. Same spirit as design economics: costly reasoning once, then call the result.
+
+When opening or rewriting a product issue, aim for this shape (titles stay
+`[product:area] …`):
+
+1. **Problema** — what breaks or is missing, for whom, in one short block. No invented
+   experience, no real PII.
+2. **Evidencia** — facts from code, CLI output, a verified URL, or a fixture path. Job URLs
+   follow the “Job URLs” rules above before they are handed out.
+3. **Propuesta** — the intended behaviour (commands, modules, exit codes, HITL boundaries).
+   Say what JobBot must **not** do (auto-submit, CAPTCHA bypass, invent facts).
+4. **Criterios de aceptación** — checkboxes that map 1:1 to tests or CLI checks. Prefer
+   offline fixtures over live portals. Each box should be falsifiable (“with fixture X,
+   `jobbot get URL` stores title Y and exit 0”, not “mejorar el matcher”).
+5. **Fuera de alcance** — what this issue deliberately skips (follow-ups get their own
+   number).
+6. **Relacionados** — existing issues to extend or close instead of forking the endgame.
+
+A good acceptance line is already a test name. A vague wish (“soportar más ATS”) is not a
+spec — split it or add examples until each checkbox can fail first.
+
+When an old open issue is only a sketch, **rewrite it toward this shape** (or open a
+replacement and close the sketch as duplicate) before starting the feature branch. Ops
+failure issues may stay shorter; still include the failing command, the class of error, and
+what “fixed” looks like.
 
 ## Local branches (periodic cleanup)
 
