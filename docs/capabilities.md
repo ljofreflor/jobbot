@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-112 commands, 159 modules, 803 public symbols.
+112 commands, 159 modules, 807 public symbols.
 
 ## Commands
 
@@ -270,15 +270,15 @@ writing it again — the promotion rule lives in
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
 - `language.py` — Spanish or English? Deterministic, from function words only — never a guess on a tie. · `detect_language`, `posting_language`
-- `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `stem_word`, `WordIndex`, `normalize_many`
-- `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
+- `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `stem_word`, `cognate_key`, `concept_of`, `WordIndex`, `normalize_many`
+- `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `degree_fields`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `repository.py` — Job persistence repository. · `JobRepository`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
 
 ### `matching`
 
 - `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`, `requirement_evidence`
-- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `blind_matcher_warning`, `format_match_report`
+- `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `blind_matcher_warning`, `match_reasons`, `format_match_report`
 
 ### `models`
 

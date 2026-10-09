@@ -162,8 +162,12 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  - JD skills come from the posting's own structure: list items, lead-ins (`Manejo de …`,
  `Experiencia en …`) and typography that marks a tool (`SEO`, `WordPress`, `C++`).
  - Requirement evidence comes from the profile's own wording, tolerating gender and plural
- (`geofísico`/`geofísica`). Role fit compares the job title against the titles actually held —
- there is no table of role families.
+ (`geofísico`/`geofísica`). A strong match comes from **one claim** (its whole phrase, or two
+ words of the same skill, title or degree); words spread across claims are only partial. A
+ degree requirement (`Título de X`, `degree in X`) is met only by a degree in X. An acronym
+ counts when the profile writes it, even inside `XYZ-SMART` or `(PI)`. Role fit compares the job
+ title against the titles actually held — there is no table of role families, and the headline
+ is not a title held (at most partial, keeping the cap of a role never held).
  - Market feedback reads its terms from the stored JDs; a confirmed skill lands in a neutral
  group; an imported CV keeps the skill groups its own sections used.
  - A post is discovered for saying it is hiring or how to apply, not for its field. Board
@@ -175,10 +179,14 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  - The matcher also reads the posting against the profile: a declared skill, specialty or
  degree the posting names, or an achievement it echoes, is strong evidence. That side can
  only add, never lower a score. Page chrome (dates, clock times, salaries, currency codes,
- `Label: value`, shouted headings, ATS field labels) is never a requirement. When every
- scored job lands at 0%, commands print a matcher alert instead of a silent empty list.
+ `Label: value`, shouted headings, ATS field labels and the value on the line after them,
+ deliverable tables, links, handles, "Acerca de"/benefits sections, capitals in prose with no
+ lead-in) is never a requirement. When every scored job lands near 0% (under 5%), commands
+ print a matcher alert instead of a silent list. `jobs shortlist` prints 2–3 reasons per row.
  - Equivalence tables (`jobs/normalization.py`) are allowed **because an unknown term falls
- through unchanged**: they add recall for names of the same thing, never a gate.
+ through unchanged**: they add recall for names of the same thing, never a gate. That includes
+ the Spanish/English endings (`-ción`/`-tion`, `-ía`/`-y`) and the short table of words with no
+ shared root (`vigilancia`/`surveillance`).
 - **PDF CV import:** `profile import-pdf` reads the text layer only (no OCR, no models). A PDF has
  no structure, so the parser locates each role by its date (a range, a range whose months share
  one year — `julio – agosto 2026` — or a single right-aligned year) and then picks company and

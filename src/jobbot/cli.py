@@ -2786,17 +2786,21 @@ def jobs_shortlist() -> None:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
+    from jobbot.matching.scoring import match_reasons
+
     repo = JobRepository(session)
     analyzer = RuleBasedJobAnalyzer()
-    rows: list[tuple[float, str, str, str]] = []
+    rows: list[tuple[float, str, str, str, list[str]]] = []
     for job in repo.list_all():
         match = analyzer.analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
-        rows.append((match.score, job.id, job.title, job.company))
+        rows.append((match.score, job.id, job.title, job.company, match_reasons(match)))
     rows.sort(key=lambda r: r[0], reverse=True)
     console.print("[bold]TOP MATCHES[/bold]")
-    for score, jid, title, company in rows:
-        console.print(f"{score:5.1f}%  {jid}  {title}  {company}")
+    for score, jid, title, company, reasons in rows:
+        console.print(f"{score:5.1f}%  {jid}  {title}  {company}", markup=False, highlight=False)
+        for reason in reasons:
+            console.print(f"         {reason}", markup=False, highlight=False, soft_wrap=True)
     _warn_if_matcher_blind([row[0] for row in rows])
 
 

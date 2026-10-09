@@ -169,19 +169,133 @@ def stem_word(word: str) -> str:
 _COGNATE_PREFIX = 7
 _COGNATE_SHARE = 0.7
 
+# Spanish and English spell the same word with regular endings: -ción/-tion,
+# -dad/-ty, -ía/-y, -ico/-ic. Longest ending first; the root must keep four letters.
+_COGNATE_ENDINGS: tuple[tuple[str, str], ...] = (
+    ("ciones", "tion"),
+    ("tions", "tion"),
+    ("cion", "tion"),
+    ("tion", "tion"),
+    ("siones", "sion"),
+    ("sions", "sion"),
+    ("dades", "ty"),
+    ("ties", "ty"),
+    ("dad", "ty"),
+    ("icales", "ic"),
+    ("icals", "ic"),
+    ("ical", "ic"),
+    ("icas", "ic"),
+    ("icos", "ic"),
+    ("ica", "ic"),
+    ("ico", "ic"),
+    ("ias", "y"),
+    ("ies", "y"),
+    ("ia", "y"),
+    ("orios", "ory"),
+    ("orias", "ory"),
+    ("ories", "ory"),
+    ("orio", "ory"),
+    ("oria", "ory"),
+    ("istas", "ist"),
+    ("ists", "ist"),
+    ("ista", "ist"),
+    ("ivos", "ive"),
+    ("ivas", "ive"),
+    ("ives", "ive"),
+    ("ivo", "ive"),
+    ("iva", "ive"),
+)
+_COGNATE_ROOT = 4
+
+# Words that name the same thing in Spanish and English but share no root, so no
+# ending rule can pair them. Equivalence only: a word missing here falls through
+# to its own spelling, and nothing is ever gated on this list.
+_CROSS_LANGUAGE: tuple[tuple[str, ...], ...] = (
+    ("vigilancia", "surveillance", "monitoring", "monitoreo"),
+    ("brote", "brotes", "outbreak", "outbreaks"),
+    ("enfermedad", "enfermedades", "disease", "diseases"),
+    ("salud", "health"),
+    ("red", "redes", "network", "networks"),
+    ("sistema", "sistemas", "system", "systems"),
+    ("datos", "data"),
+    ("medicina", "medicine", "medico", "medica", "medical"),
+    ("vacuna", "vacunas", "vaccine", "vaccines"),
+    ("inmunizacion", "inmunizaciones", "immunization", "immunisation"),
+    ("sarampion", "measles"),
+    ("gestion", "management"),
+    ("capacitacion", "training"),
+    ("docente", "docentes", "teacher", "lecturer", "professor"),
+    ("docencia", "teaching"),
+    ("informe", "informes", "report", "reports"),
+    ("encuesta", "encuestas", "survey", "surveys"),
+    ("investigacion", "research"),
+    ("ventas", "sales"),
+    ("cliente", "clientes", "customer", "customers", "client", "clients"),
+    ("cuenta", "cuentas", "account", "accounts"),
+    ("calidad", "quality"),
+    ("seguridad", "safety"),
+    ("presupuesto", "budget"),
+    ("compras", "procurement", "purchasing"),
+    ("habilidades", "skills"),
+    ("conocimiento", "conocimientos", "knowledge"),
+    ("enfermera", "enfermero", "nurse"),
+    ("cuidado", "cuidados", "care"),
+    ("abogada", "abogado", "lawyer", "attorney"),
+    ("derecho", "law"),
+    ("ingenieria", "engineering"),
+    ("ingeniera", "ingeniero", "engineer"),
+)
+
+
+def cognate_key(word: str) -> str:
+    """'epidemiología' and 'epidemiology' share the key 'epidemiology'."""
+    folded = fold_text(word)
+    for ending, common in _COGNATE_ENDINGS:
+        if folded.endswith(ending) and len(folded) - len(ending) >= _COGNATE_ROOT:
+            return folded[: -len(ending)] + common
+    return folded
+
+
+def _build_concepts() -> dict[str, int]:
+    concepts: dict[str, int] = {}
+    for number, group in enumerate(_CROSS_LANGUAGE):
+        for word in group:
+            folded = fold_text(word)
+            concepts[folded] = number
+            concepts[stem_word(folded)] = number
+    return concepts
+
+
+_CONCEPTS = _build_concepts()
+
+
+def concept_of(word: str) -> int | None:
+    """The cross-language group a word belongs to ('surveillance' ↔ 'vigilancia'), if any."""
+    folded = fold_text(word)
+    found = _CONCEPTS.get(folded)
+    return found if found is not None else _CONCEPTS.get(stem_word(folded))
+
 
 class WordIndex:
     """The words of a text, looked up tolerant of gender, plural and cognates.
 
     'epidemiology' and 'epidemiología', 'zoonotic' and 'zoonóticas', 'consultant'
     and 'consultora' name the same thing across languages and genders. The evidence
-    is a shared root: seven letters or more, covering most of the shorter word. A
-    short word only matches itself or its stem, so 'sql' never reads as 'sqlite'.
+    is a shared root (seven letters or more, covering most of the shorter word), a
+    regular Spanish/English ending (`cognate_key`) or the small cross-language table
+    for words with no shared root ('surveillance' ↔ 'vigilancia'). A short word only
+    matches itself or its stem, so 'sql' never reads as 'sqlite'.
     """
 
     def __init__(self, words: set[str] | frozenset[str]) -> None:
         self.words = frozenset(words)
         self._stems = frozenset(stem_word(word) for word in self.words)
+        self._cognates = frozenset(
+            cognate_key(word) for word in self.words if len(word) > _COGNATE_ROOT
+        )
+        self._concepts = frozenset(
+            concept for word in self.words if (concept := concept_of(word)) is not None
+        )
         self._by_prefix: dict[str, list[str]] = {}
         for word in self.words:
             if len(word) >= _COGNATE_PREFIX:
@@ -189,6 +303,11 @@ class WordIndex:
 
     def has(self, word: str) -> bool:
         if word in self.words or stem_word(word) in self._stems:
+            return True
+        concept = concept_of(word)
+        if concept is not None and concept in self._concepts:
+            return True
+        if len(word) > _COGNATE_ROOT and cognate_key(word) in self._cognates:
             return True
         if len(word) < _COGNATE_PREFIX:
             return False
