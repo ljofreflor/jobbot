@@ -65,7 +65,8 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
-| `jobs shortlist` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. |
+| `jobs check-open [JOB_ID…] [--all] [--dry-run] [--json]` | Vuelve a consultar en línea si cada aviso guardado sigue abierto: `abierto` / `cerrado` / `desconocido`, con motivo y fecha de verificación. `--all` omite los cerrados verificados hace menos de 24 h; `--dry-run` no escribe; `--json` trae la URL completa. Solo lectura. |
+| `jobs shortlist [--include-closed]` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. Oculta las que `jobs check-open` verificó cerradas (`--include-closed` las muestra marcadas). |
 | `jobs conditions JOB_ID… [--all-prepared]` | Lee las condiciones del aviso (cerrado, residencia, idioma, excluyentes, contrato, renta, modalidad) contra tu perfil y `data/application_answers.yaml`: ✅ cumple, ⚠️ pregunta exacta, ❌ impedimento (exit 1). Offline. |
 | `jobs backfill-dates` | Data vacantes ya guardadas usando el activity id de la URL (offline). |
 | `jobs note JOB_ID TEXTO` | Adjunta una nota libre a una vacante. |
@@ -89,6 +90,26 @@ de Workday (cuándo el aviso deja el sitio) es el último recurso y se rotula as
 Los avisos vencidos o que ya no admiten postulación no se guardan. Exit: 0 si
 algún sitio respondió; 5 si el único sitio pedido cambió la forma de su JSON; 1 si
 todo falló.
+
+```bash
+jobbot jobs check-open --all --dry-run   # verifica y muestra; no toca la base
+jobbot jobs check-open J0001 J0002       # guarda estado, motivo y fecha de verificación
+jobbot jobs shortlist                    # ya sin los cerrados; «cierra pronto» si quedan ≤ 3 días
+```
+
+`jobs check-open` nunca inventa vigencia: sin una señal de la fuente, el aviso
+queda `desconocido`. Respeta `robots.txt`, se identifica, pausa 1 s por host y
+corta a los 10 s. Señales:
+
+| Fuente | `abierto` | `cerrado` | `desconocido` |
+|--------|-----------|-----------|---------------|
+| Workday (API CXS) | `canApply: true` y cierre publicado no vencido | 404, 403 `S22`, `canApply: false`, `posted: false`, o cierre publicado vencido (fecha sin hora: se espera al fin de ese día en cualquier zona) | 406 persistente (tras reintentar con otro `Accept`), 403 sin `S22`, error de red, `robots.txt` lo prohíbe |
+| Cualquier otra página (HTTP) | — (una página sin frase de cierre no prueba que siga abierta) | 404/410, frase de cierre visible («ya no acepta postulaciones», «Oferta finalizada», «This job is no longer available», «Este empleo caducó en Indeed»…) o «Closing Date» publicada y vencida | 401/403/429/5xx, sin conexión, `robots.txt` lo prohíbe, HTTP 200 sin señal |
+| LinkedIn, PDF, `mailto:` | — | — | siempre, sin hacer pedidos (LinkedIn exige sesión) |
+
+Si la fuente queda en `desconocido` pero el cierre guardado ya pasó, el aviso
+queda `cerrado` con ese motivo. Exit: 0 con cualquier mezcla de estados; 2 sin
+`JOB_ID` ni `--all` o con un ID inexistente; 1 si la base no se puede leer o escribir.
 
 ## Postulaciones
 

@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-113 commands, 163 modules, 852 public symbols.
+114 commands, 164 modules, 861 public symbols.
 
 ## Commands
 
@@ -62,13 +62,14 @@ writing it again — the promotion rule lives in
 - `jobbot init` — Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone).
 - `jobbot jobs add` — Add a job posting from a text file or stdin (manual fallback).
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
+- `jobbot jobs check-open` — Re-check online whether stored postings are still open (read-only; unknown if unsure).
 - `jobbot jobs conditions` — Review a posting's special conditions against you before applying (exit 1: dealbreaker).
 - `jobbot jobs discover` — Discover postings through a source's public API; --dry-run previews without writing.
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
 - `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
 - `jobbot jobs search` — Search Indeed and store job postings locally (small volumes).
-- `jobbot jobs shortlist` — Rank stored jobs by match score.
+- `jobbot jobs shortlist` — Rank stored jobs by match score; hides postings verified closed (jobs check-open).
 - `jobbot jobs show` — Show a stored job posting.
 - `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot (read-only audit).
 - `jobbot linkedin inspect` — Inspect LinkedIn page for selector development.
@@ -257,7 +258,7 @@ writing it again — the promotion rule lives in
 
 ### `db`
 
-- `engine.py` — SQLAlchemy engine and session helpers. · `make_engine`, `make_session_factory`
+- `engine.py` — SQLAlchemy engine and session helpers. · `make_engine`, `make_readonly_engine`, `make_session_factory`
 - `models.py` — SQLAlchemy ORM tables. · `Base`, `JobRow`, `ApplicationRow`, `ApplicationEventRow`, `ExternalProfileSnapshotRow`, `OpsFailureRow`, `OpsSymptomRow`
 
 ### `jobs`
@@ -266,6 +267,7 @@ writing it again — the promotion rule lives in
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
 - `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
+- `check_open.py` — Is a stored posting still open? Ask its source again, read-only — or say unknown. · `OpenStatus`, `OpenCheck`, `PoliteHttp`, `posting_url`, `due_for_check`, `is_verified_closed`, `verification_label`, `OpenChecker`
 - `closing.py` — When a posting stops taking applications, read from what it publishes — or nothing. · `ClosingState`, `utc_now`, `Closing`, `zone_from_text`, `parse_closing_value`, `find_closing`, `closing_state`, `describe_closing`
 - `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `visible_soup`, `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
 - `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`

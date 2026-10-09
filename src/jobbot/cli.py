@@ -2910,6 +2910,10 @@ def jobs_show(
     console.print(f"Seniority: {job.seniority or '—'}")
     console.print(f"Remote: {job.remote_type or '—'}")
     console.print(f"URL: {job.url or '—'}")
+    if job.open_status:
+        from jobbot.jobs.check_open import verification_label
+
+        console.print(f"Online: {verification_label(job)}", markup=False)
     if job.closes_on or job.closes_at:
         flag = _closing_flag(job, _closing_now())
         console.print(
@@ -3034,9 +3038,123 @@ def jobs_conditions(
         raise _QuietExit(GENERIC_FAILURE)
 
 
+_OPEN_STATUS_LABELS = {"open": "abierto", "closed": "cerrado", "unknown": "desconocido"}
+
+
+@jobs_app.command("check-open")
+def jobs_check_open(
+    job_ids: Annotated[list[str] | None, typer.Argument(help="Job IDs (J0001 …)")] = None,
+    check_all: Annotated[
+        bool,
+        typer.Option("--all", help="Every stored job, except closed ones checked < 24 h ago"),
+    ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Check and print; writes nothing to the database")
+    ] = False,
+    as_json: Annotated[
+        bool, typer.Option("--json", help="Machine-readable output with full URLs")
+    ] = False,
+) -> None:
+    """Re-check online whether stored postings are still open (read-only; unknown if unsure)."""
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from jobbot.db.engine import make_readonly_engine
+    from jobbot.jobs.check_open import OpenCheck, OpenChecker, OpenStatus, due_for_check
+
+    ids = list(dict.fromkeys(job_ids or []))
+    if not ids and not check_all:
+        err_console.print("Give one or more job IDs, or --all.")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    config = load_config()
+    if dry_run:
+        if not config.database_path.is_file():
+            console.print("No stored jobs. Nothing to check.")
+            return
+        session = make_session_factory(make_readonly_engine(config.database_path))()
+    else:
+        session, _ = _session()
+    repo = JobRepository(session)
+    now = _closing_now()
+    try:
+        if check_all:
+            stored = repo.list_all()
+            jobs = [job for job in stored if job.id in ids or due_for_check(job, now=now)]
+            skipped = len(stored) - len(jobs)
+        else:
+            jobs, skipped = [], 0
+            for job_id in ids:
+                found = repo.get(job_id)
+                if found is None:
+                    err_console.print(f"[red]Job not found: {job_id}[/red]")
+                    raise typer.Exit(VALIDATION_FAILURE)
+                jobs.append(found)
+    except SQLAlchemyError as exc:
+        err_console.print(f"[red]Cannot read the job database:[/red] {exc}")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    checker = OpenChecker(now=_closing_now)
+    results: list[OpenCheck] = []
+    for job in jobs:
+        if not as_json:
+            console.print(f"{job.id}: checking…", markup=False, highlight=False)
+        results.append(checker.check(job))
+
+    if not dry_run:
+        try:
+            for result in results:
+                repo.record_open_check(
+                    result.job_id,
+                    status=result.status.value,
+                    evidence=result.evidence,
+                    checked_at=result.checked_at,
+                    closes=result.closes,
+                )
+        except SQLAlchemyError as exc:
+            err_console.print(f"[red]Cannot write the job database:[/red] {exc}")
+            raise typer.Exit(GENERIC_FAILURE) from exc
+
+    if as_json:
+        titles = {job.id: job.title for job in jobs}
+        payload = [{**r.to_dict(), "title": titles.get(r.job_id)} for r in results]
+        console.print_json(data={"dry_run": dry_run, "skipped": skipped, "jobs": payload})
+        return
+
+    table = Table(title="Vigencia en línea" + (" (dry-run)" if dry_run else ""))
+    table.add_column("ID")
+    table.add_column("Estado")
+    table.add_column("Motivo", overflow="fold")
+    table.add_column("Aviso")
+    styles = {OpenStatus.OPEN: "green", OpenStatus.CLOSED: "red", OpenStatus.UNKNOWN: "yellow"}
+    titles = {job.id: job.title for job in jobs}
+    for result in results:
+        table.add_row(
+            result.job_id,
+            f"[{styles[result.status]}]{_OPEN_STATUS_LABELS[result.status.value]}[/]",
+            result.evidence,
+            titles.get(result.job_id, "")[:50],
+        )
+    if results:
+        console.print(table)
+    counts = {status: sum(r.status is status for r in results) for status in OpenStatus}
+    summary = ", ".join(f"{counts[s]} {_OPEN_STATUS_LABELS[s.value]}" for s in OpenStatus)
+    stamp = now.strftime("%Y-%m-%d %H:%M UTC")
+    console.print(f"{len(results)} avisos: {summary}. Verificado {stamp}.", markup=False)
+    if skipped:
+        console.print(f"{skipped} omitidos: cerrados y verificados hace menos de 24 h.")
+    console.print("Dry-run: nothing written." if dry_run else "Next: jobbot jobs shortlist")
+
+
 @jobs_app.command("shortlist")
-def jobs_shortlist() -> None:
-    """Rank stored jobs by match score."""
+def jobs_shortlist(
+    include_closed: Annotated[
+        bool,
+        typer.Option("--include-closed", help="Also list postings check-open found closed"),
+    ] = False,
+) -> None:
+    """Rank stored jobs by match score; hides postings verified closed (jobs check-open)."""
+    from jobbot.jobs.check_open import is_verified_closed, verification_label
+
     session, config = _session()
     try:
         candidate = load_profile(config.profile_path)
@@ -3048,17 +3166,27 @@ def jobs_shortlist() -> None:
     analyzer = RuleBasedJobAnalyzer()
     now = _closing_now()
     rows: list[tuple[float, str, str, str, str]] = []
+    hidden = 0
     for job in repo.list_all():
+        if is_verified_closed(job) and not include_closed:
+            hidden += 1
+            continue
         match = analyzer.analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
         flag = _closing_flag(job, now)
         if flag:
             flag = f"  [{flag}: {_closing_line(job, evidence=False)}]"
+        if is_verified_closed(job):
+            flag += f"  [{verification_label(job)}]"
         rows.append((match.score, job.id, job.title, job.company, flag))
     rows.sort(key=lambda r: r[0], reverse=True)
     console.print("[bold]TOP MATCHES[/bold]")
     for score, jid, title, company, flag in rows:
         console.print(f"{score:5.1f}%  {jid}  {title}  {company}{flag}", markup=False)
+    if hidden:
+        console.print(
+            f"{hidden} hidden: verified closed by jobs check-open (--include-closed to list them)."
+        )
     _warn_if_matcher_blind([row[0] for row in rows])
 
 

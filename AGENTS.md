@@ -220,6 +220,11 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  para ese aviso. Es preferencia del candidato, no un hecho profesional. Respuesta en blanco =
  pregunta, nunca suposición. Un excluyente que el perfil no respalda es ⚠️, no ❌: solo el
  candidato sabe si lo cumple, y nunca se agrega al perfil sin que lo confirme.
+- **Vigencia en línea ([#207](https://github.com/ljofreflor/jobbot/issues/207)):** `jobs check-open
+ [ID…|--all]` vuelve a consultar la fuente (solo lectura, `robots.txt`, pausa por host) y guarda
+ `open_status` (`open`/`closed`/`unknown`), `checked_at` y `open_evidence`. Solo Workday CXS puede
+ decir `open`; una página sin frase de cierre es `unknown`, nunca abierta. LinkedIn y PDF quedan
+ `unknown` sin pedir nada. `jobs shortlist` oculta lo verificado cerrado ([#205](https://github.com/ljofreflor/jobbot/issues/205)).
 - **Company career platforms:** `jobbot companies` mantiene conocimiento **público** empresa↔portales
  (0..N career sites por empresa: portal propio, Workday, Greenhouse de filial…). Provenance por
  observación, dedup por URL canónica (sin query/fragment), contradicción → `stale` sin sobreescribir,
@@ -561,6 +566,7 @@ uv run jobbot get URL --apply --cdp http://127.0.0.1:9224     # + open ATS (HITL
 uv run jobbot jobs match J0001
 uv run jobbot jobs conditions J0001 # ✅/⚠️/❌; exit 1 si hay impedimento
 uv run jobbot jobs conditions --all-prepared --json
+uv run jobbot jobs check-open --all --dry-run # ¿sigue abierto? open/closed/unknown (#207)
 uv run jobbot application prepare J0001
 uv run jobbot indeed login|pull|diff|sync --section headline
 uv run jobbot linkedin login|pull|diff
