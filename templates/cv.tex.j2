@@ -90,7 +90,7 @@
 \section*{Publications}
 \begin{itemize}
 {% for pub in publications %}
-  \item {% if pub.authors %}{{ pub.authors | map('latex') | join(', ') }}. {% endif %}{{ pub.title | latex }}{% if pub.journal %} --- \textit{ {{ pub.journal | latex }} }{% endif %}{% if pub.year %}, {{ pub.year }}{% endif %}{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %}. \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% endif %}
+  \item {% if pub.authors %}{{ pub.authors | map('latex') | join(', ') }}. {% endif %}{{ pub.title | latex }}{% if pub.journal %} --- \textit{ {{ pub.journal | latex }} }{% endif %}{% if pub.year %}, {{ pub.year }}{% endif %}{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %}. \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% elif pub.url %}. \href{ {{- pub.url | string | latex_url -}} }{ {{- pub.url | string | latex -}} }{% endif %}
 {% endfor %}
 \end{itemize}
 {% endif %}

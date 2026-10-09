@@ -131,3 +131,11 @@ publications:
     status: preprint
     doi: null
     authors: []
+  - id: pub-tech-note-2020
+    title: "Technical note: a reproducible retail demand baseline"
+    journal: Institutional repository
+    year: 2020
+    status: published
+    doi: null
+    url: https://example.org/repos/tech-note-retail-baseline
+    authors: []
