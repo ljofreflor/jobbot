@@ -264,10 +264,7 @@ def ensure_init_gitignore(root: Path) -> Path | None:
         return None
     body = existing.rstrip("\n")
     addition = "\n".join(missing)
-    if body:
-        text = f"{body}\n{addition}\n"
-    else:
-        text = f"{addition}\n"
+    text = f"{body}\n{addition}\n" if body else f"{addition}\n"
     path.write_text(text, encoding="utf-8")
     return path
 
