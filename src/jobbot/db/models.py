@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -36,6 +36,11 @@ class JobRow(Base):
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # ISO-8601 with its own offset: SQLite DateTime would drop the posting's zone.
+    closes_at: Mapped[str | None] = mapped_column(Text, nullable=True)
+    closes_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    closes_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ats_signals_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ApplicationRow(Base):

@@ -1,0 +1,7 @@
+Sitemap: https://paho.wd5.myworkdayjobs.com/pahocareers/siteMap.xml
+Sitemap: https://paho.wd5.myworkdayjobs.com/pahocareersrestricted/siteMap.xml
+
+User-agent: *
+Allow: /pahocareers/
+Allow: /pahocareersrestricted/
+Disallow: /refreshFacet/

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -101,6 +103,46 @@ class JobRepository:
         self._session.commit()
 
 
+class StoredJobIndex:
+    """Which jobs are already stored, read without touching the database file.
+
+    A preview (`--dry-run`) must not create the database or migrate it, so this
+    opens SQLite read-only and asks for three columns every version has.
+    """
+
+    def __init__(self, rows: list[tuple[str, str, str | None, str | None]] | None = None) -> None:
+        self._by_source: dict[tuple[str, str], str] = {}
+        self._by_url: dict[str, str] = {}
+        for job_id, source, source_job_id, url in rows or []:
+            if source_job_id:
+                self._by_source.setdefault((source, source_job_id), job_id)
+            if url:
+                self._by_url.setdefault(url, job_id)
+
+    @classmethod
+    def read_only(cls, db_path: Path) -> StoredJobIndex:
+        if not db_path.is_file():
+            return cls()
+        uri = f"{db_path.resolve().as_uri()}?mode=ro"
+        try:
+            with closing(sqlite3.connect(uri, uri=True)) as conn:
+                rows = conn.execute("SELECT id, source, source_job_id, url FROM jobs").fetchall()
+        except sqlite3.Error:
+            return cls()
+        return cls([(str(r[0]), str(r[1]), r[2], r[3]) for r in rows])
+
+    @classmethod
+    def from_repository(cls, repo: JobRepository) -> StoredJobIndex:
+        return cls([(j.id, j.source, j.source_job_id, j.url) for j in repo.list_all()])
+
+    def lookup(self, job: JobPosting) -> str | None:
+        if job.source_job_id:
+            found = self._by_source.get((job.source, job.source_job_id))
+            if found:
+                return found
+        return self._by_url.get(job.url) if job.url else None
+
+
 def write_job_json(job: JobPosting, output_dir: Path) -> Path:
     job_dir = output_dir / "jobs" / job.id
     job_dir.mkdir(parents=True, exist_ok=True)
@@ -133,7 +175,20 @@ def _to_row_fields(job: JobPosting) -> dict[str, object]:
         else job.discovered_at,
         "note": job.note,
         "match_score": job.match_score,
+        "closes_at": job.closes_at.isoformat() if job.closes_at else None,
+        "closes_on": job.closes_on,
+        "closes_text": job.closes_text,
+        "ats_signals_json": json.dumps(job.ats_signals) if job.ats_signals else None,
     }
+
+
+def _closes_at(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 def _as_utc(moment: datetime | None) -> datetime | None:
@@ -166,4 +221,8 @@ def _from_row(row: JobRow) -> JobPosting:
         discovered_at=row.discovered_at,
         note=row.note,
         match_score=row.match_score,
+        closes_at=_closes_at(getattr(row, "closes_at", None)),
+        closes_on=getattr(row, "closes_on", None),
+        closes_text=getattr(row, "closes_text", None),
+        ats_signals=json.loads(getattr(row, "ats_signals_json", None) or "{}"),
     )

@@ -14,6 +14,10 @@ _JOB_EXTRA_COLUMNS: dict[str, str] = {
     "ats_url": "TEXT",
     "ats_kind": "VARCHAR(64)",
     "posted_at": "DATETIME",
+    "closes_at": "TEXT",
+    "closes_on": "DATE",
+    "closes_text": "TEXT",
+    "ats_signals_json": "TEXT",
 }
 
 

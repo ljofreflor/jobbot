@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -29,6 +29,13 @@ class JobPosting(BaseModel):
     discovered_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     note: str | None = None
     match_score: float | None = None
+    # Closing as the posting publishes it: `closes_at` only when both the time and
+    # an unambiguous zone are published (aware); otherwise just the date.
+    closes_at: datetime | None = None
+    closes_on: date | None = None
+    closes_text: str | None = None
+    # Flags an ATS states about the apply flow (e.g. can_apply, resume_parsing).
+    ats_signals: dict[str, bool] = Field(default_factory=dict)
 
     def validate_url(self) -> None:
         if self.url:
