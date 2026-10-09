@@ -33,7 +33,47 @@ Actualizar el ejecutable más adelante:
 ```bash
 jobbot update                    # tipicamente main
 JOBBOT_REF=v0.1.0 jobbot update  # o un tag / SHA / rama
+jobbot update --check            # ¿hay un commit nuevo en main? (no instala; exit 10 si lo hay)
 ```
+
+### Actualización diaria automática
+
+Para no depender de acordarte, agenda `jobbot update` una vez al día con el agendador de tu
+usuario ([#252](https://github.com/ljofreflor/jobbot/issues/252)):
+
+```bash
+jobbot update && jobbot update --schedule daily   # instala lo último y agenda el job
+jobbot update --schedule status                   # instalado/cargado, hora, binario, log
+jobbot update --schedule off                      # lo quita
+```
+
+| | macOS | Linux |
+|---|---|---|
+| Agendador | LaunchAgent `~/Library/LaunchAgents/com.ljofreflor.jobbot.update.plist` | Una línea en tu `crontab` marcada con `# jobbot:auto-update` |
+| Hora | 04:30 local; si el equipo dormía, corre al despertar | 04:30 local; cron no recupera una ejecución perdida |
+| Log | `~/Library/Logs/jobbot/update.log` | `$XDG_STATE_HOME/jobbot/update.log` (`~/.local/state/…`) |
+
+- El job ejecuta la ruta absoluta de tu `jobbot` (`jobbot update --scheduled`) con el `PATH`
+  donde estaban `uv` y `jobbot` al agendarlo. Instalar el job no dispara una actualización.
+- Primero compara tu commit con `main` vía `git ls-remote`; si ya estás al día, no reinstala.
+- Repetir `--schedule daily` deja un solo job; tus otras entradas del crontab no se tocan.
+- Elegimos crontab en Linux porque un timer de `systemd --user` no corre sin sesión abierta
+  (salvo `loginctl enable-linger`) y no existe en WSL ni en contenedores sin systemd.
+- Dentro de Docker no hace nada: actualiza la imagen en el host.
+- En un checkout de desarrollo (`uv run jobbot`) se niega a agendar: usa `git pull`.
+
+**Desactivarla sin quitar el job:** `JOBBOT_AUTO_UPDATE=0` (o `JOBBOT_NO_AUTO_UPDATE=1`) o, en
+`~/.config/jobbot/config.toml`:
+
+```toml
+[update]
+auto = false
+```
+
+launchd y cron **no leen** tu `~/.zshrc`/`~/.bashrc`: una variable exportada ahí no llega al
+job. Usa el archivo de configuración, `launchctl setenv JOBBOT_AUTO_UPDATE 0` (macOS), una línea
+`JOBBOT_AUTO_UPDATE=0` al inicio del crontab (Linux) o simplemente `--schedule off`. El opt-out
+solo afecta al job agendado; `jobbot update` a mano sigue actualizando.
 
 ## Opción B — Docker (imagen lista)
 
