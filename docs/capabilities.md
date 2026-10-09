@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-112 commands, 159 modules, 803 public symbols.
+112 commands, 160 modules, 815 public symbols.
 
 ## Commands
 
@@ -43,7 +43,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
-- `jobbot empleospublicos search` — List Empleos Públicos concursos from a saved search dump and store leads.
+- `jobbot empleospublicos search` — Search open Empleos Públicos concursos (Servicio Civil open data) and store leads.
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
 - `jobbot getonboard open-profile` — Open Get on Board 'Editar perfil' (HITL; paste permanent profile).
@@ -163,6 +163,7 @@ writing it again — the promotion rule lives in
 ### `adapters/empleospublicos`
 
 - `jobs.py` — Empleos Públicos (Chile) — public concurso board. · `EmpleosPublicosParseError`, `canonical_ficha_url`, `job_from_ficha_html`, `jobs_from_search_payload`, `load_search_fixture`, `EmpleosPublicosJobSource`
+- `open_data.py` — Empleos Públicos convocatorias from the Servicio Civil open-data file. · `OpenDataError`, `Convocatoria`, `OpenDataFetcher`, `download_open_data`, `parse_open_data_csv`, `search_convocatorias`, `job_from_convocatoria`, `data_as_of`, `staleness_warning`, `OpenDataCache`, `format_salary`
 
 ### `adapters/getonboard`
 
@@ -264,7 +265,7 @@ writing it again — the promotion rule lives in
 - `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`
 - `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
-- `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `GetFromUrlResult`, `ingest_hard_link`
+- `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `PortalDisallowedError`, `GetFromUrlResult`, `ingest_hard_link`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `countries_in_text`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`, `next_symptom_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`

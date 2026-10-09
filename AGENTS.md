@@ -205,6 +205,14 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  esa URL es la que se guarda y alimenta el registro de empresas. Estado cerrado, fecha límite,
  idiomas con su fluidez, países de residencia y si la compensación es visible quedan escritos en
  el texto guardado para que `jobs conditions` los lea offline.
+- **Empleos Públicos ([#191](https://github.com/ljofreflor/jobbot/issues/191)):** el portal
+ responde 403 a todo cliente que se identifica (incluso su `robots.txt`); no se suplanta un
+ navegador. `empleospublicos search` lee el CSV de datos abiertos que publica el mismo Servicio
+ Civil (`reporte.serviciocivil.cl`, robots lo permite), una descarga por corrida, y guarda solo
+ concursos abiertos con `Fecha límite:` y `Renta:` en el texto (renta `1`/`0` = no informada,
+ nunca $1). `--dry-run` no escribe nada, y un archivo con dos días o más sin actualizarse se
+ avisa. Los conteos de postulantes y seleccionados del archivo son de otras personas: nunca
+ llegan a un `JobPosting`.
 - **Condiciones del aviso ([#166](https://github.com/ljofreflor/jobbot/issues/166)):** antes de
  postular, `jobs conditions Jxxxx` lee del aviso guardado (offline, determinista, sin LLM) lo que
  condiciona la postulación: cerrado o fecha límite vencida, residencia o permiso de trabajo,
@@ -357,7 +365,7 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
 - **PII:** never commit `data/profile.yaml`, `data/portals.yaml`, `data/companies.yaml`, SQLite, `browser-data/`, `sandboxes/`, or `output/`. Track only `*.example.yaml` templates.
 - **PII guard:** `make hooks` enables `.githooks/pre-commit` (`jobbot.ops.pii_guard`) — blocked paths + real-looking email/phone/RUT/home-path detection. Fixtures and examples allowlisted. `pii_guard.redact()` is the one place that defines what counts as contact data, reused wherever text leaves your files (learned form labels, LLM prompts). The hook only runs where it was installed, so the suite also scans every tracked file (`pii_guard.scan_tracked()`, `python -m jobbot.ops.pii_guard --all`): a commit that skipped the hook still fails CI.
 - **Which commits run the suite:** `jobbot.ops.precommit.tests_needed()` decides, and it is unit-tested instead of living as a shell regex. Policy counts as behaviour: editing **this file** runs the tests, because for an agent working from a clone this file is the whole policy.
-- **Polite web reading:** the one-shot and `recruiters discover` obey `robots.txt` via `RobotsPolicy`, cached per host. Being told not to read a page is reported as *omitted*; being unable to read it (403, 429, 5xx, dropped connection) is reported as *refused*. Neither ever becomes "there is nothing there".
+- **Polite web reading:** the one-shot and `recruiters discover` obey `robots.txt` via `RobotsPolicy`, cached per host. Being told not to read a page is reported as *omitted*; being unable to read it (403, 429, 5xx, dropped connection) is reported as *refused*. Neither ever becomes "there is nothing there". A board whose `robots.txt` says `Disallow: /` to every agent (Alta Dirección Pública, `adp.serviciocivil.cl`, #191) is in `ROBOTS_DISALLOWED_KINDS`: recognised so its links are not taken for an employer's site, never fetched (`get` refuses quietly, posting-status checks skip it); the human opens the ficha and copies its text into `jobs add --file --url` (no ADP ficha parser yet, #228).
 - **Private LaTeX CV:** tracked dummy is `latex/cv.tex.demo` only; real `.tex`/`latex/cv.tex` stay gitignored. Prefer `paths.legacy_cv` outside the repo or a local ignored copy. See `latex/README.md`.
 - LinkedIn: read-only audit by default. **Exception:** `linkedin sync --section publications`
   writes Publications only (dry-run default; `--apply` + per-item confirmation unless `--yes`).
@@ -586,6 +594,7 @@ uv run jobbot getonboard upload-cv --apply --cdp http://127.0.0.1:9224  # sube +
 uv run jobbot getonboard sync --apply
 uv run jobbot getonboard search                 # queries del perfil (profile queries)
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
+uv run jobbot empleospublicos search "jefe jurídico" --region Biobío  # datos abiertos Servicio Civil
 uv run jobbot ops failures
 uv run jobbot ops failure show F0001
 uv run jobbot ops failure triage F0001 --status fixed

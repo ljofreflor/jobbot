@@ -30,6 +30,7 @@ class AtsKind(StrEnum):
     JOBGETHER = "jobgether"
     VACANTES = "vacantes"
     EMPLEOS_PUBLICOS = "empleos_publicos"
+    ALTA_DIRECCION_PUBLICA = "alta_direccion_publica"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -49,8 +50,14 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.JOBGETHER,
         AtsKind.VACANTES,
         AtsKind.EMPLEOS_PUBLICOS,
+        AtsKind.ALTA_DIRECCION_PUBLICA,
     }
 )
+
+# Boards whose robots.txt forbids automated reading (``Disallow: /``). They are still
+# recognised, so a link is not mistaken for an employer's own site, but JobBot never
+# fetches them: the human opens the page and may hand over the saved HTML.
+ROBOTS_DISALLOWED_KINDS: frozenset[AtsKind] = frozenset({AtsKind.ALTA_DIRECCION_PUBLICA})
 
 # Aggregators that republish other employers' openings from their own ATS tenant
 # (jobs.lever.co/<tenant>): the vendor is real, the tenant is still a board.
@@ -92,6 +99,9 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("jobgether.com", AtsKind.JOBGETHER),
     ("vacantes.com", AtsKind.VACANTES),
     ("empleospublicos.cl", AtsKind.EMPLEOS_PUBLICOS),
+    # Servicio Civil's ADP concursos (and its mirror); adp.cl is an unrelated payroll firm.
+    ("adp.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
+    ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]

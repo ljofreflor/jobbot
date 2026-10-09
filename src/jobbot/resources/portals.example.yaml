@@ -41,5 +41,18 @@ portals:
     ats_kind: empleos_publicos
     registered: false
     last_seen: null
-    notes: Empleos Públicos Chile (concursos; fixture-first search/detail)
+    notes: >-
+      Empleos Públicos Chile (concursos). Búsqueda: datos abiertos del Servicio Civil
+      (reporte.serviciocivil.cl). Ficha: --fixture; el portal responde 403 a clientes
+      que se identifican y JobBot no se disfraza de navegador.
     example_url: https://www.empleospublicos.cl/pub/convocatorias/avisotrabajoficha.aspx?i=990001
+  - domain: adp.serviciocivil.cl
+    ats_kind: alta_direccion_publica
+    registered: false
+    last_seen: null
+    notes: >-
+      Alta Dirección Pública (Servicio Civil; concursos de Nivel I/II con renta y cierre
+      en la ficha). robots.txt (2026-10-05) dice Disallow: / para todo agente, también
+      el espejo antares.serviciocivil.cl: JobBot lo reconoce pero nunca lo lee. HITL:
+      abrir la ficha en el navegador y pasar el HTML con --fixture. No confundir con adp.cl.
+    example_url: https://adp.serviciocivil.cl/concursos-spl/opencms/convocatoria/ADP-29895
