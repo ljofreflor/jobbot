@@ -104,11 +104,18 @@ corta a los 10 s. Señales:
 | Fuente | `abierto` | `cerrado` | `desconocido` |
 |--------|-----------|-----------|---------------|
 | Workday (API CXS) | `canApply: true` y cierre publicado no vencido | 404, 403 `S22`, `canApply: false`, `posted: false`, o cierre publicado vencido (fecha sin hora: se espera al fin de ese día en cualquier zona) | 406 persistente (tras reintentar con otro `Accept`), 403 sin `S22`, error de red, `robots.txt` lo prohíbe |
+| Trabajando (`GET /api/ofertas/{id}`) | `estadoOferta: PUBLICADA` y `fechaExpiracionFormatoIngles` no vencida | otro `estadoOferta` (p. ej. `DESACTIVADA`), expiración vencida, 404/410 | 5xx (un id inexistente responde 500), JSON sin esos campos, red |
+| Chiletrabajos (página del aviso) | fila «Expira» con fecha no vencida | «Este anuncio ha expirado o ha sido desactivado…», fila «Expira» vencida, 404/410 | lo mismo que cualquier otra página |
 | Cualquier otra página (HTTP) | — (una página sin frase de cierre no prueba que siga abierta) | 404/410, frase de cierre visible («ya no acepta postulaciones», «Oferta finalizada», «This job is no longer available», «Este empleo caducó en Indeed»…) o «Closing Date» publicada y vencida | 401/403/429/5xx, sin conexión, `robots.txt` lo prohíbe, HTTP 200 sin señal |
 | LinkedIn, PDF, `mailto:` | — | — | siempre, sin hacer pedidos (LinkedIn exige sesión) |
 
 Si la fuente queda en `desconocido` pero el cierre guardado ya pasó, el aviso
-queda `cerrado` con ese motivo. Exit: 0 con cualquier mezcla de estados; 2 sin
+queda `cerrado` con ese motivo. Las URLs con tildes o eñes se envían codificadas
+(host IDNA, path y query con percent-encoding), también al leer `robots.txt`; un
+error al verificar un aviso lo deja `desconocido` con el error como motivo y
+`--all` sigue con el resto. En `--json`, el motivo va en `reason`.
+Empleos Públicos responde 403 a pedidos automatizados (incluso a su `robots.txt`),
+así que queda `desconocido`. Exit: 0 con cualquier mezcla de estados; 2 sin
 `JOB_ID` ni `--all` o con un ID inexistente; 1 si la base no se puede leer o escribir.
 
 ## Postulaciones

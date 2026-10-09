@@ -4,20 +4,27 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
 
+from jobbot.adapters.workday.cxs import HttpResponse
 from jobbot.jobs.check_open import (
     OpenChecker,
     OpenStatus,
     PoliteHttp,
     due_for_check,
+    request_url,
     verification_label,
 )
+from jobbot.jobs.open_signals import read_chiletrabajos, read_trabajando, trabajando_offer_id
 from jobbot.models.job import JobPosting
 from tests.fixtures.check_open_http import (
+    CHILETRABAJOS_URL,
     PAGE_URL,
+    TRABAJANDO_API_URL,
+    TRABAJANDO_URL,
     WORKDAY_API,
     WORKDAY_HOST,
     WORKDAY_URL,
@@ -265,6 +272,172 @@ def test_two_pages_on_one_host_wait_their_turn() -> None:
 
     assert pauses and all(p == pytest.approx(1.0) for p in pauses)
     assert all("jobbot" in headers["User-Agent"] for _, headers in web.calls)
+
+
+# --- URLs urllib cannot send, and errors that must not stop a run ----------------
+
+
+class AsciiWire(FakeWeb):
+    """Like ``http.client``: a non-ASCII request line raises ``UnicodeEncodeError``."""
+
+    def __call__(self, method: str, url: str, **kwargs: Any) -> HttpResponse:
+        url.encode("ascii")
+        return super().__call__(method, url, **kwargs)
+
+
+ACCENTED = "https://careers.acme.test/en-us/job/593485/readvertised-consultoría-actualización"
+ACCENTED_WIRE = (
+    "https://careers.acme.test/en-us/job/593485/readvertised-consultor%C3%ADa-actualizaci%C3%B3n"
+)
+
+
+def test_non_ascii_path_is_percent_encoded_before_the_request() -> None:
+    web = AsciiWire().route(ACCENTED_WIRE, 404)
+    http = PoliteHttp(runner=web, sleep=lambda _s: None)
+
+    result = OpenChecker(http=http, now=lambda: NOW).check(_job(ACCENTED))
+
+    assert (result.status, result.evidence) == (OpenStatus.CLOSED, "HTTP 404")
+    assert result.url == ACCENTED
+    assert web.urls() == [ACCENTED_WIRE]
+
+
+def test_non_ascii_host_is_sent_as_idna_also_for_robots() -> None:
+    web = AsciiWire()
+
+    got, _ = _check(web, _job("https://empleos.ñandú.test/aviso/1?cargo=técnico#postular"))
+
+    assert got is OpenStatus.UNKNOWN
+    sent = [url for url, _ in web.calls]
+    assert sent[0] == "https://empleos.xn--and-6ma2c.test/robots.txt"
+    assert sent[1] == "https://empleos.xn--and-6ma2c.test/aviso/1?cargo=t%C3%A9cnico"
+
+
+def test_already_encoded_url_is_not_encoded_twice() -> None:
+    assert request_url(ACCENTED_WIRE) == ACCENTED_WIRE
+
+
+def test_invalid_url_is_unknown_without_requests() -> None:
+    web = FakeWeb()
+
+    got, why = _check(web, _job("http://[::1"))
+
+    assert got is OpenStatus.UNKNOWN and why.startswith("URL inválida")
+    assert web.calls == []
+
+
+def test_an_error_while_checking_is_unknown_with_the_error() -> None:
+    def broken(*_args: object, **_kwargs: object) -> HttpResponse:
+        raise RuntimeError("socket exploded")
+
+    http = PoliteHttp(runner=broken, sleep=lambda _s: None)
+
+    result = OpenChecker(http=http, now=lambda: NOW).check(_job())
+
+    assert result.status is OpenStatus.UNKNOWN
+    assert result.evidence == "error al verificar: RuntimeError: socket exploded"
+    assert result.url == PAGE_URL
+
+
+# --- Trabajando (public offer API) -----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("status", "body", "now", "expected", "evidence"),
+    [
+        (200, "trabajando_publicada.json", NOW, OpenStatus.OPEN, "PUBLICADA, expira 2026-11-07"),
+        (
+            200,
+            "trabajando_publicada.json",
+            datetime(2026, 11, 9, 12, 0, tzinfo=UTC),
+            OpenStatus.CLOSED,
+            "PUBLICADA, expiró 2026-11-07",
+        ),
+        (200, "trabajando_desactivada.json", NOW, OpenStatus.CLOSED, "estadoOferta: DESACTIVADA"),
+        (404, None, NOW, OpenStatus.CLOSED, "HTTP 404"),
+        (500, None, NOW, OpenStatus.UNKNOWN, "Trabajando: HTTP 500"),
+        (200, "<html>no</html>", NOW, OpenStatus.UNKNOWN, "no es JSON"),
+    ],
+)
+def test_trabajando_reads_the_offer_api(
+    status: int, body: str | None, now: datetime, expected: OpenStatus, evidence: str
+) -> None:
+    text = page(body) if body and body.endswith(".json") else (body or "")
+    web = FakeWeb().route(TRABAJANDO_API_URL, status, text)
+
+    got, why = _check(web, _job(TRABAJANDO_URL), now=now)
+
+    assert got is expected
+    assert evidence in why
+    assert web.urls() == [TRABAJANDO_API_URL]
+
+
+def test_trabajando_open_offer_keeps_its_expiry_as_closing() -> None:
+    web = FakeWeb().route(TRABAJANDO_API_URL, 200, page("trabajando_publicada.json"))
+    http = PoliteHttp(runner=web, sleep=lambda _s: None)
+
+    result = OpenChecker(http=http, now=lambda: NOW).check(_job(TRABAJANDO_URL))
+
+    assert result.method == "trabajando"
+    assert result.closes_on == date(2026, 11, 7)
+    assert result.url == TRABAJANDO_URL
+
+
+@pytest.mark.parametrize(
+    ("payload", "evidence"),
+    [
+        ([], "sin forma de oferta"),
+        ({"idOferta": 1}, "no informa estadoOferta"),
+        ({"estadoOferta": "PUBLICADA"}, "sin fecha de expiración"),
+    ],
+)
+def test_trabajando_payload_without_the_fields_is_unknown(payload: object, evidence: str) -> None:
+    signal = read_trabajando(payload, now=NOW)
+
+    assert signal.status is OpenStatus.UNKNOWN and evidence in signal.evidence
+
+
+def test_trabajando_offer_id_only_for_its_posting_paths() -> None:
+    assert trabajando_offer_id(TRABAJANDO_URL) == "6135043"
+    assert trabajando_offer_id("https://www.trabajando.cl/trabajo-empleo") is None
+    assert trabajando_offer_id("https://www.otro.test/trabajo/123-x") is None
+
+
+# --- Chiletrabajos (detail page) -------------------------------------------------
+
+
+def test_chiletrabajos_expira_row_in_the_future_is_open() -> None:
+    web = FakeWeb().route(CHILETRABAJOS_URL, 200, page("chiletrabajos_open.html"))
+    http = PoliteHttp(runner=web, sleep=lambda _s: None)
+
+    result = OpenChecker(http=http, now=lambda: NOW).check(_job(CHILETRABAJOS_URL))
+
+    assert (result.status, result.evidence) == (OpenStatus.OPEN, "Expira: 2026-12-23")
+    assert result.closes_on == date(2026, 12, 23)
+
+
+def test_chiletrabajos_expira_row_in_the_past_is_closed() -> None:
+    web = FakeWeb().route(CHILETRABAJOS_URL, 200, page("chiletrabajos_open.html"))
+
+    got, why = _check(web, _job(CHILETRABAJOS_URL), now=datetime(2027, 1, 2, tzinfo=UTC))
+
+    assert got is OpenStatus.CLOSED and why == "Expira: 2026-12-23 (vencido)"
+
+
+def test_chiletrabajos_expired_banner_is_closed() -> None:
+    web = FakeWeb().route(CHILETRABAJOS_URL, 200, page("chiletrabajos_expired.html"))
+
+    got, why = _check(web, _job(CHILETRABAJOS_URL))
+
+    assert got is OpenStatus.CLOSED and "este anuncio ha expirado" in why
+
+
+def test_chiletrabajos_without_a_readable_expira_row_says_nothing() -> None:
+    assert (
+        read_chiletrabajos("<table><tr><td>Expira</td><td>pronto</td></tr></table>", now=NOW)
+        is None
+    )
+    assert read_chiletrabajos("<p>sin tabla</p>", now=NOW) is None
 
 
 # --- Bookkeeping -----------------------------------------------------------------

@@ -16,12 +16,12 @@ up quickly. Sites behind a login (LinkedIn) are not read at all.
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
-from enum import StrEnum
 from typing import Any
 from urllib.parse import urlparse
 
@@ -38,24 +38,34 @@ from jobbot.adapters.workday.cxs import (
     parse_workday_url,
 )
 from jobbot.companies.oneshot import FetchResult, RobotsPolicy, RobotsVerdict
+from jobbot.companies.urls import request_url
 from jobbot.jobs import closing as closing_clock
 from jobbot.jobs.closing import ClosingState, closing_state, find_closing
 from jobbot.jobs.closure import closure_evidence, visible_soup
+from jobbot.jobs.open_signals import (
+    TRABAJANDO_API,
+    OpenStatus,
+    Signal,
+    is_chiletrabajos,
+    read_chiletrabajos,
+    read_trabajando,
+    trabajando_offer_id,
+)
 from jobbot.models.job import JobPosting
 
 USER_AGENT = "jobbot/0.1 (local; posting status check; +https://github.com/ljofreflor/jobbot)"
 RECHECK_AFTER = timedelta(hours=24)
 _HTML_HEADERS = {"Accept": "text/html,application/xhtml+xml"}
+_JSON_HEADERS = {"Accept": "application/json"}
 _GONE = frozenset({404, 410})
 # Hosts whose postings only show to a signed-in member; no CDP reader exists for them.
 _LOGIN_HOSTS = ("linkedin.com", "lnkd.in")
 _PARENTHESIS = re.compile(r"\(([^()]*)\)\s*$")
 
 
-class OpenStatus(StrEnum):
-    OPEN = "open"
-    CLOSED = "closed"
-    UNKNOWN = "unknown"
+__all__ = ["OpenStatus", "request_url"]
+
+Closes = tuple[date | None, datetime | None, str | None]
 
 
 @dataclass(frozen=True)
@@ -71,7 +81,7 @@ class OpenCheck:
     closes_text: str | None = None
 
     @property
-    def closes(self) -> tuple[date | None, datetime | None, str | None] | None:
+    def closes(self) -> Closes | None:
         """The closing the source published now, when it published one."""
         if self.closes_on is None:
             return None
@@ -82,6 +92,7 @@ class OpenCheck:
             "job_id": self.job_id,
             "url": self.url,
             "status": self.status.value,
+            "reason": self.evidence,
             "evidence": self.evidence,
             "checked_at": self.checked_at.isoformat(),
             "method": self.method,
@@ -103,6 +114,7 @@ class PoliteHttp:
     _last: dict[str, float] = field(default_factory=dict, repr=False)
 
     def get(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponse:
+        url = request_url(url)
         host = urlparse(url).netloc
         last = self._last.get(host)
         if last is not None:
@@ -165,17 +177,65 @@ class OpenChecker:
     _robots: RobotsPolicy | None = field(default=None, repr=False)
 
     def check(self, job: JobPosting) -> OpenCheck:
+        """Never raises: a posting that cannot be checked is ``unknown`` with the error."""
         moment = (self.now or closing_clock.utc_now)()
-        url = posting_url(job)
-        if url is None:
-            result = _result(job, None, OpenStatus.UNKNOWN, "sin URL para verificar", moment)
-        elif (ref := parse_workday_url(url)) is not None:
-            result = self._workday(job, ref, moment)
-        else:
-            result = self._http(job, url, moment)
+        stored = posting_url(job)
+        try:
+            result = self._classify(job, stored, moment)
+        except Exception as exc:  # noqa: BLE001 — one posting must not stop `--all`
+            evidence = f"error al verificar: {type(exc).__name__}: {exc}"
+            result = _result(job, stored, OpenStatus.UNKNOWN, evidence, moment)
+        result = replace(result, url=stored)
         if result.status is OpenStatus.UNKNOWN:
             return _stored_closing_or(result, job, moment)
         return result
+
+    def _classify(self, job: JobPosting, stored: str | None, moment: datetime) -> OpenCheck:
+        if stored is None:
+            return _result(job, None, OpenStatus.UNKNOWN, "sin URL para verificar", moment)
+        try:
+            web = urlparse(stored).scheme in {"http", "https"}
+            url = request_url(stored) if web else ""
+        except ValueError as exc:
+            return _result(job, stored, OpenStatus.UNKNOWN, f"URL inválida: {exc}", moment)
+        if not web:
+            evidence = "no es una página web (sin verificación)"
+            return _result(job, stored, OpenStatus.UNKNOWN, evidence, moment)
+        if (ref := parse_workday_url(url)) is not None:
+            return self._workday(job, ref, moment)
+        if (offer := trabajando_offer_id(url)) is not None:
+            return self._trabajando(job, offer, moment)
+        return self._http(job, url, moment)
+
+    def _readable(self, job: JobPosting, url: str, moment: datetime) -> OpenCheck | None:
+        """None when robots.txt lets us read ``url``; otherwise the ``unknown`` it causes."""
+        if self._robots is None:
+            self._robots = RobotsPolicy(fetcher=self.http, user_agent=USER_AGENT)
+        verdict = self._robots.verdict(url)
+        if verdict is RobotsVerdict.DISALLOWED:
+            evidence = "robots.txt no permite leer la página"
+            return _result(job, url, OpenStatus.UNKNOWN, evidence, moment)
+        if verdict is RobotsVerdict.HOST_REFUSED:
+            evidence = "el sitio rechazó leer robots.txt"
+            return _result(job, url, OpenStatus.UNKNOWN, evidence, moment)
+        return None
+
+    def _trabajando(self, job: JobPosting, offer: str, moment: datetime) -> OpenCheck:
+        api = TRABAJANDO_API.format(offer_id=offer)
+        if (blocked := self._readable(job, api, moment)) is not None:
+            return blocked
+        resp = self.http.get(api, _JSON_HEADERS)
+        if resp.status in _GONE:
+            return _result(job, api, OpenStatus.CLOSED, f"HTTP {resp.status}", moment, "trabajando")
+        if resp.status != 200:
+            evidence = f"Trabajando: HTTP {resp.status}" if resp.status else "sin conexión"
+            return _result(job, api, OpenStatus.UNKNOWN, evidence, moment, "trabajando")
+        try:
+            payload = json.loads(resp.text)
+        except ValueError:
+            evidence = "Trabajando: la respuesta no es JSON"
+            return _result(job, api, OpenStatus.UNKNOWN, evidence, moment, "trabajando")
+        return _from_signal(job, api, read_trabajando(payload, now=moment), moment, "trabajando")
 
     def _workday(self, job: JobPosting, ref: WorkdayRef, moment: datetime) -> OpenCheck:
         url = ref.url
@@ -195,37 +255,31 @@ class OpenChecker:
             detail = job_from_detail(ref, payload)
         except WorkdayPostingClosed:
             return _result(job, url, OpenStatus.CLOSED, "canApply: false", moment, "workday")
+        closes = (detail.closes_on, detail.closes_at, detail.closes_text)
         if info.get("posted") is False:
             evidence = "posted: false"
-            return _result(job, url, OpenStatus.CLOSED, evidence, moment, "workday", detail)
+            return _result(job, url, OpenStatus.CLOSED, evidence, moment, "workday", closes)
         state = closing_state(detail.closes_at, detail.closes_on, now=moment)
         if state is ClosingState.EXPIRED:
             evidence = f"cierre vencido: {detail.closes_text or detail.closes_on}"
-            return _result(job, url, OpenStatus.CLOSED, evidence, moment, "workday", detail)
+            return _result(job, url, OpenStatus.CLOSED, evidence, moment, "workday", closes)
         if info.get("canApply") is True:
             evidence = "canApply: true" + (", posted: true" if info.get("posted") else "")
-            return _result(job, url, OpenStatus.OPEN, evidence, moment, "workday", detail)
+            return _result(job, url, OpenStatus.OPEN, evidence, moment, "workday", closes)
         evidence = "CXS no informa canApply"
-        return _result(job, url, OpenStatus.UNKNOWN, evidence, moment, "workday", detail)
+        return _result(job, url, OpenStatus.UNKNOWN, evidence, moment, "workday", closes)
 
     def _http(self, job: JobPosting, url: str, moment: datetime) -> OpenCheck:
         parsed = urlparse(url)
         host = (parsed.hostname or "").casefold()
         unknown = OpenStatus.UNKNOWN
-        if parsed.scheme not in {"http", "https"} or not host:
-            return _result(job, url, unknown, "no es una página web (sin verificación)", moment)
         if any(host == h or host.endswith("." + h) for h in _LOGIN_HOSTS):
             evidence = "LinkedIn exige sesión; check-open no lee LinkedIn"
             return _result(job, url, unknown, evidence, moment)
         if parsed.path.casefold().endswith(".pdf"):
             return _result(job, url, unknown, "PDF: sin señal de vigencia en línea", moment)
-        if self._robots is None:
-            self._robots = RobotsPolicy(fetcher=self.http, user_agent=USER_AGENT)
-        verdict = self._robots.verdict(url)
-        if verdict is RobotsVerdict.DISALLOWED:
-            return _result(job, url, unknown, "robots.txt no permite leer la página", moment)
-        if verdict is RobotsVerdict.HOST_REFUSED:
-            return _result(job, url, unknown, "el sitio rechazó leer robots.txt", moment)
+        if (blocked := self._readable(job, url, moment)) is not None:
+            return blocked
         resp = self.http.get(url, _HTML_HEADERS)
         if resp.status in _GONE:
             return _result(job, url, OpenStatus.CLOSED, f"HTTP {resp.status}", moment, "http")
@@ -237,6 +291,8 @@ class OpenChecker:
         phrase = closure_evidence(resp.text)
         if phrase:
             return _result(job, url, OpenStatus.CLOSED, f"«{phrase}»", moment, "http")
+        if is_chiletrabajos(url) and (signal := read_chiletrabajos(resp.text, now=moment)):
+            return _from_signal(job, url, signal, moment, "chiletrabajos")
         published = find_closing(visible_soup(resp.text).get_text("\n", strip=True))
         if published is not None:
             state = closing_state(published.at, published.on, now=moment)
@@ -254,9 +310,10 @@ def _result(
     evidence: str,
     moment: datetime,
     method: str = "none",
-    published: JobPosting | None = None,
+    closes: Closes | None = None,
 ) -> OpenCheck:
-    """``published`` is the posting as the source shows it now (its closing is kept)."""
+    """``closes`` is the closing the source publishes now (on, at, text); it is kept."""
+    on, at, text = closes or (None, None, None)
     return OpenCheck(
         job_id=job.id,
         url=url,
@@ -264,10 +321,19 @@ def _result(
         evidence=evidence,
         checked_at=moment,
         method=method,
-        closes_on=published.closes_on if published else None,
-        closes_at=published.closes_at if published else None,
-        closes_text=published.closes_text if published else None,
+        closes_on=on,
+        closes_at=at,
+        closes_text=text,
     )
+
+
+def _from_signal(
+    job: JobPosting, url: str, signal: Signal, moment: datetime, method: str
+) -> OpenCheck:
+    closes: Closes | None = None
+    if signal.closes_on is not None:
+        closes = (signal.closes_on, None, signal.evidence)
+    return _result(job, url, signal.status, signal.evidence, moment, method, closes)
 
 
 def _stored_closing_or(result: OpenCheck, job: JobPosting, moment: datetime) -> OpenCheck:

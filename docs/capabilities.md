@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-114 commands, 164 modules, 861 public symbols.
+114 commands, 165 modules, 867 public symbols.
 
 ## Commands
 
@@ -238,7 +238,7 @@ writing it again — the promotion rule lives in
 - `recon.py` — Learn portal truth from a page you are already on (issue #45). · `ReconReport`, `ReconError`, `resolve_recon_site`, `recon_from_html`, `plan_recon`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
 - `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `account_need`, `signup_target`, `signup_sheet`, `screening_to_prepare`
-- `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `ReservedDomainRejected`, `public_url`, `canonical_key`, `host_of`, `display_url`, `is_reserved_host`, `ensure_not_reserved`, `registrable_domain`, `slugify`, `company_hint_from_url`
+- `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `ReservedDomainRejected`, `public_url`, `request_url`, `canonical_key`, `host_of`, `display_url`, `is_reserved_host`, `ensure_not_reserved`, `registrable_domain`, `slugify`, `company_hint_from_url`
 
 ### `cv`
 
@@ -267,7 +267,7 @@ writing it again — the promotion rule lives in
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
 - `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
-- `check_open.py` — Is a stored posting still open? Ask its source again, read-only — or say unknown. · `OpenStatus`, `OpenCheck`, `PoliteHttp`, `posting_url`, `due_for_check`, `is_verified_closed`, `verification_label`, `OpenChecker`
+- `check_open.py` — Is a stored posting still open? Ask its source again, read-only — or say unknown. · `OpenCheck`, `PoliteHttp`, `posting_url`, `due_for_check`, `is_verified_closed`, `verification_label`, `OpenChecker`
 - `closing.py` — When a posting stops taking applications, read from what it publishes — or nothing. · `ClosingState`, `utc_now`, `Closing`, `zone_from_text`, `parse_closing_value`, `find_closing`, `closing_state`, `describe_closing`
 - `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `visible_soup`, `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
 - `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`
@@ -281,6 +281,7 @@ writing it again — the promotion rule lives in
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `canonical_indeed_job_url`, `extract_indeed_jk`
 - `language.py` — Spanish or English? Deterministic, from function words only — never a guess on a tie. · `detect_language`, `posting_language`
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `stem_word`, `WordIndex`, `normalize_many`
+- `open_signals.py` — What a job board itself publishes about a posting still taking applicants. · `OpenStatus`, `Signal`, `trabajando_offer_id`, `read_trabajando`, `is_chiletrabajos`, `read_chiletrabajos`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `repository.py` — Job persistence repository. · `JobRepository`, `StoredJobIndex`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`

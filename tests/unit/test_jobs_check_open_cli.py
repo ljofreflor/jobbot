@@ -6,9 +6,11 @@ import hashlib
 import json
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from jobbot.adapters.workday.cxs import HttpResponse
 from jobbot.exit_codes import SUCCESS, VALIDATION_FAILURE
 from jobbot.models.job import JobPosting
 from tests.conftest import plain_cli_text
@@ -154,9 +156,41 @@ def test_json_carries_the_full_url_status_and_checked_at(
     data = json.loads(capsys.readouterr().out)
     first = data["jobs"][0]
     assert first["url"] == WORKDAY_URL
-    assert first["status"] == "open" and "canApply" in first["evidence"]
+    assert first["status"] == "open" and "canApply" in first["reason"]
+    assert first["reason"] == first["evidence"]
     assert first["checked_at"].startswith("2026-10-05T12:00")
     assert data["jobs"][1]["status"] == "closed"
+
+
+def test_all_keeps_going_when_one_posting_fails_and_encodes_accented_urls(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import jobbot.adapters.workday.cxs as cxs
+
+    web = _web(monkeypatch)
+    accented = "https://careers.acme.test/jobs/99-consultoría-actualización"
+    web.route("https://careers.acme.test/jobs/99-consultor%C3%ADa-actualizaci%C3%B3n", 410)
+
+    def wire(method: str, url: str, **kwargs: Any) -> HttpResponse:
+        url.encode("ascii")
+        if url == GONE_URL:
+            raise RuntimeError("boom")
+        return web(method, url, **kwargs)
+
+    monkeypatch.setattr(cxs, "urllib_runner", wire)
+    _seed()
+    _repo().save(
+        JobPosting(id="J0004", source="manual", title="Consultoría", company="Acme", url=accented)
+    )
+
+    assert _cli("jobs", "check-open", "--all") == SUCCESS
+
+    jobs = {job.id: job for job in _repo().list_all()}
+    assert jobs["J0002"].open_status == "unknown"
+    assert jobs["J0002"].open_evidence == "error al verificar: RuntimeError: boom"
+    assert (jobs["J0004"].open_status, jobs["J0004"].open_evidence) == ("closed", "HTTP 410")
+    assert jobs["J0001"].open_status == "open"
+    assert "1 abierto, 1 cerrado, 2 desconocido" in plain_cli_text(capsys.readouterr().out)
 
 
 def test_network_failure_is_unknown_and_exit_0(

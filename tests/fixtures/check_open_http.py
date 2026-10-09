@@ -15,6 +15,9 @@ WORKDAY_PATH = "/job/Off-Site/National-PAHO-Consultant---Comunicaciones_Req-0607
 WORKDAY_URL = f"{WORKDAY_HOST}/pahocareers{WORKDAY_PATH}"
 WORKDAY_API = f"{WORKDAY_HOST}/wday/cxs/paho/pahocareers{WORKDAY_PATH}"
 PAGE_URL = "https://careers.acme.test/jobs/1234-analista-de-datos"
+TRABAJANDO_URL = "https://www.trabajando.cl/trabajo/6135043-asistente-contable-y-tributario"
+TRABAJANDO_API_URL = "https://www.trabajando.cl/api/ofertas/6135043"
+CHILETRABAJOS_URL = "https://www.chiletrabajos.cl/trabajo/analista-contable-3912266"
 
 
 def page(name: str) -> str:
