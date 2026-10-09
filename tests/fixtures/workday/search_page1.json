@@ -1,0 +1,43 @@
+{
+  "total": 4,
+  "jobPostings": [
+    {
+      "title": "Director, Communicable Diseases Prevention, Control and Elimination (CDE)",
+      "externalPath": "/job/Washington-DC/Director--Communicable-Diseases-Prevention--Control-and-Elimination--CDE-_Req-05898",
+      "locationsText": "Washington, D.C.",
+      "postedOn": "Posted 2 Days Ago",
+      "bulletFields": [
+        "Req-05898"
+      ]
+    },
+    {
+      "title": "National PAHO Consultant - Comunicaciones",
+      "externalPath": "/job/Off-Site/National-PAHO-Consultant---Comunicaciones_Req-06070",
+      "locationsText": "Off Site",
+      "postedOn": "Posted 2 Days Ago",
+      "bulletFields": [
+        "Req-06070"
+      ]
+    },
+    {
+      "title": "Advisor, Mental Health",
+      "externalPath": "/job/Bridgetown-Barbados/Advisor--Mental-Health_Req-05974",
+      "locationsText": "Bridgetown, Barbados",
+      "postedOn": "Posted 3 Days Ago",
+      "bulletFields": [
+        "Req-05974"
+      ]
+    },
+    {
+      "title": "PAHO Internships",
+      "externalPath": "/job/Washington-DC/PAHO-Internships_Req-05839",
+      "locationsText": "2 Locations",
+      "postedOn": "Posted 30+ Days Ago",
+      "bulletFields": [
+        "Req-05839"
+      ]
+    }
+  ],
+  "facets": [],
+  "userAuthenticated": false
+}

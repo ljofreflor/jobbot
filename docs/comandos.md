@@ -59,14 +59,36 @@ jobbot cv propagate --apply         # confirma destino por destino
 
 | Comando | Qué hace |
 |---------|----------|
-| `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). |
+| `get URL` | Aviso puntual: conoce el portal, descarga el aviso, arma CV y paquete. Descarga en vivo Get on Board, Indeed y Workday (vía CXS); `--fixture` lee HTML guardado. |
+| `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. |
 | `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
-| `jobs show JOB_ID` | Muestra una vacante guardada. |
+| `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
+| `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
-| `jobs shortlist` | Ordena las vacantes guardadas por score. |
+| `jobs shortlist` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. |
 | `jobs conditions JOB_ID… [--all-prepared]` | Lee las condiciones del aviso (cerrado, residencia, idioma, excluyentes, contrato, renta, modalidad) contra tu perfil y `data/application_answers.yaml`: ✅ cumple, ⚠️ pregunta exacta, ❌ impedimento (exit 1). Offline. |
 | `jobs backfill-dates` | Data vacantes ya guardadas usando el activity id de la URL (offline). |
 | `jobs note JOB_ID TEXTO` | Adjunta una nota libre a una vacante. |
+
+```bash
+# vista previa: tabla con título, ubicación, cierre y decisión; no escribe nada
+jobbot jobs discover --source workday \
+  --site https://paho.wd5.myworkdayjobs.com/en-US/pahocareers --query health --dry-run
+# guarda (deduplica por ID externo: volver a correrlo actualiza, no duplica)
+jobbot jobs discover --source workday \
+  --site https://paho.wd5.myworkdayjobs.com/en-US/pahocareers --query health
+jobbot get https://paho.wd5.myworkdayjobs.com/en-US/pahocareers/job/Off-Site/Titulo_Req-00000
+```
+
+`jobs discover` lee la API pública CXS de cada tenant Workday (la misma que usa su
+página): respeta `robots.txt`, se identifica con un User-Agent honesto, pausa 1 s
+entre pedidos y no inicia sesión. El cierre sale de la línea «Closing Date» del
+aviso. La hora queda solo si el aviso nombra una zona sin ambigüedad («Eastern
+Time»); si no, se guarda solo la fecha, marcada «hora no publicada». El `endDate`
+de Workday (cuándo el aviso deja el sitio) es el último recurso y se rotula así.
+Los avisos vencidos o que ya no admiten postulación no se guardan. Exit: 0 si
+algún sitio respondió; 5 si el único sitio pedido cambió la forma de su JSON; 1 si
+todo falló.
 
 ## Postulaciones
 

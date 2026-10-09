@@ -8,6 +8,7 @@ import re
 import shutil
 import sys
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -35,6 +36,7 @@ from jobbot.exit_codes import (
     GENERIC_FAILURE,
     MANUAL_CHALLENGE,
     SUCCESS,
+    UI_CHANGED,
     USER_CANCEL,
     VALIDATION_FAILURE,
 )
@@ -476,7 +478,7 @@ def get_hard_link(
     url: Annotated[
         str | None,
         typer.Argument(
-            help="Hard job URL. Live download: Get on Board / Indeed. "
+            help="Hard job URL. Live download: Get on Board / Indeed / Workday (CXS). "
             "With --fixture, also reads saved career-page or Indeed viewjob HTML. "
             "With --park, only queues the URL (phone-friendly; no fetch).",
         ),
@@ -652,6 +654,8 @@ def _ingest_one_hard_link(
     from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.jobs.from_url import (
         ClosedPostingError,
+        InvalidPostingUrlError,
+        PortalShapeChangedError,
         UnknownPortalError,
         UnsupportedPortalFetchError,
         ingest_hard_link,
@@ -696,13 +700,13 @@ def _ingest_one_hard_link(
     except ClosedPostingError as exc:
         err_console.print(f"[red]Vacancy looks filled[/red] ({exc.evidence}). Not stored.")
         raise _QuietExit(VALIDATION_FAILURE) from exc
-    except UnknownPortalError as exc:
+    except (UnknownPortalError, InvalidPostingUrlError) as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
     except UnsupportedPortalFetchError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise _RecordedExit(
-            GENERIC_FAILURE,
+            UI_CHANGED if isinstance(exc, PortalShapeChangedError) else GENERIC_FAILURE,
             error_class=type(exc).__name__,
             message=str(exc),
         ) from exc
@@ -2473,13 +2477,18 @@ def jobs_add(
         Path | None,
         typer.Option("--file", "-f", help="Path to JD text file"),
     ] = None,
-    url: Annotated[str | None, typer.Option("--url")] = None,
+    url: Annotated[
+        str | None,
+        typer.Option("--url", help="Posting URL. A Workday URL alone downloads it (CXS)"),
+    ] = None,
     stdin: Annotated[
         bool,
         typer.Option("--stdin", help="Read JD from stdin"),
     ] = False,
 ) -> None:
     """Add a job posting from a text file or stdin (manual fallback)."""
+    from jobbot.portals.detect import AtsKind, detect_ats
+
     session, config = _session()
     if file is not None:
         text = file.read_text(encoding="utf-8")
@@ -2489,8 +2498,14 @@ def jobs_add(
                 "Waiting for a job description on stdin. Paste the text, then press Ctrl-D."
             )
         text = typer.get_text_stream("stdin").read()
+    elif url and detect_ats(url) == AtsKind.WORKDAY:
+        _add_workday_url(session, config, url)
+        return
     else:
-        err_console.print("Provide --file or --stdin (prefer: jobbot jobs search)")
+        err_console.print(
+            "Provide --file or --stdin (a Workday --url downloads by itself; "
+            "prefer: jobbot jobs search)"
+        )
         raise typer.Exit(GENERIC_FAILURE)
 
     from jobbot.jobs.closure import closure_evidence, fetch_posting_text
@@ -2511,6 +2526,64 @@ def jobs_add(
     console.print(f"[green]Added[/green] {job.id}  {job.company}  {job.title}")
     console.print(f"Wrote {path}")
     _learn_company_knowledge(config, job)
+
+
+def _add_workday_url(session: Session, config: JobbotConfig, url: str) -> None:
+    """`jobs add --url` for Workday: live CXS detail, no pasted text (#215)."""
+    from jobbot.jobs.from_url import (
+        ClosedPostingError,
+        InvalidPostingUrlError,
+        PortalShapeChangedError,
+        UnsupportedPortalFetchError,
+        fetch_workday_posting,
+    )
+
+    try:
+        job = fetch_workday_posting(url)
+    except ClosedPostingError as exc:
+        err_console.print(f"[red]Vacancy looks closed[/red] ({exc.evidence}). Not stored.")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    except InvalidPostingUrlError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    except UnsupportedPortalFetchError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _RecordedExit(
+            UI_CHANGED if isinstance(exc, PortalShapeChangedError) else GENERIC_FAILURE,
+            error_class=type(exc).__name__,
+            message=str(exc),
+        ) from exc
+    stored = JobRepository(session).upsert_external(job)
+    path = write_job_json(stored, config.output_dir)
+    console.print(f"[green]Added[/green] {stored.id}  {stored.company}  {stored.title}")
+    console.print(f"Closes: {_closing_line(stored)}", markup=False)
+    console.print(f"Wrote {path}")
+    _learn_company_knowledge(config, stored)
+
+
+def _closing_line(job: JobPosting, *, evidence: bool = True) -> str:
+    from jobbot.jobs.closing import describe_closing
+
+    local = datetime.now().astimezone().tzinfo
+    line = describe_closing(job.closes_at, job.closes_on, local_tz=local)
+    return f"{line}  [{job.closes_text}]" if evidence and job.closes_text else line
+
+
+def _closing_now() -> datetime:
+    from jobbot.jobs import closing
+
+    return closing.utc_now()
+
+
+def _closing_flag(job: JobPosting, now: datetime) -> str:
+    from jobbot.jobs.closing import ClosingState, closing_state
+
+    state = closing_state(job.closes_at, job.closes_on, now=now)
+    if state is ClosingState.EXPIRED:
+        return "vencido"
+    if state is ClosingState.SOON:
+        return "cierra pronto"
+    return ""
 
 
 @jobs_app.command("search")
@@ -2587,6 +2660,182 @@ def jobs_search(
     console.print("Or: [bold]jobbot jobs shortlist[/bold]")
 
 
+@jobs_app.command("discover")
+def jobs_discover(
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Public source API to read (today: workday)"),
+    ],
+    site: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--site",
+            help="Career site URL (repeatable), e.g. https://acme.wd3.myworkdayjobs.com/en-US/"
+            "External. Default: that ATS's sites in the company registry",
+        ),
+    ] = None,
+    query: Annotated[
+        str | None,
+        typer.Option("--query", "-q", help="Search text (default: your profile's searches)"),
+    ] = None,
+    limit: Annotated[
+        int,
+        typer.Option("--limit", help="Max postings per site and query (1-200)"),
+    ] = 50,
+    max_queries: Annotated[
+        int,
+        typer.Option("--max-queries", help="Profile searches to run when no --query is given"),
+    ] = _DEFAULT_MAX_QUERIES,
+    details: Annotated[
+        bool,
+        typer.Option(
+            "--details/--no-details",
+            help="Read each posting for closing date and description (1 request/s per host)",
+        ),
+    ] = True,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Preview: writes nothing (no DB, job JSON, companies.yaml)"),
+    ] = False,
+) -> None:
+    """Discover postings through a source's public API; --dry-run previews without writing."""
+    from jobbot.companies.registry import load_companies
+    from jobbot.jobs.discover import (
+        SiteOutcome,
+        SiteStatus,
+        SiteTarget,
+        decide,
+        discover_adapter,
+        exit_code_for,
+    )
+    from jobbot.jobs.repository import StoredJobIndex
+
+    if limit < 1 or limit > 200:
+        err_console.print("[red]--limit must be between 1 and 200[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        adapter = discover_adapter(source)
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    config = load_config()
+    known = adapter.registry_targets(load_companies(config.companies_path))
+    targets: list[SiteTarget] = []
+    for raw in site or []:
+        try:
+            target = adapter.site_target(raw)
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        named = next((k for k in known if k.url == target.url), None)
+        targets.append(named or target)
+    if not site:
+        targets = known
+    if not targets:
+        err_console.print(
+            f"[red]No {source} career sites to read.[/red] Pass --site URL, or register one: "
+            "jobbot companies learn URL && jobbot companies promote NAME"
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    queries = _search_queries(config, query, max_queries)
+    narrator = _narrator()
+    outcomes: list[SiteOutcome] = []
+    for target in targets:
+        for text in queries:
+            narrator.phase(Phase.RECEIVING_WORLD, f"{source}: {target.url} «{text}»")
+            outcome = adapter.discover_site(target, query=text, limit=limit, details=details)
+            outcomes.append(outcome)
+            line = f"{outcome.site} «{text}»: {outcome.status.value}"
+            if outcome.detail:
+                line += f" ({outcome.detail})"
+            style = "green" if outcome.answered else "yellow"
+            console.print(line, style=style, markup=False, highlight=False)
+
+    found = [job for outcome in outcomes for job in outcome.jobs]
+    now = _closing_now()
+    session: Session | None = None
+    if dry_run:
+        index = StoredJobIndex.read_only(config.database_path)
+    else:
+        session, _ = _session()
+        index = StoredJobIndex.from_repository(JobRepository(session))
+    decisions = decide(found, index, now=now)
+
+    stored_ids: dict[int, str] = {}
+    if not dry_run and session is not None:
+        try:
+            candidate: Candidate | None = load_profile(config.profile_path)
+        except ProfileLoadError:
+            candidate = None
+        repo = JobRepository(session)
+        analyzer = RuleBasedJobAnalyzer()
+        for position, decision in enumerate(decisions):
+            if not decision.stores:
+                continue
+            job = repo.upsert_external(decision.job)
+            if candidate is not None:
+                match = analyzer.analyze(candidate, job)
+                repo.update_match_score(job.id, match.score)
+                job.match_score = match.score
+            write_job_json(job, config.output_dir)
+            _learn_company_knowledge(config, job, narrator=narrator)
+            stored_ids[position] = job.id
+
+    table = Table(title=f"{source}: {len(decisions)} avisos" + (" (dry-run)" if dry_run else ""))
+    if stored_ids:
+        table.add_column("ID")
+    table.add_column("Título")
+    table.add_column("Ubicación")
+    table.add_column("Cierre")
+    table.add_column("Decisión")
+    for position, decision in enumerate(decisions):
+        job = decision.job
+        cells = [
+            job.title[:60],
+            (job.location or "—")[:28],
+            _closing_cell(job),
+            decision.label,
+        ]
+        if stored_ids:
+            cells.insert(0, stored_ids.get(position, "—"))
+        table.add_row(*cells)
+    if decisions:
+        console.print(table)
+
+    counts: dict[str, int] = {}
+    for decision in decisions:
+        key = decision.action.value + (f" ({decision.reason})" if decision.reason else "")
+        counts[key] = counts.get(key, 0) + 1
+    summary = ", ".join(f"{n} {label}" for label, n in counts.items()) or "0 avisos"
+    if dry_run:
+        console.print(f"Dry-run: {summary}. Nothing written.")
+    else:
+        console.print(f"Stored {len(stored_ids)} of {len(decisions)}: {summary}.")
+        if stored_ids:
+            first = next(iter(stored_ids.values()))
+            console.print(f"Next: [bold]jobbot jobs show {first}[/bold] or jobbot jobs shortlist")
+
+    code = exit_code_for(outcomes)
+    if code == UI_CHANGED and not dry_run:
+        changed = next(o for o in outcomes if o.status is SiteStatus.CHANGED)
+        raise _RecordedExit(UI_CHANGED, error_class="WorkdayShapeChanged", message=changed.detail)
+    if code != SUCCESS:
+        err_console.print("[red]No site answered.[/red]")
+        raise _QuietExit(code)
+
+
+def _closing_cell(job: JobPosting) -> str:
+    if job.closes_at is not None:
+        from jobbot.jobs.closing import describe_closing
+
+        return describe_closing(job.closes_at, None)
+    if job.closes_on is not None:
+        return f"{job.closes_on.isoformat()} (sin hora)"
+    return "—"
+
+
 @jobs_app.command("queries")
 def jobs_queries(
     region: Annotated[
@@ -2661,6 +2910,15 @@ def jobs_show(
     console.print(f"Seniority: {job.seniority or '—'}")
     console.print(f"Remote: {job.remote_type or '—'}")
     console.print(f"URL: {job.url or '—'}")
+    if job.closes_on or job.closes_at:
+        flag = _closing_flag(job, _closing_now())
+        console.print(
+            f"Closes: {_closing_line(job)}" + (f"  ⚠ {flag}" if flag else ""), markup=False
+        )
+    if job.ats_signals.get("resume_parsing") is False:
+        console.print("ATS: the CV upload does not prefill the profile; fill it field by field.")
+    if job.ats_signals.get("questionnaire"):
+        console.print("ATS: the application has a questionnaire.")
     console.print(f"Skills: {', '.join(job.skills) or '—'}")
     if job.requirements:
         console.print("Requirements:")
@@ -2788,15 +3046,19 @@ def jobs_shortlist() -> None:
 
     repo = JobRepository(session)
     analyzer = RuleBasedJobAnalyzer()
-    rows: list[tuple[float, str, str, str]] = []
+    now = _closing_now()
+    rows: list[tuple[float, str, str, str, str]] = []
     for job in repo.list_all():
         match = analyzer.analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
-        rows.append((match.score, job.id, job.title, job.company))
+        flag = _closing_flag(job, now)
+        if flag:
+            flag = f"  [{flag}: {_closing_line(job, evidence=False)}]"
+        rows.append((match.score, job.id, job.title, job.company, flag))
     rows.sort(key=lambda r: r[0], reverse=True)
     console.print("[bold]TOP MATCHES[/bold]")
-    for score, jid, title, company in rows:
-        console.print(f"{score:5.1f}%  {jid}  {title}  {company}")
+    for score, jid, title, company, flag in rows:
+        console.print(f"{score:5.1f}%  {jid}  {title}  {company}{flag}", markup=False)
     _warn_if_matcher_blind([row[0] for row in rows])
 
 
