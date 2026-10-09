@@ -444,6 +444,21 @@ def test_posting_conditions_read_a_clinical_posting() -> None:
     assert [c.contract for c in conditions if c.kind is ConditionKind.CONTRACT] == ["indefinite"]
 
 
+def test_un_careers_feed_matches_whatever_field_the_query_names() -> None:
+    """The feed filter is the query's words only: no field's vocabulary decides a hit."""
+    from jobbot.adapters.un_careers.feed import parse_feed
+    from tests.fixtures.un_careers_http import fixture_text
+
+    items = parse_feed(fixture_text("jobfeed.xml"))
+
+    def hits(query: str) -> set[str]:
+        return {item.job_id for item in items if item.matches(query)}
+
+    assert hits("public information") == {"283445", "285569"}
+    assert hits("humanitarian affairs") == {"285531", "900001"}
+    assert hits("data engineer") == {"285646"}
+
+
 def test_eligibility_judges_a_nurse_against_a_clinical_posting() -> None:
     """The nurse's own skills back an excluyente; what she never claimed becomes a question."""
     from jobbot.jobs.conditions import ConditionKind, posting_conditions
