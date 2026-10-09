@@ -105,17 +105,22 @@ Sin `QUERY`, usa las búsquedas del perfil; `--max-queries N` limita cuántas.
 
 ### Sector público (Chile)
 
-`empleospublicos search [QUERY] [--region R]` — concursos **abiertos** (cierre futuro, no
-desiertos ni sin efecto) desde los
-[datos abiertos del Servicio Civil](https://reporte.serviciocivil.cl/datos/convocatorias-empleos-publicos/),
-que se actualizan a diario. Guarda cada aviso con fecha límite y renta bruta en el texto, así
-`jobs conditions` las lee offline. Una descarga por corrida (~11 MB); `--fixture` reproduce un
-CSV guardado o un volcado JSON. El portal `empleospublicos.cl` responde 403 a cualquier cliente
-que se identifica y JobBot no se disfraza de navegador: la ficha se abre a mano y entra con
+`empleospublicos search [QUERY] [--region R] [--dry-run]` — concursos **abiertos** (cierre
+futuro en hora de Chile, no desiertos ni sin efecto) desde los
+[datos abiertos del Servicio Civil](https://reporte.serviciocivil.cl/datos/convocatorias-empleos-publicos/).
+Guarda cada aviso con fecha límite, renta bruta y grado (si el cargo lo nombra) en el texto, así
+`jobs conditions` las lee offline. La renta `1` o `0` del archivo significa «no informada» y se
+escribe así, nunca como $1. `--dry-run` muestra la tabla sin escribir la base, los JSON,
+`portals.yaml` ni `companies.yaml`; `--location` es alias de `--region`. Una descarga por corrida
+(~11 MB); `--fixture` reproduce un CSV guardado o un volcado JSON. Si el archivo lleva dos días o
+más sin actualizarse (`Fecha_Actualizacion`), el comando lo avisa: los concursos publicados
+después no están. El portal `empleospublicos.cl` responde 403 a cualquier cliente que se
+identifica y JobBot no se disfraza de navegador: la ficha se abre a mano y entra con
 `jobbot get URL --fixture ficha.html`.
 
 Alta Dirección Pública (`adp.serviciocivil.cl`) se reconoce como bolsa, pero su `robots.txt`
-prohíbe todo agente (`Disallow: /`): JobBot no la lee. Ficha guardada: `jobbot get URL --fixture`.
+prohíbe todo agente (`Disallow: /`): JobBot no la lee. Todavía no hay parser de la ficha ADP
+(#228): copie el texto de la ficha y use `jobbot jobs add --file ficha.txt --url URL`.
 
 ### Navegador
 

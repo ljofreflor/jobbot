@@ -150,8 +150,8 @@ def _fetch_job(
     if portal.ats_kind in ROBOTS_DISALLOWED_KINDS and html is None:
         msg = (
             f"{portal.domain} asks robots not to read it (robots.txt: Disallow: /), "
-            "so JobBot does not fetch it. Open the page in your browser and pass "
-            "--fixture with the saved HTML, or use `jobbot jobs add --file`."
+            "so JobBot does not fetch it. Open the page in your browser, copy the ficha "
+            f"text into a file and run `jobbot jobs add --file ficha.txt --url {portal.url}`."
         )
         raise PortalDisallowedError(msg)
     if html is not None:
@@ -160,6 +160,13 @@ def _fetch_job(
         except ClosedPostingError:
             raise
         except CareerPageParseError as exc:
+            if portal.ats_kind in ROBOTS_DISALLOWED_KINDS:
+                msg = (
+                    f"JobBot cannot read a saved {portal.domain} page yet. Copy the "
+                    "ficha text into a file and run "
+                    f"`jobbot jobs add --file ficha.txt --url {portal.url}`."
+                )
+                raise UnsupportedPortalFetchError(msg) from exc
             if portal.known:
                 msg = (
                     f"No hard-link fetcher for {portal.ats_kind.value} yet "

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -21,6 +22,7 @@ from jobbot.adapters.empleospublicos.open_data import (
     SITE_ORIGIN,
     Convocatoria,
     OpenDataCache,
+    data_as_of,
     job_from_convocatoria,
     parse_open_data_csv,
     search_convocatorias,
@@ -172,6 +174,7 @@ class EmpleosPublicosJobSource:
         self.fixture = fixture
         self.open_data = open_data or OpenDataCache()
         self.seen: dict[str, Convocatoria] = {}
+        self.as_of: date | None = None
 
     def search_jobs(self, query: JobSearchQuery) -> list[JobPosting]:
         if self.fixture is None or self.fixture.suffix.casefold() == ".csv":
@@ -193,9 +196,11 @@ class EmpleosPublicosJobSource:
             items = parse_open_data_csv(self.fixture.read_text(encoding="utf-8-sig"))
         else:
             items = self.open_data.items()
+        if self.as_of is None:
+            self.as_of = data_as_of(items)
         hits = search_convocatorias(items, query.query or "", region=query.location)
         hits = hits[: query.limit]
-        self.seen.update((item.id, item) for item in hits)
+        self.seen.update((item.key, item) for item in hits)
         return [job_from_convocatoria(item) for item in hits]
 
     def remember_portal(self) -> None:

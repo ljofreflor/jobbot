@@ -19,7 +19,11 @@ from jobbot.config import JobbotConfig, PathsConfig
 from jobbot.db.engine import make_engine, make_session_factory
 from jobbot.exit_codes import VALIDATION_FAILURE
 from jobbot.jobs.closure import fetch_posting_text
-from jobbot.jobs.from_url import PortalDisallowedError, ingest_hard_link
+from jobbot.jobs.from_url import (
+    PortalDisallowedError,
+    UnsupportedPortalFetchError,
+    ingest_hard_link,
+)
 from jobbot.models.candidate import Candidate
 from jobbot.portals.detect import (
     JOB_BOARD_KINDS,
@@ -112,6 +116,75 @@ def test_hard_link_without_fixture_is_refused_without_fetching(
             prepare=False,
         )
     assert no_network == []
+
+
+SAVED_FICHA = """<html><head><title>Convocatoria ADP-29895</title></head><body>
+<h1>Jefe(a) División Jurídica</h1>
+<p>Servicio Neutro de Vivienda</p>
+<h2>Descripción del cargo</h2>
+<p>Dirigir la asesoría jurídica del servicio y coordinar los equipos regionales.</p>
+<h2>Requisitos</h2>
+<ul><li>Título profesional de abogado(a)</li><li>Cinco años de experiencia</li></ul>
+<p>Región Metropolitana de Santiago</p>
+</body></html>"""
+
+
+def test_a_saved_ficha_without_job_markup_points_to_jobs_add(
+    tmp_path: Path, project_root: Path, no_network: list[str]
+) -> None:
+    """No ADP parser yet (#228): the saved page is read offline and the way out is named."""
+    config = _config(tmp_path, project_root)
+    session = make_session_factory(make_engine(config.database_path))()
+
+    with pytest.raises(UnsupportedPortalFetchError) as caught:
+        ingest_hard_link(
+            config,
+            session,
+            FICHA_URL,
+            candidate=Candidate.model_validate(public_health_profile_dict()),
+            html=SAVED_FICHA,
+            build=False,
+            prepare=False,
+        )
+
+    assert no_network == []
+    assert f"jobbot jobs add --file ficha.txt --url {FICHA_URL}" in str(caught.value)
+
+
+def test_jobs_add_keeps_the_adp_link_as_evidence_without_fetching(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    no_network: list[str],
+) -> None:
+    from jobbot.cli import run_cli
+    from jobbot.config import load_config
+    from jobbot.exit_codes import SUCCESS
+    from jobbot.jobs.repository import JobRepository
+
+    (tmp_path / "data").mkdir(exist_ok=True)
+    (tmp_path / "data" / "profile.yaml").write_text(
+        (project_root / "data" / "profile.example.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    ficha = tmp_path / "ficha.txt"
+    ficha.write_text(
+        "Jefe(a) División Jurídica\nServicio Neutro de Vivienda\n"
+        "Dirigir la asesoría jurídica del servicio.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    args = ["jobs", "add", "--file", str(ficha), "--url", FICHA_URL]
+    assert run_cli(args, standalone_mode=False) == SUCCESS
+
+    assert no_network == []
+    session = make_session_factory(make_engine(load_config().database_path))()
+    try:
+        [job] = JobRepository(session).list_all()
+    finally:
+        session.close()
+    assert job.url == FICHA_URL
 
 
 def test_posting_status_check_never_reads_adp(no_network: list[str]) -> None:

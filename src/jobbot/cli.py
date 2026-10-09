@@ -4434,27 +4434,40 @@ def empleospublicos_search(
     ] = None,
     region: Annotated[
         str | None,
-        typer.Option("--region", help="Only this region (e.g. 'Biobío', 'Metropolitana')"),
+        typer.Option(
+            "--region", "--location", help="Only this region (e.g. 'Biobío', 'Metropolitana')"
+        ),
     ] = None,
     limit: Annotated[int, typer.Option("--limit", help="Max results per query (1-50)")] = 20,
     max_queries: Annotated[
         int,
         typer.Option("--max-queries", help="Profile searches when no query is given"),
     ] = _DEFAULT_MAX_QUERIES,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Preview only: no database, job JSON, portals or companies are written",
+        ),
+    ] = False,
 ) -> None:
     """Search open Empleos Públicos concursos (Servicio Civil open data) and store leads."""
     from jobbot.adapters.empleospublicos.jobs import (
         EmpleosPublicosJobSource,
         EmpleosPublicosParseError,
     )
-    from jobbot.adapters.empleospublicos.open_data import OpenDataError
+    from jobbot.adapters.empleospublicos.open_data import (
+        OpenDataError,
+        format_salary,
+        staleness_warning,
+    )
     from jobbot.jobs.sources import JobSearchQuery
 
     if limit < 1 or limit > 50:
         err_console.print("--limit must be between 1 and 50")
         raise typer.Exit(GENERIC_FAILURE)
 
-    session, config = _session()
+    config = load_config()
     queries = _search_queries(config, query, max_queries)
     source = EmpleosPublicosJobSource(
         config, fixture=fixture.expanduser().resolve() if fixture is not None else None
@@ -4473,11 +4486,14 @@ def empleospublicos_search(
             err_console.print(f"[red]Empleos Públicos search failed for {text!r}: {exc}[/red]")
     if failed and len(failed) == len(queries):
         raise typer.Exit(GENERIC_FAILURE)
+    stale = staleness_warning(source.as_of)
+    if stale:
+        console.print(f"[yellow]{stale}[/yellow]")
     found = _unique_postings(found)
     if not found:
         console.print("No open concursos matched.")
         raise typer.Exit(SUCCESS)
-    if fixture is None:
+    if fixture is None and not dry_run:
         source.remember_portal()
 
     try:
@@ -4485,48 +4501,57 @@ def empleospublicos_search(
     except ProfileLoadError:
         candidate = None
     analyzer = RuleBasedJobAnalyzer()
-    repo = JobRepository(session)
-    table = Table(title="Empleos Públicos (leads)")
-    table.add_column("ID")
-    table.add_column("Institución")
-    table.add_column("Cargo")
-    table.add_column("Región")
-    table.add_column("Cierre")
-    table.add_column("Renta bruta")
-    table.add_column("Match")
+    repo = None if dry_run else JobRepository(_session()[0])
+    table = Table(
+        title="Empleos Públicos (preview, nothing stored)"
+        if dry_run
+        else "Empleos Públicos (leads)"
+    )
+    for column in (
+        "ID", "Institución", "Cargo", "Región", "Cierre", "Renta bruta", "Grado", "Match"
+    ):
+        table.add_column(column)
     stored: list[str] = []
     scores: list[float] = []
     for raw in found:
         facts = source.seen.get(raw.source_job_id or "")
-        closes = f"{facts.closes_at:%Y-%m-%d}" if facts and facts.closes_at else "-"
-        salary = (
-            f"${facts.gross_salary:,}".replace(",", ".") if facts and facts.gross_salary else "-"
-        )
-        job = repo.upsert_external(raw)
+        closes = f"{facts.closes_at:%Y-%m-%d %H:%M}" if facts and facts.closes_at else "-"
+        salary = format_salary(facts.gross_salary) if facts and facts.gross_salary else "-"
+        grade = facts.grade if facts and facts.grade else "-"
+        job = raw if repo is None else repo.upsert_external(raw)
         if candidate is not None:
             match = analyzer.analyze(candidate, job)
-            repo.update_match_score(job.id, match.score)
+            if repo is not None:
+                repo.update_match_score(job.id, match.score)
             job.match_score = match.score
             scores.append(match.score)
-        write_job_json(job, config.output_dir)
-        _learn_company_knowledge(config, job)
-        stored.append(job.id)
+        if repo is not None:
+            write_job_json(job, config.output_dir)
+            _learn_company_knowledge(config, job)
+            stored.append(job.id)
         score = f"{job.match_score:.0f}%" if job.match_score is not None else "-"
         table.add_row(
-            job.id,
+            (raw.source_job_id or "-") if repo is None else job.id,
             job.company[:28],
             job.title[:36],
             (job.location or "-")[:20],
             closes,
             salary,
+            grade,
             score,
         )
     console.print(table)
-    console.print(
-        f"Stored {len(stored)} leads. Detail: "
-        f"[bold]jobbot get URL --fixture ficha.html[/bold]. "
-        f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
-    )
+    if dry_run:
+        console.print(
+            f"Dry run: {len(found)} open concursos would be stored; nothing was written. "
+            "Run again without [bold]--dry-run[/bold] to store them."
+        )
+    else:
+        console.print(
+            f"Stored {len(stored)} leads. Detail: "
+            f"[bold]jobbot get URL --fixture ficha.html[/bold]. "
+            f"Next: [bold]jobbot jobs match {stored[0]}[/bold]"
+        )
     if candidate is not None:
         _warn_if_matcher_blind(scores)
 

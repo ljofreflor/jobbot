@@ -14,12 +14,13 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import re
 import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
@@ -59,11 +60,21 @@ _COL_STATE = "Estado"
 _COL_SALARY = "Renta Bruta"
 _COL_URL = "URL Base"
 _COL_KIND = "Tipo postulacion"
+_COL_UPDATED = "Fecha_Actualizacion"
 _REQUIRED = (_COL_ID, _COL_CLOSES, _COL_SERVICE, _COL_TITLE, _COL_STATE, _COL_URL)
 
 # A convocatoria declared void is not open, whatever its closing date says.
 _VOID_STATES = ("desierto", "sin efecto")
 _SHORT_WORD = 3
+# The file writes 1 (or 0) where the pay is not published, e.g. cargos under medical laws.
+_SALARY_PLACEHOLDER_MAX = 1
+# "Grado 12 E.U.S.", "grado 15° EUS", "GRADO 7": the public pay scale step, when the
+# cargo names it. The file has no column for it.
+_GRADE_RE = re.compile(
+    r"(?i)\bgrado\s*(\d{1,2})\s*[°º]?(?:\s*(e\.?\s*u\.?\s*[sr])(?![a-z]))?"
+)
+# Published "refreshed daily"; older than this, recent concursos are missing.
+STALE_AFTER = timedelta(days=2)
 
 
 class OpenDataError(RuntimeError):
@@ -89,7 +100,15 @@ class Convocatoria:
     vacancy_type: str = ""
     vacancies: int | None = None
     gross_salary: int | None = None
+    grade: str = ""
     online: bool = True
+    updated_at: datetime | None = None
+
+    @property
+    def key(self) -> str:
+        """One lead per cargo: an ingreso-a-planta concurso lists each cargo under its own ``c``."""
+        cargo = (parse_qs(urlparse(self.url).query).get("c") or [""])[0]
+        return f"{self.id}-{cargo}" if cargo.isdigit() else self.id
 
     def is_open(self, now: datetime) -> bool:
         if self.closes_at is None:
@@ -210,7 +229,7 @@ def job_from_convocatoria(item: Convocatoria) -> JobPosting:
     return JobPosting(
         id="PENDING",
         source="empleos_publicos",
-        source_job_id=item.id,
+        source_job_id=item.key,
         url=item.url,
         title=item.title,
         company=item.service,
@@ -221,7 +240,30 @@ def job_from_convocatoria(item: Convocatoria) -> JobPosting:
         ats_url=item.url,
         ats_kind=AtsKind.EMPLEOS_PUBLICOS.value,
         posted_at=posted,
-        note="empleos publicos: open data lead (Servicio Civil), open the ficha for the profile",
+        note=(
+            "empleos publicos: open data lead (Servicio Civil), open the ficha for the profile"
+            + ("" if item.gross_salary else "; renta no informada")
+        ),
+    )
+
+
+def data_as_of(items: Iterable[Convocatoria]) -> date | None:
+    """Day of the newest refresh the file records (``Fecha_Actualizacion``)."""
+    stamps = [item.updated_at for item in items if item.updated_at is not None]
+    return max(stamps).date() if stamps else None
+
+
+def staleness_warning(as_of: date | None, *, today: date | None = None) -> str | None:
+    """Say so when the file stopped refreshing: newer concursos are simply not in it."""
+    if as_of is None:
+        return None
+    age = (today or _now().date()) - as_of
+    if age < STALE_AFTER:
+        return None
+    return (
+        f"Servicio Civil open data was last refreshed on {as_of:%Y-%m-%d} "
+        f"({age.days} days ago): concursos published since then are missing. "
+        "Check www.empleospublicos.cl in your browser for the newest ones."
     )
 
 
@@ -278,8 +320,10 @@ def _convocatoria(row: dict[str, str]) -> Convocatoria | None:
         estamento=cell(_COL_ESTAMENTO),
         vacancy_type=cell(_COL_VACANCY_TYPE),
         vacancies=_parse_int(cell(_COL_VACANCIES)),
-        gross_salary=_parse_int(cell(_COL_SALARY)),
+        gross_salary=_parse_salary(cell(_COL_SALARY)),
+        grade=_grade(title),
         online="linea" in fold_text(cell(_COL_KIND)) or not cell(_COL_KIND),
+        updated_at=_parse_datetime(cell(_COL_UPDATED)),
     )
 
 
@@ -315,6 +359,7 @@ def _description(item: Convocatoria) -> str:
         lines.append(f"Región: {item.region}")
     for label, value in (
         ("Estamento", item.estamento),
+        ("Grado", item.grade),
         ("Área de trabajo", item.area),
         ("Tipo de vacante", item.vacancy_type),
     ):
@@ -324,8 +369,11 @@ def _description(item: Convocatoria) -> str:
         lines.append(f"Vacantes: {item.vacancies}")
     if item.closes_at is not None:
         lines.append(f"Fecha límite: {item.closes_at:%Y-%m-%d %H:%M} (hora de Chile)")
-    if item.gross_salary:
-        lines.append(f"Renta: ${item.gross_salary:,} bruta mensual".replace(",", "."))
+    lines.append(
+        f"Renta: {format_salary(item.gross_salary)} bruta mensual"
+        if item.gross_salary
+        else "Renta: no informada en los datos abiertos (ver la ficha)"
+    )
     lines.append(
         "Postulación: en línea en Empleos Públicos"
         if item.online
@@ -354,9 +402,28 @@ def _parse_date(raw: str) -> date | None:
     return parsed.date() if parsed else None
 
 
+def format_salary(amount: int) -> str:
+    """Chilean pesos as the ficha writes them: ``$2.769.058``."""
+    return f"${amount:,}".replace(",", ".")
+
+
 def _parse_int(raw: str) -> int | None:
     try:
-        value = int(float(raw))
+        value = int(float(raw.replace(",", ".")))
     except ValueError:
         return None
     return value if value > 0 else None
+
+
+def _parse_salary(raw: str) -> int | None:
+    """Gross monthly pay; the file's placeholder for 'not published' is never $1."""
+    value = _parse_int(raw)
+    return value if value is not None and value > _SALARY_PLACEHOLDER_MAX else None
+
+
+def _grade(title: str) -> str:
+    match = _GRADE_RE.search(title)
+    if match is None:
+        return ""
+    scale = re.sub(r"[\s.]", "", match.group(2) or "").upper()
+    return f"{int(match.group(1))}°" + (f" {scale}" if scale else "")
