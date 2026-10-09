@@ -16,6 +16,11 @@ from jobbot.ops.pii_guard import (
 
 def test_blocked_paths_cover_profile_db_and_private_latex() -> None:
     assert is_blocked_path("data/profile.yaml")
+    assert is_blocked_path("data/.vault.yaml")
+    assert is_blocked_path("sandboxes/rocio/data/.vault.yaml")
+    assert is_blocked_path(".local/.vault.yaml")
+    assert is_blocked_path("data/.vault.yml")
+    assert is_blocked_path("data/.vault.yaml.bak")
     assert is_blocked_path("data/profile.generated.yaml")
     assert is_blocked_path("data/portals.yaml")
     assert is_blocked_path("data/jobbot.sqlite")
@@ -35,6 +40,7 @@ def test_workspaces_of_other_candidates_are_blocked() -> None:
 
 def test_tracked_templates_are_not_blocked() -> None:
     assert is_blocked_path("data/profile.example.yaml") is None
+    assert is_blocked_path("data/vault.example.yaml") is None
     assert is_blocked_path("data/portals.example.yaml") is None
     assert is_blocked_path("latex/cv.tex.demo") is None
     assert is_blocked_path("templates/cv.tex.j2") is None
@@ -143,6 +149,7 @@ def test_backups_and_variants_of_local_data_files_are_blocked() -> None:
 def test_example_templates_beside_backups_stay_allowed() -> None:
     for path in (
         "data/profile.example.yaml",
+        "data/vault.example.yaml",
         "data/portals.example.yaml",
         "data/companies.example.yaml",
         "data/companies-cl.example.yaml",
