@@ -233,7 +233,7 @@ def list_chrome_processes(runner: Callable[[], str] | None = None) -> list[Chrom
         processes.append(
             ChromeProcess(
                 pid=int(pid_text),
-                profile_dir=Path(directory.group("path")),
+                profile_dir=Path(directory.group("path").rstrip()),
                 cdp_port=int(port.group("port")) if port else None,
             )
         )
@@ -560,5 +560,6 @@ def _ps_output() -> str:
     return completed.stdout
 
 
-_USER_DATA_DIR = re.compile(r"--user-data-dir=(?P<path>\S+)")
+# Path may contain spaces; take until the next flag (` --…`) or end of line.
+_USER_DATA_DIR = re.compile(r"--user-data-dir=(?P<path>.+?)(?=\s+--|\s*$)")
 _CDP_PORT = re.compile(r"--remote-debugging-port=(?P<port>\d+)")
