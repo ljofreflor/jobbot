@@ -159,6 +159,7 @@ def _build_env(templates_dir: Path) -> Environment:
     )
     env.filters["latex"] = escape_latex
     env.filters["latex_para"] = escape_latex_multiline
+    env.filters["latex_url"] = escape_latex_url
     return env
 
 
