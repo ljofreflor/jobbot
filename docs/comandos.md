@@ -63,6 +63,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. |
 | `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
+| `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
 | `jobs shortlist` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. |
@@ -89,6 +90,32 @@ de Workday (cuándo el aviso deja el sitio) es el último recurso y se rotula as
 Los avisos vencidos o que ya no admiten postulación no se guardan. Exit: 0 si
 algún sitio respondió; 5 si el único sitio pedido cambió la forma de su JSON; 1 si
 todo falló.
+
+```bash
+# UN Careers: un solo pedido trae todo el feed; la búsqueda y los filtros son locales
+jobbot jobs discover --source un-careers --query "public health" --dry-run
+jobbot jobs discover --source un-careers --query "" --location Santiago --level P-3,NO-B --dry-run
+jobbot jobs discover --source un-careers --query "health" --location remote --details
+```
+
+`--source un-careers` lee `https://careers.un.org/jobfeed` (RSS 2.0, todos los avisos
+vigentes en una respuesta, sin login). Una búsqueda coincide si todas sus palabras
+(sin tildes ni mayúsculas) están en el título, la familia, la red o la oficina; con
+`--query ""` entra todo el feed. Guarda título, organismo (primer tramo de
+«Department/Office»; el valor completo queda en la descripción), lugar de destino,
+nivel (`CON`, `P-3`, `NO-B`, `I-1`…; `CON` es consultoría, `I-` pasantía) y el cierre
+en hora de Nueva York con su zona. Solo «home-based» marca remoto: «Remote Sensing»
+en un título no es modalidad. `--details` (apagado por defecto) pide el texto de cada
+aviso filtrado a la API pública del portal, una vez por aviso y a 1 pedido/s; cada
+lectura suma una visita al aviso. Si el `endDate` del detalle difiere del feed, gana
+el detalle y queda anotado. Postular es en Inspira, con cuenta: JobBot no entra.
+`robots.txt` hoy devuelve la página de la app (sin reglas); si algún día publica un
+`Disallow` para el feed, la fuente se niega antes de pedirlo.
+
+ReliefWeb ([#247](https://github.com/ljofreflor/jobbot/issues/247)) no es una fuente
+todavía: su API v2 exige un `appname` aprobado por ReliefWeb (sin él responde 400; con
+uno no aprobado, 403) y su sitio y RSS responden con un desafío anti-bot. Queda a la
+espera de ese `appname`.
 
 ## Postulaciones
 
