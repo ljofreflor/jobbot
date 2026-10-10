@@ -26,6 +26,9 @@ STAMP_NAME = ".jobbot-owner.json"
 SANDBOXES_DIRNAME = "sandboxes"
 DEFAULT_LABEL = "default"
 CONFIG_FILENAME = ".jobbot.toml"
+GITIGNORE_FILENAME = ".gitignore"
+# Private state and disposable scaffolding; init merges these without wiping custom lines.
+INIT_GITIGNORE_LINES: tuple[str, ...] = (".local/", "tmp/")
 
 _ENV_WORKSPACE = "JOBBOT_WORKSPACE"
 _ENV_SANDBOXES = "JOBBOT_SANDBOXES"
@@ -248,6 +251,24 @@ class WorkspaceExistsError(FileExistsError):
     """``.jobbot.toml`` already present and ``--force`` was not set."""
 
 
+def ensure_init_gitignore(root: Path) -> Path | None:
+    """Ensure ``.gitignore`` lists private state and ``tmp/``; never drop custom lines.
+
+    Returns the path when the file was created or updated, else ``None``.
+    """
+    path = root / GITIGNORE_FILENAME
+    existing = path.read_text(encoding="utf-8") if path.is_file() else ""
+    present = {line.strip() for line in existing.splitlines() if line.strip()}
+    missing = [line for line in INIT_GITIGNORE_LINES if line not in present]
+    if not missing and path.is_file():
+        return None
+    body = existing.rstrip("\n")
+    addition = "\n".join(missing)
+    text = f"{body}\n{addition}\n" if body else f"{addition}\n"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
 def init_workspace(target: Path, *, force: bool = False) -> InitResult:
     """
     Create a portable postulaciones folder with ``.local/`` state.
@@ -287,6 +308,10 @@ def init_workspace(target: Path, *, force: bool = False) -> InitResult:
     companies = local / "companies.yaml"
     companies.write_text(resource_text("companies.example.yaml"), encoding="utf-8")
     written.append(companies)
+
+    gitignore = ensure_init_gitignore(root)
+    if gitignore is not None:
+        written.append(gitignore)
 
     written.extend(copy_templates(templates))
     return InitResult(root=root, created=tuple(written), forced=force)
