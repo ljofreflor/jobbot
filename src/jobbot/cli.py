@@ -54,7 +54,7 @@ from jobbot.profile.importer_common import write_generated_profile
 from jobbot.profile.importer_latex import LatexImportError, import_latex_cv
 from jobbot.profile.importer_pdf import PdfImportError, import_pdf_cv
 from jobbot.profile.loader import ProfileLoadError, load_profile, load_profile_raw
-from jobbot.profile.validator import validate_candidate
+from jobbot.profile.validator import unknown_profile_keys, validate_candidate
 from jobbot.self_update import update_jobbot
 from jobbot.self_update_schedule import ScheduleAction
 from jobbot.workspace import (
@@ -1251,24 +1251,39 @@ def advisor_report(
 
 
 @profile_app.command("validate")
-def profile_validate() -> None:
+def profile_validate(
+    strict: Annotated[
+        bool,
+        typer.Option(
+            "--strict",
+            help="Treat unknown YAML keys as errors (default: warn and exit 0)",
+        ),
+    ] = False,
+) -> None:
     """Validate data/profile.yaml."""
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
+        raw = load_profile_raw(config.profile_path)
     except ProfileLoadError as exc:
         err_console.print("[bold red]PROFILE INVALID[/bold red]")
         err_console.print(str(exc))
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
     result = validate_candidate(candidate)
-    if not result.ok:
+    unknowns = unknown_profile_keys(raw)
+    if not result.ok or (strict and unknowns):
         err_console.print("[bold red]PROFILE INVALID[/bold red]")
         for issue in result.issues:
             err_console.print(str(issue))
+        if strict:
+            for issue in unknowns:
+                err_console.print(f"{issue.path}: {issue.message}")
         raise typer.Exit(VALIDATION_FAILURE)
 
     console.print("[bold green]PROFILE VALID[/bold green]")
+    for issue in unknowns:
+        err_console.print(f"[yellow]{issue.path}: {issue.message}[/yellow]")
     console.print(f"Experiences: {len(candidate.experience)}")
     console.print(f"Achievements: {candidate.achievement_count()}")
     console.print(f"Skills: {candidate.skills.count()}")
@@ -1748,6 +1763,7 @@ def cv_build(
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
+        raw = load_profile_raw(config.profile_path)
     except ProfileLoadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
@@ -1758,6 +1774,13 @@ def cv_build(
         for issue in result.issues:
             err_console.print(str(issue))
         raise typer.Exit(VALIDATION_FAILURE)
+
+    unknowns = unknown_profile_keys(raw)
+    if unknowns:
+        err_console.print(
+            f"[yellow]{len(unknowns)} claves desconocidas en profile.yaml se ignoran "
+            "(jobbot profile validate).[/yellow]"
+        )
 
     job = None
     match = None
