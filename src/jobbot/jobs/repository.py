@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from contextlib import closing
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sqlalchemy import select
@@ -73,6 +73,10 @@ class JobRepository:
             job.note = existing.note
         if job.match_score is None:
             job.match_score = existing.match_score
+        if job.open_status is None:
+            job.open_status = existing.open_status
+            job.checked_at = existing.checked_at
+            job.open_evidence = existing.open_evidence
         self.save(job)
         return job
 
@@ -92,6 +96,30 @@ class JobRepository:
             msg = f"Job not found: {job_id}"
             raise KeyError(msg)
         row.match_score = score
+        self._session.commit()
+
+    def record_open_check(
+        self,
+        job_id: str,
+        *,
+        status: str,
+        evidence: str,
+        checked_at: datetime,
+        closes: tuple[date | None, datetime | None, str | None] | None = None,
+    ) -> None:
+        """Persist an online check; ``closes`` (on, at, text) refreshes the stored closing."""
+        row = self._session.get(JobRow, job_id)
+        if row is None:
+            msg = f"Job not found: {job_id}"
+            raise KeyError(msg)
+        row.open_status = status
+        row.checked_at = checked_at
+        row.open_evidence = evidence
+        if closes is not None:
+            on, at, text = closes
+            row.closes_on = on
+            row.closes_at = at.isoformat() if at else None
+            row.closes_text = text
         self._session.commit()
 
     def set_note(self, job_id: str, note: str) -> None:
@@ -179,6 +207,9 @@ def _to_row_fields(job: JobPosting) -> dict[str, object]:
         "closes_on": job.closes_on,
         "closes_text": job.closes_text,
         "ats_signals_json": json.dumps(job.ats_signals) if job.ats_signals else None,
+        "open_status": job.open_status,
+        "checked_at": job.checked_at,
+        "open_evidence": job.open_evidence,
     }
 
 
@@ -225,4 +256,7 @@ def _from_row(row: JobRow) -> JobPosting:
         closes_on=getattr(row, "closes_on", None),
         closes_text=getattr(row, "closes_text", None),
         ats_signals=json.loads(getattr(row, "ats_signals_json", None) or "{}"),
+        open_status=getattr(row, "open_status", None),
+        checked_at=_as_utc(getattr(row, "checked_at", None)),
+        open_evidence=getattr(row, "open_evidence", None),
     )

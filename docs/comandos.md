@@ -66,7 +66,8 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
-| `jobs shortlist` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. |
+| `jobs check-open [JOB_ID…] [--all] [--dry-run] [--json]` | Vuelve a consultar en línea si cada aviso guardado sigue abierto: `abierto` / `cerrado` / `desconocido`, con motivo y fecha de verificación. `--all` omite los cerrados verificados hace menos de 24 h; `--dry-run` no escribe; `--json` trae la URL completa. Solo lectura. |
+| `jobs shortlist [--include-closed]` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. Oculta las que `jobs check-open` verificó cerradas (`--include-closed` las muestra marcadas). |
 | `jobs conditions JOB_ID… [--all-prepared]` | Lee las condiciones del aviso (cerrado, residencia, idioma, excluyentes, contrato, renta, modalidad) contra tu perfil y `data/application_answers.yaml`: ✅ cumple, ⚠️ pregunta exacta, ❌ impedimento (exit 1). Offline. |
 | `jobs backfill-dates` | Data vacantes ya guardadas usando el activity id de la URL (offline). |
 | `jobs note JOB_ID TEXTO` | Adjunta una nota libre a una vacante. |
