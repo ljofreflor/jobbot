@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -190,23 +191,20 @@ def render_suggestion_markdown(suggestion: MarketSuggestion) -> str:
 
 
 def apply_confirmed_skills(
-    candidate: Candidate,
+    profile: Candidate | Mapping[str, Any],
     confirmed: list[str],
     *,
     group: str = _NEUTRAL_SKILL_GROUP,
-) -> Candidate:
-    """Add user-confirmed skills only; never remove existing ones."""
-    data = candidate.model_dump()
-    skills = data.get("skills") or {}
-    bucket = list(skills.get(group) or [])
-    existing = {s.casefold() for s in bucket}
-    for term in confirmed:
-        if term.casefold() not in existing:
-            bucket.append(term)
-            existing.add(term.casefold())
-    skills[group] = bucket
-    data["skills"] = skills
-    return Candidate.model_validate(data)
+) -> Candidate | dict[str, Any]:
+    """Add user-confirmed skills only; never remove existing ones.
+
+    Writers persist the raw mapping so unknown YAML keys survive. Passing a
+    ``Candidate`` still returns a ``Candidate`` (schema fields only).
+    """
+    if isinstance(profile, Candidate):
+        merged = merge_confirmed_skills_into_raw(profile.model_dump(), confirmed, group=group)
+        return Candidate.model_validate(merged)
+    return merge_confirmed_skills_into_raw(dict(profile), confirmed, group=group)
 
 
 def merge_confirmed_skills_into_raw(
@@ -235,9 +233,7 @@ def merge_confirmed_skills_into_raw(
 
 def _count_market_terms(jobs: list[JobPosting]) -> Counter[str]:
     """How many stored jobs name each term, in the words the jobs themselves use."""
-    phrases = {
-        term for job in jobs for term in _named_terms(job) if len(term.split()) > 1
-    }
+    phrases = {term for job in jobs for term in _named_terms(job) if len(term.split()) > 1}
     counts: Counter[str] = Counter()
     for job in jobs:
         blob = _job_blob(job)
@@ -256,10 +252,7 @@ def _rank_terms(counts: Counter[str], *, min_count: int) -> list[tuple[str, int]
 
     kept: list[tuple[str, int]] = []
     for term, count in frequent:
-        if any(
-            count <= other_count and _inside(term, other)
-            for other, other_count in kept
-        ):
+        if any(count <= other_count and _inside(term, other) for other, other_count in kept):
             continue
         kept.append((term, count))
         if len(kept) >= _MAX_TERMS:

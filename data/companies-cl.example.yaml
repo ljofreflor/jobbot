@@ -21,6 +21,9 @@ companies:
     country: CL
     sector: banking
     domain: bci.cl
+    # Official career SPA (listado en /ofertas/; ATS detrás: Cornerstone bci.csod.com).
+    career_url_hints:
+      - https://trabajaenbci.cl/
   - name: Banco Santander Chile
     country: CL
     sector: banking

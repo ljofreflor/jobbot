@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from jobbot.config import CONFIG_FILENAME, load_config, resolve_workspace
-from jobbot.workspace import WorkspaceExistsError, init_workspace
+from jobbot.workspace import (
+    GITIGNORE_FILENAME,
+    INIT_GITIGNORE_LINES,
+    WorkspaceExistsError,
+    init_workspace,
+)
 from tests.fixtures.cv_pdf import write_sample_cv
 
 
@@ -56,6 +62,52 @@ def test_init_creates_local_layout(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert config.portals_path == (target / ".local" / "portals.yaml").resolve()
     assert config.companies_path == (target / ".local" / "companies.yaml").resolve()
     assert config.browser_data_dir == (target / ".local" / "browser-data").resolve()
+
+
+def test_init_writes_gitignore_with_local_and_tmp(tmp_path: Path) -> None:
+    """#212: private state and disposable scaffolding must be ignored by default."""
+    target = tmp_path / "postulaciones"
+    result = init_workspace(target)
+    gitignore = target / GITIGNORE_FILENAME
+    assert gitignore.is_file()
+    assert gitignore in result.created
+    lines = {line.strip() for line in gitignore.read_text(encoding="utf-8").splitlines()}
+    assert set(INIT_GITIGNORE_LINES) <= lines
+
+
+def test_init_merges_gitignore_without_duplicating(tmp_path: Path) -> None:
+    target = tmp_path / "ws"
+    target.mkdir()
+    existing = target / GITIGNORE_FILENAME
+    existing.write_text("# mine\n*.pdf\n.local/\n", encoding="utf-8")
+    init_workspace(target)
+    text = existing.read_text(encoding="utf-8")
+    assert text.startswith("# mine\n*.pdf\n.local/\n")
+    assert text.count(".local/") == 1
+    assert text.count("tmp/") == 1
+    assert "tmp/" in text.splitlines()
+
+    before = existing.read_text(encoding="utf-8")
+    init_workspace(target, force=True)
+    assert existing.read_text(encoding="utf-8") == before
+
+
+def test_init_gitignore_is_honoured_by_git(tmp_path: Path) -> None:
+    target = tmp_path / "ws"
+    init_workspace(target)
+    subprocess.run(["git", "init"], cwd=target, check=True, capture_output=True)
+    (target / "tmp").mkdir()
+    (target / "tmp" / "x").write_text("probe", encoding="utf-8")
+    (target / ".local" / "x").write_text("probe", encoding="utf-8")
+    checked = subprocess.run(
+        ["git", "check-ignore", "tmp/x", ".local/x"],
+        cwd=target,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    ignored = {line.strip() for line in checked.stdout.splitlines() if line.strip()}
+    assert ignored == {"tmp/x", ".local/x"}
 
 
 def test_init_local_under_absolute_target_when_cwd_differs(

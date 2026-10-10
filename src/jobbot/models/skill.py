@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unicodedata
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class SkillGroups(BaseModel):
@@ -60,6 +60,7 @@ class Publication(BaseModel):
     year: int | None = None
     status: str | None = None
     doi: str | None = None
+    url: HttpUrl | None = None
     authors: list[str] = Field(default_factory=list)
 
     def coauthors(self, self_name: str) -> list[str]:

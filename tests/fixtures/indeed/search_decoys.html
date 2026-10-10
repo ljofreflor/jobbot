@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <!-- Two real cards -->
+  <article data-testid="job-card" data-jk="8a5fab1a7c476a97">
+    <h2 data-testid="job-title">Senior Data Scientist</h2>
+    <div data-testid="company-name">Acme Analytics</div>
+    <div data-testid="text-location">Santiago, Chile</div>
+    <div data-testid="job-snippet">Python, SQL</div>
+    <a href="/viewjob?jk=8a5fab1a7c476a97">View</a>
+  </article>
+  <article data-testid="job-card" data-jk="25db4649b81bfb9d">
+    <h2 data-testid="job-title">Data Engineer</h2>
+    <div data-testid="company-name">Northwind Labs</div>
+    <div data-testid="text-location">Remote</div>
+    <div data-testid="job-snippet">Spark, ETL</div>
+    <a href="/viewjob?jk=25db4649b81bfb9d">View</a>
+  </article>
+  <!-- Observed decoy jk (hex sequence) -->
+  <article data-testid="job-card" data-jk="123456789abcdef0">
+    <h2 data-testid="job-title">Decoy Role</h2>
+    <div data-testid="company-name">Decoy Co</div>
+    <a href="/viewjob?jk=123456789abcdef0">View</a>
+  </article>
+  <!-- Valid-looking jk but hidden from the person -->
+  <article data-testid="job-card" data-jk="b81bfb9d25db4649" hidden>
+    <h2 data-testid="job-title">Hidden Role</h2>
+    <div data-testid="company-name">Hidden Co</div>
+    <a href="/viewjob?jk=b81bfb9d25db4649">View</a>
+  </article>
+</body>
+</html>

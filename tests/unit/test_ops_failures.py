@@ -70,10 +70,10 @@ def test_normalize_command_stabilizes_job_urls() -> None:
         [
             "jobbot",
             "get",
-            "https://cl.indeed.com/viewjob?jk=abc123&from=email&tk=xyz",
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=email&tk=xyz",
         ]
     )
-    assert cmd == "jobbot get https://cl.indeed.com/viewjob?jk=abc123"
+    assert cmd == "jobbot get https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
 
     linkedin = normalize_command(
         ["jobbot", "get", "https://www.linkedin.com/jobs/view/123?trk=flagship"]
@@ -98,6 +98,38 @@ def test_redact_strips_secrets_and_url_query() -> None:
     ctx = redact_context({"ats_url": "https://boards.greenhouse.io/x?key=1", "note": "ok"})
     assert "key=" not in str(ctx["ats_url"])
     assert ctx["note"] == "ok"
+
+
+def test_record_failure_strips_vault_passwords(tmp_path: Path) -> None:
+    from jobbot.ops.failures import record_failure
+    from jobbot.vault import init_vault, put_entry, vault_path
+
+    session, config = _session(tmp_path)
+    secret = "unique-ops-vault-secret"
+    profile = config.profile_path
+    profile.parent.mkdir(parents=True, exist_ok=True)
+    if not profile.is_file():
+        profile.write_text("name: Test\n", encoding="utf-8")
+    init_vault(vault_path(profile))
+    put_entry(vault_path(profile), "indeed", secret)
+    try:
+        rec = record_failure(
+            session,
+            config=config,
+            exit_code=GENERIC_FAILURE,
+            argv=["jobbot", "browser", "login"],
+            error_class="RuntimeError",
+            message=f"typed {secret} into the form",
+            tb=f"RuntimeError: {secret}",
+        )
+        assert secret not in rec.message
+        assert secret not in rec.traceback
+        mirror = (config.output_dir / "ops" / "failures" / f"{rec.id}.json").read_text(
+            encoding="utf-8"
+        )
+        assert secret not in mirror
+    finally:
+        session.close()
 
 
 def test_redact_strips_contact_pii_not_only_secrets() -> None:

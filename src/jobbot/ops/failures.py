@@ -185,9 +185,12 @@ def record_failure(
     msg = message if message is not None else (str(exc) if exc is not None else "")
     if tb is None and exc is not None:
         tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-    tb_text = redact_text(tb or "", max_len=12000)
-    msg_text = redact_text(msg, max_len=2000)
-    ctx = redact_context(context)
+    from jobbot.vault import needles_for_profile
+
+    needles = needles_for_profile(config.profile_path)
+    tb_text = redact_text(tb or "", max_len=12000, extra_secrets=needles)
+    msg_text = redact_text(msg, max_len=2000, extra_secrets=needles)
+    ctx = redact_context(context, extra_secrets=needles)
     fp = failure_fingerprint(component=comp, error_class=cls, message=msg_text)
     fid = next_failure_id(session)
     row = OpsFailureRow(

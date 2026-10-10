@@ -29,6 +29,7 @@ class JobPosting(BaseModel):
     discovered_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     note: str | None = None
     match_score: float | None = None
+    invalid_reason: str | None = None
 
     def validate_url(self) -> None:
         if self.url:

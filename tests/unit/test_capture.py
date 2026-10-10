@@ -85,14 +85,14 @@ def test_cli_capture_and_list(
     assert "Company portal candidate" in out
     assert (
         run_cli(
-            ["capture", "https://cl.indeed.com/viewjob?jk=abc123&from=appshareios"],
+            ["capture", "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=appshareios"],
             standalone_mode=False,
         )
         == SUCCESS
     )
     assert run_cli(["capture", "--list"], standalone_mode=False) == SUCCESS
     listed = capsys.readouterr().out
-    assert "abc123" in listed
+    assert "8a5fab1a7c476a97" in listed
     assert "ubimia" in listed.casefold() or "empleo.ubimia" in listed
 
 

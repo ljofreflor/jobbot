@@ -49,7 +49,7 @@ def _from_publication(pub: Publication, *, self_name: str) -> LinkedInPublicatio
         title=pub.title,
         publisher=pub.journal,
         year=pub.year,
-        url=doi_url(pub.doi),
+        url=doi_url(pub.doi) or (str(pub.url) if pub.url else None),
         authors=authors,
         coauthors=coauthors,
     )
