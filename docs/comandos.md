@@ -16,6 +16,8 @@ Para las opciones completas, `jobbot <grupo> <comando> --help`.
 |---------|----------|
 | `init [DIR]` | Crea un workspace frío: `.jobbot.toml` y `.local/` **dentro de DIR** (default: el directorio actual). No usa `$HOME`, `JOBBOT_ROOT` ni el repo del paquete para ubicar `.local/`. `--force` sobrescribe semillas. |
 | `update` | Reinstala el ejecutable en el `PATH` desde GitHub (`uv tool`). `JOBBOT_REF` / `--ref` eligen rama, tag o SHA. En Docker: actualiza la imagen en el host. |
+| `update --check` | Compara el commit instalado con el último de `main` (`git ls-remote`) sin instalar. Sale con `0` si estás al día, `10` si hay un commit nuevo y `1` si no pudo saberlo. |
+| `update --schedule daily\|off\|status` | Agenda (o quita o muestra) un `jobbot update` diario: LaunchAgent en macOS y crontab en Linux. Si ya estás al día no reinstala; respeta `JOBBOT_AUTO_UPDATE=0` / `[update] auto = false`; no hace nada en Docker. Detalle en [Instalación](instalacion.md#actualizacion-diaria-automatica). |
 | `version` | Muestra la versión de JobBot. |
 
 ```bash
@@ -25,6 +27,9 @@ jobbot init
 # jobbot init ~/postulaciones
 jobbot update
 JOBBOT_REF=v0.1.0 jobbot update
+jobbot update --check                # exit 10 si hay un commit nuevo en main
+jobbot update --schedule daily       # actualización diaria (launchd / crontab)
+jobbot update --schedule status
 ```
 
 ## Perfil

@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-112 commands, 159 modules, 803 public symbols.
+112 commands, 160 modules, 830 public symbols.
 
 ## Commands
 
@@ -135,7 +135,8 @@ writing it again — the promotion rule lives in
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
 - `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
-- `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `update_jobbot`
+- `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `CheckResult`, `InstallInfo`, `update_jobbot`, `docker_hint`, `parse_direct_url`, `read_direct_url`, `installed_info`, `parse_ls_remote`, `latest_commit`, `short_commit`, `check_for_update`
+- `self_update_schedule.py` — Daily ``jobbot update`` via the user's scheduler (launchd on macOS, crontab on Linux). · `ScheduleAction`, `ScheduleSpec`, `ScheduleResult`, `ScheduleStatus`, `backend_for`, `plist_path`, `log_path`, `scheduled_path_env`, `build_launchd_plist`, `build_cron_line`, `merge_crontab`, `auto_update_opt_out`, `user_config_path`, `resolve_binary`, `Scheduler`, `ScheduledRun`, `run_scheduled_update`
 - `vault.py` — Local opt-in credential vault — hygiene, not encryption (#157). · `VaultError`, `VaultPermissionError`, `VaultMissingError`, `VaultEntry`, `Vault`, `vault_path`, `normalize_site`, `secret_needles`, `can_type_password`, `load_vault`, `require_vault`, `init_vault`, `put_entry`, `delete_entry`, `set_fill_login`, `needles_for_profile`, `redact_known_secrets`
 - `workspace.py` — Workspaces: one isolated home per candidate in a single checkout. · `WorkspaceOwnerError`, `OwnerStamp`, `set_active_workspace`, `active_workspace`, `repo_root`, `sandboxes_dir`, `workspace_root`, `list_workspaces`, `resolve_root`, `owner_fingerprint`, `read_stamp`, `write_stamp`, `profile_owner`, `verify_owner`, `adopt`, `InitResult`, `WorkspaceExistsError`, `init_workspace`
 
