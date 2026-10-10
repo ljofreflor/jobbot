@@ -1068,8 +1068,7 @@ def secrets_allow_fill(
     except VaultError as exc:
         _die_vault(exc)
     console.print(
-        "fill_login=on. Typing into the browser is not shipped yet; "
-        "CAPTCHA/2FA/submit stay human."
+        "fill_login=on. Typing into the browser is not shipped yet; CAPTCHA/2FA/submit stay human."
     )
 
 
@@ -2664,14 +2663,15 @@ def jobs_search(
 def jobs_discover(
     source: Annotated[
         str,
-        typer.Option("--source", help="Public source API to read (today: workday)"),
+        typer.Option("--source", help="Public source to read: workday, un-careers"),
     ],
     site: Annotated[
         list[str] | None,
         typer.Option(
             "--site",
             help="Career site URL (repeatable), e.g. https://acme.wd3.myworkdayjobs.com/en-US/"
-            "External. Default: that ATS's sites in the company registry",
+            "External. Default: that ATS's sites in the company registry "
+            "(un-careers: its one public feed)",
         ),
     ] = None,
     query: Annotated[
@@ -2686,13 +2686,29 @@ def jobs_discover(
         int,
         typer.Option("--max-queries", help="Profile searches to run when no --query is given"),
     ] = _DEFAULT_MAX_QUERIES,
+    location: Annotated[
+        str | None,
+        typer.Option(
+            "--location",
+            help="Keep postings whose place contains this text (local; 'remote' also keeps "
+            "home-based)",
+        ),
+    ] = None,
+    level: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--level",
+            help="Keep these grades only (repeatable or comma-separated), e.g. CON,P-3,NO-B",
+        ),
+    ] = None,
     details: Annotated[
-        bool,
+        bool | None,
         typer.Option(
             "--details/--no-details",
-            help="Read each posting for closing date and description (1 request/s per host)",
+            help="Read each posting for closing date and description (1 request/s per host). "
+            "Default: on for workday, off for un-careers (each read adds a view to the posting)",
         ),
-    ] = True,
+    ] = None,
     dry_run: Annotated[
         bool,
         typer.Option("--dry-run", help="Preview: writes nothing (no DB, job JSON, companies.yaml)"),
@@ -2701,6 +2717,7 @@ def jobs_discover(
     """Discover postings through a source's public API; --dry-run previews without writing."""
     from jobbot.companies.registry import load_companies
     from jobbot.jobs.discover import (
+        JobFilters,
         SiteOutcome,
         SiteStatus,
         SiteTarget,
@@ -2713,6 +2730,11 @@ def jobs_discover(
     if limit < 1 or limit > 200:
         err_console.print("[red]--limit must be between 1 and 200[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
+    levels = tuple(part.strip() for raw in level or [] for part in raw.split(","))
+    if any(not part for part in levels) or (location is not None and not location.strip()):
+        err_console.print("[red]--level and --location need a value[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    filters = JobFilters(location=location, levels=levels)
     try:
         adapter = discover_adapter(source)
     except ValueError as exc:
@@ -2740,12 +2762,15 @@ def jobs_discover(
         raise typer.Exit(VALIDATION_FAILURE)
 
     queries = _search_queries(config, query, max_queries)
+    read_details = adapter.default_details if details is None else details
     narrator = _narrator()
     outcomes: list[SiteOutcome] = []
     for target in targets:
         for text in queries:
             narrator.phase(Phase.RECEIVING_WORLD, f"{source}: {target.url} «{text}»")
-            outcome = adapter.discover_site(target, query=text, limit=limit, details=details)
+            outcome = adapter.discover_site(
+                target, query=text, limit=limit, details=read_details, filters=filters
+            )
             outcomes.append(outcome)
             line = f"{outcome.site} «{text}»: {outcome.status.value}"
             if outcome.detail:
@@ -2787,14 +2812,18 @@ def jobs_discover(
     if stored_ids:
         table.add_column("ID")
     table.add_column("Título")
+    table.add_column("Organización")
     table.add_column("Ubicación")
+    table.add_column("Nivel")
     table.add_column("Cierre")
     table.add_column("Decisión")
     for position, decision in enumerate(decisions):
         job = decision.job
         cells = [
             job.title[:60],
-            (job.location or "—")[:28],
+            job.company[:60],
+            _place_cell(job),
+            job.seniority or "—",
             _closing_cell(job),
             decision.label,
         ]
@@ -2820,10 +2849,19 @@ def jobs_discover(
     code = exit_code_for(outcomes)
     if code == UI_CHANGED and not dry_run:
         changed = next(o for o in outcomes if o.status is SiteStatus.CHANGED)
-        raise _RecordedExit(UI_CHANGED, error_class="WorkdayShapeChanged", message=changed.detail)
+        raise _RecordedExit(
+            UI_CHANGED, error_class=f"ShapeChanged[{source}]", message=changed.detail
+        )
     if code != SUCCESS:
         err_console.print("[red]No site answered.[/red]")
         raise _QuietExit(code)
+
+
+def _place_cell(job: JobPosting) -> str:
+    place = (job.location or "—")[:28]
+    if (job.remote_type or "").casefold() == "remote" and "remot" not in place.casefold():
+        place += " · remoto"
+    return place
 
 
 def _closing_cell(job: JobPosting) -> str:

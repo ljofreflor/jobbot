@@ -205,6 +205,11 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  esa URL es la que se guarda y alimenta el registro de empresas. Estado cerrado, fecha límite,
  idiomas con su fluidez, países de residencia y si la compensación es visible quedan escritos en
  el texto guardado para que `jobs conditions` los lea offline.
+- **UN Careers ([#233](https://github.com/ljofreflor/jobbot/issues/233)):** `jobs discover --source
+ un-careers` lee el RSS público `careers.un.org/jobfeed` (un pedido, todo el universo vigente) y
+ filtra en local; la consulta no viaja. El cierre es hora de Nueva York con zona. Solo «home-based»
+ es remoto (un título con «Remote Sensing» no lo es). El detalle JSON suma una visita al aviso en
+ el portal, así que `--details` es opt-in. Postular es en Inspira, con login: fuera de alcance.
 - **Condiciones del aviso ([#166](https://github.com/ljofreflor/jobbot/issues/166)):** antes de
  postular, `jobs conditions Jxxxx` lee del aviso guardado (offline, determinista, sin LLM) lo que
  condiciona la postulación: cerrado o fecha límite vencida, residencia o permiso de trabajo,

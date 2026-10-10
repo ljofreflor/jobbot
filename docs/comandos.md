@@ -63,6 +63,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. |
 | `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
+| `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
 | `jobs check-open [JOB_ID…] [--all] [--dry-run] [--json]` | Vuelve a consultar en línea si cada aviso guardado sigue abierto: `abierto` / `cerrado` / `desconocido`, con motivo y fecha de verificación. `--all` omite los cerrados verificados hace menos de 24 h; `--dry-run` no escribe; `--json` trae la URL completa. Solo lectura. |
@@ -92,31 +93,30 @@ algún sitio respondió; 5 si el único sitio pedido cambió la forma de su JSON
 todo falló.
 
 ```bash
-jobbot jobs check-open --all --dry-run   # verifica y muestra; no toca la base
-jobbot jobs check-open J0001 J0002       # guarda estado, motivo y fecha de verificación
-jobbot jobs shortlist                    # ya sin los cerrados; «cierra pronto» si quedan ≤ 3 días
+# UN Careers: un solo pedido trae todo el feed; la búsqueda y los filtros son locales
+jobbot jobs discover --source un-careers --query "public health" --dry-run
+jobbot jobs discover --source un-careers --query "" --location Santiago --level P-3,NO-B --dry-run
+jobbot jobs discover --source un-careers --query "health" --location remote --details
 ```
 
-`jobs check-open` nunca inventa vigencia: sin una señal de la fuente, el aviso
-queda `desconocido`. Respeta `robots.txt`, se identifica, pausa 1 s por host y
-corta a los 10 s. Señales:
+`--source un-careers` lee `https://careers.un.org/jobfeed` (RSS 2.0, todos los avisos
+vigentes en una respuesta, sin login). Una búsqueda coincide si todas sus palabras
+(sin tildes ni mayúsculas) están en el título, la familia, la red o la oficina; con
+`--query ""` entra todo el feed. Guarda título, organismo (primer tramo de
+«Department/Office»; el valor completo queda en la descripción), lugar de destino,
+nivel (`CON`, `P-3`, `NO-B`, `I-1`…; `CON` es consultoría, `I-` pasantía) y el cierre
+en hora de Nueva York con su zona. Solo «home-based» marca remoto: «Remote Sensing»
+en un título no es modalidad. `--details` (apagado por defecto) pide el texto de cada
+aviso filtrado a la API pública del portal, una vez por aviso y a 1 pedido/s; cada
+lectura suma una visita al aviso. Si el `endDate` del detalle difiere del feed, gana
+el detalle y queda anotado. Postular es en Inspira, con cuenta: JobBot no entra.
+`robots.txt` hoy devuelve la página de la app (sin reglas); si algún día publica un
+`Disallow` para el feed, la fuente se niega antes de pedirlo.
 
-| Fuente | `abierto` | `cerrado` | `desconocido` |
-|--------|-----------|-----------|---------------|
-| Workday (API CXS) | `canApply: true` y cierre publicado no vencido | 404, 403 `S22`, `canApply: false`, `posted: false`, o cierre publicado vencido (fecha sin hora: se espera al fin de ese día en cualquier zona) | 406 persistente (tras reintentar con otro `Accept`), 403 sin `S22`, error de red, `robots.txt` lo prohíbe |
-| Trabajando (`GET /api/ofertas/{id}`) | `estadoOferta: PUBLICADA` y `fechaExpiracionFormatoIngles` no vencida | otro `estadoOferta` (p. ej. `DESACTIVADA`), expiración vencida, 404/410 | 5xx (un id inexistente responde 500), JSON sin esos campos, red |
-| Chiletrabajos (página del aviso) | fila «Expira» con fecha no vencida | «Este anuncio ha expirado o ha sido desactivado…», fila «Expira» vencida, 404/410 | lo mismo que cualquier otra página |
-| Cualquier otra página (HTTP) | — (una página sin frase de cierre no prueba que siga abierta) | 404/410, frase de cierre visible («ya no acepta postulaciones», «Oferta finalizada», «This job is no longer available», «Este empleo caducó en Indeed»…) o «Closing Date» publicada y vencida | 401/403/429/5xx, sin conexión, `robots.txt` lo prohíbe, HTTP 200 sin señal |
-| LinkedIn, PDF, `mailto:` | — | — | siempre, sin hacer pedidos (LinkedIn exige sesión) |
-
-Si la fuente queda en `desconocido` pero el cierre guardado ya pasó, el aviso
-queda `cerrado` con ese motivo. Las URLs con tildes o eñes se envían codificadas
-(host IDNA, path y query con percent-encoding), también al leer `robots.txt`; un
-error al verificar un aviso lo deja `desconocido` con el error como motivo y
-`--all` sigue con el resto. En `--json`, el motivo va en `reason`.
-Empleos Públicos responde 403 a pedidos automatizados (incluso a su `robots.txt`),
-así que queda `desconocido`. Exit: 0 con cualquier mezcla de estados; 2 sin
-`JOB_ID` ni `--all` o con un ID inexistente; 1 si la base no se puede leer o escribir.
+ReliefWeb ([#247](https://github.com/ljofreflor/jobbot/issues/247)) no es una fuente
+todavía: su API v2 exige un `appname` aprobado por ReliefWeb (sin él responde 400; con
+uno no aprobado, 403) y su sitio y RSS responden con un desafío anti-bot. Queda a la
+espera de ese `appname`.
 
 ## Postulaciones
 
