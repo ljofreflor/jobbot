@@ -7,12 +7,12 @@ into https://www.getonbrd.com/webpros/edit, never invent.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
 
-from jobbot.branding import MARK, stamp_description
+from jobbot.branding import DEFAULT_BRAND, get_brand, stamp_description
 from jobbot.models.candidate import Candidate
 from jobbot.models.experience import Experience
 from jobbot.models.job import JobPosting
@@ -22,7 +22,8 @@ EXPERIENCE_MAX = 2000
 EDUCATION_MIN = 100
 EDUCATION_MAX = 2000
 
-JOBBOT_SIGNATURE = MARK
+# Default skin; runtime fields prefer ``get_brand().mark``.
+JOBBOT_SIGNATURE = DEFAULT_BRAND.mark
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,7 @@ class PermanentProfileFields:
     formacion_academica: str
     headline: str
     skills: list[str]
-    signature: str = JOBBOT_SIGNATURE
+    signature: str = field(default_factory=lambda: get_brand().mark)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -224,7 +225,7 @@ def load_permanent_profile(root_output: Path) -> PermanentProfileFields | None:
         formacion_academica=edu,
         headline=str(raw.get("headline") or ""),
         skills=[str(s) for s in skills][:10],
-        signature=str(raw.get("signature") or JOBBOT_SIGNATURE),
+        signature=str(raw.get("signature") or get_brand().mark),
     )
 
 

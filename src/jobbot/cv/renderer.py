@@ -9,7 +9,7 @@ from pathlib import Path
 from babel.units import format_unit
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from jobbot.branding import CV_CREDIT, MARK, REPO_URL
+from jobbot.branding import get_brand
 from jobbot.cv.application_log import ApplicationLog
 from jobbot.cv.latex import escape_latex, escape_latex_multiline, escape_latex_url
 from jobbot.cv.selection import SelectionResult, filter_experiences, select_for_base_cv
@@ -253,9 +253,9 @@ def render_cv_tex(
         edu_years=lambda edu: es_year_range(edu.start_date, edu.end_date),
         linkedin_handle=social_handle(candidate.personal.linkedin),
         github_handle=social_handle(candidate.personal.github),
-        repo_url=REPO_URL,
-        mark=MARK,
-        cv_credit=CV_CREDIT if credit else None,
+        repo_url=get_brand().repo_url,
+        mark=get_brand().mark,
+        cv_credit=get_brand().cv_credit if credit else None,
         target=ProfileTarget.CV,
     )
 
@@ -281,6 +281,6 @@ def render_cv_ats(
         metrics_line=_metrics_line,
         edu_dates=_edu_dates,
         group_label=_group_label,
-        cv_credit=CV_CREDIT if credit else None,
+        cv_credit=get_brand().cv_credit if credit else None,
         target=ProfileTarget.ATS,
     )

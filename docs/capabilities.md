@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-113 commands, 161 modules, 837 public symbols.
+113 commands, 161 modules, 844 public symbols.
 
 ## Commands
 
@@ -118,7 +118,7 @@ writing it again — the promotion rule lives in
 - `jobbot status` — Show which permanent CVs / profiles and active company portals are up.
 - `jobbot torre search` — Search Torre (LATAM / remote) and store jobs locally.
 - `jobbot update` — Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub).
-- `jobbot version` — Show JobBot version.
+- `jobbot version` — Show engine version and active product brand.
 - `jobbot workspace adopt` — Hand this workspace's data and output over to the profile now in place.
 - `jobbot workspace consent` — Record local consent and a retention date for one sandbox.
 - `jobbot workspace delete` — Delete one sandbox. Never touches the checkout's own data/.
@@ -131,10 +131,10 @@ writing it again — the promotion rule lives in
 ### `jobbot`
 
 - `advisor.py` — Advisor view across workspaces: status, a client report, consent, deletion. · `WorkspaceDeleteRefused`, `Consent`, `WorkspaceActivity`, `consent_path`, `read_consent`, `write_consent`, `retention_due`, `retention_warning`, `workspace_activity`, `status_lines`, `write_report`, `parse_since`, `delete_workspace`
-- `branding.py` — One closing mark on texts Jobbot publishes. · `has_mark`, `strip_mark`, `stamp_description`
+- `branding.py` — Public face vs engine name. · `Brand`, `get_brand`, `set_brand`, `reset_brand`, `brand_from_parts`, `brand_from_env`, `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
-- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
+- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `BrandConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `CheckResult`, `InstallInfo`, `update_jobbot`, `docker_hint`, `parse_direct_url`, `read_direct_url`, `installed_info`, `parse_ls_remote`, `latest_commit`, `short_commit`, `check_for_update`
 - `self_update_schedule.py` — Daily ``jobbot update`` via the user's scheduler (launchd on macOS, crontab on Linux). · `ScheduleAction`, `ScheduleSpec`, `ScheduleResult`, `ScheduleStatus`, `backend_for`, `plist_path`, `log_path`, `scheduled_path_env`, `build_launchd_plist`, `build_cron_line`, `merge_crontab`, `auto_update_opt_out`, `user_config_path`, `resolve_binary`, `Scheduler`, `ScheduledRun`, `run_scheduled_update`

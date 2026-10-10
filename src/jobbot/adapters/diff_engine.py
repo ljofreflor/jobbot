@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from jobbot.branding import MARK, stamp_description, strip_mark
+from jobbot.branding import get_brand, stamp_description, strip_mark
 from jobbot.models.candidate import Candidate
 from jobbot.models.external_profile import ExternalProfile
 from jobbot.models.sync import SyncOperation, SyncOpType, SyncPlan
@@ -180,7 +180,7 @@ def _published_summary(remote: str | None, local: str | None) -> str:
     stamped = stamp_description(local)
     remote_text = (remote or "").strip()
     same_words = strip_mark(remote_text) == strip_mark(local)
-    if same_words and MARK.casefold() in remote_text.casefold():
+    if same_words and get_brand().mark.casefold() in remote_text.casefold():
         return remote_text
     return stamped or (local or "").strip()
 

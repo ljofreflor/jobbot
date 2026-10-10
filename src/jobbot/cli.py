@@ -301,6 +301,11 @@ def main(
     """JobBot CLI."""
     _setup_logging(verbose)
     set_active_workspace(workspace)
+    from jobbot.branding import brand_from_env, set_brand
+
+    env_brand = brand_from_env()
+    if env_brand is not None:
+        set_brand(env_brand)
     if workspace is not None:
         console.print(f"[yellow]workspace:[/yellow] {workspace} ({workspace_root(workspace)})")
         from jobbot.advisor import retention_warning
@@ -312,8 +317,14 @@ def main(
 
 @app.command("version")
 def version_cmd() -> None:
-    """Show JobBot version."""
-    console.print(__version__)
+    """Show engine version and active product brand."""
+    from jobbot.branding import ENGINE_NAME, get_brand
+
+    brand = get_brand()
+    if brand.product_name.casefold() == ENGINE_NAME:
+        console.print(__version__)
+        return
+    console.print(f"{__version__}  ({ENGINE_NAME} engine · {brand.product_name})")
 
 
 @app.command("init")
