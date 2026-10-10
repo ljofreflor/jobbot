@@ -58,13 +58,13 @@ def test_get_strips_tracking_params_from_stored_url(
     html = (project_root / "tests" / "fixtures" / "indeed_job_detail.html").read_text(
         encoding="utf-8"
     )
-    url_with_tracking = "https://cl.indeed.com/viewjob?jk=abc123&from=email&tk=xyz"
+    url_with_tracking = "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=email&tk=xyz"
 
     result = ingest_hard_link(
         config, session, url_with_tracking, candidate=_candidate(), html=html
     )
 
-    assert result.job.url == "https://cl.indeed.com/viewjob?jk=abc123"
+    assert result.job.url == "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
     assert "from=" not in (result.job.url or "")
     assert "tk=" not in (result.job.url or "")
 
@@ -106,7 +106,7 @@ def test_closed_indeed_fixture_is_refused(tmp_path: Path, project_root: Path) ->
         ingest_hard_link(
             config,
             session,
-            "https://cl.indeed.com/viewjob?jk=abc123",
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
             candidate=_candidate(),
             html=html,
         )

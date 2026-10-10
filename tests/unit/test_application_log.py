@@ -79,8 +79,8 @@ def test_posting_url_strips_tracking() -> None:
 
 
 def test_posting_url_keeps_the_indeed_job_key() -> None:
-    job = _job(url="https://cl.indeed.com/viewjob?jk=abc123def4567890&from=serp&vjs=3")
-    assert posting_url(job) == "https://cl.indeed.com/viewjob?jk=abc123def4567890"
+    job = _job(url="https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=serp&vjs=3")
+    assert posting_url(job) == "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
 
 
 def test_posting_url_falls_back_to_ats_url_and_never_to_an_email() -> None:

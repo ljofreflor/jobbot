@@ -47,10 +47,10 @@ def test_normalize_splits_double_pasted_share_link() -> None:
 
 def test_park_dedupes(tmp_path: Path) -> None:
     config = _config(tmp_path)
-    url = "https://cl.indeed.com/viewjob?jk=abc123&from=appshareios"
+    url = "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=appshareios"
     first, existed = park_url(config, url)
     second, again = park_url(config, url)
-    assert first == second == "https://cl.indeed.com/viewjob?jk=abc123"
+    assert first == second == "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
     assert existed is False
     assert again is True
     assert list_parked(config) == [first]
@@ -58,10 +58,10 @@ def test_park_dedupes(tmp_path: Path) -> None:
 
 def test_remove_parked(tmp_path: Path) -> None:
     config = _config(tmp_path)
-    park_url(config, "https://cl.indeed.com/viewjob?jk=aaa111")
-    park_url(config, "https://cl.indeed.com/viewjob?jk=bbb222")
-    assert remove_parked(config, "https://cl.indeed.com/viewjob?jk=aaa111")
-    assert list_parked(config) == ["https://cl.indeed.com/viewjob?jk=bbb222"]
+    park_url(config, "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97")
+    park_url(config, "https://cl.indeed.com/viewjob?jk=25db4649b81bfb9d")
+    assert remove_parked(config, "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97")
+    assert list_parked(config) == ["https://cl.indeed.com/viewjob?jk=25db4649b81bfb9d"]
 
 
 def _workspace(tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -36,6 +36,7 @@ class JobRow(Base):
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    invalid_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ApplicationRow(Base):

@@ -2833,6 +2833,46 @@ def jobs_note(
     console.print(f"[green]Noted[/green] {job_id}")
 
 
+@jobs_app.command("audit")
+def jobs_audit(
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Job source to audit (only 'indeed' today)"),
+    ],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Mark decoys/duplicates invalid (skip submitted)"),
+    ] = False,
+) -> None:
+    """List (or mark) stored Indeed decoys and title/company duplicates (#211)."""
+    from jobbot.jobs.audit import audit_indeed_jobs
+
+    if source.casefold() != "indeed":
+        err_console.print(f"[red]Unknown audit source:[/red] {source} (supported: indeed)")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    try:
+        session, _ = _session()
+        findings = audit_indeed_jobs(
+            JobRepository(session),
+            ApplicationRepository(session),
+            apply=apply,
+        )
+    except OSError as exc:
+        err_console.print(f"[red]Could not open job store:[/red] {exc}")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    if not findings:
+        console.print("[green]No suspicious Indeed jobs.[/green]")
+        return
+
+    console.print("[bold]Indeed audit[/bold]" + (" (--apply)" if apply else " (dry-run)"))
+    for finding in findings:
+        flag = " [protected: submitted]" if finding.protected else ""
+        action = "marked" if apply and not finding.protected else "suspect"
+        console.print(f"  {finding.job_id}  {action}  {finding.reason}{flag}")
+
+
 # ── application(s) ───────────────────────────────────────────────────────────
 
 
