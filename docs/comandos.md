@@ -50,12 +50,13 @@ jobbot update --schedule status
 
 | Comando | Qué hace |
 |---------|----------|
-| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. |
+| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. Con `--job`, `--full` conserva todos los roles y logros y ordena primero, dentro de cada rol, los que el aviso nombra. |
 | `cv propagate` | Reconstruye el CV base y lo propaga a los perfiles permanentes (HITL, dry-run por defecto). |
 
 ```bash
 jobbot cv build --target ats
 jobbot cv build --job J0001
+jobbot cv build --job J0001 --full  # CV largo: nada se descarta
 jobbot cv propagate                 # solo plan
 jobbot cv propagate --apply         # confirma destino por destino
 ```

@@ -59,12 +59,14 @@ def build_cv(
     style: CvStyle = CvStyle.MODERNCV,
     application_log: ApplicationLogOptions | None = None,
     credit: bool = False,
+    full: bool = False,
 ) -> list[Path]:
     """Build CV artifacts under output/base/ or output/jobs/<id>/.
 
     ``application_log`` adds a last page to a job PDF; the base CV and the ATS text
     never carry it, since the ATS text is what gets pasted into forms. ``credit``
     closes the CV with the repository link, only when the candidate opted in.
+    ``full`` keeps every fact in a job CV, ordered by the posting inside each role.
     """
     if not templates_dir.is_dir():
         msg = f"Templates directory not found: {templates_dir}"
@@ -72,7 +74,7 @@ def build_cv(
 
     if job is not None:
         out_dir = output_dir / "jobs" / job.id
-        selection = select_for_job(candidate, job, match)
+        selection = select_for_job(candidate, job, match, full=full)
     else:
         out_dir = output_dir / "base"
         selection = select_for_base_cv(candidate)
