@@ -313,5 +313,9 @@ def init_workspace(target: Path, *, force: bool = False) -> InitResult:
     if gitignore is not None:
         written.append(gitignore)
 
+    agents = root / "AGENTS.md"
+    agents.write_text(resource_text("AGENTS.base.md"), encoding="utf-8")
+    written.append(agents)
+
     written.extend(copy_templates(templates))
     return InitResult(root=root, created=tuple(written), forced=force)

@@ -348,9 +348,10 @@ def workspace_init(
     console.print(
         Panel(
             "Next:\n"
-            "  1. Edit .local/profile.yaml  (or: jobbot profile import-pdf CV.pdf)\n"
-            "  2. jobbot profile validate\n"
-            "  3. jobbot getonboard search\n"
+            "  1. Read AGENTS.md  (operating guide for you and AI assistants)\n"
+            "  2. Edit .local/profile.yaml  (or: jobbot profile import-pdf CV.pdf)\n"
+            "  3. jobbot profile validate\n"
+            "  4. jobbot getonboard search\n"
             "Sync this whole folder (including .local/) with Drive/Dropbox/Syncthing/…\n"
             "If you later run jobbot secrets init, exclude .local/.vault.yaml from sync.",
             title="Cold start",

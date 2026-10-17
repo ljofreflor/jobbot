@@ -64,6 +64,22 @@ def test_init_creates_local_layout(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert config.browser_data_dir == (target / ".local" / "browser-data").resolve()
 
 
+def test_init_writes_agents_md_with_operating_guides(tmp_path: Path) -> None:
+    """Cold install seeds AGENTS.md so candidates and agents can operate without the repo policy."""
+    target = tmp_path / "postulaciones"
+    result = init_workspace(target)
+    agents = target / "AGENTS.md"
+    assert agents.is_file()
+    assert agents in result.created
+    text = agents.read_text(encoding="utf-8")
+    assert "# AGENTS.md — JobBot workspace" in text
+    assert "## Source of truth" in text
+    assert "Never invent experience" in text
+    assert "## Safety (non-negotiable)" in text
+    assert "--apply" in text
+    assert ".local/profile.yaml" in text
+
+
 def test_init_writes_gitignore_with_local_and_tmp(tmp_path: Path) -> None:
     """#212: private state and disposable scaffolding must be ignored by default."""
     target = tmp_path / "postulaciones"

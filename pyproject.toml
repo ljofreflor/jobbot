@@ -47,6 +47,7 @@ packages = ["src/jobbot"]
 "src/jobbot/resources/profile.example.yaml" = "jobbot/resources/profile.example.yaml"
 "src/jobbot/resources/portals.example.yaml" = "jobbot/resources/portals.example.yaml"
 "src/jobbot/resources/companies.example.yaml" = "jobbot/resources/companies.example.yaml"
+"src/jobbot/resources/AGENTS.base.md" = "jobbot/resources/AGENTS.base.md"
 "src/jobbot/resources/templates/cv.tex.j2" = "jobbot/resources/templates/cv.tex.j2"
 "src/jobbot/resources/templates/cv_ats.txt.j2" = "jobbot/resources/templates/cv_ats.txt.j2"
 "src/jobbot/resources/templates/cv_moderncv.tex.j2" = "jobbot/resources/templates/cv_moderncv.tex.j2"
