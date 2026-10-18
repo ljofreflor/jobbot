@@ -963,6 +963,7 @@ body:has(.jb-hero) .md-tabs {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.45rem;
+  scroll-margin-top: 6.5rem;
 }
 
 .jb-in-story__tag {

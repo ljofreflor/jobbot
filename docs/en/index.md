@@ -226,25 +226,25 @@ Nothing in this list submits alone or invents a fact. Rows marked **story** are 
 
 | Command | What it does |
 |---------|----------------|
-| <span class="jb-in-story"><code>jobbot cv build</code> <span class="jb-in-story__tag">story</span></span> | Builds the CV from the profile. `--job` orders it for one posting; `--full` keeps every role. `--target cv` or `ats`. |
-| <span class="jb-in-story"><code>jobbot cv advise</code> <span class="jb-in-story__tag">story</span></span> | A few presentation edits. `--apply` confirms them one by one. |
+| <span id="cmd-build" class="jb-in-story"><code>jobbot cv build</code> <span class="jb-in-story__tag">story</span></span> | Builds the CV from the profile. `--job` orders it for one posting; `--full` keeps every role. `--target cv` or `ats`. |
+| <span id="cmd-advise" class="jb-in-story"><code>jobbot cv advise</code> <span class="jb-in-story__tag">story</span></span> | A few presentation edits. `--apply` confirms them one by one. |
 | `jobbot cv tune-for Jxxxx` | The same advise, scoped to one posting or one link. |
 | `jobbot cv propagate` | Plan for permanent profiles. `--apply` confirms each destination. |
-| <span class="jb-in-story"><code>jobbot cv sync</code> <span class="jb-in-story__tag">story</span></span> | Standing presence: permanent profiles and active companies. `--apply` waits for you. |
+| <span id="cmd-sync" class="jb-in-story"><code>jobbot cv sync</code> <span class="jb-in-story__tag">story</span></span> | Standing presence: permanent profiles and active companies. `--apply` waits for you. |
 | `jobbot cv status` | Alias of `jobbot status`. |
 
 ### Vacancies {#cmd-vacancies}
 
 | Command | What it does |
 |---------|----------------|
-| <span class="jb-in-story"><code>jobbot get URL</code> <span class="jb-in-story__tag">story</span></span> | Downloads one posting (Get on Board, Indeed, Workday), builds the CV and the package. It does not send. |
+| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <span class="jb-in-story__tag">story</span></span> | Downloads one posting (Get on Board, Indeed, Workday), builds the CV and the package. It does not send. |
 | `jobbot jobs add` | Stores a vacancy from a file or stdin. |
 | `jobbot jobs search QUERY` | Searches Indeed and stores results locally. |
 | `jobbot jobs discover` | Discovers via a public API: `--source workday` or `--source un-careers`. `--dry-run` writes nothing. |
 | `jobbot jobs queries` | Prints web-search queries for ATS hosts. It does not search. |
 | `jobbot jobs show Jxxxx` | Shows a stored posting, including its close date when the posting publishes one. |
-| <span class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Scores it against the profile. It helps you decide; it does not decide. |
-| <span class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Posting conditions: met, a question, or a blocker. Offline. |
+| <span id="cmd-match" class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Scores it against the profile. It helps you decide; it does not decide. |
+| <span id="cmd-conditions" class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Posting conditions: met, a question, or a blocker. Offline. |
 | `jobbot jobs check-open` | Checks again whether a stored posting is still open. Read-only. |
 | `jobbot jobs shortlist` | Sorts by score and marks expired or closing-soon rows. |
 | `jobbot jobs backfill-dates` | Dates already stored postings from the URL id. Offline. |
@@ -258,7 +258,7 @@ Nothing in this list submits alone or invents a fact. Rows marked **story** are 
 | `jobbot application prepare Jxxxx` | Builds the package. It does not invent answers. |
 | `jobbot application show Jxxxx` | Path and status of the package. |
 | `jobbot application open Jxxxx` | Opens the posting or ATS URL. It does not apply. |
-| <span class="jb-in-story"><code>jobbot application apply Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Prefill plan. `--apply` opens the form; you submit. `--all` walks the queue, pausing between jobs. |
+| <span id="cmd-apply" class="jb-in-story"><code>jobbot application apply Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Prefill plan. `--apply` opens the form; you submit. `--all` walks the queue, pausing between jobs. |
 | `jobbot application check-answer Jxxxx` | Checks a free-text answer against the profile and the posting. Motivation stays yours. |
 | `jobbot applications list` | Lists recorded applications. Alias: `applications status`. |
 
