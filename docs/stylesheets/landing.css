@@ -1216,6 +1216,11 @@ a.jb-in-story__tag:focus-visible {
   color: var(--jb-cobalt);
 }
 
+.jb-scrolly__split--start {
+  padding-top: 0.55rem;
+  border-top: 0;
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
