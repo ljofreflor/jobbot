@@ -84,6 +84,7 @@ body:has(.jb-hero) .md-tabs {
   gap: 2.5rem 3rem;
   align-items: center;
   width: 100%;
+  min-width: 0;
   padding: 3.5rem 0 4rem;
 }
 
@@ -927,10 +928,31 @@ body:has(.jb-hero) .md-tabs {
   color: var(--jb-navy);
 }
 
-.jb-section--cmds table {
+/* Beat Material's table:not([class]) (inline-block, 0.64rem, overflow). */
+body:has(.jb-hero) .md-typeset .jb-section--cmds .md-typeset__scrollwrap,
+body:has(.jb-hero) .md-typeset .jb-section--cmds .md-typeset__table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) {
   display: table;
   width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow: visible;
+  table-layout: fixed;
   font-size: 0.92rem;
+  background: transparent;
+}
+
+body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
+  min-width: 0;
 }
 
 .jb-section--cmds th,
@@ -938,6 +960,7 @@ body:has(.jb-hero) .md-tabs {
   vertical-align: top;
   padding-top: 0.55rem;
   padding-bottom: 0.55rem;
+  overflow-wrap: anywhere;
 }
 
 .jb-section--cmds tbody tr:nth-child(odd) td {
@@ -995,18 +1018,19 @@ a.jb-in-story__tag:hover {
   color: var(--jb-navy);
 }
 
-@media (max-width: 720px) {
-  .jb-section--cmds table,
-  .jb-section--cmds thead,
-  .jb-section--cmds tbody,
-  .jb-section--cmds tr,
-  .jb-section--cmds th,
-  .jb-section--cmds td {
+@media (max-width: 960px) {
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]),
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) thead,
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) tbody,
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) tr,
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th,
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) td {
     display: block;
     width: 100%;
+    min-width: 0;
   }
 
-  .jb-section--cmds thead {
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -1018,19 +1042,19 @@ a.jb-in-story__tag:hover {
     border: 0;
   }
 
-  .jb-section--cmds td:first-child,
-  .jb-section--cmds th:first-child {
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) td:first-child,
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th:first-child {
     width: auto;
     padding-bottom: 0.15rem;
   }
 
-  .jb-section--cmds td:last-child {
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) td:last-child {
     padding-top: 0;
     padding-bottom: 0.85rem;
     border-bottom: 1px solid rgba(0, 24, 56, 0.08);
   }
 
-  .jb-section--cmds td::before {
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) td::before {
     display: block;
     margin-bottom: 0.15rem;
     font-family: var(--jb-font-body);
@@ -1041,20 +1065,32 @@ a.jb-in-story__tag:hover {
     color: var(--jb-cobalt);
   }
 
-  .jb-section--cmds td:first-child::before {
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) td:first-child::before {
     content: "Comando";
   }
 
-  .jb-section--cmds td:last-child::before {
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) td:last-child::before {
     content: "Qué hace";
   }
 
-  .jb-cmds-en td:first-child::before {
+  body:has(.jb-hero) .md-typeset .jb-cmds-en table:not([class]) td:first-child::before {
     content: "Command";
   }
 
-  .jb-cmds-en td:last-child::before {
+  body:has(.jb-hero) .md-typeset .jb-cmds-en table:not([class]) td:last-child::before {
     content: "What it does";
+  }
+
+  .jb-scrolly__progress,
+  .jb-scrolly__dots {
+    flex-wrap: wrap;
+  }
+
+  .jb-hero__copy,
+  .jb-hero__stage,
+  .jb-scrolly__pin,
+  .jb-scrolly__steps {
+    min-width: 0;
   }
 }
 
@@ -1062,10 +1098,11 @@ a.jb-in-story__tag:hover {
 
 .jb-scrolly {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.85fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(min(16rem, 100%), 0.85fr);
   column-gap: 2.5rem;
   align-items: start;
   max-width: 68rem;
+  min-width: 0;
   margin: 0 auto 3.5rem;
   padding: 1rem 0 0;
 }
