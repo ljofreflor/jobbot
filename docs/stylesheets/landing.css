@@ -1013,9 +1013,18 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.45);
 }
 
+.jb-section--cmds tr:has(.jb-in-story__tag--presence) td:first-child {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.4);
+}
+
 .jb-section--cmds tr:has(.jb-in-story:target) td {
   background: rgba(0, 88, 248, 0.14);
   box-shadow: inset 3px 0 0 var(--jb-cobalt);
+}
+
+.jb-section--cmds tr:has(.jb-in-story:target .jb-in-story__tag--presence) td {
+  background: rgba(0, 24, 56, 0.08);
+  box-shadow: inset 3px 0 0 var(--jb-navy);
 }
 
 .jb-in-story__tag {
