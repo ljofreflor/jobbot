@@ -958,6 +958,42 @@ body:has(.jb-hero) .md-tabs {
   overflow-wrap: anywhere;
 }
 
+@media (max-width: 720px) {
+  .jb-section--cmds table,
+  .jb-section--cmds thead,
+  .jb-section--cmds tbody,
+  .jb-section--cmds tr,
+  .jb-section--cmds th,
+  .jb-section--cmds td {
+    display: block;
+    width: 100%;
+  }
+
+  .jb-section--cmds thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .jb-section--cmds td:first-child,
+  .jb-section--cmds th:first-child {
+    width: auto;
+    padding-bottom: 0.15rem;
+  }
+
+  .jb-section--cmds td:last-child {
+    padding-top: 0;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(0, 24, 56, 0.08);
+  }
+}
+
 /* Scroll story: sticky terminal, steps in the HTML (no scrollama / GSAP). */
 
 .jb-scrolly {
