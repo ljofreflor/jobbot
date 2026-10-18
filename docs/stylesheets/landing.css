@@ -1575,6 +1575,18 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   background: rgba(0, 24, 56, 0.35);
 }
 
+.jb-scrolly__pin.is-presence a.jb-scrolly__stage-cmd-link {
+  border-bottom-color: rgba(197, 212, 238, 0.45);
+}
+
+.jb-scrolly__pin.is-presence a.jb-scrolly__stage-cmd-link:hover {
+  border-bottom-color: #c5d4ee;
+}
+
+.jb-scrolly__pin.is-presence a.jb-scrolly__stage-cmd-link:focus-visible {
+  outline-color: #c5d4ee;
+}
+
 @media (max-width: 960px) {
   .jb-hero {
     min-height: auto;
