@@ -24,6 +24,7 @@ class AtsKind(StrEnum):
     BREEZY = "breezy"
     MANATAL = "manatal"
     CORNERSTONE = "cornerstone"
+    AVATURE = "avature"
     TORRE = "torre"
     JOBTOME = "jobtome"
     REMOSHIFT = "remoshift"
@@ -118,6 +119,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("breezy.hr", AtsKind.BREEZY),
     ("careers-page.com", AtsKind.MANATAL),
     ("csod.com", AtsKind.CORNERSTONE),
+    ("avature.net", AtsKind.AVATURE),
     ("torre.ai", AtsKind.TORRE),
     ("torre.co", AtsKind.TORRE),
     ("jobtome.com", AtsKind.JOBTOME),
@@ -213,6 +215,15 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         re.compile(r"[a-z0-9_-]+\.csod\.com", re.I),
         AtsKind.CORNERSTONE,
         "cornerstone csod host",
+    ),
+    (
+        re.compile(
+            r"avature.{0,240}?(?:/careersmarketplace/|/_cms/)"
+            r"|(?:/careersmarketplace/|/_cms/).{0,240}?avature",
+            re.I | re.S,
+        ),
+        AtsKind.AVATURE,
+        "avature careersmarketplace",
     ),
 )
 

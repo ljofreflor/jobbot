@@ -3182,7 +3182,10 @@ def jobs_discover(
         str,
         typer.Option(
             "--source",
-            help="Public source to read: workday, un-careers, buk, pdf-index, lumesse, cornerstone",
+            help=(
+                "Public source to read: workday, un-careers, buk, pdf-index, "
+                "lumesse, cornerstone, avature, unops"
+            ),
         ),
     ],
     site: Annotated[
