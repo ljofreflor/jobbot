@@ -3176,6 +3176,12 @@ def jobs_search(
     console.print("Or: [bold]jobbot jobs shortlist[/bold]")
 
 
+def _iso_territory(code: str) -> bool:
+    from babel import Locale
+
+    return Locale("en").territories.get(code.upper()) is not None
+
+
 @jobs_app.command("discover")
 def jobs_discover(
     source: Annotated[
@@ -3184,7 +3190,8 @@ def jobs_discover(
             "--source",
             help=(
                 "Public source to read: workday, un-careers, buk, pdf-index, "
-                "lumesse, cornerstone, avature, unops, impactpool, pageup, unicef, pjud"
+                "lumesse, cornerstone, avature, unops, impactpool, "
+                "pageup, unicef, pjud, smartrecruiters"
             ),
         ),
     ],
@@ -3200,6 +3207,14 @@ def jobs_discover(
     query: Annotated[
         str | None,
         typer.Option("--query", "-q", help="Search text (default: your profile's searches)"),
+    ] = None,
+    company: Annotated[
+        str | None,
+        typer.Option("--company", help="SmartRecruiters company identifier"),
+    ] = None,
+    country: Annotated[
+        str | None,
+        typer.Option("--country", help="ISO 3166 country for SmartRecruiters"),
     ] = None,
     limit: Annotated[
         int,
@@ -3259,8 +3274,9 @@ def jobs_discover(
     )
     from jobbot.jobs.repository import StoredJobIndex
 
-    if limit < 1 or limit > 200:
-        err_console.print("[red]--limit must be between 1 and 200[/red]")
+    ceiling = 300 if source == "smartrecruiters" else 200
+    if limit < 1 or limit > ceiling:
+        err_console.print(f"[red]--limit must be between 1 and {ceiling}[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
     if source == "pdf-index":
         _discover_pdf_index(page_url, match=name_match)
@@ -3277,8 +3293,31 @@ def jobs_discover(
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
     config = load_config()
+    if source == "smartrecruiters":
+        from jobbot.adapters.smartrecruiters.discover import SmartRecruitersDiscover
+        from jobbot.jobs.geo import normalize_country
+
+        if not isinstance(adapter, SmartRecruitersDiscover):
+            raise typer.Exit(VALIDATION_FAILURE)
+        if company is not None and not company.strip():
+            err_console.print("[red]--company needs an identifier[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        if country is None:
+            adapter.countries = config.search.countries
+        else:
+            country_code = normalize_country(country)
+            if country_code is None or not _iso_territory(country_code):
+                err_console.print(f"[red]{country} is not an ISO 3166 country[/red]")
+                raise typer.Exit(VALIDATION_FAILURE)
+            adapter.countries = (country_code,)
     known = adapter.registry_targets(load_companies(config.companies_path))
     targets: list[SiteTarget] = []
+    if source == "smartrecruiters" and company and company.strip():
+        try:
+            targets = [adapter.site_target(company.strip())]
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
     for raw in site or []:
         try:
             target = adapter.site_target(raw)
@@ -3287,7 +3326,7 @@ def jobs_discover(
             raise typer.Exit(VALIDATION_FAILURE) from exc
         named = next((k for k in known if k.url == target.url), None)
         targets.append(named or target)
-    if not site:
+    if not site and not targets:
         targets = known
     if not targets:
         err_console.print(

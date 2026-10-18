@@ -168,6 +168,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.pjud.discover import PjudDiscover
 
         register_source("pjud", PjudDiscover)
+    if "smartrecruiters" not in _FACTORIES:
+        from jobbot.adapters.smartrecruiters.discover import SmartRecruitersDiscover
+
+        register_source("smartrecruiters", SmartRecruitersDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:
