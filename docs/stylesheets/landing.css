@@ -1465,6 +1465,11 @@ a.jb-in-story__tag:hover {
     border-top: 1px solid rgba(0, 24, 56, 0.08);
   }
 
+  .jb-scrolly__step.is-active > p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more) {
+    box-shadow: inset 3px 0 0 var(--jb-cobalt);
+    padding-left: 0.7rem;
+  }
+
   .jb-hero__title {
     max-width: none;
   }
@@ -1536,6 +1541,11 @@ a.jb-in-story__tag:hover {
   .jb-scrolly__echo-out,
   .jb-scrolly__more {
     display: block;
+  }
+
+  .jb-scrolly__step.is-active > p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more) {
+    box-shadow: none;
+    padding-left: 0;
   }
 }
 
