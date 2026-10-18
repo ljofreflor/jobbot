@@ -1097,7 +1097,12 @@ body:has(.jb-hero) .md-tabs {
   margin-top: 0.15rem;
 }
 
-.jb-scrolly__more a {
+.jb-scrolly__pin-more {
+  margin: 0.7rem 0 0;
+}
+
+.jb-scrolly__more a,
+.jb-scrolly__pin-more a {
   color: var(--jb-cobalt);
   font-size: 0.88rem;
   font-weight: 700;
@@ -1105,7 +1110,8 @@ body:has(.jb-hero) .md-tabs {
   border-bottom: 1px solid rgba(0, 88, 248, 0.35);
 }
 
-.jb-scrolly__more a:hover {
+.jb-scrolly__more a:hover,
+.jb-scrolly__pin-more a:hover {
   border-bottom-color: var(--jb-cobalt);
 }
 
