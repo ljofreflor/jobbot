@@ -907,22 +907,24 @@ body:has(.jb-hero) .md-tabs {
   font-size: 0.88rem;
   font-weight: 600;
   text-decoration: none;
-  border-bottom: 1px solid rgba(0, 88, 248, 0.35);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.3rem;
+  border-bottom: 1px solid transparent;
+  background: transparent;
 }
 
 .jb-cmdnav a:hover {
-  border-bottom-color: var(--jb-cobalt);
+  background: rgba(0, 88, 248, 0.08);
 }
 
 .jb-cmdnav a:focus-visible {
   outline: 2px solid var(--jb-cobalt);
   outline-offset: 3px;
-  border-radius: 0.15rem;
 }
 
 .jb-cmdnav a.is-current {
   color: var(--jb-navy);
-  border-bottom-color: var(--jb-navy);
+  background: rgba(0, 88, 248, 0.14);
 }
 
 .jb-section--cmds h3 {
