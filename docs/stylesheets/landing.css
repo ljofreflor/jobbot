@@ -1104,6 +1104,14 @@ a.jb-in-story__tag:focus-visible {
     content: "What it does";
   }
 
+  a.jb-in-story__tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.68rem;
+  }
+
   .jb-scrolly__progress,
   .jb-scrolly__dots {
     flex-wrap: wrap;
