@@ -498,6 +498,12 @@
           if (item.heading.getBoundingClientRect().top <= line + 4) chosen = item;
         });
         mark(chosen ? chosen.link : null);
+        if (!chosen) return;
+        var linkBox = chosen.link.getBoundingClientRect();
+        var navBox = nav.getBoundingClientRect();
+        if (linkBox.left < navBox.left || linkBox.right > navBox.right) {
+          nav.scrollLeft += linkBox.left - navBox.left - 8;
+        }
       }
       function schedule() {
         if (frame) return;
