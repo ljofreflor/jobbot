@@ -219,7 +219,14 @@
       <div class="jb-scrolly__stage" aria-hidden="true">
         <div class="jb-scrolly__progress" aria-hidden="true">
           <p class="jb-scrolly__dots" id="jb-scrolly-dots">
-            <i class="is-current"></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <span class="jb-scrolly__chapter">
+              <i class="is-current"></i><i></i><i></i><i></i><i></i>
+              <b>{% if en %}apply{% else %}postular{% endif %}</b>
+            </span>
+            <span class="jb-scrolly__chapter">
+              <i></i><i></i>
+              <b>{% if en %}presence{% else %}presencia{% endif %}</b>
+            </span>
           </p>
           <p class="jb-scrolly__count" id="jb-scrolly-count">1 / 7</p>
         </div>
