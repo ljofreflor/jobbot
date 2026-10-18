@@ -150,6 +150,11 @@ def _load_builtin() -> None:
         from jobbot.adapters.cornerstone.discover import CornerstoneDiscover
 
         register_source("cornerstone", CornerstoneDiscover)
+    if "avature" not in _FACTORIES:
+        from jobbot.adapters.avature.discover import AvatureDiscover, UnopsDiscover
+
+        register_source("avature", AvatureDiscover)
+        register_source("unops", UnopsDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

@@ -141,16 +141,17 @@ def classify_url(
     *,
     html: str | None = None,
     resolve: bool = False,
-    resolver: Callable[[str], str] = follow_redirect_url,
+    resolver: Callable[[str], str] | None = None,
 ) -> SiteClassification:
     """Classify a career URL. ATS stays ``unknown`` without technical evidence."""
+    follow = resolver if resolver is not None else follow_redirect_url
     requested = public_url(url)
     final = requested
     redirects_to: str | None = None
     evidence_bits: list[str] = []
     if resolve:
         try:
-            resolved = public_url(resolver(requested))
+            resolved = public_url(follow(requested))
         except PrivateRouteRejected:
             resolved = requested
         if canonical_key(resolved) != canonical_key(requested):

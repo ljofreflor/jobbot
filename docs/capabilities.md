@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 191 modules, 1107 public symbols.
+128 commands, 193 modules, 1120 public symbols.
 
 ## Commands
 
@@ -177,6 +177,11 @@ writing it again — the promotion rule lives in
 - `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `supported_kinds`, `adapter_for_kind`, `adapter_for_job`
 - `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
 - `workday.py` — Workday ATS adapter stub — open + known-field map only (HITL submit). · `WorkdayAdapter`
+
+### `adapters/avature`
+
+- `discover.py` — `jobs discover --source avature` reads a public SearchJobs list. `unops` is one site. · `pause`, `fetch_public`, `search_url`, `AvatureDiscover`, `UnopsDiscover`, `blocked_qtvc`
+- `parse.py` — Read an Avature SearchJobs page and a JobDetail page. No network. · `SearchPage`, `site_key`, `canonical_job_url`, `source_job_id`, `company_name`, `parse_search`, `apply_detail`
 
 ### `adapters/buk`
 
