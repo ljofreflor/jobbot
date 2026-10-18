@@ -3305,11 +3305,11 @@ def jobs_discover(
         if country is None:
             adapter.countries = config.search.countries
         else:
-            code = normalize_country(country)
-            if code is None or not _iso_territory(code):
+            country_code = normalize_country(country)
+            if country_code is None or not _iso_territory(country_code):
                 err_console.print(f"[red]{country} is not an ISO 3166 country[/red]")
                 raise typer.Exit(VALIDATION_FAILURE)
-            adapter.countries = (code,)
+            adapter.countries = (country_code,)
     known = adapter.registry_targets(load_companies(config.companies_path))
     targets: list[SiteTarget] = []
     if source == "smartrecruiters" and company and company.strip():
