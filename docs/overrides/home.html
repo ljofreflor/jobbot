@@ -472,7 +472,7 @@
     })();
     (function () {
       var nav = document.querySelector(".jb-cmdnav");
-      if (!nav || !("IntersectionObserver" in window)) return;
+      if (!nav) return;
       var links = nav.querySelectorAll("a[href^='#']");
       var targets = [];
       links.forEach(function (link) {
@@ -489,15 +489,24 @@
           else link.removeAttribute("aria-current");
         });
       }
-      var groupObserver = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (!entry.isIntersecting) return;
-          targets.forEach(function (item) {
-            if (item.heading === entry.target) mark(item.link);
-          });
+      var frame = 0;
+      function place() {
+        frame = 0;
+        var line = 6.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        var chosen = targets[0];
+        targets.forEach(function (item) {
+          if (item.heading.getBoundingClientRect().top <= line + 4) chosen = item;
         });
-      }, { rootMargin: "-20% 0px -65% 0px", threshold: 0 });
-      targets.forEach(function (item) { groupObserver.observe(item.heading); });
+        mark(chosen.link);
+      }
+      function schedule() {
+        if (frame) return;
+        frame = window.requestAnimationFrame(place);
+      }
+      place();
+      window.addEventListener("scroll", schedule, { passive: true });
+      window.addEventListener("resize", schedule);
+      window.addEventListener("hashchange", schedule);
     })();
   </script>
   {{ page.content }}
