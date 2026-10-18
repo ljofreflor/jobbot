@@ -882,6 +882,130 @@ body:has(.jb-hero) .md-tabs {
   padding-bottom: 2rem;
 }
 
+/* Scroll story: sticky terminal, steps in the HTML (no scrollama / GSAP). */
+
+.jb-scrolly {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.85fr);
+  column-gap: 2.5rem;
+  align-items: start;
+  max-width: 68rem;
+  margin: 0 auto 3.5rem;
+  padding: 1rem 0 0;
+}
+
+.jb-scrolly__pin {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: 5.5rem;
+}
+
+.jb-scrolly__steps {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.jb-scrolly h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--jb-font-brand);
+  font-weight: 800;
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+  color: var(--jb-navy);
+}
+
+.jb-scrolly__step {
+  min-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  opacity: 0.38;
+  transition: opacity 0.2s ease;
+}
+
+.jb-scrolly__step.is-active {
+  opacity: 1;
+}
+
+.jb-scrolly__kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jb-cobalt);
+}
+
+.jb-scrolly__step h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--jb-font-brand);
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  color: var(--jb-navy);
+}
+
+.jb-scrolly__step p {
+  margin: 0 0 0.65rem;
+  max-width: 38rem;
+  color: var(--jb-navy-soft);
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.jb-scrolly__echo,
+.jb-scrolly__echo-out {
+  display: none;
+}
+
+.jb-scrolly__stage {
+  min-height: 14rem;
+  padding: 1.15rem 1.2rem 1.3rem;
+  border-radius: 0.65rem;
+  background: var(--jb-term);
+  color: var(--jb-term-text);
+  border: 1px solid rgba(0, 24, 56, 0.55);
+  box-shadow: 0 18px 40px rgba(0, 24, 56, 0.18);
+  font-family: var(--jb-font-mono);
+}
+
+.jb-scrolly__stage-kicker {
+  margin: 0 0 0.85rem;
+  font-family: var(--jb-font-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7eb0ff;
+}
+
+.jb-scrolly__stage-cmd {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #e8eef8;
+  overflow-wrap: anywhere;
+}
+
+.jb-scrolly__prompt {
+  color: var(--jb-prompt);
+  margin-right: 0.45rem;
+  font-weight: 700;
+}
+
+.jb-scrolly__stage-out {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.35rem;
+  border: 1px dashed rgba(0, 88, 248, 0.55);
+  background: rgba(0, 88, 248, 0.1);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #dce6f8;
+}
+
 @media (max-width: 960px) {
   .jb-hero {
     min-height: auto;
@@ -891,6 +1015,34 @@ body:has(.jb-hero) .md-tabs {
     grid-template-columns: 1fr;
     gap: 2rem;
     padding: 2.25rem 0 2.75rem;
+  }
+
+  .jb-scrolly {
+    grid-template-columns: 1fr;
+  }
+
+  .jb-scrolly__pin {
+    position: static;
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 1rem;
+  }
+
+  .jb-scrolly__steps {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .jb-scrolly__step {
+    min-height: 0;
+    opacity: 1;
+    padding: 1.25rem 0;
+    justify-content: flex-start;
+  }
+
+  .jb-scrolly__echo,
+  .jb-scrolly__echo-out {
+    display: block;
   }
 
   .jb-hero__title {
@@ -943,6 +1095,12 @@ body:has(.jb-hero) .md-tabs {
     opacity: 1;
     transform: none;
     max-height: none;
+  }
+
+  .jb-scrolly__step {
+    opacity: 1;
+    min-height: 0;
+    transition: none;
   }
 
   .jb-term__line--hitl {

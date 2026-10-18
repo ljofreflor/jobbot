@@ -1,7 +1,7 @@
 site_name: Jobbot
 site_description: >-
-  Tu próximo paso, con inteligencia. CLI local para buscar trabajo: CV estructurado,
-  matching real y postulaciones que envías tú.
+  Búsqueda mientras programas. CLI local: encontrá dónde publican,
+  prepará sin inventar, postulá con vos al mando.
 site_url: https://ljofreflor.github.io/jobbot/
 site_author: Jobbot
 repo_url: https://github.com/ljofreflor/jobbot
