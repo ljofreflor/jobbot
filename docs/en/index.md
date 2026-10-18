@@ -177,7 +177,7 @@ and Chile / Latam focus in searches and roundups.
 
 </section>
 
-<section class="jb-section jb-section--cmds" markdown="1">
+<section class="jb-section jb-section--cmds jb-cmds-en" markdown="1">
 
 ## The commands {#commands}
 
