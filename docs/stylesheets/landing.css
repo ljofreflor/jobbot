@@ -971,6 +971,34 @@ body:has(.jb-hero) .md-tabs {
   font-family: var(--jb-font-mono);
 }
 
+.jb-scrolly__dots {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 0 0.85rem;
+  padding: 0;
+}
+
+.jb-scrolly__dots i {
+  display: block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: rgba(200, 216, 248, 0.28);
+}
+
+.jb-scrolly__dots i.is-done {
+  background: rgba(0, 88, 248, 0.7);
+}
+
+.jb-scrolly__dots i.is-current {
+  background: #7eb0ff;
+  box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
+}
+
+.jb-scrolly__dots i:nth-child(5) {
+  margin-left: 0.65rem;
+}
+
 .jb-scrolly__stage-kicker {
   margin: 0 0 0.85rem;
   font-family: var(--jb-font-body);
