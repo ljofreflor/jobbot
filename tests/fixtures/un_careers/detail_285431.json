@@ -1,0 +1,23 @@
+{
+  "status": 1,
+  "message": "Updated the view count successfully.",
+  "data": {
+    "jobId": 285431,
+    "jobTitle": "Programme Management Officer (Mental Health)",
+    "postingTitle": "Programme Management Officer (Mental Health), P3",
+    "departmentDescr": "Department of Management Strategy, Policy and Compliance Office of Human Resources",
+    "dutyStation": [
+      {
+        "code": "5252",
+        "description": "BONN"
+      }
+    ],
+    "jobLevel": "P-3",
+    "startDate": "2026-09-25T04:00:00.000Z",
+    "endDate": "2026-10-10T03:59:59.000Z",
+    "inspiraURL": "https://inspira.un.org/psp/PUNA1J/EMPLOYEE/HRMS/c/UN_CUSTOMIZATIONS.UN_JOB_DETAIL.GBL?Action=A&UNAction=Apply&JobOpeningId=285431&languageCd=ENG",
+    "language": "EN",
+    "status": "A",
+    "jobDescription": "<div class='jobPostingDetail'>\n<div class='jobPostingItem'><div class='jobPostingItemTitle'>Org. Setting and Reporting</div><div class='jobPostingItemContent'>This position is located in the Office of Human Resources (OHR) in the Department of Management Strategy, Policy and Compliance (DMSPC) in Bonn. The Programme Officer (Mental Health) reports to the Senior Programme Officer (Mental Health UN System Global Lead).</div></div>\n<div class='jobPostingItem'><div class='jobPostingItemTitle'>Responsibilities</div><div class='jobPostingItemContent'>Within delegated authority, the Programme Officer will be responsible for the following duties under the supervision of the Senior Programme Officer: •Provides technical expertise in the development, implementation, monitoring and evaluation of projects and activities under the UN System Workplace Mental Health and Well-being Strategy; monitors progress, analyzes implementation challenges and prepares regular updates</div></div>\n<div class='jobPostingItem'><div class='jobPostingItemTitle'>Education</div><div class='jobPostingItemContent'>Advanced university degree (Master's degree or equivalent) in a healthcare discipline relevant to mental health services (medicine, nursing, psychology or allied health therapies), public administration, public health/health care (preferably mental health), occupational health, human resources, relevant management or business administration, management, or a related field is required.</div></div>\n</div>"
+  }
+}

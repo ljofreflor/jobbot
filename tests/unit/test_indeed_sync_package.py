@@ -24,6 +24,14 @@ def test_build_indeed_sync_package_from_profile() -> None:
     assert package.experience_blocks
 
 
+def test_indeed_summary_is_the_profile_text_only() -> None:
+    """The Indeed summary is profile.yaml. JobBot must not append a credit line."""
+    candidate = Candidate.model_validate(sample_profile_dict())
+    package = build_indeed_sync_package(candidate)
+    assert "powered by Jobbot sync CV" not in package.summary
+    assert package.summary == (candidate.summary or "").strip()
+
+
 def test_marketing_headline_rejected() -> None:
     assert _looks_like_marketing_headline("¿Tienes todo listo para dar el siguiente paso?")
     assert not _looks_like_marketing_headline("Senior Data Scientist | MSc Estadística")

@@ -1,6 +1,6 @@
 """`jobs discover`: one command, one adapter per public source, a preview before storing.
 
-Each source registers a factory here (Workday first; UN Careers, Greenhouse … later).
+Each source registers a factory here (Workday, UN Careers; Greenhouse … later).
 An adapter turns one site into a `SiteOutcome`; this module decides, per posting, what
 storing would do — so `--dry-run` and the real run print the same table. A site that
 fails is reported and the others continue (#176).
@@ -18,8 +18,11 @@ from jobbot.companies.models import KnowledgeStatus
 from jobbot.companies.registry import CompanyRegistry
 from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, UI_CHANGED
 from jobbot.jobs.closing import ClosingState, closing_state
+from jobbot.jobs.normalization import fold_text
 from jobbot.jobs.repository import StoredJobIndex
 from jobbot.models.job import JobPosting
+
+_REMOTE_WORDS = frozenset({"remote", "remoto", "home based", "homebased"})
 
 
 class SiteStatus(StrEnum):
@@ -49,8 +52,39 @@ class SiteTarget:
     company: str | None = None
 
 
+@dataclass(frozen=True)
+class JobFilters:
+    """``--location`` / ``--level``: local, accent- and case-insensitive, never a source query.
+
+    ``location`` is a substring of the posting's place; "remote" (or "home-based") also
+    keeps postings the source marked remote. ``levels`` are exact grades (``P-3``, ``CON``).
+    """
+
+    location: str | None = None
+    levels: tuple[str, ...] = ()
+
+    @property
+    def active(self) -> bool:
+        return bool(self.location or self.levels)
+
+    def keeps(self, job: JobPosting) -> bool:
+        if self.location:
+            needle = fold_text(self.location)
+            place = fold_text(job.location or "")
+            remote = needle in _REMOTE_WORDS and (job.remote_type or "").casefold() == "remote"
+            if needle not in place and not remote:
+                return False
+        if self.levels:
+            wanted = {fold_text(level) for level in self.levels}
+            if fold_text(job.seniority or "") not in wanted:
+                return False
+        return True
+
+
 class DiscoverAdapter(Protocol):
     name: str
+    default_details: bool
+    """Whether ``--details`` is on when the flag is not given (a read may have a cost)."""
 
     def site_target(self, raw: str) -> SiteTarget:
         """Validate one ``--site`` value; ``ValueError`` with a clear message if not this source."""
@@ -65,6 +99,7 @@ class DiscoverAdapter(Protocol):
         query: str,
         limit: int,
         details: bool,
+        filters: JobFilters | None = None,
     ) -> SiteOutcome: ...
 
 
@@ -95,6 +130,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.workday.jobs import WorkdayDiscover
 
         register_source("workday", WorkdayDiscover)
+    if "un-careers" not in _FACTORIES:
+        from jobbot.adapters.un_careers.jobs import UnCareersDiscover
+
+        register_source("un-careers", UnCareersDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

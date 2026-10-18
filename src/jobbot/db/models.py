@@ -44,6 +44,7 @@ class JobRow(Base):
     open_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
     checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     open_evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    invalid_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ApplicationRow(Base):

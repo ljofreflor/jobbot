@@ -82,6 +82,9 @@ _HOMOLOGATION: dict[ProfileFact, tuple[str, ...]] = {
         "current role",
         "current title",
         "cargo actual",
+        # Indeed labels the resume title «Título» (contact form, headline-input).
+        "título",
+        "title",
     ),
     ProfileFact.LINKEDIN: (
         "linkedin",

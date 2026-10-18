@@ -70,10 +70,10 @@ def test_normalize_command_stabilizes_job_urls() -> None:
         [
             "jobbot",
             "get",
-            "https://cl.indeed.com/viewjob?jk=abc123&from=email&tk=xyz",
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=email&tk=xyz",
         ]
     )
-    assert cmd == "jobbot get https://cl.indeed.com/viewjob?jk=abc123"
+    assert cmd == "jobbot get https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
 
     linkedin = normalize_command(
         ["jobbot", "get", "https://www.linkedin.com/jobs/view/123?trk=flagship"]

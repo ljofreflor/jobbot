@@ -40,6 +40,7 @@ class JobPosting(BaseModel):
     open_status: str | None = None
     checked_at: datetime | None = None
     open_evidence: str | None = None
+    invalid_reason: str | None = None
 
     def validate_url(self) -> None:
         if self.url:

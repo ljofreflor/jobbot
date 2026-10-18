@@ -20,7 +20,7 @@ def test_resolve_tune_ref_accepts_job_id() -> None:
 
 
 def test_resolve_tune_ref_accepts_hard_link() -> None:
-    url = "https://cl.indeed.com/viewjob?jk=abc123"
+    url = "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
     assert resolve_tune_ref(url) == ("url", url)
 
 

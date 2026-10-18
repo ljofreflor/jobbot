@@ -86,9 +86,20 @@ class JobRepository:
             return None
         return _from_row(row)
 
-    def list_all(self) -> list[JobPosting]:
+    def list_all(self, *, include_invalid: bool = False) -> list[JobPosting]:
         rows = self._session.scalars(select(JobRow).order_by(JobRow.id)).all()
-        return [_from_row(r) for r in rows]
+        jobs = [_from_row(r) for r in rows]
+        if include_invalid:
+            return jobs
+        return [job for job in jobs if not job.invalid_reason]
+
+    def mark_invalid(self, job_id: str, reason: str) -> None:
+        row = self._session.get(JobRow, job_id)
+        if row is None:
+            msg = f"Job not found: {job_id}"
+            raise KeyError(msg)
+        row.invalid_reason = reason
+        self._session.commit()
 
     def update_match_score(self, job_id: str, score: float) -> None:
         row = self._session.get(JobRow, job_id)
@@ -210,6 +221,7 @@ def _to_row_fields(job: JobPosting) -> dict[str, object]:
         "open_status": job.open_status,
         "checked_at": job.checked_at,
         "open_evidence": job.open_evidence,
+        "invalid_reason": job.invalid_reason,
     }
 
 
@@ -259,4 +271,5 @@ def _from_row(row: JobRow) -> JobPosting:
         open_status=getattr(row, "open_status", None),
         checked_at=_as_utc(getattr(row, "checked_at", None)),
         open_evidence=getattr(row, "open_evidence", None),
+        invalid_reason=getattr(row, "invalid_reason", None),
     )

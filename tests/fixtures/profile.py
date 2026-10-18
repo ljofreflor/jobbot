@@ -332,6 +332,133 @@ def public_health_profile_dict() -> dict[str, Any]:
     }
 
 
+def surveillance_profile_dict() -> dict[str, Any]:
+    """Public-health profile looking for non-academic roles; the headline is made of degrees.
+
+    Fictitious person, employers and acronyms (#179): a surveillance consultant who has
+    never held a teaching post, written in Spanish, to be read against English postings.
+    """
+    return {
+        "personal": {
+            "name": "Valeria Ejemplo Ficticia",
+            "headline": "Doctora (c) en Ciencias Ficticias · Magíster en Salud Pública",
+            "city": None,
+            "country": "Chile",
+            "email": "valeria.ejemplo@example.com",
+        },
+        "summary": (
+            "Médica veterinaria con experiencia en vigilancia epidemiológica, zoonosis, "
+            "redes de laboratorio y sistemas de información de vigilancia."
+        ),
+        "specialties": ["Vigilancia epidemiológica", "Zoonosis"],
+        "experience": [
+            {
+                "id": "consultoria-sistemas",
+                "company": "Organización Regional de Salud Ficticia",
+                "title": "Consultora en Sistemas de Información de Vigilancia",
+                "location": None,
+                "start_date": "2023-01",
+                "current": True,
+                "achievements": [
+                    {
+                        "id": "consultoria-indicadores",
+                        "text": "Diseñé los indicadores del sistema de información de "
+                        "vigilancia de enfermedades inmunoprevenibles para ocho países.",
+                        "tags": ["sistemas_de_informacion"],
+                        "metrics": {"paises": 8},
+                    }
+                ],
+            },
+            {
+                "id": "red-laboratorios",
+                "company": "Instituto Nacional Ficticio de Diagnóstico",
+                "title": "Coordinadora de Red de Laboratorios",
+                "location": "Chile",
+                "start_date": "2020-03",
+                "end_date": "2022-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "red-covid",
+                        "text": "Coordiné la red nacional de laboratorios de diagnóstico "
+                        "durante la pandemia de COVID-19.",
+                        "tags": ["gestion_de_redes"],
+                        "metrics": {},
+                    }
+                ],
+            },
+            {
+                "id": "epi-regional",
+                "company": "Secretaría Regional Ficticia de Salud",
+                "title": "Epidemióloga de Vigilancia",
+                "location": "Chile",
+                "start_date": "2012-01",
+                "end_date": "2019-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "epi-brotes",
+                        "text": "Lideré la vigilancia epidemiológica de zoonosis y la "
+                        "investigación de brotes en la región.",
+                        "tags": ["vigilancia"],
+                        "metrics": {},
+                    },
+                    {
+                        "id": "epi-notificacion",
+                        "text": "Implementé la notificación electrónica de casos del "
+                        "Programa Integral de Zoonosis (PIZ).",
+                        "tags": ["vigilancia"],
+                        "metrics": {},
+                    },
+                ],
+            },
+            {
+                "id": "municipio-vet",
+                "company": "Municipalidad Ficticia",
+                "title": "Médica Veterinaria",
+                "location": "Chile",
+                "start_date": "2008-01",
+                "end_date": "2011-12",
+                "current": False,
+                "achievements": [],
+            },
+        ],
+        "education": [
+            {
+                "id": "vet",
+                "institution": "Universidad Ficticia del Sur",
+                "degree": "Médica Veterinaria",
+                "start_date": "2002-03",
+                "end_date": "2007-12",
+            },
+            {
+                "id": "magister",
+                "institution": "Universidad Ficticia del Sur",
+                "degree": "Magíster en Salud Pública",
+                "start_date": "2010-03",
+                "end_date": "2011-12",
+            },
+            {
+                "id": "doctorado",
+                "institution": "Universidad Ficticia del Litoral",
+                "degree": "Doctorado en Ciencias Ficticias",
+                "start_date": "2021-03",
+            },
+        ],
+        "skills": {
+            "vigilancia": [
+                "Vigilancia epidemiológica",
+                "Investigación de brotes",
+                "Sistemas de información en salud",
+                "SIVI-SMART",
+            ],
+            "herramientas": ["Epi Info", "QGIS", "R"],
+            "gestion": ["Coordinación interinstitucional", "Gestión de redes"],
+        },
+        "publications": [],
+    }
+
+
 def two_degrees_profile_dict() -> dict[str, Any]:
     """Two degrees from two institutions and two employers, each with its own figure."""
     return {

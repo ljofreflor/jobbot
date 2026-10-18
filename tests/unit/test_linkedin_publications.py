@@ -13,6 +13,22 @@ from jobbot.models.candidate import Candidate, PersonalInfo
 from jobbot.models.skill import Publication
 
 
+def test_linkedin_item_uses_publication_url_when_no_doi() -> None:
+    cand = Candidate(
+        personal=PersonalInfo(name="Alex Rivera", headline="Analyst"),
+        publications=[
+            Publication(
+                id="repo",
+                title="Repository note",
+                url="https://example.org/repos/note",
+                authors=["Alex Rivera"],
+            )
+        ],
+    )
+    items = build_linkedin_publication_items(cand)
+    assert items[0].url == "https://example.org/repos/note"
+
+
 def test_doi_url() -> None:
     assert doi_url("10.3390/e28020207") == "https://doi.org/10.3390/e28020207"
     assert doi_url("https://doi.org/10.1/x") == "https://doi.org/10.1/x"

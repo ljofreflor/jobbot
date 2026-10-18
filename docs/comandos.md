@@ -14,8 +14,10 @@ Para las opciones completas, `jobbot <grupo> <comando> --help`.
 
 | Comando | Qué hace |
 |---------|----------|
-| `init [DIR]` | Crea un workspace frío: `.jobbot.toml` y `.local/` **dentro de DIR** (default: el directorio actual). No usa `$HOME`, `JOBBOT_ROOT` ni el repo del paquete para ubicar `.local/`. `--force` sobrescribe semillas. |
+| `init [DIR]` | Crea un workspace frío: `.jobbot.toml`, `AGENTS.md`, `.local/` y `.gitignore` **dentro de DIR** (default: el directorio actual). No usa `$HOME`, `JOBBOT_ROOT` ni el repo del paquete para ubicar `.local/`. `--force` sobrescribe semillas. |
 | `update` | Reinstala el ejecutable en el `PATH` desde GitHub (`uv tool`). `JOBBOT_REF` / `--ref` eligen rama, tag o SHA. En Docker: actualiza la imagen en el host. |
+| `update --check` | Compara el commit instalado con el último de `main` (`git ls-remote`) sin instalar. Sale con `0` si estás al día, `10` si hay un commit nuevo y `1` si no pudo saberlo. |
+| `update --schedule daily\|off\|status` | Agenda (o quita o muestra) un `jobbot update` diario: LaunchAgent en macOS y crontab en Linux. Si ya estás al día no reinstala; respeta `JOBBOT_AUTO_UPDATE=0` / `[update] auto = false`; no hace nada en Docker. Detalle en [Instalación](instalacion.md#actualizacion-diaria-automatica). |
 | `version` | Muestra la versión de JobBot. |
 
 ```bash
@@ -25,6 +27,9 @@ jobbot init
 # jobbot init ~/postulaciones
 jobbot update
 JOBBOT_REF=v0.1.0 jobbot update
+jobbot update --check                # exit 10 si hay un commit nuevo en main
+jobbot update --schedule daily       # actualización diaria (launchd / crontab)
+jobbot update --schedule status
 ```
 
 ## Perfil
@@ -45,12 +50,13 @@ JOBBOT_REF=v0.1.0 jobbot update
 
 | Comando | Qué hace |
 |---------|----------|
-| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. |
+| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. Con `--job`, `--full` conserva todos los roles y logros y ordena primero, dentro de cada rol, los que el aviso nombra. |
 | `cv propagate` | Reconstruye el CV base y lo propaga a los perfiles permanentes (HITL, dry-run por defecto). |
 
 ```bash
 jobbot cv build --target ats
 jobbot cv build --job J0001
+jobbot cv build --job J0001 --full  # CV largo: nada se descarta
 jobbot cv propagate                 # solo plan
 jobbot cv propagate --apply         # confirma destino por destino
 ```
@@ -63,6 +69,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. |
 | `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
+| `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
 | `jobs check-open [JOB_ID…] [--all] [--dry-run] [--json]` | Vuelve a consultar en línea si cada aviso guardado sigue abierto: `abierto` / `cerrado` / `desconocido`, con motivo y fecha de verificación. `--all` omite los cerrados verificados hace menos de 24 h; `--dry-run` no escribe; `--json` trae la URL completa. Solo lectura. |
@@ -117,6 +124,32 @@ error al verificar un aviso lo deja `desconocido` con el error como motivo y
 Empleos Públicos responde 403 a pedidos automatizados (incluso a su `robots.txt`),
 así que queda `desconocido`. Exit: 0 con cualquier mezcla de estados; 2 sin
 `JOB_ID` ni `--all` o con un ID inexistente; 1 si la base no se puede leer o escribir.
+
+```bash
+# UN Careers: un solo pedido trae todo el feed; la búsqueda y los filtros son locales
+jobbot jobs discover --source un-careers --query "public health" --dry-run
+jobbot jobs discover --source un-careers --query "" --location Santiago --level P-3,NO-B --dry-run
+jobbot jobs discover --source un-careers --query "health" --location remote --details
+```
+
+`--source un-careers` lee `https://careers.un.org/jobfeed` (RSS 2.0, todos los avisos
+vigentes en una respuesta, sin login). Una búsqueda coincide si todas sus palabras
+(sin tildes ni mayúsculas) están en el título, la familia, la red o la oficina; con
+`--query ""` entra todo el feed. Guarda título, organismo (primer tramo de
+«Department/Office»; el valor completo queda en la descripción), lugar de destino,
+nivel (`CON`, `P-3`, `NO-B`, `I-1`…; `CON` es consultoría, `I-` pasantía) y el cierre
+en hora de Nueva York con su zona. Solo «home-based» marca remoto: «Remote Sensing»
+en un título no es modalidad. `--details` (apagado por defecto) pide el texto de cada
+aviso filtrado a la API pública del portal, una vez por aviso y a 1 pedido/s; cada
+lectura suma una visita al aviso. Si el `endDate` del detalle difiere del feed, gana
+el detalle y queda anotado. Postular es en Inspira, con cuenta: JobBot no entra.
+`robots.txt` hoy devuelve la página de la app (sin reglas); si algún día publica un
+`Disallow` para el feed, la fuente se niega antes de pedirlo.
+
+ReliefWeb ([#247](https://github.com/ljofreflor/jobbot/issues/247)) no es una fuente
+todavía: su API v2 exige un `appname` aprobado por ReliefWeb (sin él responde 400; con
+uno no aprobado, 403) y su sitio y RSS responden con un desafío anti-bot. Queda a la
+espera de ese `appname`.
 
 ## Postulaciones
 

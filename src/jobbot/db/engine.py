@@ -22,6 +22,7 @@ _JOB_EXTRA_COLUMNS: dict[str, str] = {
     "open_status": "VARCHAR(16)",
     "checked_at": "DATETIME",
     "open_evidence": "TEXT",
+    "invalid_reason": "TEXT",
 }
 
 

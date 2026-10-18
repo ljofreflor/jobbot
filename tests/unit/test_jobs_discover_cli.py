@@ -273,3 +273,186 @@ def test_job_source_search_and_get_by_url(monkeypatch: pytest.MonkeyPatch) -> No
     assert one.closes_text is not None
     with pytest.raises(ValueError):
         source.get_job("J0001")
+
+
+# --- un-careers (#233) -------------------------------------------------------------------
+
+UN_NOW = datetime(2026, 10, 9, 12, 0, tzinfo=UTC)
+
+
+def _run_un(*args: str) -> int:
+    from jobbot.cli import run_cli
+
+    return run_cli(["jobs", "discover", "--source", "un-careers", *args], standalone_mode=False)
+
+
+@pytest.fixture
+def un_workspace(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setattr("jobbot.jobs.closing.utc_now", lambda: UN_NOW)
+    return workspace
+
+
+def test_un_careers_dry_run_shows_entity_place_level_closing_and_writes_nothing(
+    un_workspace: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers
+    from tests.fixtures.un_careers_http import install as install_un
+
+    fake = install_un(monkeypatch, FakeUnCareers())
+
+    code = _run_un("--query", "public health", "--dry-run")
+
+    out = plain_cli_text(capsys.readouterr().out)
+    assert code == SUCCESS
+    assert "un-careers: 1 avisos (dry-run)" in out
+    for cell in ("Public Health", "Office for the", "HOME BASED", "remoto", "CON", "2026-10-30"):
+        assert cell in out
+    assert "23:59" in out and "(UTC-04:00)" in out
+    assert "Dry-run: 1 guardar. Nothing written." in out
+    assert fake.paths() == ["/robots.txt", "/jobfeed"]
+    assert not (un_workspace / "data" / "jobbot.sqlite").exists()
+    assert not (un_workspace / "data" / "companies.yaml").exists()
+    assert not (un_workspace / "output" / "jobs").exists()
+
+
+def test_un_careers_store_then_rediscover_updates_without_duplicating(
+    un_workspace: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers
+    from tests.fixtures.un_careers_http import install as install_un
+
+    install_un(monkeypatch, FakeUnCareers())
+
+    assert _run_un("--query", "health") == SUCCESS
+    first = _stored(un_workspace)
+    capsys.readouterr()
+    assert _run_un("--query", "health", "--dry-run") == SUCCESS
+    preview = plain_cli_text(capsys.readouterr().out)
+    assert _run_un("--query", "health") == SUCCESS
+
+    assert sorted(first) == ["283080", "285431", "900001"]
+    assert sorted(_stored(un_workspace)) == sorted(first)
+    assert "actualizar J0001" in preview
+    assert "cierra pronto" in preview
+    job_json = json.loads(
+        (un_workspace / "output" / "jobs" / "J0001" / "job.json").read_text(encoding="utf-8")
+    )
+    assert job_json["source"] == "un_careers"
+    assert job_json["closes_at"] == "2026-10-09T23:59:59-04:00"
+
+
+def test_un_careers_expired_deadline_is_not_stored(
+    un_workspace: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers
+    from tests.fixtures.un_careers_http import install as install_un
+
+    monkeypatch.setattr(
+        "jobbot.jobs.closing.utc_now", lambda: datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
+    )
+    install_un(monkeypatch, FakeUnCareers())
+
+    assert _run_un("--query", "mental health") == SUCCESS
+
+    assert "cierre vencido" in plain_cli_text(capsys.readouterr().out)
+    assert _stored(un_workspace) == []
+
+
+def test_un_careers_location_and_level_filters(
+    un_workspace: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers
+    from tests.fixtures.un_careers_http import install as install_un
+
+    install_un(monkeypatch, FakeUnCareers())
+
+    assert _run_un("--query", "", "--location", "santiago", "--dry-run") == SUCCESS
+    santiago = plain_cli_text(capsys.readouterr().out)
+    assert _run_un("--query", "", "--level", "NO-B", "--level", "I-1", "--dry-run") == SUCCESS
+    graded = plain_cli_text(capsys.readouterr().out)
+
+    assert "un-careers: 1 avisos" in santiago and "SANTIAGO" in santiago
+    assert "un-careers: 2 avisos" in graded and "ULAN BATOR" in graded
+
+
+def test_un_careers_details_read_one_detail_per_filtered_posting(
+    un_workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers, fixture_text
+    from tests.fixtures.un_careers_http import install as install_un
+
+    fake = install_un(
+        monkeypatch, FakeUnCareers(details={"285431": (200, fixture_text("detail_285431.json"))})
+    )
+
+    assert _run_un("--query", "mental health", "--details", "--dry-run") == SUCCESS
+
+    assert fake.detail_calls == ["/api/public/opening/jo/285431/en"]
+
+
+@pytest.mark.parametrize(
+    ("feed", "feed_status", "expected"),
+    [
+        ("jobfeed_broken.xml", 200, UI_CHANGED),
+        ("jobfeed.xml", 500, GENERIC_FAILURE),
+        ("jobfeed_empty.xml", 200, SUCCESS),
+    ],
+)
+def test_un_careers_exit_codes(
+    un_workspace: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    feed: str,
+    feed_status: int,
+    expected: int,
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers, fixture_text
+    from tests.fixtures.un_careers_http import install as install_un
+
+    install_un(monkeypatch, FakeUnCareers(feed=fixture_text(feed), feed_status=feed_status))
+
+    assert _run_un("--query", "x") == expected
+
+
+def test_un_careers_robots_disallow_makes_no_feed_request(
+    un_workspace: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers, fixture_text
+    from tests.fixtures.un_careers_http import install as install_un
+
+    fake = install_un(
+        monkeypatch,
+        FakeUnCareers(robots=fixture_text("robots_disallow.txt"), robots_type="text/plain"),
+    )
+
+    assert _run_un("--query", "x", "--dry-run") == GENERIC_FAILURE
+    assert fake.paths() == ["/robots.txt"]
+    assert "bloqueado: robots" in plain_cli_text(capsys.readouterr().out)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--query", "x", "--level", ""),
+        ("--query", "x", "--level", "CON,"),
+        ("--query", "x", "--location", " "),
+        ("--query", "x", "--site", "https://jobs.unicef.org/en-us/listing/"),
+    ],
+)
+def test_un_careers_invalid_flags_fail_before_any_request(
+    un_workspace: Path, monkeypatch: pytest.MonkeyPatch, args: tuple[str, ...]
+) -> None:
+    from tests.fixtures.un_careers_http import FakeUnCareers
+    from tests.fixtures.un_careers_http import install as install_un
+
+    fake = install_un(monkeypatch, FakeUnCareers())
+
+    assert _run_un(*args) == VALIDATION_FAILURE
+    assert fake.calls == []
+
+
+def test_sources_list_includes_un_careers() -> None:
+    from jobbot.jobs.discover import discover_adapter, source_names
+
+    assert "un-careers" in source_names()
+    assert discover_adapter("un-careers").default_details is False
+    assert discover_adapter("workday").default_details is True
