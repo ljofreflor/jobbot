@@ -9,7 +9,7 @@ import pytest
 
 from jobbot.adapters.getonboard.cv_upload import FILE_INPUT, RESUMES_URL, SUBMIT_BUTTON
 from jobbot.adapters.getonboard.profile_edit import FIELDS
-from jobbot.exit_codes import SUCCESS
+from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS
 
 SPANISH = (
     "Soy parte del equipo y trabajo con la comunidad para mejorar "
@@ -49,17 +49,20 @@ class _Description:
 
 
 class FakePage:
-    def __init__(self, *, flip: bool) -> None:
+    def __init__(self, *, flip: bool, parse_lag: int = 0, parsing_left: int = 2) -> None:
         self.description = SPANISH
         self.flip = flip
-        self.parsing_left = 2
+        self.parse_lag = parse_lag
+        self.parsing_left = parsing_left
         self.uploaded: list[str] = []
         self.url = "about:blank"
+        self.visited: list[str] = []
         self.filled: dict[str, str] = {}
         self.checked: list[str] = []
 
     def goto(self, url: str, **_: Any) -> None:
         self.url = url
+        self.visited.append(url)
 
     def wait_for_timeout(self, _timeout: float) -> None:
         return None
@@ -81,6 +84,9 @@ class FakePage:
 
     def content(self) -> str:
         body = "<div class='resume-item'>CV base</div>"
+        if self.parse_lag:
+            self.parse_lag -= 1
+            return body
         if self.parsing_left:
             self.parsing_left -= 1
             return f"Estamos leyendo tu último CV {body}"
@@ -163,3 +169,39 @@ def test_upload_apply_with_no_change_records_no_overwrite(
     assert "quedó en inglés" not in out
     assert "sin sobrescritura" in out
     assert "sin sobrescritura" in receipt
+
+
+def test_parse_wait_polls_the_profile_until_the_reading_marker_is_gone() -> None:
+    from jobbot.adapters.getonboard.cv_upload import wait_for_cv_parse
+    from jobbot.adapters.getonboard.profile_edit import GOB_EDIT_URL
+
+    page = FakePage(flip=False, parse_lag=2, parsing_left=2)
+
+    assert wait_for_cv_parse(page) is True
+    # Two looks before the portal started reading, two while it read, one after.
+    assert page.visited == [GOB_EDIT_URL] * 5
+
+
+def test_upload_apply_keeps_the_receipt_when_the_parse_never_settles(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pdf = _workspace(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        "jobbot.cli._getonboard_session",
+        lambda *_a, **_k: _Session(FakePage(flip=False, parsing_left=10_000)),
+    )
+    from jobbot.cli import run_cli
+
+    code = run_cli(
+        ["getonboard", "upload-cv", "--apply", "--yes", "--cv", str(pdf)],
+        standalone_mode=False,
+    )
+    receipt = (tmp_path / "output" / "getonboard" / "cv_upload_receipt.yaml").read_text(
+        encoding="utf-8"
+    )
+
+    assert code == GENERIC_FAILURE
+    # The PDF is on the portal, so the hash is recorded and a retry is not a first upload.
+    assert "sobrescritura desconocida" in receipt
+    assert pdf.name in receipt or "CV base" in receipt
