@@ -945,6 +945,16 @@ body:has(.jb-hero) .md-tabs {
   color: var(--jb-navy);
 }
 
+/* Same three groups as .jb-cmdnav__story: headings that hold a story row. */
+.jb-section--cmds h3#cmd-cv,
+.jb-section--cmds h3#cmd-vacantes,
+.jb-section--cmds h3#cmd-postulaciones,
+.jb-section--cmds h3#cmd-vacancies,
+.jb-section--cmds h3#cmd-applications {
+  padding-left: 0.65rem;
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.45);
+}
+
 /* Material sets :target { --md-scroll-margin: 3.6rem }, which lands under the sticky group bar. */
 body:has(.jb-hero) .md-typeset .jb-section--cmds :target {
   --md-scroll-margin: 10rem;
