@@ -1,0 +1,35 @@
+{
+  "jobs": [
+    {
+      "id": 1,
+      "title": "  Program lead  ",
+      "location": {
+        "name": "Santiago, Chile"
+      },
+      "company_name": "Acme",
+      "first_published": "2026-10-01T12:00:00Z",
+      "application_deadline": "2026-12-01T23:59:59Z",
+      "absolute_url": "https://careers.acme-demo.cl/jobs/1?gh_jid=123&utm_source=x",
+      "content": "&lt;p&gt;Hola equipo&lt;/p&gt;",
+      "offices": [],
+      "metadata": []
+    },
+    {
+      "id": 2,
+      "title": "Remote analyst",
+      "location": {
+        "name": "Remote"
+      },
+      "company_name": "Acme",
+      "first_published": "2026-10-01T12:00:00Z",
+      "application_deadline": "2026-01-01T00:00:00Z",
+      "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/2",
+      "content": "&lt;p&gt;Remote work&lt;/p&gt;",
+      "offices": [],
+      "metadata": []
+    }
+  ],
+  "meta": {
+    "total": 2
+  }
+}

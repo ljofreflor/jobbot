@@ -174,6 +174,10 @@ class StoredJobIndex:
     def from_repository(cls, repo: JobRepository) -> StoredJobIndex:
         return cls([(j.id, j.source, j.source_job_id, j.url) for j in repo.list_all()])
 
+    def ids_for(self, source: str) -> set[str]:
+        """Stored ``source_job_id`` values for one source."""
+        return {job_id for (stored, job_id) in self._by_source if stored == source}
+
     def lookup(self, job: JobPosting) -> str | None:
         if job.source_job_id:
             found = self._by_source.get((job.source, job.source_job_id))
