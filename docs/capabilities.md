@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 210 modules, 1185 public symbols.
+129 commands, 211 modules, 1187 public symbols.
 
 ## Commands
 
@@ -68,6 +68,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs check-open` — Re-check online whether stored postings are still open (read-only; unknown if unsure).
 - `jobbot jobs conditions` — Review a posting's special conditions against you before applying (exit 1: dealbreaker).
+- `jobbot jobs describe` — Replace one stored posting's description. The id, URL, note and application stay.
 - `jobbot jobs digest` — Shareable summary of new open postings (WhatsApp or Markdown). Sends nothing.
 - `jobbot jobs discover` — Discover postings through a public source; --dry-run previews without writing.
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
@@ -404,6 +405,7 @@ writing it again — the promotion rule lives in
 - `gateway.py` — Optional LLM gateway — deterministic first; LLM only inside promoted functions. · `LlmOutcome`, `llm_extras_available`, `build_chat_model`, `run_optional_llm`
 - `langchain_refine.py` — Optional LangChain-backed cumulative refine (facts from Candidate only). · `LangChainProfileRefiner`
 - `refine.py` — Cumulative text refinement for portal profile blurbs. · `ProfileTextRefiner`, `RefineResult`, `refine_permanent_profile`, `CumulativeProfileRefiner`
+- `sentences.py` — Sentence boundaries that keep an abbreviation in the same sentence. · `is_abbreviation`, `split_sentences`
 
 ### `ops`
 
