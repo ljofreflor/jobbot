@@ -927,6 +927,15 @@ body:has(.jb-hero) .md-tabs {
   background: rgba(0, 88, 248, 0.14);
 }
 
+/* Groups that hold a postular/presencia story row (CV, vacancies, applications). */
+.jb-cmdnav a.jb-cmdnav__story {
+  box-shadow: inset 0 -2px 0 rgba(0, 88, 248, 0.35);
+}
+
+.jb-cmdnav a.jb-cmdnav__story.is-current {
+  box-shadow: inset 0 -2px 0 var(--jb-cobalt);
+}
+
 .jb-section--cmds h3 {
   margin: 1.6rem 0 0.55rem;
   scroll-margin-top: 6.5rem;
