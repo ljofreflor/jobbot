@@ -52,4 +52,4 @@ class CornerstoneDiscover:
         filters: JobFilters | None = None,
     ) -> SiteOutcome:
         del query, limit, details, filters
-        return SiteOutcome(site=target.url, status=SiteStatus.ROBOTS, detail=refusal(target.url))
+        return SiteOutcome(site=target.url, status=SiteStatus.TOKEN, detail=refusal(target.url))

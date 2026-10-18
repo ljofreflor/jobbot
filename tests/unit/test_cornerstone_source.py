@@ -55,6 +55,8 @@ def test_discover_refuses_without_opening_a_socket(
     assert code == 2
     assert "requires session token" in captured.out
     assert "jobs add --file" in captured.out
+    assert "bloqueado: token de sesión" in captured.out
+    assert "bloqueado: robots" not in captured.out
 
 
 def test_an_empty_site_is_rejected(
