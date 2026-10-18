@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 186 modules, 1085 public symbols.
+128 commands, 189 modules, 1102 public symbols.
 
 ## Commands
 
@@ -62,14 +62,14 @@ writing it again — the promotion rule lives in
 - `jobbot indeed sync` — Dry-run or apply Indeed sync; --section preferences plans titles and salary.
 - `jobbot indeed upload-cv` — Replace the Indeed PDF when its hash differs from the last receipt.
 - `jobbot init` — Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone).
-- `jobbot jobs add` — Add a job posting from a text file or stdin (manual fallback).
+- `jobbot jobs add` — Add a job posting from a text file, stdin, or a public PDF URL.
 - `jobbot jobs admissibility` — Admissibility of a stored posting against the profile (offline). Sends nothing.
 - `jobbot jobs audit` — List (or mark) stored Indeed decoys and title/company duplicates (#211).
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs check-open` — Re-check online whether stored postings are still open (read-only; unknown if unsure).
 - `jobbot jobs conditions` — Review a posting's special conditions against you before applying (exit 1: dealbreaker).
 - `jobbot jobs digest` — Shareable summary of new open postings (WhatsApp or Markdown). Sends nothing.
-- `jobbot jobs discover` — Discover postings through a source's public API; --dry-run previews without writing.
+- `jobbot jobs discover` — Discover postings through a public source; --dry-run previews without writing.
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
 - `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
@@ -151,6 +151,7 @@ writing it again — the promotion rule lives in
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
 - `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
+- `pdf_text.py` — Text layer of a PDF, shared by postings. The CV importer keeps its own path reader. · `PdfTextError`, `text_from_pdf_bytes`
 - `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `CheckResult`, `InstallInfo`, `update_jobbot`, `docker_hint`, `parse_direct_url`, `read_direct_url`, `installed_info`, `parse_ls_remote`, `latest_commit`, `short_commit`, `check_for_update`
 - `self_update_schedule.py` — Daily ``jobbot update`` via the user's scheduler (launchd on macOS, crontab on Linux). · `ScheduleAction`, `ScheduleSpec`, `ScheduleResult`, `ScheduleStatus`, `backend_for`, `plist_path`, `log_path`, `scheduled_path_env`, `build_launchd_plist`, `build_cron_line`, `merge_crontab`, `auto_update_opt_out`, `user_config_path`, `resolve_binary`, `Scheduler`, `ScheduledRun`, `run_scheduled_update`
 - `vault.py` — Local opt-in credential vault — hygiene, not encryption (#157). · `VaultError`, `VaultPermissionError`, `VaultMissingError`, `VaultEntry`, `Vault`, `vault_path`, `normalize_site`, `secret_needles`, `can_type_password`, `load_vault`, `require_vault`, `init_vault`, `put_entry`, `delete_entry`, `set_fill_login`, `needles_for_profile`, `redact_known_secrets`
@@ -317,6 +318,8 @@ writing it again — the promotion rule lives in
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `stem_word`, `cognate_key`, `concept_of`, `WordIndex`, `normalize_many`
 - `open_signals.py` — What a job board itself publishes about a posting still taking applicants. · `OpenStatus`, `Signal`, `trabajando_offer_id`, `read_trabajando`, `is_chiletrabajos`, `read_chiletrabajos`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `degree_fields`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
+- `pdf_index.py` — List PDF links on one public page. Same host only; nothing is downloaded. · `fetch_page`, `matching_pdfs`
+- `pdf_posting.py` — Turn a public bases PDF into one posting. No OCR, no stored bytes. · `NotAPdf`, `PdfAddError`, `PdfNoText`, `PdfClosed`, `PdfFetchError`, `PdfBlocked`, `PublicBody`, `PdfDraft`, `fetch_public`, `looks_like_pdf`, `posting_identity`, `job_from_public`, `job_from_body`
 - `repository.py` — Job persistence repository. · `JobRepository`, `StoredJobIndex`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
 
