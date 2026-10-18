@@ -225,3 +225,101 @@ def test_business_to_business_sales_is_not_a_contract() -> None:
         description="Requisitos:\n- Experiencia en ventas B2B.\n",
     )
     assert not _kind(posting_conditions(job), ConditionKind.CONTRACT)
+
+
+CONDITION_FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "conditions"
+
+
+def _conditions_fixture(name: str) -> JobPosting:
+    return parse_job_text((CONDITION_FIXTURES / name).read_text(encoding="utf-8"), job_id="J2810")
+
+
+def test_mixed_language_markers_per_clause() -> None:
+    job = JobPosting(
+        id="J2811",
+        title="Advisor",
+        company="Neutral Org",
+        description="Requirements:\nEnglish required; French or Portuguese desirable\n",
+    )
+    langs = _kind(posting_conditions(job), ConditionKind.LANGUAGE)
+    by_code = {c.language: c for c in langs}
+    assert by_code["en"].mandatory is True
+    assert by_code["fr"].mandatory is False
+    assert by_code["pt"].mandatory is False
+
+
+def test_latin_america_does_not_invent_la_language() -> None:
+    job = JobPosting(
+        id="J2812",
+        title="Advisor",
+        company="Neutral Org",
+        description="Experience working across Latin America; English C1\n",
+    )
+    langs = _kind(posting_conditions(job), ConditionKind.LANGUAGE)
+    codes = {c.language for c in langs}
+    assert codes == {"en"}
+    assert langs[0].level == "C1"
+
+
+def test_organization_tenure_is_not_candidate_seniority() -> None:
+    job = JobPosting(
+        id="J2813",
+        title="Advisor",
+        company="Neutral Org",
+        description=(
+            "The organization, with 40+ years of experience in the region, supports programs.\n"
+        ),
+    )
+    assert not _kind(posting_conditions(job), ConditionKind.SENIORITY)
+
+
+def test_experience_range_uses_minimum() -> None:
+    job = JobPosting(
+        id="J2814",
+        title="Advisor",
+        company="Neutral Org",
+        description="Requirements:\n5 to 10 years of experience in public health programs\n",
+    )
+    seniority = _kind(posting_conditions(job), ConditionKind.SENIORITY)
+    assert len(seniority) == 1
+    assert seniority[0].detail == "5-10 years"
+
+
+def test_headings_and_ethics_are_not_requirements() -> None:
+    job = JobPosting(
+        id="J2815",
+        title="Advisor",
+        company="Neutral Org",
+        description=(
+            "Requirements:\nEducation:\n"
+            "All staff must adhere to our code of conduct and declaration of ethics.\n"
+        ),
+    )
+    conditions = posting_conditions(job)
+    assert not _kind(conditions, ConditionKind.REQUIREMENT)
+    assert _kind(conditions, ConditionKind.INSTRUCTION)
+
+
+def test_remote_with_office_negation_stays_remote() -> None:
+    job = JobPosting(
+        id="J2816",
+        title="Advisor",
+        company="Neutral Org",
+        description="This is a fully remote position; no office presence is required.\n",
+    )
+    modality = _kind(posting_conditions(job), ConditionKind.MODALITY)
+    assert len(modality) == 1
+    assert modality[0].modality == "remote"
+
+
+def test_salary_on_next_line_after_label() -> None:
+    job = JobPosting(
+        id="J2817",
+        title="Advisor",
+        company="Neutral Org",
+        description="Salary:\nUSD 25,000 per year\n",
+    )
+    salary = _kind(posting_conditions(job), ConditionKind.SALARY)
+    assert len(salary) == 1
+    assert salary[0].shown is True
+    assert "USD 25,000" in (salary[0].detail or "")

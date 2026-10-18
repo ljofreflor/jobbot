@@ -154,10 +154,33 @@ _INSTRUCTION = re.compile(
     r"send (us )?(your )?(cv|resume)|envia(r|nos)? (tu |su )?(cv|curriculum)|"
     r"apply (via|through|by|at)|postula(r)? (a traves|via|por|en el|en la)|cover letter|"
     r"carta de presentacion|portfolio|portafolio|\bsubject\b|\basunto\b|"
-    r"appl(y|ying) in|postular en|(cv|resume) (in|en) "
+    r"appl(y|ying) in|postular en|(cv|resume) (in|en) |"
+    r"code of conduct|declaration of ethics|declaracion de etica|"
+    r"complete your profile|completar (tu |su )?perfil|validacion de titulos|"
+    r"recognition of (your )?degree|periodo de prueba|probation period|"
+    r"only shortlisted candidates will be contacted"
 )
 _YEARS = re.compile(r"(\d{1,2})\s*\+?\s*(?:anos|years?|yrs)\b")
+_YEARS_RANGE = re.compile(
+    r"(\d{1,2})\s*(?:to|–|-|—|a|hasta)\s*(\d{1,2})\s*(?:anos|years?|yrs)\b"
+)
 _EXPERIENCE = re.compile(r"experien")
+_CANDIDATE_SENIORITY = re.compile(
+    r"\b(at least|minimum|minimo|al menos|you have|must have|"
+    r"experiencia (profesional|laboral) de)\b"
+)
+_ORG_SENIORITY = re.compile(
+    r"\b(organization|organisation|our (team|company|firm)|we have|"
+    r"with \d+\+?\s*(?:anos|years?|yrs) of experience in the region)\b"
+)
+_LANG_GEO_AFTER = re.compile(
+    r"^\s*(america|american|americano|americana|region|regional)\b"
+)
+_REMOTE_NEGATION = re.compile(
+    r"\bno office presence|not on site|not in office|sin asistencia presencial|"
+    r"100% remoto|fully remote position\b"
+)
+_CLAUSE_SPLIT = re.compile(r"\s*[;.]\s+|\s+(?:\band\b|\by/o\b|\by\b)\s+(?=\S)")
 
 _DEADLINE = re.compile(
     r"(fecha limite|deadline|postula hasta|postulaciones hasta|apply by|applications close|"
@@ -228,10 +251,19 @@ def _language_pattern() -> re.Pattern[str]:
     return re.compile(r"(?<![a-z])(" + "|".join(re.escape(a) for a in alternatives) + r")(?![a-z])")
 
 
+def _language_match_ok(folded: str, match: re.Match[str]) -> bool:
+    tail = folded[match.end() :]
+    if _LANG_GEO_AFTER.match(tail):
+        return False
+    if match.group(1) == "latin" and re.match(r"^\s*america\b", tail):
+        return False
+    return True
+
+
 def language_mentions(text: str) -> list[tuple[str, str | None]]:
     """(ISO code, CEFR level or None) for each language a line names, levels kept apart."""
     folded = _fold(text)
-    matches = list(_language_pattern().finditer(folded))
+    matches = [m for m in _language_pattern().finditer(folded) if _language_match_ok(folded, m)]
     out: list[tuple[str, str | None]] = []
     if len(matches) == 1:
         code = _language_names()[matches[0].group(1)]
@@ -247,6 +279,15 @@ def language_mentions(text: str) -> list[tuple[str, str | None]]:
         if all(code != seen for seen, _ in out):
             out.append((code, level))
     return out
+
+
+def _clauses(line: str) -> list[str]:
+    parts: list[str] = []
+    for chunk in _CLAUSE_SPLIT.split(line):
+        piece = chunk.strip(" -–:,.;()")
+        if piece:
+            parts.append(piece)
+    return parts or [line]
 
 
 def _flag(folded: str) -> bool | None:
@@ -299,24 +340,28 @@ def _residency(line: str, folded: str) -> Condition | None:
 
 
 def _languages(line: str, folded: str, flag: bool | None) -> list[Condition]:
-    mentions = language_mentions(line)
-    if not mentions:
-        return []
-    instruction = bool(_INSTRUCTION.search(folded))
-    has_cue = bool(_LEVEL_CUE.search(folded)) or _flag(folded) is not None
-    out = []
-    for code, level in mentions:
-        if level is None and (instruction or not has_cue):
+    out: list[Condition] = []
+    for clause in _clauses(line):
+        cf = _fold(clause)
+        mentions = language_mentions(clause)
+        if not mentions:
             continue
-        out.append(
-            Condition(
-                kind=ConditionKind.LANGUAGE,
-                source=line,
-                language=code,
-                level=level,
-                mandatory=_flag(folded) if _flag(folded) is not None else flag,
+        instruction = bool(_INSTRUCTION.search(cf))
+        clause_flag = _flag(cf)
+        effective = clause_flag if clause_flag is not None else flag
+        has_cue = bool(_LEVEL_CUE.search(cf)) or clause_flag is not None
+        for code, level in mentions:
+            if level is None and (instruction or not has_cue):
+                continue
+            out.append(
+                Condition(
+                    kind=ConditionKind.LANGUAGE,
+                    source=line,
+                    language=code,
+                    level=level,
+                    mandatory=effective,
+                )
             )
-        )
     return out
 
 
@@ -332,10 +377,13 @@ def _contract_value(folded: str) -> str | None:
     return None
 
 
-def _salary(line: str, folded: str) -> Condition | None:
+def _salary(line: str, folded: str, *, next_line: str | None = None) -> Condition | None:
     label = _SALARY_LABEL.match(folded)
     if label is not None:
         value = line.split(":", 1)[1].strip(" .;") if ":" in line else ""
+        if not value and next_line:
+            value = next_line.strip(" .;")
+            folded = _fold(f"{line} {next_line}")
         if _SALARY_HIDDEN.search(folded) or not re.search(r"\d", value):
             return Condition(kind=ConditionKind.SALARY, source=line, shown=False, detail=value)
         return Condition(kind=ConditionKind.SALARY, source=line, shown=True, detail=value)
@@ -351,6 +399,8 @@ def _salary(line: str, folded: str) -> Condition | None:
 
 
 def _modality_value(folded: str) -> str | None:
+    if _REMOTE_NEGATION.search(folded) or re.search(r"\b100\s*%\s*remot", folded):
+        return "remote"
     if _HYBRID.search(folded):
         return "hybrid"
     onsite = bool(_ONSITE.search(folded))
@@ -364,7 +414,39 @@ def _modality_value(folded: str) -> str | None:
     return None
 
 
-def _line_conditions(line: str, folded: str, flag: bool | None) -> list[Condition]:
+def _seniority(line: str, folded: str, *, in_requirements: bool) -> Condition | None:
+    if _ORG_SENIORITY.search(folded) and not _CANDIDATE_SENIORITY.search(folded):
+        return None
+    if not in_requirements and not _CANDIDATE_SENIORITY.search(folded):
+        return None
+    if not _EXPERIENCE.search(folded):
+        return None
+    range_match = _YEARS_RANGE.search(folded)
+    if range_match is not None:
+        low, high = range_match.group(1), range_match.group(2)
+        return Condition(
+            kind=ConditionKind.SENIORITY,
+            source=line,
+            detail=f"{low}-{high} years",
+        )
+    years = _YEARS.search(folded)
+    if years is None:
+        return None
+    return Condition(
+        kind=ConditionKind.SENIORITY,
+        source=line,
+        detail=f"{years.group(1)}+ years",
+    )
+
+
+def _line_conditions(
+    line: str,
+    folded: str,
+    flag: bool | None,
+    *,
+    next_line: str | None = None,
+    in_requirements: bool = False,
+) -> list[Condition]:
     """Every non-requirement condition one line states."""
     out: list[Condition] = []
     deadline = _DEADLINE.search(_fold(line, keep_hyphens=True))
@@ -388,7 +470,7 @@ def _line_conditions(line: str, folded: str, flag: bool | None) -> list[Conditio
     contract = _contract_value(folded)
     if contract is not None:
         out.append(Condition(kind=ConditionKind.CONTRACT, source=line, contract=contract))
-    salary = _salary(line, folded)
+    salary = _salary(line, folded, next_line=next_line)
     if salary is not None:
         out.append(salary)
     modality = _modality_value(folded)
@@ -396,13 +478,9 @@ def _line_conditions(line: str, folded: str, flag: bool | None) -> list[Conditio
         out.append(Condition(kind=ConditionKind.MODALITY, source=line, modality=modality))
     if _AVAILABILITY.search(folded):
         out.append(Condition(kind=ConditionKind.AVAILABILITY, source=line))
-    years = _YEARS.search(folded)
-    if years is not None and _EXPERIENCE.search(folded):
-        out.append(
-            Condition(
-                kind=ConditionKind.SENIORITY, source=line, detail=f"{years.group(1)}+ years"
-            )
-        )
+    seniority = _seniority(line, folded, in_requirements=in_requirements)
+    if seniority is not None:
+        out.append(seniority)
     if _INSTRUCTION.search(folded):
         mentions = language_mentions(line)
         out.append(
@@ -435,6 +513,11 @@ def _heading_flag(line: str, folded: str) -> tuple[bool, bool | None]:
 
 
 def _requirement(line: str, folded: str, flag: bool | None) -> Condition | None:
+    is_heading, _ = _heading_flag(line, folded)
+    if is_heading:
+        return None
+    if _INSTRUCTION.search(folded):
+        return None
     own = _flag(folded)
     mandatory = own if own is not None else flag
     if mandatory is None:
@@ -451,12 +534,9 @@ def _text_conditions(text: str) -> list[Condition]:
     out: list[Condition] = []
     section: bool | None = None
     items_in_section = 0
-    for raw_line in text.splitlines():
-        stripped = raw_line.strip()
-        if not stripped:
-            if items_in_section:
-                section, items_in_section = None, 0
-            continue
+    lines = [ln.strip() for ln in text.splitlines()]
+    non_empty = [ln for ln in lines if ln]
+    for index, stripped in enumerate(non_empty):
         is_bullet = bool(_BULLET.match(stripped))
         line = _BULLET.sub("", stripped).strip()
         folded = _fold(line)
@@ -466,13 +546,24 @@ def _text_conditions(text: str) -> list[Condition]:
             is_bullet or len(line.split()) <= _MAX_ITEM_WORDS
         )
         flag = section if in_section else None
-        found = _line_conditions(line, folded, flag)
+        next_line = non_empty[index + 1] if index + 1 < len(non_empty) else None
+        in_requirements = section is True
+        found = _line_conditions(
+            line,
+            folded,
+            flag,
+            next_line=next_line,
+            in_requirements=in_requirements,
+        )
         if found:
             out.extend(found)
             items_in_section += 1 if in_section else 0
             continue
         is_heading, heading_flag = _heading_flag(line, folded)
         if is_heading and not is_bullet:
+            bare = _fold(_strip_markers(line))
+            if heading_flag is None and _GENERIC_HEADING.match(bare):
+                heading_flag = True
             section, items_in_section = heading_flag, 0
             continue
         if section is not None and not in_section:
