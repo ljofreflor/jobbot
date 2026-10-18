@@ -165,6 +165,10 @@ def _fetch_job(
             f"text into a file and run `jobbot jobs add --file ficha.txt --url {portal.url}`."
         )
         raise PortalDisallowedError(msg)
+    if portal.ats_kind == AtsKind.READY:
+        from jobbot.adapters.ready.fetch import fetch_ready_posting
+
+        return fetch_ready_posting(portal.url, body=html)
     if portal.ats_kind == AtsKind.WORKDAY and html is None:
         return fetch_workday_posting(portal.url)
     if html is not None:
