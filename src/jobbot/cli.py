@@ -5996,6 +5996,26 @@ def portals_profile_sheet(
         err_console.print("[red]Profile not found. The sheet needs data/profile.yaml.[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
     state = _resolve_portal_state(config, portal)
+    if portal == "chiletrabajos":
+        from jobbot.jobs.eligibility import default_answers_path, load_application_answers
+        from jobbot.portals.chiletrabajos import render_chiletrabajos_sheet
+
+        try:
+            answers = load_application_answers(default_answers_path(config.root))
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        text = render_chiletrabajos_sheet(candidate, answers)
+        if out is not None:
+            destination = out.expanduser()
+            if not destination.is_absolute():
+                destination = config.root / destination
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
+            console.print(f"Wrote {destination}")
+            return
+        console.print(text, markup=False)
+        return
     try:
         text = render_fill_sheet(
             state,
