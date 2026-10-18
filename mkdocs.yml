@@ -65,6 +65,7 @@ plugins:
         - Measurements
         - Ensayos
         - Ética
+        - Tutoriales
       pagination_per_page: 10
 
 markdown_extensions:

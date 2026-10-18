@@ -62,6 +62,9 @@ jobbot application apply J0002        # plan; tú envías
 
 [Instalación y quickstart](instalacion.md) · [Referencia de comandos](comandos.md)
 
+**Serie en el blog:** [tutoriales paso a paso](blog/posts/2026-10-18-tutoriales-serie-indice.md)
+(install, loop de cargo, presencia, lenguaje natural en cualquier chat + terminal local).
+
 </section>
 
 <section class="jb-section jb-section--usecase" markdown="1">
