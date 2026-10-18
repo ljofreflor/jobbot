@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-122 commands, 177 modules, 1014 public symbols.
+123 commands, 178 modules, 1029 public symbols.
 
 ## Commands
 
@@ -66,6 +66,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs check-open` — Re-check online whether stored postings are still open (read-only; unknown if unsure).
 - `jobbot jobs conditions` — Review a posting's special conditions against you before applying (exit 1: dealbreaker).
+- `jobbot jobs digest` — Shareable summary of new open postings (WhatsApp or Markdown). Sends nothing.
 - `jobbot jobs discover` — Discover postings through a source's public API; --dry-run previews without writing.
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
@@ -288,6 +289,7 @@ writing it again — the promotion rule lives in
 - `closing.py` — When a posting stops taking applications, read from what it publishes — or nothing. · `ClosingState`, `utc_now`, `Closing`, `zone_from_text`, `parse_closing_value`, `find_closing`, `closing_state`, `describe_closing`
 - `closure.py` — Detect a posting that says the vacancy is already filled. Evidence, or nothing. · `visible_soup`, `closure_evidence`, `fetch_posting_text`, `closure_evidence_for_job`
 - `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`
+- `digest.py` — A shareable daily summary of new, still-open postings. Nothing is sent. · `DigestError`, `DigestEntry`, `resolve_timezone`, `parse_since`, `load_last_digest`, `save_last_digest`, `load_eligibility`, `select_entries`, `render_whatsapp`, `render_markdown`, `empty_line`, `public_url`, `refuse_pii`, `output_path`, `why_line`
 - `discover.py` — `jobs discover`: one command, one adapter per public source, a preview before storing. · `SiteStatus`, `SiteOutcome`, `SiteTarget`, `JobFilters`, `DiscoverAdapter`, `register_source`, `source_names`, `discover_adapter`, `registry_sites_for`, `Action`, `Decision`, `unique_jobs`, `decide`, `feed_summary`, `exit_code_for`
 - `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`

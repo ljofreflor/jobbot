@@ -3581,6 +3581,95 @@ def jobs_shortlist(
     _warn_if_matcher_blind([row[0] for row in rows])
 
 
+@jobs_app.command("digest")
+def jobs_digest(
+    since: Annotated[
+        str | None,
+        typer.Option("--since", help="Include postings after this date (YYYY-MM-DD)"),
+    ] = None,
+    fmt: Annotated[
+        str,
+        typer.Option("--format", help="whatsapp or md"),
+    ] = "whatsapp",
+    limit: Annotated[int, typer.Option("--limit", min=1)] = 10,
+    include_doubtful: Annotated[
+        bool,
+        typer.Option("--include-doubtful", help="Also list postings marked dudoso"),
+    ] = False,
+    out: Annotated[
+        str | None,
+        typer.Option("--out", help="Write the text under output/"),
+    ] = None,
+) -> None:
+    """Shareable summary of new open postings (WhatsApp or Markdown). Sends nothing."""
+    from jobbot.jobs.digest import (
+        DigestError,
+        load_eligibility,
+        output_path,
+        parse_since,
+        refuse_pii,
+        render_markdown,
+        render_whatsapp,
+        resolve_timezone,
+        save_last_digest,
+        select_entries,
+        why_line,
+    )
+
+    if fmt not in {"whatsapp", "md"}:
+        err_console.print("[red]--format debe ser whatsapp o md.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    from datetime import UTC
+
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    try:
+        zone = resolve_timezone(config, candidate.personal.country)
+        now = datetime.now(UTC)
+        state = config.root / "data" / "digest_state.json"
+        start = parse_since(since, now=now, zone=zone, state_path=state)
+        marks = load_eligibility(config.root / "data" / "eligibility.yaml")
+        destination = output_path(config, out) if out else None
+    except DigestError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    repo = JobRepository(session)
+    jobs = repo.list_all(include_invalid=True)
+    reasons = {job.id: text for job in jobs if (text := why_line(candidate, job))}
+    entries = select_entries(
+        jobs,
+        since=start,
+        zone=zone,
+        eligibility=marks,
+        reasons=reasons,
+        include_doubtful=include_doubtful,
+        limit=limit,
+    )
+    messages = (
+        render_whatsapp(entries, since=start)
+        if fmt == "whatsapp"
+        else [render_markdown(entries, since=start)]
+    )
+    text = "\n\n".join(messages)
+    try:
+        refuse_pii(text)
+    except DigestError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    for message in messages:
+        console.print(message, markup=False, highlight=False)
+    if destination is not None:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(text, encoding="utf-8")
+        console.print(f"Wrote {destination}", markup=False)
+    save_last_digest(state, now)
+
+
 @jobs_app.command("backfill-dates")
 def jobs_backfill_dates() -> None:
     """Date already-stored posts from the activity id in their URL (offline)."""
