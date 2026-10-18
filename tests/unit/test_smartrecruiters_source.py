@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from jobbot.adapters.smartrecruiters.parse import parse_postings
+from jobbot.adapters.smartrecruiters.parse import company_identifier, parse_postings
 from jobbot.cli import run_cli
 
 FIXTURES = Path("tests/fixtures/smartrecruiters")
@@ -75,6 +75,66 @@ def _companies(tmp_path: Path) -> None:
         yaml.safe_dump(payload, allow_unicode=True),
         encoding="utf-8",
     )
+
+
+def _custom_domain_company(tmp_path: Path) -> None:
+    payload = {
+        "version": 1,
+        "companies": [
+            {
+                "id": "oriente",
+                "name": "Oriente",
+                "career_sites": [
+                    {
+                        "url": "https://empleos.oriente.cl/trabaja",
+                        "domain": "empleos.oriente.cl",
+                        "site_type": "company_career_portal",
+                        "ats": "smartrecruiters",
+                        "status": "active",
+                        "observations": [
+                            {
+                                "source": "user_observation",
+                                "ats": "smartrecruiters",
+                                "site_type": "company_career_portal",
+                                "evidence": (
+                                    "html marker: smartrecruiters board link "
+                                    "(jobs.smartrecruiters.com/OrienteDemo)"
+                                ),
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    (tmp_path / "data" / "companies.yaml").write_text(
+        yaml.safe_dump(payload, allow_unicode=True),
+        encoding="utf-8",
+    )
+
+
+def test_a_custom_career_host_is_read_from_its_embed_evidence(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    _custom_domain_company(tmp_path)
+    assert company_identifier("https://empleos.oriente.cl/trabaja") == ""
+    page = (project_root / FIXTURES / "postings_cl.json").read_text(encoding="utf-8")
+    calls: list[str] = []
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        calls.append(url)
+        return 200, page, url
+
+    _install(monkeypatch, fetch)
+    code = run_cli(
+        ["jobs", "discover", "--source", "smartrecruiters", "--query", "legal", "--dry-run"],
+        standalone_mode=False,
+    )
+    assert code == 0
+    assert any("/OrienteDemo/" in url for url in calls)
 
 
 def test_dry_run_shows_the_chile_posting_and_writes_nothing(
