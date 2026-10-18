@@ -85,6 +85,60 @@ def test_experience_and_education_land_in_the_portal_enums() -> None:
     assert education_level(candidacy.education) is None
 
 
+def test_the_last_month_worked_counts_as_experience() -> None:
+    same_month = _candidate(years_end="2022-01")
+
+    assert experience_years(same_month.experience) > 0
+    assert experience_bucket(experience_years(same_month.experience)) == "<2"
+
+    three_calendar_years = Candidate.model_validate(
+        {
+            **_candidate().model_dump(mode="json"),
+            "experience": [
+                {
+                    "id": "e1",
+                    "company": "Organismo Ejemplo",
+                    "title": "Profesional",
+                    "start_date": "2023-01",
+                    "end_date": "2025-12",
+                }
+            ],
+        }
+    )
+    assert experience_years(three_calendar_years.experience) == 3.0
+    assert experience_bucket(experience_years(three_calendar_years.experience)) == "3-6"
+
+    started_this_month = Candidate.model_validate(
+        {
+            **_candidate().model_dump(mode="json"),
+            "experience": [
+                {
+                    "id": "e1",
+                    "company": "Organismo Ejemplo",
+                    "title": "Profesional",
+                    "start_date": "2026-10",
+                    "current": True,
+                }
+            ],
+        }
+    )
+    years = experience_years(started_this_month.experience, today=NOW.date())
+    assert experience_bucket(years) == "<2"
+
+
+def test_desired_titles_do_not_answer_the_job_type_control() -> None:
+    from jobbot.jobs.eligibility import ApplicationAnswers
+
+    titles_only = render_chiletrabajos_sheet(
+        _candidate(),
+        ApplicationAnswers(desired_titles=["Profesional"]),
+    )
+    assert "Tipos de trabajo: [falta en el SST: job_types]" in titles_only
+
+    typed = render_chiletrabajos_sheet(_candidate(), ApplicationAnswers(job_types=["full_time"]))
+    assert "Tipos de trabajo: listo" in typed
+
+
 def test_gender_outside_the_two_portal_options_stays_human() -> None:
     assert gender_label("female") == "Femenino"
     assert gender_label("male") == "Masculino"
