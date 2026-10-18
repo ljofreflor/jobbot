@@ -413,10 +413,31 @@ When the user vibecodes recurring natural language (draft text, classify, advise
 5. Failing-first test; `symptom triage --status resolved --feature …`.
 6. Next time: call the feature; do not re-derive in Cursor.
 
-## 8. Related documents
+## 8. Next steps (domain types ← recruitment / people analytics)
+
+Theory inventory and citations:
+[Teorías de reclutamiento y people analytics que el diseño todavía no tipa](blog/posts/2026-10-18-teorias-reclutamiento-people-analytics.md).
+
+| Step | Design move | Anchors |
+| --- | --- | --- |
+| 1 | Type must-have vs nice-to-have on `JobPosting` / conditions | Job analysis; #166 #186 |
+| 2 | Value objects: CEFR languages, `Education.status`, `unit`/`work_mode` | #141 #185 #144 |
+| 3 | `EvidenceStrength` + skill↔experience links | Signaling / evidence hierarchy; #195 |
+| 4 | Split Fact (`Candidate`) vs Preference (answers, eligibility) | P–J vs preferences; #206 |
+| 5 | STAR / structured-interview kit from posting + profile only | Campion / OPM; #203 |
+| 6 | `PostingClarity` when the JD cannot support P–J scoring | Policy-capturing under uncertainty; #178 |
+| 7 | Feed public I-O practice into `recruiters` → `cv advise` | Skills-first, structured interview guides |
+| 8 | Explicit non-goals: no auto P–O, no embedded GMA, no opaque “bias score” | Kristof-Brown; Schmidt–Hunter as *what not to fake* |
+
+Patterns to prefer while doing this: Specification (conditions), anti-corruption
+homologation (#94), i18n overlay (#221), plan-then-apply Commands. Do not grow a
+second SoT or invent culture-fit.
+
+## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
 - [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md) — agent policy; Design economics (System 2 → System 1)
+- [blog: teorías de reclutamiento / people analytics](blog/posts/2026-10-18-teorias-reclutamiento-people-analytics.md) — theory → class next steps
 - [README.md](https://github.com/ljofreflor/jobbot/blob/main/README.md) — product overview and commands
 - [data/README.md](https://github.com/ljofreflor/jobbot/blob/main/data/README.md) — what is gitignored under `data/`
 - [library-audit.md](library-audit.md) — adopted vs kept-ours dependency decisions
