@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-115 commands, 172 modules, 958 public symbols.
+121 commands, 175 modules, 986 public symbols.
 
 ## Commands
 
@@ -96,6 +96,12 @@ writing it again — the promotion rule lives in
 - `jobbot portals detect` — Detect ATS kind for a URL.
 - `jobbot portals form-learn` — Learn what an application form asks. Reads only; never fills or submits.
 - `jobbot portals list` — List known recruitment portals.
+- `jobbot portals profile import` — Seed portal state from a CSV. Without --apply, nothing is written.
+- `jobbot portals profile mark-updated` — Record a manual fill. evidence=none does not raise coverage.
+- `jobbot portals profile push` — Refuse to type into a portal. Identity-bound sites never attach; the sheet is the fill.
+- `jobbot portals profile seed` — Register the known career portals (UN, UNICEF, FAO, ADP, Devex, Impactpool, and the rest).
+- `jobbot portals profile sheet` — Fill sheet from the source of truth. Does not open a browser.
+- `jobbot portals profile status` — Coverage of tracked portals. Numbers and labels only; nothing is opened.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
@@ -342,10 +348,13 @@ writing it again — the promotion rule lives in
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
 - `field_gap_issue.py` — Draft (and optionally open) GitHub issues for novel / unanswered portal fields. · `FieldGapIssueDraft`, `draft_field_gap_issue`, `gaps_from_form`, `create_field_gap_issue`
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
+- `fill_catalog.py` — Public career portals whose profile jobbot can project from the source of truth. · `FillPortal`, `fill_portal`, `catalog_state`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
 - `message_apply.py` — Detect apply-by-LinkedIn-message (DM / InMail). Never send. · `asks_for_linkedin_message`
 - `platform_map.py` — Which platforms one profile reaches, grouped by how each one takes a candidate. · `Platform`, `Flavour`, `platform_label`, `source_kinds`, `platform_flavours`, `featured_platforms`, `LearningStep`, `feedback_loop`, `render_figure`, `inject_figure`, `write_page`, `main`
+- `profile_sheet.py` — Fill sheet for one portal, projected from the source of truth. · `render_fill_sheet`
+- `profile_state.py` — Per-portal profile state, drift and coverage. No browser, no network. · `ProfileStateError`, `AccountState`, `Priority`, `EvidenceKind`, `Drift`, `UpdateRecord`, `PortalProfileState`, `SectionView`, `PortalView`, `CoverageReport`, `default_state_path`, `default_alias_path`, `cv_hashes_from_output`, `section_payload`, `section_hash`, `projection_hash`, `load_states`, `save_states`, `load_aliases`, `evaluate_portal`, `coverage_report`, `mark_updated`, `ImportPreview`, `preview_import`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
 - `sso.py` — Identity providers offered on a login or signup page. · `SsoProvider`, `detect_sso_providers`, `provider_label`

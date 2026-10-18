@@ -1,0 +1,135 @@
+- portal: alta
+  adapter: generic
+  priority: high
+  account: evidenced
+  login_method: unknown
+  email_alias: null
+  account_owner: candidate
+  signup_url: null
+  profile_url: null
+  cv_variant: base_es
+  cv_sha256: sha256:f2d240ceff338ba66fa2aa4eb77faa9dddffcd48e33a31f47b48336925353939
+  sst_hash: sha256:dce0a71659955f01ab5d2cff2674c72cd4b9f7d29b845449e35df6a50b08ea34
+  portal_hash: null
+  sections:
+  - identity
+  - headline
+  - summary
+  - experience
+  - education
+  - skills
+  - languages
+  - cv
+  section_hashes:
+    identity: sha256:856085a324a0e1a9a6855c0192154b9517537e1f18742eee78c242d9bce71adb
+    headline: sha256:274798ccaef875cd7f2f8940cb7c0cd9285ac6fa1bb300a9a81300f39d9b8615
+    summary: sha256:911274b821fe7bfc2760b4095b7792920e6fe2e74d11f535abf69d2ca47b05ea
+    experience: sha256:41a1b412f0e84497f297ee53de5dc662c7b10c5b0f98fbf8d3d51dbb008f6c8a
+    education: sha256:a9bbed03d3a01dd20ec3f11c5411cdd8ba28b8946cf659ddd94b4cb232d0c728
+    skills: sha256:9b296f18001132857bf2802adcc98be3d1e6a61a787cb8bb80523d21517b265d
+    cv: sha256:f2d240ceff338ba66fa2aa4eb77faa9dddffcd48e33a31f47b48336925353939
+  section_portal_hashes: {}
+  section_authors:
+    identity: jobbot
+    headline: jobbot
+    summary: jobbot
+    experience: jobbot
+    education: jobbot
+    skills: jobbot
+    cv: jobbot
+  last_pull: null
+  last_push: '2026-10-18T00:00:00Z'
+  updates:
+  - at: '2026-10-18T00:00:00Z'
+    by: jobbot
+    sections:
+    - identity
+    - headline
+    - summary
+    - experience
+    - education
+    - skills
+    - cv
+    evidence: receipt
+    note: null
+  maintenance_days: 3650
+  gaps: []
+- portal: media
+  adapter: generic
+  priority: medium
+  account: evidenced
+  login_method: unknown
+  email_alias: null
+  account_owner: candidate
+  signup_url: null
+  profile_url: null
+  cv_variant: base_es
+  cv_sha256: sha256:f2d240ceff338ba66fa2aa4eb77faa9dddffcd48e33a31f47b48336925353939
+  sst_hash: sha256:dce0a71659955f01ab5d2cff2674c72cd4b9f7d29b845449e35df6a50b08ea34
+  portal_hash: null
+  sections:
+  - identity
+  - headline
+  - summary
+  - experience
+  - education
+  - skills
+  - languages
+  - cv
+  section_hashes:
+    identity: sha256:856085a324a0e1a9a6855c0192154b9517537e1f18742eee78c242d9bce71adb
+    headline: sha256:274798ccaef875cd7f2f8940cb7c0cd9285ac6fa1bb300a9a81300f39d9b8615
+    summary: sha256:911274b821fe7bfc2760b4095b7792920e6fe2e74d11f535abf69d2ca47b05ea
+    experience: sha256:stale
+    education: sha256:a9bbed03d3a01dd20ec3f11c5411cdd8ba28b8946cf659ddd94b4cb232d0c728
+    skills: sha256:9b296f18001132857bf2802adcc98be3d1e6a61a787cb8bb80523d21517b265d
+    cv: sha256:f2d240ceff338ba66fa2aa4eb77faa9dddffcd48e33a31f47b48336925353939
+  section_portal_hashes: {}
+  section_authors:
+    identity: manual
+    headline: manual
+    summary: manual
+    experience: manual
+    education: manual
+    skills: manual
+    cv: manual
+  last_pull: null
+  last_push: '2026-10-18T00:00:00Z'
+  updates:
+  - at: '2026-10-18T00:00:00Z'
+    by: manual
+    sections:
+    - identity
+    - headline
+    - summary
+    - experience
+    - education
+    - skills
+    - cv
+    evidence: receipt
+    note: null
+  maintenance_days: 3650
+  gaps: []
+- portal: baja
+  adapter: generic
+  priority: low
+  account: unknown
+  login_method: unknown
+  email_alias: null
+  account_owner: candidate
+  signup_url: null
+  profile_url: null
+  cv_variant: base_es
+  cv_sha256: null
+  sst_hash: null
+  portal_hash: null
+  sections:
+  - identity
+  section_hashes: {}
+  section_portal_hashes: {}
+  section_authors: {}
+  last_pull: null
+  last_push: null
+  updates: []
+  maintenance_days: 3650
+  gaps: []
