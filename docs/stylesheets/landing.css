@@ -1025,6 +1025,33 @@ a.jb-in-story__tag:hover {
     padding-bottom: 0.85rem;
     border-bottom: 1px solid rgba(0, 24, 56, 0.08);
   }
+
+  .jb-section--cmds td::before {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-family: var(--jb-font-body);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--jb-cobalt);
+  }
+
+  .jb-section--cmds td:first-child::before {
+    content: "Comando";
+  }
+
+  .jb-section--cmds td:last-child::before {
+    content: "Qué hace";
+  }
+
+  .jb-cmds-en td:first-child::before {
+    content: "Command";
+  }
+
+  .jb-cmds-en td:last-child::before {
+    content: "What it does";
+  }
 }
 
 /* Scroll story: sticky terminal, steps in the HTML (no scrollama / GSAP). */
