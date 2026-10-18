@@ -1653,16 +1653,37 @@ def profile_queries(
         ),
     ] = False,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation")] = False,
+    check: Annotated[
+        bool,
+        typer.Option(
+            "--check",
+            help="Measure each query against text-search sources; stores nothing",
+        ),
+    ] = False,
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="With --check, print rows as JSON"),
+    ] = False,
+    source: Annotated[
+        list[str] | None,
+        typer.Option("--source", help="Text-search source to measure (repeatable)"),
+    ] = None,
 ) -> None:
-    """Job searches derived from your experience; --apply saves them for you to edit."""
+    """Job searches from your experience; --check measures them, --apply saves them."""
     from jobbot.profile.search_queries import derive_search_queries
 
+    if check and apply_changes:
+        err_console.print("[red]--check no escribe; no se combina con --apply.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
     except ProfileLoadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
+    if check:
+        _check_profile_queries(config, candidate, source=source, as_json=as_json, limit=limit)
+        return
 
     if candidate.search_queries:
         console.print("[bold]Saved in profile.yaml[/bold] (searches use these):")
@@ -1710,6 +1731,53 @@ def profile_queries(
     console.print(f"Backup: {backup}")
     console.print(f"[green]Saved[/green] {len(texts)} search queries → {config.profile_path}")
     console.print("Next: [bold]jobbot getonboard search[/bold] (no query needed)")
+
+
+def _check_profile_queries(
+    config: JobbotConfig,
+    candidate: Candidate,
+    *,
+    source: list[str] | None,
+    as_json: bool,
+    limit: int,
+) -> None:
+    from jobbot.profile.query_check import (
+        format_cell,
+        measure_queries,
+        search_source_titles,
+        sources_or_reject,
+    )
+    from jobbot.profile.search_queries import search_queries_for
+
+    chosen = sources_or_reject(source)
+    if isinstance(chosen, str):
+        err_console.print(f"[red]{chosen}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    queries = search_queries_for(candidate, limit=max(1, limit)).queries
+    if not queries:
+        err_console.print("[red]No hay consultas que medir.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    def search(source_id: str, query: str) -> list[str]:
+        return search_source_titles(source_id, query, config=config)
+
+    report = measure_queries(candidate, queries, chosen, search)
+    if as_json:
+        console.print_json(data=report.to_dict())
+    else:
+        table = Table(title="Query check (nothing stored)")
+        table.add_column("Query")
+        table.add_column("Source")
+        table.add_column("Result")
+        for cell in report.cells:
+            table.add_row(cell.query, cell.source, format_cell(cell))
+        console.print(table)
+        for warning in report.warnings:
+            where = f" [{warning.source}]" if warning.source else ""
+            console.print(f"{warning.code}{where}: {warning.suggestion}")
+    if report.cells and all(cell.error for cell in report.cells):
+        err_console.print("[red]Todas las fuentes fallaron.[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
 
 
 @profile_app.command("status")
