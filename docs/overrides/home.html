@@ -503,6 +503,18 @@
       if (narrow.addEventListener) narrow.addEventListener("change", watch);
     })();
     (function () {
+      function focusCommand() {
+        var id = (location.hash || "").replace(/^#/, "");
+        if (!id || id.indexOf("cmd-") !== 0) return;
+        var el = document.getElementById(id);
+        if (!el || !el.closest(".jb-section--cmds")) return;
+        if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+        try {
+          el.focus({ preventScroll: true });
+        } catch (err) {
+          el.focus();
+        }
+      }
       function boot() {
         var nav = document.querySelector(".jb-cmdnav");
         if (!nav) return;
@@ -543,9 +555,13 @@
           frame = window.requestAnimationFrame(place);
         }
         place();
+        focusCommand();
         window.addEventListener("scroll", schedule, { passive: true });
         window.addEventListener("resize", schedule);
-        window.addEventListener("hashchange", schedule);
+        window.addEventListener("hashchange", function () {
+          schedule();
+          focusCommand();
+        });
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", boot);
