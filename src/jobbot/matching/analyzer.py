@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill, skills_in_text
-from jobbot.jobs.parsing import extract_skills_from_text, looks_like_page_metadata
+from jobbot.jobs.parsing import degree_fields, extract_skills_from_text, looks_like_page_metadata
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch, MatchItem, MatchStrength
@@ -62,14 +62,65 @@ _ECHO_MIN_HITS = 4
 _ECHO_SHARE = 0.5
 _PARENTHETICAL_RE = re.compile(r"\s*\([^)]*\)")
 
+# An acronym is two to eight capitals, digits allowed after the first letter.
+_ACRONYM_RE = re.compile(r"[A-Z][A-Z0-9]{1,7}")
+_ACRONYM_PIECE_RE = re.compile(r"[A-Za-z0-9]+")
+# Degree words say how high, not in what: two degrees sharing only 'ingeniería' or
+# 'magíster' are degrees in different fields.
+_DEGREE_LEVELS = frozenset(
+    {
+        "ingenieria",
+        "ingeniero",
+        "ingeniera",
+        "licenciatura",
+        "licenciado",
+        "licenciada",
+        "magister",
+        "master",
+        "masters",
+        "maestria",
+        "doctorado",
+        "doctor",
+        "doctora",
+        "phd",
+        "bachelor",
+        "bachelors",
+        "tecnico",
+        "tecnica",
+        "diplomado",
+        "postitulo",
+        "civil",
+    }
+)
+_HEADLINE_ONLY_CAP = 40.0
+_HEADLINE_NO_HISTORY_CAP = 70.0
+
+
+@dataclass(frozen=True)
+class _Claim:
+    """One thing the profile states: a skill, a specialty, a title held, a degree."""
+
+    original: str
+    folded: str
+    words: frozenset[str]
+    index: WordIndex
+
 
 @dataclass(frozen=True)
 class _Vocabulary:
-    """What the profile actually claims: skill phrases plus their content words."""
+    """What the profile actually claims, kept claim by claim."""
 
-    phrases: dict[str, str]  # folded phrase → original wording
-    words: frozenset[str]
-    index: WordIndex
+    claims: tuple[_Claim, ...]
+    degrees: tuple[_Claim, ...]
+    acronyms: frozenset[str]
+
+
+@dataclass(frozen=True)
+class _Evidence:
+    strength: MatchStrength
+    detail: str
+    claims: tuple[str, ...] = ()
+    final: bool = False  # a degree verdict: no looser rule may overturn it
 
 
 class JobAnalyzer(Protocol):
@@ -85,9 +136,16 @@ class RuleBasedJobAnalyzer:
         items: list[MatchItem] = []
 
         required = _job_requirements(job)
+        cited: set[str] = set()
         for token, label, text in required:
             evidence = _requirement_evidence(text, vocabulary)
-            if token in candidate_tokens:
+            if evidence is not None and evidence.final:
+                items.append(
+                    MatchItem(label=label, strength=evidence.strength, detail=evidence.detail)
+                )
+                if evidence.strength == MatchStrength.STRONG:
+                    cited.update(evidence.claims)
+            elif token in candidate_tokens:
                 items.append(
                     MatchItem(
                         label=label,
@@ -96,8 +154,11 @@ class RuleBasedJobAnalyzer:
                     )
                 )
             elif evidence is not None:
-                strength, detail = evidence
-                items.append(MatchItem(label=label, strength=strength, detail=detail))
+                items.append(
+                    MatchItem(label=label, strength=evidence.strength, detail=evidence.detail)
+                )
+                if evidence.strength == MatchStrength.STRONG:
+                    cited.update(evidence.claims)
             elif _partial_token(token, candidate_tokens):
                 items.append(
                     MatchItem(
@@ -115,7 +176,7 @@ class RuleBasedJobAnalyzer:
                     )
                 )
 
-        items.extend(_profile_evidence(candidate, job, items))
+        items.extend(_profile_evidence(candidate, job, items, cited))
 
         role_item, role_cap = _role_family_item(candidate, job)
         items.append(role_item)
@@ -141,7 +202,8 @@ def requirement_evidence(
     candidate: Candidate, requirement: str
 ) -> tuple[MatchStrength, str] | None:
     """The profile's own wording behind one requirement sentence, or None."""
-    return _requirement_evidence(requirement, _candidate_vocabulary(candidate))
+    evidence = _requirement_evidence(requirement, _candidate_vocabulary(candidate))
+    return None if evidence is None else (evidence.strength, evidence.detail)
 
 
 def _candidate_tokens(candidate: Candidate) -> set[str]:
@@ -178,10 +240,14 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
         if token and token not in seen and not looks_like_page_metadata(skill):
             seen.add(token)
             pairs.append((token, skill, skill))
+    long_skills = [fold_text(label) for _, label, _ in pairs if len(label.split()) >= 3]
     for req in job.requirements:
         if re.search(r"(?i)\b(english|spanish|idioma|language|proficiency)\b", req):
             continue
         if looks_like_page_metadata(req):
+            continue
+        if any(fold_text(req).startswith(skill) for skill in long_skills):
+            # The same line already counted as a skill, trimmed of its trailing noise.
             continue
         token = normalize_skill(req)
         if token and token not in seen and len(req) <= _MAX_REQUIREMENT_CHARS:
@@ -197,55 +263,137 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
     return pairs
 
 
+def _claim(original: str) -> _Claim | None:
+    folded = fold_text(original)
+    if len(folded) < 3:
+        return None
+    words = frozenset(
+        word for word in folded.split() if len(word) >= 4 and word not in _STOPWORDS
+    )
+    return _Claim(original=original, folded=folded, words=words, index=WordIndex(words))
+
+
 def _candidate_vocabulary(candidate: Candidate) -> _Vocabulary:
-    """Skills, specialties, titles and degrees: what the profile literally claims."""
-    phrases: dict[str, str] = {}
-    for claim in (
+    """Skills, specialties, titles held and degrees: what the profile literally claims."""
+    claims: dict[str, _Claim] = {}
+    for original in (
         *candidate.skills.all_skills(),
         *candidate.specialties,
         *(exp.title for exp in candidate.experience),
         *(edu.degree for edu in candidate.education),
     ):
-        folded = fold_text(claim)
-        if len(folded) >= 3:
-            phrases.setdefault(folded, claim)
+        claim = _claim(original)
+        if claim is not None:
+            claims.setdefault(claim.folded, claim)
+    degrees = tuple(
+        claim for edu in candidate.education if (claim := _claim(edu.degree)) is not None
+    )
+    return _Vocabulary(
+        claims=tuple(claims.values()),
+        degrees=degrees,
+        acronyms=_profile_acronyms(candidate),
+    )
 
-    words = {
-        word
-        for folded in phrases
-        for word in folded.split()
-        if len(word) >= 4 and word not in _STOPWORDS
-    }
-    return _Vocabulary(phrases=phrases, words=frozenset(words), index=WordIndex(frozenset(words)))
+
+def _profile_acronyms(candidate: Candidate) -> frozenset[str]:
+    """Acronyms the profile writes anywhere, including inside 'SIVI-SMART' or '(PIZ)'."""
+    texts: list[str] = [
+        *candidate.skills.all_skills(),
+        *candidate.specialties,
+        candidate.summary or "",
+    ]
+    for exp in candidate.experience:
+        texts += [exp.title, exp.company, exp.description or ""]
+        texts += [ach.text for ach in exp.achievements]
+    for edu in candidate.education:
+        texts += [edu.degree, edu.institution, edu.details or ""]
+    return frozenset(
+        piece
+        for text in texts
+        for piece in _ACRONYM_PIECE_RE.findall(text)
+        if _ACRONYM_RE.fullmatch(piece) and not piece.isdigit()
+    )
 
 
-def _requirement_evidence(
-    requirement: str,
-    vocabulary: _Vocabulary,
-) -> tuple[MatchStrength, str] | None:
-    """Match a requirement sentence against the profile's own wording."""
+def _degree_evidence(requirement: str, degrees: tuple[_Claim, ...]) -> _Evidence | None:
+    """A degree requirement is met by a degree in that field, never by loose words."""
+    fields = degree_fields(requirement)
+    if fields is None:
+        return None
+    related: tuple[str, _Claim] | None = None
+    for field in fields:
+        words = field.split()
+        subject = [word for word in words if word not in _DEGREE_LEVELS]
+        for degree in degrees:
+            if all(degree.index.has(word) for word in words):
+                return _Evidence(
+                    MatchStrength.STRONG,
+                    f"degree in profile: {degree.original}",
+                    claims=(degree.folded,),
+                    final=True,
+                )
+            if related is None and subject:
+                shared = [word for word in subject if degree.index.has(word)]
+                if shared:
+                    related = (", ".join(shared), degree)
+    if related is not None:
+        shared_words, closest = related
+        return _Evidence(
+            MatchStrength.PARTIAL,
+            f"related degree in profile: {closest.original} ({shared_words})",
+            claims=(closest.folded,),
+            final=True,
+        )
+    return _Evidence(MatchStrength.MISSING, "degree not in profile", final=True)
+
+
+def _requirement_evidence(requirement: str, vocabulary: _Vocabulary) -> _Evidence | None:
+    """Match a requirement sentence against the profile's own wording.
+
+    Strong evidence comes from one claim: its whole phrase, or two content words of
+    the same skill, title or degree. Words found in different claims ('ingeniería'
+    in a degree, 'comercial' in a job title) only make a partial match, and the
+    detail says which claim gave each word.
+    """
+    degree = _degree_evidence(requirement, vocabulary.degrees)
+    if degree is not None:
+        return degree
     folded = fold_text(requirement)
     if not folded:
         return None
 
-    for phrase, original in vocabulary.phrases.items():
-        if re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", folded):
-            return MatchStrength.STRONG, f"profile claims {original}"
+    bare = requirement.strip(" .,:;()")
+    if _ACRONYM_RE.fullmatch(bare) and bare in vocabulary.acronyms:
+        return _Evidence(MatchStrength.STRONG, f"profile names {bare}")
 
-    content = [word for word in folded.split() if len(word) >= 4 and word not in _STOPWORDS]
-    hits = sorted({word for word in content if word in vocabulary.words})
-    variants = sorted(
-        {word for word in content if word not in hits and vocabulary.index.has(word)}
+    for claim in vocabulary.claims:
+        if re.search(rf"(?<!\w){re.escape(claim.folded)}(?!\w)", folded):
+            return _Evidence(
+                MatchStrength.STRONG, f"profile claims {claim.original}", (claim.folded,)
+            )
+
+    content = list(
+        dict.fromkeys(word for word in folded.split() if len(word) >= 4 and word not in _STOPWORDS)
     )
+    best: tuple[list[str], _Claim] | None = None
+    sources: dict[str, _Claim] = {}
+    for claim in vocabulary.claims:
+        hits = [word for word in content if claim.index.has(word)]
+        for word in hits:
+            sources.setdefault(word, claim)
+        if hits and (best is None or len(hits) > len(best[0])):
+            best = (hits, claim)
 
-    if len(hits) >= 2:
-        return MatchStrength.STRONG, f"profile wording: {', '.join(hits)}"
-    if hits and variants:
-        return MatchStrength.STRONG, f"profile wording: {', '.join([*hits, *variants])}"
-    if hits:
-        return MatchStrength.PARTIAL, f"profile wording: {hits[0]}"
-    if variants:
-        return MatchStrength.PARTIAL, f"profile wording (variant): {variants[0]}"
+    if best is not None and len(best[0]) >= 2:
+        hits, claim = best
+        return _Evidence(
+            MatchStrength.STRONG,
+            f"profile claims {claim.original}: {', '.join(hits)}",
+            (claim.folded,),
+        )
+    if sources:
+        detail = "; ".join(f"{word} ({claim.original})" for word, claim in sources.items())
+        return _Evidence(MatchStrength.PARTIAL, f"profile wording: {detail}")
     return None
 
 
@@ -253,13 +401,15 @@ def _profile_evidence(
     candidate: Candidate,
     job: JobPosting,
     matched: list[MatchItem],
+    cited: set[str],
 ) -> list[MatchItem]:
     """What the profile claims and the posting talks about, read from the profile's side.
 
     Requirements are read from the posting, and a career page full of chrome yields
-    few real ones. The candidate's own skills, specialties, degrees and achievements
-    found in the posting's text are evidence of fit in any field. Only what is found
-    is added: a claim the posting does not mention is not a gap, so it costs nothing.
+    few real ones. The candidate's own skills, specialties, titles held, degrees and
+    achievements found in the posting's text are evidence of fit in any field. Only
+    what is found is added: a claim the posting does not mention is not a gap, so it
+    costs nothing. A claim already cited for a requirement is not counted twice.
     """
     posting = WordIndex(
         frozenset(_keyword_candidates(f"{job.title}\n{job.description}\n{job.raw_description}"))
@@ -272,22 +422,26 @@ def _profile_evidence(
         if item.strength in {MatchStrength.STRONG, MatchStrength.PARTIAL}
     ]
     items: list[MatchItem] = []
-    seen: set[str] = set()
-    for claim in (
-        *candidate.skills.all_skills(),
-        *candidate.specialties,
-        *(edu.degree for edu in candidate.education),
-    ):
+    seen: set[str] = set(cited)
+    claims = [
+        *((claim, "profile") for claim in candidate.skills.all_skills()),
+        *((claim, "profile") for claim in candidate.specialties),
+        *((edu.degree, "profile") for edu in candidate.education),
+        *((exp.title, "held") for exp in candidate.experience),
+    ]
+    for claim, kind in claims:
         bare = _PARENTHETICAL_RE.sub("", claim).strip()
         folded = fold_text(bare)
         words = _keyword_candidates(bare)
-        if not words or folded in seen or any(folded in done or done in folded for done in already):
+        if not words or folded in seen or fold_text(claim) in seen:
+            continue
+        if any(folded in done or done in folded for done in already):
             continue
         seen.add(folded)
         if all(posting.has(word) for word in words):
             items.append(
                 MatchItem(
-                    label=f"profile:{bare}",
+                    label=f"{kind}:{bare}",
                     strength=MatchStrength.STRONG,
                     detail="the posting mentions it",
                 )
@@ -353,34 +507,49 @@ def _role_family_item(candidate: Candidate, job: JobPosting) -> tuple[MatchItem,
 
     A table of role families only knows the families someone wrote down, and a
     candidate whose field is missing from it gets judged by a family they never
-    claimed. The titles in the profile are the only evidence there is.
+    claimed. The titles in the profile are the only evidence there is. The headline
+    is not one of them: made of degrees, it shares words with every teaching post.
+    It can only make a partial match, and the score keeps the cap of a role never
+    held unless the profile lists no experience at all.
     """
     label = f"role:{job.title}"
-    held = _title_words(
-        *(exp.title for exp in candidate.experience),
-        candidate.personal.headline or "",
-    )
     wanted = _title_words(job.title)
-    held_index = WordIndex(frozenset(held))
-    shared = sorted(word for word in wanted if held_index.has(word))
+    best: list[str] = []
+    best_title = ""
+    for exp in candidate.experience:
+        index = WordIndex(frozenset(_title_words(exp.title)))
+        shared = sorted(word for word in wanted if index.has(word))
+        if len(shared) > len(best):
+            best, best_title = shared, exp.title
 
-    if len(shared) >= 2:
+    if len(best) >= 2:
         return (
             MatchItem(
                 label=label,
                 strength=MatchStrength.STRONG,
-                detail=f"held titles share: {', '.join(shared)}",
+                detail=f"held title {best_title} shares: {', '.join(best)}",
             ),
             None,
         )
-    if len(shared) == 1:
+    if len(best) == 1:
         return (
             MatchItem(
                 label=label,
                 strength=MatchStrength.PARTIAL,
-                detail=f"held titles share: {shared[0]}",
+                detail=f"held title {best_title} shares: {best[0]}",
             ),
             70.0,
+        )
+    headline = WordIndex(frozenset(_title_words(candidate.personal.headline or "")))
+    from_headline = sorted(word for word in wanted if headline.has(word))
+    if from_headline:
+        return (
+            MatchItem(
+                label=label,
+                strength=MatchStrength.PARTIAL,
+                detail=f"only the headline shares: {', '.join(from_headline)} (not a title held)",
+            ),
+            _HEADLINE_ONLY_CAP if candidate.experience else _HEADLINE_NO_HISTORY_CAP,
         )
     if not wanted:
         return (

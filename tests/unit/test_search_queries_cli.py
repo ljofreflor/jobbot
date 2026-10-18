@@ -222,6 +222,25 @@ def test_shortlist_warns_when_every_job_scores_zero(
     assert "Matcher alert" in out
 
 
+def test_shortlist_prints_reasons_and_ranks_the_held_role_first(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Regression (#179): a teaching post ranked first and only a percentage was shown."""
+    from tests.fixtures.profile import surveillance_profile_dict
+
+    _workspace(tmp_path, monkeypatch, surveillance_profile_dict())
+    for name in ("docente_vinculacion_medio_es.txt", "surveillance_data_consultant_en.txt"):
+        assert _run(["jobs", "add", "--file", str(FIXTURES / name)]) == SUCCESS
+    capsys.readouterr()
+
+    assert _run(["jobs", "shortlist"]) == SUCCESS
+
+    out = capsys.readouterr().out
+    assert out.index("Measles Surveillance") < out.index("Docente")
+    assert "✓ role: held title Consultora" in out
+    assert "only the headline shares" in out
+
+
 def test_shortlist_is_quiet_when_something_fits(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
