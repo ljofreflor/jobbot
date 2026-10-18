@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import io
 import urllib.request
 from datetime import UTC, datetime
+from http.client import HTTPMessage
 from pathlib import Path
 
 import pytest
 import yaml
 
-from jobbot.adapters.avature.discover import UNOPS_SITE, AvatureDiscover, blocked_qtvc
+from jobbot.adapters.avature.discover import (
+    UNOPS_SITE,
+    AvatureDiscover,
+    QtvcDisallowed,
+    _NoQtvcRedirect,
+    blocked_qtvc,
+)
 from jobbot.adapters.avature.parse import (
     ZONE_NOTE,
     apply_detail,
@@ -18,7 +26,9 @@ from jobbot.adapters.avature.parse import (
     source_job_id,
 )
 from jobbot.cli import run_cli
-from jobbot.jobs.discover import SiteStatus, SiteTarget
+from jobbot.companies.discovery import career_root_url, classify_url
+from jobbot.companies.models import CareerSiteType
+from jobbot.jobs.discover import JobFilters, SiteStatus, SiteTarget
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind, detect_ats, detect_ats_in_html
 
@@ -233,6 +243,86 @@ def test_avature_host_and_widget(project_root: Path) -> None:
 def test_a_site_without_a_portal_path_is_rejected() -> None:
     with pytest.raises(ValueError, match="portal"):
         AvatureDiscover().site_target("careers.ejemplo.cl")
+
+
+def test_a_redirect_into_qtvc_is_refused_before_it_is_requested() -> None:
+    request = urllib.request.Request(f"{UNOPS_SITE}/SearchJobs/")  # noqa: S310
+    with pytest.raises(QtvcDisallowed):
+        _NoQtvcRedirect().redirect_request(
+            request,
+            io.BytesIO(b""),
+            302,
+            "Found",
+            HTTPMessage(),
+            f"{UNOPS_SITE}/SearchJobs/?qtvc=session",
+        )
+
+
+def test_a_first_page_bounced_to_qtvc_is_not_an_empty_board(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fetch(url: str) -> tuple[int, str, str]:
+        msg = f"refusing qtvc redirect: {url}&qtvc=session"
+        raise QtvcDisallowed(msg)
+
+    monkeypatch.setattr("jobbot.adapters.avature.discover.fetch_public", fetch)
+    outcome = AvatureDiscover().discover_site(
+        SiteTarget(url=UNOPS_SITE),
+        query="health",
+        limit=5,
+        details=False,
+    )
+    assert outcome.status is SiteStatus.ROBOTS
+
+
+def test_a_job_detail_url_is_learned_as_its_portal() -> None:
+    found = classify_url(DETAIL)
+    assert found.site_type is CareerSiteType.JOB_POSTING
+    assert career_root_url(found.url, found.ats) == UNOPS_SITE
+
+
+def test_a_list_that_repeats_itself_stops_the_pager(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    page = f'<a href="{DETAIL}">Administration Assistant</a>'
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        calls.append(url)
+        if len(calls) > 3:
+            raise AssertionError("the pager asked again for a page it had already read")
+        return 200, page, url
+
+    monkeypatch.setattr("jobbot.adapters.avature.discover.fetch_public", fetch)
+    monkeypatch.setattr("jobbot.adapters.avature.discover.pause", lambda: None)
+    outcome = AvatureDiscover().discover_site(
+        SiteTarget(url=UNOPS_SITE),
+        query="health",
+        limit=50,
+        details=False,
+    )
+    assert outcome.status is SiteStatus.OK
+    assert len(calls) == 2
+
+
+def test_location_reads_the_detail_the_card_does_not_carry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fetch(url: str) -> tuple[int, str, str]:
+        if "SearchJobs" in url:
+            html = f'<p>1-1 of 1 results</p><a href="{DETAIL}">Administration Assistant</a>'
+            return 200, html, url
+        return 200, "<p>Duty Station(s): Santiago, Chile</p>", url
+
+    monkeypatch.setattr("jobbot.adapters.avature.discover.fetch_public", fetch)
+    monkeypatch.setattr("jobbot.adapters.avature.discover.pause", lambda: None)
+    outcome = AvatureDiscover().discover_site(
+        SiteTarget(url=UNOPS_SITE),
+        query="health",
+        limit=5,
+        details=False,
+        filters=JobFilters(location="Santiago"),
+    )
+    assert outcome.status is SiteStatus.OK
+    assert outcome.jobs[0].location == "Santiago, Chile"
 
 
 def test_apply_detail_accepts_a_posting() -> None:
