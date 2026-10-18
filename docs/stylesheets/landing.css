@@ -966,6 +966,11 @@ body:has(.jb-hero) .md-tabs {
   scroll-margin-top: 6.5rem;
 }
 
+.jb-section--cmds tr:has(.jb-in-story:target) td {
+  background: rgba(0, 88, 248, 0.14);
+  box-shadow: inset 3px 0 0 var(--jb-cobalt);
+}
+
 .jb-in-story__tag {
   display: inline-block;
   padding: 0.05rem 0.35rem;
