@@ -1025,6 +1025,22 @@ body:has(.jb-hero) .md-tabs {
   display: none;
 }
 
+.jb-scrolly__more {
+  margin-top: 0.15rem;
+}
+
+.jb-scrolly__more a {
+  color: var(--jb-cobalt);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 88, 248, 0.35);
+}
+
+.jb-scrolly__more a:hover {
+  border-bottom-color: var(--jb-cobalt);
+}
+
 .jb-scrolly__stage {
   min-height: 14rem;
   padding: 1.15rem 1.2rem 1.3rem;
