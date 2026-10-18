@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
 from jobbot.jobs.geo import country_allows, detect_country, normalize_countries
@@ -131,6 +132,127 @@ def posted_at_from_url(url: str | None) -> datetime | None:
     if moment < _LINKEDIN_EPOCH_START:
         return None
     return moment
+
+
+def _clock() -> datetime:
+    """Overridable 'now' so a relative date can be judged against a fixed day."""
+    return datetime.now(UTC)
+
+
+def current_time() -> datetime:
+    """The clock the sweep uses. Tests replace `_clock`, not this wrapper."""
+    return _clock()
+
+
+_MONTHS = {
+    "ene": 1,
+    "enero": 1,
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "febrero": 2,
+    "february": 2,
+    "mar": 3,
+    "marzo": 3,
+    "march": 3,
+    "abr": 4,
+    "abril": 4,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "mayo": 5,
+    "jun": 6,
+    "junio": 6,
+    "june": 6,
+    "jul": 7,
+    "julio": 7,
+    "july": 7,
+    "ago": 8,
+    "agosto": 8,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "sept": 9,
+    "septiembre": 9,
+    "setiembre": 9,
+    "september": 9,
+    "oct": 10,
+    "octubre": 10,
+    "october": 10,
+    "nov": 11,
+    "noviembre": 11,
+    "november": 11,
+    "dic": 12,
+    "diciembre": 12,
+    "dec": 12,
+    "december": 12,
+}
+_DAY_OF_MONTH = re.compile(r"\b(\d{1,2})\s+de\s+([a-záéíóúñ]+)\.?", re.IGNORECASE)
+_MONTH_THEN_DAY = re.compile(
+    r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})\b",
+    re.IGNORECASE,
+)
+_HACE = re.compile(
+    r"\bhace\s+(\d+)\s*(h|hora|horas|d|d[ií]a|d[ií]as|sem|semana|semanas|mes|meses)\b",
+    re.IGNORECASE,
+)
+_AGO = re.compile(
+    r"\b(\d+)\s*(h|hr|hrs|hour|hours|d|day|days|w|wk|week|weeks|mo|month|months)\s+ago\b",
+    re.IGNORECASE,
+)
+
+
+def _fold_token(token: str) -> str:
+    stripped = unicodedata.normalize("NFKD", token)
+    return "".join(ch for ch in stripped if not unicodedata.combining(ch)).casefold()
+
+
+def _recent_calendar_day(now: datetime, month: int, day: int) -> datetime | None:
+    """The latest past occurrence of that day and month, this year or the previous one."""
+    for year in (now.year, now.year - 1):
+        try:
+            candidate = datetime(year, month, day, tzinfo=UTC)
+        except ValueError:
+            continue
+        if candidate <= now:
+            return candidate
+    return None
+
+
+def _shift(now: datetime, count: int, unit: str) -> datetime:
+    token = _fold_token(unit)
+    if token.startswith("h"):
+        return now - timedelta(hours=count)
+    if token.startswith("d"):
+        return now - timedelta(days=count)
+    if token.startswith("sem") or token.startswith("w"):
+        return now - timedelta(weeks=count)
+    return now - timedelta(days=30 * count)
+
+
+def posted_at_from_text(text: str, *, now: datetime | None = None) -> datetime | None:
+    """Relative or calendar date printed on the card. None when the card does not say."""
+    reference = now or _clock()
+    day_month = _DAY_OF_MONTH.search(text)
+    if day_month is not None:
+        month = _MONTHS.get(_fold_token(day_month.group(2)))
+        day = int(day_month.group(1))
+        if month is not None and 1 <= day <= 31:
+            found = _recent_calendar_day(reference, month, day)
+            if found is not None:
+                return found
+    month_day = _MONTH_THEN_DAY.search(text)
+    if month_day is not None:
+        month = _MONTHS.get(month_day.group(1).casefold()[:3])
+        day = int(month_day.group(2))
+        if month is not None:
+            found = _recent_calendar_day(reference, month, day)
+            if found is not None:
+                return found
+    relative = _HACE.search(text) or _AGO.search(text)
+    if relative is not None:
+        return _shift(reference, int(relative.group(1)), relative.group(2))
+    return None
 
 
 _FEED_HEADERS = ("publicación en el feed", "publicacion en el feed", "feed post")
@@ -329,7 +451,7 @@ def parse_post_blob(
         post_url=post_url,
         ats_url=ats_url,
         ats_kind=ats_kind,
-        posted_at=posted_at_from_url(post_url),
+        posted_at=posted_at_from_url(post_url) or posted_at_from_text(blob),
         vacancies=tuple(vacancies),
     )
 
