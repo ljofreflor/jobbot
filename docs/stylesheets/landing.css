@@ -1031,11 +1031,29 @@ body:has(.jb-hero) .md-tabs {
   font-family: var(--jb-font-mono);
 }
 
+.jb-scrolly__progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.85rem;
+}
+
 .jb-scrolly__dots {
   display: flex;
   gap: 0.4rem;
-  margin: 0 0 0.85rem;
+  margin: 0;
   padding: 0;
+}
+
+.jb-scrolly__count {
+  margin: 0;
+  font-family: var(--jb-font-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #9bb4d8;
+  white-space: nowrap;
 }
 
 .jb-scrolly__dots i {

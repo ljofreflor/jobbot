@@ -217,9 +217,12 @@
   <section class="jb-scrolly" id="jb-scrolly" aria-labelledby="jb-scrolly-title">
     <div class="jb-scrolly__pin">
       <div class="jb-scrolly__stage" aria-hidden="true">
-        <p class="jb-scrolly__dots" id="jb-scrolly-dots" aria-hidden="true">
-          <i class="is-current"></i><i></i><i></i><i></i><i></i><i></i><i></i>
-        </p>
+        <div class="jb-scrolly__progress" aria-hidden="true">
+          <p class="jb-scrolly__dots" id="jb-scrolly-dots">
+            <i class="is-current"></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </p>
+          <p class="jb-scrolly__count" id="jb-scrolly-count">1 / 7</p>
+        </div>
         <p class="jb-scrolly__meter" aria-hidden="true"><span id="jb-scrolly-bar"></span></p>
         <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker">
           {% if en %}1 · apply{% else %}1 · postular{% endif %}
@@ -361,6 +364,7 @@
       var prose = document.getElementById("jb-scrolly-prose");
       var dots = root.querySelectorAll(".jb-scrolly__dots i");
       var bar = document.getElementById("jb-scrolly-bar");
+      var count = document.getElementById("jb-scrolly-count");
       var stage = root.querySelector(".jb-scrolly__stage");
       function show(step) {
         var index = Array.prototype.indexOf.call(steps, step);
@@ -373,6 +377,9 @@
         });
         if (bar && steps.length) {
           bar.style.width = ((index + 1) / steps.length * 100) + "%";
+        }
+        if (count && steps.length) {
+          count.textContent = (index + 1) + " / " + steps.length;
         }
         if (stage) stage.classList.toggle("is-presence", index >= 5);
         var echo = step.querySelector(".jb-scrolly__echo code");
@@ -391,6 +398,7 @@
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         steps.forEach(function (node) { node.classList.add("is-active"); });
         if (bar) bar.style.width = "100%";
+        if (count && steps.length) count.textContent = steps.length + " / " + steps.length;
         return;
       }
       if (steps[0]) show(steps[0]);
