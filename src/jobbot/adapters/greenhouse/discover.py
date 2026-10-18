@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+import urllib.error
 import urllib.request
 
 from jobbot.adapters.greenhouse.parse import board_token, job_from_item, parse_board
@@ -31,10 +32,13 @@ def fetch_public(url: str) -> tuple[int, str, str]:
         raise ValueError(msg)
     pause()
     request = urllib.request.Request(url, headers={"User-Agent": "jobbot/0.1"})
-    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
-        status = int(getattr(response, "status", 200))
-        body = response.read().decode("utf-8", errors="replace")
-        final = str(response.geturl())
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+            status = int(getattr(response, "status", 200))
+            body = response.read().decode("utf-8", errors="replace")
+            final = str(response.geturl())
+    except urllib.error.HTTPError as exc:
+        return int(exc.code), exc.read().decode("utf-8", errors="replace"), str(exc.url)
     return status, body, final
 
 
@@ -156,7 +160,11 @@ class GreenhouseDiscover:
         return any(item.startswith(prefix) for item in self.known_ids)
 
     def _detail(self, token: str, posting_id: str) -> JobPosting | None:
-        status, body, _final = fetch_public(detail_url(token, posting_id))
+        """One job's HTML. A failed read keeps the listed row; the walk goes on."""
+        try:
+            status, body, _final = fetch_public(detail_url(token, posting_id))
+        except OSError:
+            return None
         if status != 200:
             return None
         try:

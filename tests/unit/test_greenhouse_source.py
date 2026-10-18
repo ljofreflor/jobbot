@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -169,7 +170,61 @@ def test_a_known_job_skips_content_and_detail(
     assert run_cli(args, standalone_mode=False) == 0
     assert any("content=true" in url for url in calls)
     assert any("content=false" in url for url in calls)
-    assert list((tmp_path / "output" / "jobs").glob("*/job.json"))
+    stored = list((tmp_path / "output" / "jobs").glob("*/job.json"))
+    assert len(stored) == 1
+    saved = json.loads(stored[0].read_text(encoding="utf-8"))
+    assert saved["description"] == "Hola equipo"
+    assert saved["raw_description"] == "<p>Hola equipo</p>"
+
+
+def test_a_failed_detail_read_keeps_the_other_board(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    _companies(tmp_path)
+    page = json.loads((project_root / FIXTURES / "board_jobs.json").read_text(encoding="utf-8"))
+    bare = json.loads(
+        (project_root / FIXTURES / "board_jobs_nocontent.json").read_text(encoding="utf-8")
+    )
+    first = {"jobs": [page["jobs"][0]], "meta": {"total": 1}}
+    arrived = {
+        **bare["jobs"][0],
+        "id": 9,
+        "title": "Field officer",
+        "absolute_url": "https://careers.acme-demo.cl/jobs/9?gh_jid=129",
+    }
+    later = {"jobs": [*bare["jobs"], arrived], "meta": {"total": 2}}
+    other = {
+        "jobs": [
+            {
+                **page["jobs"][0],
+                "company_name": "Norte",
+                "absolute_url": "https://careers.norte-demo.cl/jobs/1?gh_jid=321",
+            }
+        ],
+        "meta": {"total": 1},
+    }
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        if "/norte/" in url:
+            return 200, json.dumps(other), url
+        if url.endswith("/jobs/9"):
+            raise urllib.error.URLError("timeout")
+        if "content=false" in url:
+            return 200, json.dumps(later), url
+        return 200, json.dumps(first), url
+
+    _install(monkeypatch, fetch)
+    args = ["jobs", "discover", "--source", "greenhouse"]
+    assert run_cli(args, standalone_mode=False) == 0
+    assert run_cli(args, standalone_mode=False) == 0
+    saved = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (tmp_path / "output" / "jobs").glob("*/job.json")
+    ]
+    assert {job["source_job_id"] for job in saved} == {"acme:1", "acme:9", "norte:1"}
 
 
 def test_a_404_does_not_drop_the_other_board(

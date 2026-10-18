@@ -77,6 +77,11 @@ class JobRepository:
             job.open_status = existing.open_status
             job.checked_at = existing.checked_at
             job.open_evidence = existing.open_evidence
+        # A listing read without the posting text must not erase the stored text
+        if not job.description:
+            job.description = existing.description
+        if not job.raw_description:
+            job.raw_description = existing.raw_description
         self.save(job)
         return job
 
