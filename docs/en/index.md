@@ -72,6 +72,9 @@ jobbot status                         # local evidence of what is up to date
 [Install & quickstart](../instalacion.md) · [Command reference](../comandos.md) ·
 [Manifesto](../manifesto.md)
 
+**Blog series:** [step-by-step tutorials](../blog/posts/2026-10-18-tutoriales-serie-indice.md)
+(install, vacancy loop, presence, natural language in any chat + local terminal).
+
 </section>
 
 <section class="jb-section jb-section--usecase" markdown="1">

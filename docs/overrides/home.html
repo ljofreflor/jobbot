@@ -1,6 +1,6 @@
 {% extends "main.html" %}
 
-{# Jobbot landing — brand + Cursor-style agent chat that animates an apply. #}
+{# Jobbot landing — brand + terminal cargo loop (CLI is the product). #}
 
 {% set en = page.file.src_uri.startswith("en/") %}
 
@@ -97,142 +97,82 @@
       </div>
 
       <div class="jb-hero__stage" aria-hidden="true">
-        {# Cursor-like Agent panel — Jobbot navy/cobalt, not Cursor purple #}
-        <div class="jb-chat">
-          <header class="jb-chat__chrome">
-            <div class="jb-chat__tabs" role="tablist">
-              <span class="jb-chat__tab jb-chat__tab--active">Agent</span>
-              <span class="jb-chat__tab">Chat</span>
-            </div>
-            <span class="jb-chat__chrome-meta">
-              <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="16" height="16" alt="" />
-              <span>{% if en %}local · HITL{% else %}local · HITL{% endif %}</span>
+        {# Terminal is the product surface; agents are a channel into the same CLI. #}
+        <div class="jb-term">
+          <header class="jb-term__chrome">
+            <span class="jb-term__dots" aria-hidden="true">
+              <i></i><i></i><i></i>
             </span>
+            <span class="jb-term__title">
+              <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="14" height="14" alt="" />
+              jobbot · ~/postulaciones
+            </span>
+            <span class="jb-term__badge">local · HITL</span>
           </header>
-
-          <div class="jb-chat__thread">
+          <div class="jb-term__body">
             {% if en %}
-              <div class="jb-chat__msg jb-chat__msg--user" style="--i:0">
-                <p>Apply to this LinkedIn post — Chile if it fits. Facts only from my profile.</p>
-                <span class="jb-chat__chip">lnkd.in/p/dRgw4_BS</span>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:1">
-                <div class="jb-chat__role">
-                  <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="18" height="18" alt="" />
-                  <span>Jobbot</span>
-                </div>
-                <p>Reading the post… five roles, remote CL/CO. One job per vacancy.</p>
-                <div class="jb-chat__tool">
-                  <span class="jb-chat__tool-kind">Shell</span>
-                  <code>jobbot linkedin sweep …</code>
-                </div>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:2">
-                <div class="jb-chat__tool jb-chat__tool--done">
-                  <span class="jb-chat__tool-kind">Match</span>
-                  <code>jobbot jobs match J0002</code>
-                </div>
-                <div class="jb-chat__card">
-                  <p class="jb-chat__card-kicker">Best match</p>
-                  <p class="jb-chat__card-title">Lead Data Scientist</p>
-                  <p class="jb-chat__card-meta">82% · remote Chile · from profile.yaml</p>
-                </div>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:3">
-                <div class="jb-chat__tool jb-chat__tool--done">
-                  <span class="jb-chat__tool-kind">Shell</span>
-                  <code>jobbot cv build --job J0002</code>
-                </div>
-                <p>CV reordered from facts → <code>output/jobs/J0002/</code> — nothing invented.</p>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:4">
-                <ul class="jb-chat__todos">
-                  <li class="jb-chat__todo jb-chat__todo--done">Read post</li>
-                  <li class="jb-chat__todo jb-chat__todo--done">Match roles</li>
-                  <li class="jb-chat__todo jb-chat__todo--done">Build CV</li>
-                  <li class="jb-chat__todo jb-chat__todo--done">Draft plan</li>
-                  <li class="jb-chat__todo jb-chat__todo--you">You submit</li>
-                </ul>
-                <p class="jb-chat__hitl">Plan ready. Form open — <strong>you submit</strong>. HITL, always.</p>
-              </div>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:0">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…'</span>
+              </p>
+              <p class="jb-term__line jb-term__line--out" style="--i:1">
+                Stored J0002 · Lead Data Scientist · remote Chile
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:2">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot jobs match J0002</span>
+              </p>
+              <p class="jb-term__line jb-term__line--out" style="--i:3">
+                82% · evidence from <code>profile.yaml</code> · nothing invented
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:4">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot cv build --job J0002</span>
+              </p>
+              <p class="jb-term__line jb-term__line--out" style="--i:5">
+                Wrote <code>output/jobs/J0002/</code> · facts reordered, not fabricated
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:6">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot application apply J0002 --apply</span>
+              </p>
+              <p class="jb-term__line jb-term__line--hitl" style="--i:7">
+                Form open — <strong>you submit</strong>. Jobbot never clicks Send.
+              </p>
             {% else %}
-              <div class="jb-chat__msg jb-chat__msg--user" style="--i:0">
-                <p>Postular a este post de LinkedIn — Chile si encaja. Solo hechos de mi perfil.</p>
-                <span class="jb-chat__chip">lnkd.in/p/dRgw4_BS</span>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:1">
-                <div class="jb-chat__role">
-                  <img src="{{ 'assets/brand/logo-mark.png' | url }}" width="18" height="18" alt="" />
-                  <span>Jobbot</span>
-                </div>
-                <p>Leyendo el post… cinco roles, remoto CL/CO. Un aviso por vacante.</p>
-                <div class="jb-chat__tool">
-                  <span class="jb-chat__tool-kind">Shell</span>
-                  <code>jobbot linkedin sweep …</code>
-                </div>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:2">
-                <div class="jb-chat__tool jb-chat__tool--done">
-                  <span class="jb-chat__tool-kind">Match</span>
-                  <code>jobbot jobs match J0002</code>
-                </div>
-                <div class="jb-chat__card">
-                  <p class="jb-chat__card-kicker">Mejor match</p>
-                  <p class="jb-chat__card-title">Lead Data Scientist</p>
-                  <p class="jb-chat__card-meta">82% · remoto Chile · desde profile.yaml</p>
-                </div>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:3">
-                <div class="jb-chat__tool jb-chat__tool--done">
-                  <span class="jb-chat__tool-kind">Shell</span>
-                  <code>jobbot cv build --job J0002</code>
-                </div>
-                <p>CV reordenado con hechos → <code>output/jobs/J0002/</code> — nada inventado.</p>
-              </div>
-
-              <div class="jb-chat__msg jb-chat__msg--assistant" style="--i:4">
-                <ul class="jb-chat__todos">
-                  <li class="jb-chat__todo jb-chat__todo--done">Leer post</li>
-                  <li class="jb-chat__todo jb-chat__todo--done">Match</li>
-                  <li class="jb-chat__todo jb-chat__todo--done">Armar CV</li>
-                  <li class="jb-chat__todo jb-chat__todo--done">Plan</li>
-                  <li class="jb-chat__todo jb-chat__todo--you">Tú envías</li>
-                </ul>
-                <p class="jb-chat__hitl">Plan listo. Formulario abierto — <strong>tú envías</strong>. HITL, siempre.</p>
-              </div>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:0">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…'</span>
+              </p>
+              <p class="jb-term__line jb-term__line--out" style="--i:1">
+                Guardado J0002 · Lead Data Scientist · remoto Chile
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:2">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot jobs match J0002</span>
+              </p>
+              <p class="jb-term__line jb-term__line--out" style="--i:3">
+                82% · evidencia de <code>profile.yaml</code> · nada inventado
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:4">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot cv build --job J0002</span>
+              </p>
+              <p class="jb-term__line jb-term__line--out" style="--i:5">
+                Escrito <code>output/jobs/J0002/</code> · hechos reordenados, no fabricados
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:6">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot application apply J0002 --apply</span>
+              </p>
+              <p class="jb-term__line jb-term__line--hitl" style="--i:7">
+                Formulario abierto — <strong>tú envías</strong>. Jobbot nunca pulsa Enviar.
+              </p>
             {% endif %}
-          </div>
-
-          <div class="jb-chat__composer">
-            <div class="jb-chat__input">
-              <span class="jb-chat__typed">
-                {% if en %}jobbot get 'https://lnkd.in/p/…'{% else %}jobbot get 'https://lnkd.in/p/…'{% endif %}
-              </span>
-              <span class="jb-chat__caret"></span>
-            </div>
-            <div class="jb-chat__composer-bar">
-              <span class="jb-chat__mode">
-                <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-                  <circle cx="4.5" cy="8" r="1.4" fill="currentColor"/>
-                  <circle cx="8" cy="8" r="1.4" fill="currentColor"/>
-                  <circle cx="11.5" cy="8" r="1.4" fill="currentColor"/>
-                </svg>
-                Agent
-              </span>
-              <span class="jb-chat__model">jobbot · local · HITL</span>
-              <button class="jb-chat__send" type="button" tabindex="-1" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                  <path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
+            <p class="jb-term__line jb-term__line--prompt" style="--i:8">
+              <span class="jb-term__prompt">$</span>
+              <span class="jb-term__caret"></span>
+            </p>
           </div>
         </div>
       </div>
