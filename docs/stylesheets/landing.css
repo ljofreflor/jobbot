@@ -1513,6 +1513,11 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
     justify-content: flex-start;
   }
 
+  /* Material's :target margin is 3.6rem and hides the prose under the sticky pin. */
+  body:has(.jb-hero) .md-typeset .jb-scrolly__step:target {
+    --md-scroll-margin: 24rem;
+  }
+
   .jb-scrolly__step + .jb-scrolly__step {
     border-top: 1px solid rgba(0, 24, 56, 0.08);
   }
