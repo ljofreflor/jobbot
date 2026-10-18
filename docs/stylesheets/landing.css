@@ -934,6 +934,11 @@ body:has(.jb-hero) .md-tabs {
   color: var(--jb-navy);
 }
 
+/* Material sets :target { --md-scroll-margin: 3.6rem }, which lands under the sticky group bar. */
+body:has(.jb-hero) .md-typeset .jb-section--cmds :target {
+  --md-scroll-margin: 10rem;
+}
+
 /* Beat Material's table:not([class]) (inline-block, 0.64rem, overflow). */
 body:has(.jb-hero) .md-typeset .jb-section--cmds .md-typeset__scrollwrap,
 body:has(.jb-hero) .md-typeset .jb-section--cmds .md-typeset__table {
