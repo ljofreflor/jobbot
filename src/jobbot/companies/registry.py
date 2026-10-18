@@ -21,8 +21,8 @@ from jobbot.companies.models import (
 )
 from jobbot.companies.urls import (
     canonical_key,
+    ensure_not_reserved,
     host_of,
-    public_url,
     registrable_domain,
     slugify,
 )
@@ -126,14 +126,12 @@ class CompanyRegistry(BaseModel):
         now: datetime | None = None,
     ) -> ObserveOutcome:
         """Record one sighting: dedupe, accumulate evidence, flag contradictions."""
-        normalized = public_url(url)
+        normalized = ensure_not_reserved(url)
         moment = now or utc_now()
         owner = self.find_site(normalized)
         # Only the company's own career hosts are corporate domains; ATS hosts are shared.
         own_host = (
-            [host_of(normalized)]
-            if site_type == CareerSiteType.COMPANY_CAREER_PORTAL
-            else []
+            [host_of(normalized)] if site_type == CareerSiteType.COMPANY_CAREER_PORTAL else []
         )
         record, created_company = self.upsert_company(
             name=company,
@@ -149,8 +147,7 @@ class CompanyRegistry(BaseModel):
                 site=None,
                 created_company=created_company,
                 conflict=(
-                    f"{normalized} is already registered under company {other.id!r}; "
-                    "not duplicated"
+                    f"{normalized} is already registered under company {other.id!r}; not duplicated"
                 ),
             )
 

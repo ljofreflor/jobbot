@@ -46,7 +46,9 @@ def test_it_lists_what_registering_will_ask_without_opening_anything(
     from jobbot.cli import run_cli
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
 
     code = run_cli(["companies", "signup", "Acme", "--no-open"], standalone_mode=False)
     out = capsys.readouterr().out
@@ -66,7 +68,9 @@ def test_opening_is_the_only_side_effect(
     from jobbot.cli import run_cli
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
 
     assert run_cli(["companies", "signup", "Acme"], standalone_mode=False) == SUCCESS
 
@@ -86,7 +90,9 @@ def test_apply_without_confirm_skips_browser_and_does_not_submit(
     from jobbot.cli import run_cli
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
     monkeypatch.setattr(cli.typer, "confirm", lambda *_a, **_k: False)
 
     sessions: list[object] = []

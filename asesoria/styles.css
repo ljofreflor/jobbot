@@ -6,6 +6,7 @@
   --accent: #0a5c8f;
   --accent-ink: #ffffff;
   --line: #d8dde4;
+  --feedback: #9a4a00;
   --radius: 10px;
   --wrap: 62rem;
   color-scheme: light dark;
@@ -20,6 +21,7 @@
     --accent: #6cc0f5;
     --accent-ink: #0b1218;
     --line: #2e3742;
+    --feedback: #f2b25c;
   }
 }
 
@@ -216,6 +218,180 @@ a:focus-visible {
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 700;
+}
+
+.platform-map {
+  margin: 2rem 0 0;
+}
+
+.platform-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.platform-map .pm-narrow {
+  display: none;
+  max-width: 30rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 40rem) {
+  .platform-map .pm-wide {
+    display: none;
+  }
+
+  .platform-map .pm-narrow {
+    display: block;
+  }
+}
+
+.platform-map figcaption {
+  margin-top: 1rem;
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.pm-flow,
+.pm-feedback {
+  fill: none;
+  stroke-dasharray: 7 7;
+  stroke-linecap: round;
+}
+
+.pm-flow {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  animation: pm-flow 1.4s linear infinite;
+}
+
+.pm-feedback {
+  stroke: var(--feedback);
+  stroke-width: 4;
+  stroke-dasharray: 10 6;
+  animation: pm-back 1.8s linear infinite;
+}
+
+@keyframes pm-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes pm-back {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+.pm-arrowhead {
+  fill: var(--accent);
+}
+
+.pm-arrowhead-back {
+  fill: var(--feedback);
+}
+
+.pm-node rect,
+.pm-box,
+.pm-learn rect {
+  fill: var(--paper);
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.pm-learn rect,
+.pm-gate rect {
+  stroke: var(--feedback);
+}
+
+.pm-gate rect {
+  fill: var(--paper);
+  stroke-width: 2.5;
+}
+
+.pm-hub rect {
+  fill: var(--paper);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  animation: pm-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes pm-pulse {
+  50% {
+    stroke-width: 6;
+  }
+}
+
+.pm-source rect {
+  fill: var(--accent);
+}
+
+.pm-title {
+  fill: var(--ink);
+}
+
+.pm-note {
+  fill: var(--muted);
+}
+
+.pm-cmd {
+  fill: var(--feedback);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.pm-lane {
+  fill: var(--feedback);
+}
+
+.pm-source text {
+  fill: var(--accent-ink);
+}
+
+.pm-chip rect {
+  fill: var(--band);
+  stroke: var(--line);
+}
+
+.pm-chip text {
+  fill: var(--muted);
+}
+
+.pm-chip-assisted rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.pm-chip-assisted text {
+  fill: var(--ink);
+}
+
+.pm-group .pm-box,
+.pm-group .pm-flow {
+  transition: stroke 0.2s, stroke-width 0.2s;
+}
+
+.pm-group:hover .pm-box {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.pm-group:hover .pm-flow {
+  stroke-width: 4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-flow,
+  .pm-feedback,
+  .pm-hub rect {
+    animation: none;
+  }
+
+  .pm-group .pm-box,
+  .pm-group .pm-flow {
+    transition: none;
+  }
 }
 
 .pilot h3 {

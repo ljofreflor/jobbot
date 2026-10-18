@@ -14,6 +14,7 @@ import yaml
 
 from jobbot.branding import MARK, stamp_description
 from jobbot.models.candidate import Candidate
+from jobbot.models.experience import Experience
 from jobbot.models.job import JobPosting
 
 EXPERIENCE_MIN = 300
@@ -71,9 +72,18 @@ def draft_getonboard_fields(
     *,
     permanent: PermanentProfileFields | None = None,
 ) -> dict[str, str]:
-    """Application-form fields; prefer permanent profile when available."""
+    """Application-form fields; prefer permanent profile when available.
+
+    A stored permanent profile keeps its wording, but it may predate profile.yaml
+    (a new role, an end date), so it is refined against the profile before use.
+    """
     _ = job
-    fields = permanent or build_permanent_profile_fields(candidate)
+    if permanent is None:
+        fields = build_permanent_profile_fields(candidate)
+    else:
+        from jobbot.nlp.refine import refine_permanent_profile
+
+        fields = refine_permanent_profile(candidate, permanent).fields
     return {
         "experiencia_y_perfil": fields.experiencia_y_perfil,
         "formacion_academica": fields.formacion_academica,
@@ -189,7 +199,7 @@ def fields_from_seed_text(
     """Seed a PermanentProfileFields from pasted portal text (accumulated capital)."""
     return PermanentProfileFields(
         experiencia_y_perfil=stamp_description(experiencia, max_len=EXPERIENCE_MAX),
-        formacion_academica=formacion.strip() or _draft_education(candidate)[:EDUCATION_MAX],
+        formacion_academica=formacion.strip() or _fit(_draft_education(candidate), EDUCATION_MAX),
         headline=candidate.personal.headline,
         skills=list(candidate.skills.all_skills())[:10],
     )
@@ -218,16 +228,35 @@ def load_permanent_profile(root_output: Path) -> PermanentProfileFields | None:
     )
 
 
+def recent_roles(candidate: Candidate, limit: int = 2) -> list[Experience]:
+    """Current roles first, then by end and start date; the YAML order is not a fact."""
+    ordered = sorted(
+        candidate.experience,
+        key=lambda exp: (exp.current, exp.end_date or "", exp.start_date),
+        reverse=True,
+    )
+    return ordered[:limit]
+
+
+def role_label(exp: Experience) -> str:
+    """How a draft names a role, before its period."""
+    return f"{exp.title} en {exp.company}"
+
+
+def role_head(exp: Experience) -> str:
+    """Opening sentence of a role paragraph: who, where and the period profile.yaml states."""
+    end = "actualidad" if exp.current else (exp.end_date or "")
+    period = ""
+    if exp.start_date:
+        period = f" ({exp.start_date}–{end})" if end else f" ({exp.start_date})"
+    return f"{role_label(exp)}{period}."
+
+
 def _draft_experience(candidate: Candidate) -> str:
     paragraphs: list[str] = []
 
-    # The two most recent roles (facts only).
-    for exp in candidate.experience[:2]:
-        end = "actualidad" if exp.current else (exp.end_date or "")
-        period = ""
-        if exp.start_date:
-            period = f" ({exp.start_date}–{end})" if end else f" ({exp.start_date})"
-        head = f"{exp.title} en {exp.company}{period}."
+    for exp in recent_roles(candidate):
+        head = role_head(exp)
         # One achievement per role keeps two roles under the GoB character cap.
         achs = [a.text.strip() for a in exp.achievements[:1] if a.text.strip()]
         if achs:

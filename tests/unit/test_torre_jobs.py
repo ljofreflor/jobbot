@@ -214,3 +214,46 @@ def test_source_learns_the_portal_once(
     registry = load_registry(default_portals_path(tmp_path))
     assert [p.domain for p in registry.portals] == ["torre.ai"]
     assert registry.portals[0].ats_kind == AtsKind.TORRE
+
+
+def test_closed_status_languages_and_hidden_pay_reach_the_stored_text() -> None:
+    """Conditions are read offline from what was stored, so the payload must land in it."""
+    from datetime import date
+
+    from jobbot.jobs.conditions import ConditionKind, posting_conditions
+
+    item: dict[str, Any] = {
+        "id": "abc",
+        "objective": "Operations Analyst",
+        "status": "closed",
+        "deadline": "2026-09-01T00:00:00.000Z",
+        "languages": [
+            {"language": {"name": "English"}, "fluency": "fully-fluent"},
+            {"language": "Spanish", "fluency": "native"},
+        ],
+        "compensation": {
+            "data": {"currency": "USD$", "minAmount": 3000.0, "maxAmount": 4000.0},
+            "visible": False,
+        },
+        "place": {
+            "remote": True,
+            "anywhere": False,
+            "locationType": "remote_countries",
+            "location": [{"id": "Peru", "countryCode": "PE"}, {"id": "Colombia"}],
+        },
+    }
+
+    job = job_from_api_item(item)
+
+    assert "3000" not in job.description  # the employer chose not to show it
+    by_kind: dict[ConditionKind, list[Any]] = {}
+    for condition in posting_conditions(job):
+        by_kind.setdefault(condition.kind, []).append(condition)
+    assert ConditionKind.CLOSED in by_kind
+    assert by_kind[ConditionKind.DEADLINE][0].when == date(2026, 9, 1)
+    assert [(c.language, c.level) for c in by_kind[ConditionKind.LANGUAGE]] == [
+        ("en", "C1"),
+        ("es", "C2"),
+    ]
+    assert by_kind[ConditionKind.SALARY][0].shown is False
+    assert by_kind[ConditionKind.RESIDENCY][0].countries == ("PE", "CO")

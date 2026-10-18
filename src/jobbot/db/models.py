@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -36,6 +36,15 @@ class JobRow(Base):
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # ISO-8601 with its own offset: SQLite DateTime would drop the posting's zone.
+    closes_at: Mapped[str | None] = mapped_column(Text, nullable=True)
+    closes_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    closes_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ats_signals_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    open_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    open_evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    invalid_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ApplicationRow(Base):
@@ -85,3 +94,23 @@ class OpsFailureRow(Base):
     fingerprint: Mapped[str] = mapped_column(String(64), index=True, default="")
     status: Mapped[str] = mapped_column(String(32), default="new", index=True)
     issue_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class OpsSymptomRow(Base):
+    """Returning vibecode appearances (local; redacted; conditions of possibility, not tickets)."""
+
+    __tablename__ = "ops_symptoms"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    area: Mapped[str] = mapped_column(String(64), default="other", index=True)
+    title: Mapped[str] = mapped_column(String(512), default="")
+    intent: Mapped[str] = mapped_column(Text, default="")
+    rule_hypothesis: Mapped[str] = mapped_column(Text, default="")
+    fingerprint: Mapped[str] = mapped_column(String(64), index=True, default="")
+    sightings: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(32), default="latent", index=True)
+    feature_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    issue_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    context_json: Mapped[str] = mapped_column(Text, default="{}")

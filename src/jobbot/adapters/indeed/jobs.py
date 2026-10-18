@@ -15,6 +15,8 @@ from rich.console import Console
 from jobbot.adapters.indeed import selectors
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
+from jobbot.jobs.closure import visible_soup
+from jobbot.jobs.indeed_url import indeed_jk_rejection
 from jobbot.jobs.parsing import parse_job_text
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
@@ -92,17 +94,29 @@ class IndeedJobSource:
             if not self._clear_challenge(browser, context="search results"):
                 return []
             html = browser.page.content()
-            cards = parse_indeed_search_html(html, base_url=self.base)
+            discards: list[tuple[str, str]] = []
+            cards = parse_indeed_search_html(html, base_url=self.base, discards=discards)
             if not cards and _looks_like_challenge_html(html):
                 if not self._clear_challenge(browser, context="search results"):
                     return []
                 browser.page.goto(url, wait_until="domcontentloaded")
                 html = browser.page.content()
-                cards = parse_indeed_search_html(html, base_url=self.base)
+                discards = []
+                cards = parse_indeed_search_html(html, base_url=self.base, discards=discards)
+            if discards:
+                reasons: dict[str, int] = {}
+                for _, reason in discards:
+                    reasons[reason] = reasons.get(reason, 0) + 1
+                summary = ", ".join(f"{count} {name}" for name, count in sorted(reasons.items()))
+                console.print(
+                    f"[yellow]{len(discards)} tarjeta(s) descartada(s) ({summary}).[/yellow]"
+                )
             if not cards:
                 browser.dump_debug("indeed", "jobs_search", selector_attempts=["job cards"])
                 console.print(
-                    "[yellow]No job cards found. UI may have changed; "
+                    "[yellow]No jobs found.[/yellow]"
+                    if discards
+                    else "[yellow]No job cards found. UI may have changed; "
                     "debug snapshot saved.[/yellow]"
                 )
                 return []
@@ -120,6 +134,12 @@ class IndeedJobSource:
                         if not self._clear_challenge(browser, context="job detail"):
                             continue
                         detail_html = browser.page.content()
+                        if detail_is_empty_or_search(detail_html):
+                            logger.info(
+                                "skipping Indeed card %s: detail is not a posting",
+                                card.get("source_job_id"),
+                            )
+                            continue
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("detail fetch failed for %s: %s", card.get("url"), exc)
                 job = card_to_job_posting(card, detail_html=detail_html, placeholder_id="TMP")
@@ -170,30 +190,48 @@ class IndeedJobSource:
         return url
 
 
-def parse_indeed_search_html(html: str, *, base_url: str) -> list[dict[str, Any]]:
-    """Parse search result cards from Indeed HTML (fixture-friendly)."""
+def parse_indeed_search_html(
+    html: str,
+    *,
+    base_url: str,
+    discards: list[tuple[str, str]] | None = None,
+) -> list[dict[str, Any]]:
+    """Parse search result cards from Indeed HTML (fixture-friendly).
+
+    Decoy ``jk`` values and cards marked hidden in the DOM are skipped. When
+    ``discards`` is provided, each skipped ``(jk_or_marker, reason)`` is appended.
+    """
+    # Drop nodes the page itself hides (decoy templates, aria-hidden cards).
+    visible_html = str(visible_soup(html))
     cards: list[dict[str, Any]] = []
     # Prefer explicit fixture/test markers
     for block in re.finditer(
-        r'data-testid="job-card"[^>]*>(.*?)</article>',
-        html,
+        r'<article[^>]*data-testid="job-card"[^>]*>.*?</article>',
+        visible_html,
         flags=re.I | re.S,
     ):
-        cards.append(_parse_card_block(block.group(0), base_url))
+        card = _parse_card_block(block.group(0), base_url, discards=discards)
+        if card is not None:
+            cards.append(card)
 
     if cards:
-        return cards
+        return _unique_cards(cards)
 
     # Live Indeed often uses data-jk on result cards (mid-<a>); include lookbehind for title.
     for match in re.finditer(
         r'data-jk="([a-f0-9]+)"',
-        html,
+        visible_html,
         flags=re.I,
     ):
         jk = match.group(1)
-        title_window = html[max(0, match.start() - 400) : match.start() + 3000]
+        reason = indeed_jk_rejection(jk)
+        if reason is not None:
+            if discards is not None:
+                discards.append((jk, reason))
+            continue
+        title_window = visible_html[max(0, match.start() - 400) : match.start() + 3000]
         # Company/location sit after the link — avoid previous card via lookbehind.
-        after = html[match.start() : match.start() + 3000]
+        after = visible_html[match.start() : match.start() + 3000]
         title = _first(
             title_window,
             [
@@ -231,19 +269,22 @@ def parse_indeed_search_html(html: str, *, base_url: str) -> list[dict[str, Any]
         )
         cards.append(
             {
-                "source_job_id": jk,
-                "url": f"{base_url}/viewjob?jk={jk}",
+                "source_job_id": jk.casefold(),
+                "url": f"{base_url}/viewjob?jk={jk.casefold()}",
                 "title": _clean(title) or "Untitled",
                 "company": _clean(company) or "Unknown",
                 "location": _clean(location) or None,
                 "snippet": _clean(snippet) or "",
             }
         )
-    # Dedupe by jk preserving order
+    return _unique_cards(cards)
+
+
+def _unique_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     unique: list[dict[str, Any]] = []
     for card in cards:
-        jk = card["source_job_id"]
+        jk = str(card["source_job_id"])
         if jk in seen:
             continue
         seen.add(jk)
@@ -294,6 +335,8 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
     description = _first(
         html,
         [
+            r'data-testid="jobsearch-JobComponent-description"[^>]*>(.*?)</div>',
+            r'class="[^"]*jobsearch-JobComponent-description[^"]*"[^>]*>(.*?)</div>',
             r'id="jobDescriptionText"[^>]*>(.*?)</div>',
             r'data-testid="job-description"[^>]*>(.*?)</',
         ],
@@ -388,15 +431,31 @@ def card_to_job_posting(
     )
 
 
-def _parse_card_block(block: str, base_url: str) -> dict[str, Any]:
+def _parse_card_block(
+    block: str,
+    base_url: str,
+    *,
+    discards: list[tuple[str, str]] | None = None,
+) -> dict[str, Any] | None:
     jk = _first(block, [r'data-jk="([^"]+)"', r'data-testid="jk-([^"]+)"']) or ""
+    if jk:
+        reason = indeed_jk_rejection(jk)
+        if reason is not None:
+            if discards is not None:
+                discards.append((jk, reason))
+            return None
+        jk = jk.casefold()
     href = _first(block, [r'href="([^"]+)"'])
     url = urljoin(base_url + "/", href) if href else (f"{base_url}/viewjob?jk={jk}" if jk else None)
     title = _clean(
         _first(block, [r'data-testid="job-title"[^>]*>(.*?)</', r"<h2[^>]*>(.*?)</h2>"])
     )
+    if not jk:
+        if discards is not None:
+            discards.append((href or "unknown", "formato"))
+        return None
     return {
-        "source_job_id": jk or (href or "unknown"),
+        "source_job_id": jk,
         "url": url,
         "title": title or "Untitled",
         "company": _clean(_first(block, [r'data-testid="company-name"[^>]*>(.*?)</'])) or "Unknown",
@@ -431,7 +490,23 @@ def _looks_like_challenge_html(html: str) -> bool:
 
 def _extract_jk(url: str) -> str | None:
     match = re.search(r"[?&]jk=([a-f0-9]+)", url, flags=re.I)
-    return match.group(1) if match else None
+    if match is None:
+        return None
+    jk = match.group(1)
+    if indeed_jk_rejection(jk) is not None:
+        return None
+    return jk.casefold()
+
+
+def detail_is_empty_or_search(html: str) -> bool:
+    """True when a viewjob page did not open a real posting (redirect/search shell)."""
+    detail = parse_indeed_job_detail_html(html)
+    title = (detail.get("title") or "").strip()
+    description = (detail.get("description") or "").strip()
+    if title or description:
+        return False
+    folded = (html or "").casefold()
+    return "data-jk=" in folded or "/jobs?" in folded or 'name="q"' in folded
 
 
 def _first(text: str, patterns: list[str]) -> str | None:

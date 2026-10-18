@@ -243,9 +243,7 @@ def test_oneshot_uses_search_hits_after_official_domain(project_root: Path) -> N
     assert found[0].ats == AtsKind.RECRUITEE
 
 
-def test_oneshot_does_not_touch_the_canonical_registry(
-    project_root: Path, tmp_path: Path
-) -> None:
+def test_oneshot_does_not_touch_the_canonical_registry(project_root: Path, tmp_path: Path) -> None:
     from jobbot.config import JobbotConfig
 
     config = JobbotConfig(root=tmp_path)
@@ -429,9 +427,7 @@ def test_robots_allows_what_it_does_not_forbid() -> None:
 
     report = run_oneshot(seeds, fetcher)
 
-    assert [c.career_url for c in report.candidates] == [
-        "https://empresa.cl/trabaja-con-nosotros"
-    ]
+    assert [c.career_url for c in report.candidates] == ["https://empresa.cl/trabaja-con-nosotros"]
     assert "https://empresa.cl/careers" not in fetcher.requested
 
 
@@ -497,3 +493,28 @@ def test_real_robots_file_opens_the_career_path_and_closes_the_rest(
     assert policy.allows("https://empresa.cl/careers")
     assert not policy.allows("https://empresa.cl/intranet")
     assert not policy.allows("https://empresa.cl/empleos/postular")
+
+
+def test_import_skips_reserved_example_domains() -> None:
+    from jobbot.companies.oneshot import CompanyPortalCandidate
+
+    registry = CompanyRegistry()
+    candidates = [
+        CompanyPortalCandidate(
+            company="Empresa Demo",
+            company_id="empresa-demo",
+            career_url="https://careers.example.com/empleos",
+            site_type=CareerSiteType.COMPANY_CAREER_PORTAL,
+        ),
+        CompanyPortalCandidate(
+            company="Empresa Real Demo",
+            company_id="empresa-real-demo",
+            career_url="https://empresa-demo.cl/trabaja-con-nosotros",
+            site_type=CareerSiteType.COMPANY_CAREER_PORTAL,
+        ),
+    ]
+    outcomes = import_candidates(registry, candidates)
+    assert [o.site.url for o in outcomes if o.site] == [
+        "https://empresa-demo.cl/trabaja-con-nosotros"
+    ]
+    assert registry.find_company("Empresa Demo") is None

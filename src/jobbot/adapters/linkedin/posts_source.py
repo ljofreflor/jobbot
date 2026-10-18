@@ -1,4 +1,4 @@
-"""LinkedIn recruiter-post job source (MVP: posts → ATS URL / email)."""
+"""LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message)."""
 
 from __future__ import annotations
 

@@ -39,7 +39,7 @@ def test_yes_to_apply_stays_prepared_and_repeats_the_url(
     from jobbot.jobs.repository import JobRepository
     from jobbot.models.job import JobPosting
 
-    monkeypatch.setattr("webbrowser.open", lambda _url: True)
+    monkeypatch.setattr("jobbot.browser.background.open_url", lambda url, **_k: url)
     monkeypatch.setattr("typer.confirm", lambda *_a, **_k: True)
     monkeypatch.setattr("jobbot.cli._fetch_public_html", lambda _url: None)
     monkeypatch.setattr(
@@ -101,7 +101,9 @@ def test_filled_posting_is_not_opened(
     from jobbot.models.job import JobPosting
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url))
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
     config = cli.load_config()
     session = make_session_factory(make_engine(config.database_path))()
     stored = JobRepository(session).upsert_external(

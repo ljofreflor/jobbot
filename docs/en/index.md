@@ -1,9 +1,9 @@
 ---
 template: home.html
-title: Jobbot — your next step, with intelligence
+title: Jobbot — search while you code
 description: >-
-  Local CLI for job hunting: find openings, prepare applications, and you press
-  submit. Human + technology, on your machine.
+  Local CLI for job hunting without leaving the editor: find where they publish,
+  prepare without inventing, apply with you in control. Human + bot, on your machine.
 hide:
   - navigation
   - toc
@@ -13,33 +13,34 @@ hide:
 
 ## People · opportunities · technology
 
-Three things Jobbot actually does. No invented product.
+A craftsman's tool: **search while you code**. No invented product.
+Full voice (Spanish): [Manifiesto](../manifesto.md).
 
 <ul class="jb-benefits">
   <li>
     <div class="jb-benefits__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     </div>
-    <strong>Find opportunities</strong>
-    <span>Discover openings that fit your real profile — not an invented CV.</span>
+    <strong>Find where they publish</strong>
+    <span>ATS hosts, boards, sweeps — openings that fit your real profile, not an invented CV.</span>
   </li>
   <li>
     <div class="jb-benefits__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/><path d="M9 21l1.5-1.5L13 21"/></svg>
     </div>
-    <strong>Apply more easily</strong>
-    <span>Assemble the package, open the form, and leave sending to you.</span>
+    <strong>Prepare without inventing</strong>
+    <span>Build the package from facts you already have; you press send.</span>
   </li>
   <li>
     <div class="jb-benefits__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M20 19H3"/></svg>
     </div>
-    <strong>Move forward with confidence</strong>
-    <span>Matching against your profile, shortlist and evidence — no account, no telemetry.</span>
+    <strong>Apply with you in control</strong>
+    <span>Matching, shortlist and evidence — HITL, no account, no telemetry.</span>
   </li>
 </ul>
 
-<p class="jb-pillars">More opportunities. A better tomorrow.</p>
+<p class="jb-pillars">More opportunities. A better tomorrow. Without leaving the terminal.</p>
 
 </section>
 

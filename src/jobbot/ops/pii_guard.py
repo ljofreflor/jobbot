@@ -26,12 +26,29 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
         r"^data/recruiters\.yaml$",
         "hiring-practice sources you read (share via recruiters export)",
     ),
-    (r"^data/.*\.bak(\.|$)", "profile backup"),
+    (
+        r"^data/application_answers\.yaml$",
+        "your answers to application questions (language level, contract, pay)",
+    ),
+    (
+        r"^data/(profile|portals|companies|recruiters|form_knowledge|application_answers)"
+        r"\.yaml\..+$",
+        "backup or variant of a local data file (same data as the original)",
+    ),
+    (r"^data/.*\.(bak|orig)([.\-]|$)", "backup of a local data file"),
     (r"^latex/cv\.tex$", "private LaTeX CV (only cv.tex.demo is tracked)"),
     (r"^\.jobbot\.toml$", "local config with private paths"),
     (r"^sandboxes/", "another candidate's workspace (test CVs are their PII)"),
     (r"(^|/)consent\.yaml$", "client consent and retention record"),
     (r"^browser-data/", "browser session data"),
+    (
+        r"(^|/)\.vault\.ya?ml$",
+        "local portal passwords (opt-in vault; never commit)",
+    ),
+    (
+        r"(^|/)\.vault\.ya?ml\..+$",
+        "backup of the local password vault",
+    ),
     (r"^output/", "generated artefacts with PII"),
     (r"\.sqlite3?$", "local database"),
     (r"\.db$", "local database"),

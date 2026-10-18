@@ -13,6 +13,7 @@ from typing import Any, Self
 
 from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
 
+from jobbot.browser.background import new_background_page
 from jobbot.browser.sessions import ensure_profile_free
 
 logger = logging.getLogger("jobbot.browser.session")
@@ -113,7 +114,14 @@ class BrowserSession:
             self._context = self._browser.contexts[0]
         else:
             self._context = self._browser.new_context()
-        self._page = self._context.pages[0] if self._context.pages else self._context.new_page()
+        self._page = self._context.pages[0] if self._context.pages else self.new_tab()
+
+    def new_tab(self) -> Page:
+        """A new tab; attached to the user's Chrome it opens in the background."""
+        if self._browser is None:
+            return self.context.new_page()
+        page: Page = new_background_page(self.context, browser=self._browser)
+        return page
 
     def _launch_context(self) -> BrowserContext:
         assert self._playwright is not None

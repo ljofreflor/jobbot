@@ -59,12 +59,14 @@ def build_cv(
     style: CvStyle = CvStyle.MODERNCV,
     application_log: ApplicationLogOptions | None = None,
     credit: bool = False,
+    full: bool = False,
 ) -> list[Path]:
     """Build CV artifacts under output/base/ or output/jobs/<id>/.
 
     ``application_log`` adds a last page to a job PDF; the base CV and the ATS text
     never carry it, since the ATS text is what gets pasted into forms. ``credit``
     closes the CV with the repository link, only when the candidate opted in.
+    ``full`` keeps every fact in a job CV, ordered by the posting inside each role.
     """
     if not templates_dir.is_dir():
         msg = f"Templates directory not found: {templates_dir}"
@@ -72,7 +74,7 @@ def build_cv(
 
     if job is not None:
         out_dir = output_dir / "jobs" / job.id
-        selection = select_for_job(candidate, job, match)
+        selection = select_for_job(candidate, job, match, full=full)
     else:
         out_dir = output_dir / "base"
         selection = select_for_base_cv(candidate)
@@ -102,7 +104,6 @@ def build_cv(
         written.append(ats_path)
         return written
 
-    # For job builds, also emit ATS alongside PDF
     tex_path = out_dir / "cv.tex"
     log = None
     if application_log is not None and job is not None and match is not None:
@@ -121,17 +122,16 @@ def build_cv(
     logger.info("Wrote LaTeX CV: %s", tex_path)
     written.append(tex_path)
 
+    # Written before XeLaTeX: a TeX failure must not leave the ATS text of an older profile.
+    ats_path = out_dir / "cv_ats.txt"
+    ats_path.write_text(
+        render_cv_ats(candidate, templates_dir, selection, credit=credit),
+        encoding="utf-8",
+    )
+    logger.info("Wrote ATS CV: %s", ats_path)
+
     pdf_path = _compile_xelatex(tex_path, out_dir)
-    written.append(pdf_path)
-
-    if job is not None:
-        ats_path = out_dir / "cv_ats.txt"
-        ats_path.write_text(
-            render_cv_ats(candidate, templates_dir, selection, credit=credit),
-            encoding="utf-8",
-        )
-        written.append(ats_path)
-
+    written.extend([pdf_path, ats_path])
     return written
 
 

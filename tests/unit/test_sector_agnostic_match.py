@@ -157,6 +157,9 @@ def test_metadata_shapes_are_recognised_and_real_skills_are_not() -> None:
         "Closing: 30/09/2026",
         "DESCRIPTION OF DUTIES",
         "Renta bruta mensual: $2.300.000",
+        "Primary Location: Santiago",
+        "Contractual Agreement: Fixed-term",
+        "Closing Date: October 15",
     ):
         assert looks_like_page_metadata(chrome), chrome
     for skill in (

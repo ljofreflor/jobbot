@@ -234,12 +234,24 @@ def _description(item: dict[str, Any], *, title: str, skills: list[str]) -> str:
     tagline = str(item.get("tagline") or "").strip()
     if tagline:
         lines.append(tagline)
+    if str(item.get("status") or "").strip().casefold() == "closed":
+        lines.append("Estado: cerrada — no se reciben más postulantes")
+    deadline = str(item.get("deadline") or "").strip()[:10]
+    if deadline:
+        lines.append(f"Fecha límite: {deadline}")
     place = _location(item)
     if place:
         lines.append(f"Modalidad: {place}")
-    money = _compensation(item)
-    if money:
-        lines.append(f"Compensación: {money}")
+    countries = _residence_countries(item)
+    if countries:
+        lines.append(f"Debe residir en: {countries}")
+    lines.extend(f"Idioma: {entry}" for entry in _languages(item))
+    if _compensation_hidden(item):
+        lines.append("Compensación: no publicada")
+    else:
+        money = _compensation(item)
+        if money:
+            lines.append(f"Compensación: {money}")
     if skills:
         lines.append("")
         lines.extend(_skill_lines(item, skills))
@@ -261,6 +273,39 @@ def _skill_lines(item: dict[str, Any], skills: list[str]) -> list[str]:
         needed = experience_by_name.get(name)
         lines.append(f"- {name} ({needed})" if needed else f"- {name}")
     return lines
+
+
+def _residence_countries(item: dict[str, Any]) -> str:
+    """`remote_countries` limits where the candidate may live, not where an office is."""
+    place = item.get("place")
+    if not isinstance(place, dict):
+        return ""
+    if str(place.get("locationType") or "").strip().casefold() != "remote_countries":
+        return ""
+    return _place_names(place.get("location"))
+
+
+def _languages(item: dict[str, Any]) -> list[str]:
+    """'English (fully fluent)': the language and the fluency the payload asks for."""
+    raw = item.get("languages")
+    if not isinstance(raw, list):
+        return []
+    out: list[str] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        language = entry.get("language")
+        name = language.get("name") if isinstance(language, dict) else language
+        name = str(name or "").strip()
+        fluency = str(entry.get("fluency") or "").strip().replace("-", " ")
+        if name:
+            out.append(f"{name} ({fluency})" if fluency else name)
+    return out
+
+
+def _compensation_hidden(item: dict[str, Any]) -> bool:
+    data = item.get("compensation")
+    return isinstance(data, dict) and data.get("visible") is False
 
 
 def _compensation(item: dict[str, Any]) -> str | None:

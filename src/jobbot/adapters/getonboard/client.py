@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import webbrowser
 from pathlib import Path
 
 from jobbot.adapters.getonboard.draft import (
@@ -18,6 +17,7 @@ from jobbot.adapters.getonboard.package import (
     build_getonboard_sync_package,
     render_getonboard_sync_markdown,
 )
+from jobbot.browser import background
 from jobbot.config import JobbotConfig, load_config
 from jobbot.nlp.refine import RefineResult, refine_permanent_profile
 from jobbot.profile.loader import load_profile
@@ -81,9 +81,9 @@ class GetOnBoardProfileClient:
         return md, md if loaded is not None and md.is_file() else None
 
     def open_profile_edit(self) -> str:
-        webbrowser.open(PROFILE_EDIT_URL)
+        background.open_url(PROFILE_EDIT_URL)
         return PROFILE_EDIT_URL
 
     def open_resumes(self) -> str:
-        webbrowser.open(RESUMES_HINT_URL)
+        background.open_url(RESUMES_HINT_URL)
         return RESUMES_HINT_URL

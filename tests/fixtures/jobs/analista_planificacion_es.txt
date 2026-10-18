@@ -1,0 +1,11 @@
+Title: Analista de Datos Senior
+Company: Fabrikam Logística
+Location: Santiago, Chile
+Descripción:
+Nuestro equipo de planificación construye modelos de pronóstico para la red de centros de distribución.
+Trabajamos en la optimización de rutas de despacho y en reducir el quiebre de stock en tiendas.
+Requisitos:
+- Experiencia con Python y SQL.
+- Manejo de Airflow.
+- Pronóstico de demanda.
+- Optimización de rutas.

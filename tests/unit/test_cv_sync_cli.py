@@ -73,7 +73,9 @@ def test_cv_sync_dry_run_lists_active_only_and_opens_no_browser(
     from jobbot.cli import run_cli
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
 
     assert run_cli(["cv", "sync"], standalone_mode=False) == SUCCESS
     out = capsys.readouterr().out
@@ -99,7 +101,9 @@ def test_apply_signup_row_fills_known_fields_without_submit(
     from tests.unit.test_cv_company_apply import FakePage
 
     opened: list[str] = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
     monkeypatch.setattr("jobbot.cli._apply_permanent_plans", lambda *args, **kwargs: None)
 
     page = FakePage()

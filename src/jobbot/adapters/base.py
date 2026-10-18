@@ -42,6 +42,7 @@ class ApplyMethod(StrEnum):
     EASY_APPLY = "easy_apply"
     EXTERNAL_ATS = "external_ats"
     EMAIL = "email"
+    LINKEDIN_MESSAGE = "linkedin_message"
     UNKNOWN = "unknown"
 
 

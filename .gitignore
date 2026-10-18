@@ -3,8 +3,15 @@
 data/profile.yaml
 data/profile.generated.yaml
 data/profile.suggested.yaml
-data/profile.yaml.bak
-data/*.bak
+# Backups / variants hold the same data as the original (`.bak`, `.bak-DATE`, `.orig`…).
+data/profile.yaml.*
+data/portals.yaml.*
+data/companies.yaml.*
+data/form_knowledge.yaml.*
+data/recruiters.yaml.*
+data/**/*.bak
+data/**/*.bak-*
+data/**/*.orig
 # Owner stamp: a hash that ties this data/ + output/ to one candidate.
 data/.jobbot-owner.json
 # Extra candidates (test CVs) live in their own workspace: never their data.
@@ -17,6 +24,9 @@ data/hard-link-inbox.txt
 data/url-candidates.txt
 # Hiring-practice sources you read; share the practices via `recruiters export`.
 data/recruiters.yaml
+# Answers profile.yaml does not hold (language level, contract, pay): local only.
+data/application_answers.yaml
+data/application_answers.yaml.*
 
 # Keep sanitized templates tracked
 !data/profile.example.yaml
@@ -56,6 +66,11 @@ data/**/*.pdf
 *.xdv
 
 # ── Runtime / secrets / sessions ────────────────────────────────────────────
+# Opt-in password vault (next to profile.yaml). Hidden ≠ encrypted; mode 0600.
+data/.vault.yaml
+data/.vault.yml
+**/.vault.yaml
+**/.vault.yml
 browser-data/
 output/
 .env

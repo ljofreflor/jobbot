@@ -30,5 +30,5 @@ def test_published_descriptions_carry_the_mark() -> None:
     package = build_indeed_sync_package(candidate)
     assert fields.experiencia_y_perfil.endswith(MARK)
     assert len(fields.experiencia_y_perfil) <= EXPERIENCE_MAX
-    assert package.summary.endswith(MARK)
+    assert "powered by Jobbot sync CV" not in package.summary
     assert package.headline.endswith(MARK) is False

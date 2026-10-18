@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
 
 from jobbot.branding import MARK
+from jobbot.browser import background
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 
@@ -130,8 +130,8 @@ def open_gmail_compose(
     *,
     opener: object | None = None,
 ) -> str:
-    """Open Gmail compose in the browser; returns the URL opened."""
+    """Open Gmail compose in the browser (in the background); returns the URL opened."""
     url = gmail_compose_url(draft)
-    open_fn = opener if callable(opener) else webbrowser.open
+    open_fn = opener if callable(opener) else background.open_url
     open_fn(url)
     return url

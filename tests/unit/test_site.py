@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 import pytest
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from jobbot.ops import pii_guard
 
@@ -169,6 +169,100 @@ def test_written_agreement_step_covers_the_pilot(soup: BeautifulSoup) -> None:
     assert "honorario" not in second
     for term in ("alcance", "datos", "duración"):
         assert term in second
+
+
+def _map_section(soup: BeautifulSoup) -> Tag:
+    heading = soup.find(id="mapa")
+    assert heading is not None and heading.name == "h2"
+    section = heading.find_parent("section")
+    assert section is not None
+    return section
+
+
+def test_platform_map_section_comes_right_after_the_hero(soup: BeautifulSoup) -> None:
+    main = soup.find("main")
+    assert main is not None
+    first = main.find("section")
+    assert first is _map_section(soup)
+    assert "plataformas" in _map_section(soup).find("h2").get_text().casefold()
+
+
+def test_platform_map_section_sells_presence_without_promises(soup: BeautifulSoup) -> None:
+    text = " ".join(_map_section(soup).get_text(" ").split()).casefold()
+    for platform in ("workday", "greenhouse", "lever", "ashby", "smartrecruiters", "manatal"):
+        assert platform in text, platform
+    assert "mapa compartido" in text
+    assert "conocimiento público" in text
+    assert "se revisa antes de activarse" in text
+    assert "tibia" in text, "presence kept warm, waiting for a match"
+    assert "la contraseña la pones tú" in text
+    assert "nada se envía sin ti" in text
+
+
+def test_platform_map_section_holds_the_generated_diagram(html: str, soup: BeautifulSoup) -> None:
+    section = _map_section(soup)
+    figure = section.find("figure", class_="platform-map")
+    assert figure is not None
+    svgs = figure.find_all("svg")
+    assert svgs and all(svg.get("role") == "img" for svg in svgs)
+    assert all(svg.find("title") and svg.find("desc") for svg in svgs)
+    assert html.count("platform-map:start") == 1
+    assert html.count("platform-map:end") == 1
+
+
+def test_diagram_layouts_swap_by_viewport(css: str) -> None:
+    """Wide layout on desktop, narrow one on phones: text stays readable without JS."""
+    assert ".pm-narrow" in css and ".pm-wide" in css
+    assert re.search(r"@media\s*\(max-width:[^)]+\)\s*\{[^}]*\.pm-wide", css)
+
+
+def test_diagram_flows_are_animated_with_css_only(css: str, soup: BeautifulSoup) -> None:
+    assert soup.find_all("script") == []
+    assert "@keyframes" in css
+    assert "stroke-dashoffset" in css
+    for selector in (".pm-flow", ".pm-feedback", ".pm-hub"):
+        block = re.search(rf"{re.escape(selector)}[^{{]*\{{([^}}]*)\}}", css)
+        assert block is not None, selector
+    assert re.search(r"\.pm-flow[^{]*\{[^}]*animation:", css)
+    assert re.search(r"\.pm-feedback[^{]*\{[^}]*animation:", css)
+
+
+def test_diagram_motion_stops_for_reduced_motion(css: str) -> None:
+    block = re.search(r"@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{(.*?)\n\}", css, re.S)
+    assert block is not None
+    body = block.group(1)
+    for selector in (".pm-flow", ".pm-feedback", ".pm-hub"):
+        assert selector in body, selector
+    assert "animation: none" in body
+
+
+def _stroke_width(css: str, selector: str) -> float:
+    for block in re.findall(rf"^{re.escape(selector)}\s*\{{([^}}]*)\}}", css, re.M):
+        width = re.search(r"stroke-width:\s*([\d.]+)", block)
+        if width:
+            return float(width.group(1))
+    raise AssertionError(f"no stroke-width for {selector}")
+
+
+def test_feedback_loop_stands_out_from_outbound_flows(css: str) -> None:
+    assert _stroke_width(css, ".pm-feedback") > _stroke_width(css, ".pm-flow")
+    feedback = re.findall(r"--feedback:\s*(#[0-9a-f]{6})", css)
+    accent = re.findall(r"--accent:\s*(#[0-9a-f]{6})", css)
+    assert len(feedback) == 2, "light and dark schemes"
+    assert not set(feedback) & set(accent)
+
+
+def test_reduced_motion_keeps_the_arrows_visible(css: str) -> None:
+    block = re.search(r"@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{(.*?)\n\}", css, re.S)
+    assert block is not None
+    body = block.group(1)
+    for hidden in ("display: none", "visibility: hidden", "opacity: 0", "stroke: none"):
+        assert hidden not in body, hidden
+
+
+def test_platform_map_section_explains_the_feedback_loop(soup: BeautifulSoup) -> None:
+    text = " ".join(_map_section(soup).get_text(" ").split()).casefold()
+    assert "vuelve" in text and "solo si tú las confirmas" in text
 
 
 def test_pages_has_one_workflow_that_ships_the_page(project_root: Path) -> None:

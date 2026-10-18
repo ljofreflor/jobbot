@@ -85,14 +85,14 @@ def test_cli_capture_and_list(
     assert "Company portal candidate" in out
     assert (
         run_cli(
-            ["capture", "https://cl.indeed.com/viewjob?jk=abc123&from=appshareios"],
+            ["capture", "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=appshareios"],
             standalone_mode=False,
         )
         == SUCCESS
     )
     assert run_cli(["capture", "--list"], standalone_mode=False) == SUCCESS
     listed = capsys.readouterr().out
-    assert "abc123" in listed
+    assert "8a5fab1a7c476a97" in listed
     assert "ubimia" in listed.casefold() or "empleo.ubimia" in listed
 
 
@@ -105,3 +105,13 @@ def test_cli_capture_requires_url_or_list(
     from jobbot.cli import run_cli
 
     assert run_cli(["capture"], standalone_mode=False) == VALIDATION_FAILURE
+
+
+def test_capture_refuses_a_reserved_example_career_portal(tmp_path: Path) -> None:
+    from jobbot.companies.registry import default_companies_path, load_companies
+
+    config = _config(tmp_path)
+    result = capture_url(config, "https://careers.example.com/trabaja-con-nosotros")
+    assert result.kind == CaptureKind.UNRECOGNIZED
+    assert "reserved" in result.detail
+    assert load_companies(default_companies_path(tmp_path)).companies == []

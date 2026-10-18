@@ -203,14 +203,18 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "id": "zoonosis-vigilancia",
                         "text": "Referente regional de la vigilancia epidemiológica de rabia "
                         "e hidatidosis; investigación de brotes de enfermedades zoonóticas.",
-                        "tags": [],
+                        "tags": [
+                            "autoridad_sanitaria",
+                            "relacionamiento_institucional",
+                            "regulatorio",
+                        ],
                         "metrics": {},
                     },
                     {
                         "id": "zoonosis-informes",
                         "text": "Elaboré informes de situación para la toma de decisiones "
                         "en salud pública.",
-                        "tags": [],
+                        "tags": ["autoridad_sanitaria", "coordinacion_interinstitucional"],
                         "metrics": {},
                     },
                 ],
@@ -229,7 +233,11 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "text": "Apoyo técnico a doce países en la puesta en marcha de un "
                         "sistema de información de vigilancia epidemiológica para "
                         "inmunoprevenibles.",
-                        "tags": [],
+                        "tags": [
+                            "relacionamiento_institucional",
+                            "coordinacion_interinstitucional",
+                            "regulatorio",
+                        ],
                         "metrics": {},
                     }
                 ],
@@ -247,14 +255,14 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "id": "red-laboratorios",
                         "text": "Coordiné una red de 150 laboratorios clínicos para el "
                         "diagnóstico durante la pandemia.",
-                        "tags": [],
+                        "tags": ["gestion_de_redes", "coordinacion_interinstitucional"],
                         "metrics": {},
                     },
                     {
                         "id": "red-emergencias",
                         "text": "Investigación de brotes y vigilancia intensificada en "
                         "emergencias sanitarias.",
-                        "tags": [],
+                        "tags": ["gestion_de_redes", "autoridad_sanitaria"],
                         "metrics": {},
                     },
                 ],
@@ -272,7 +280,7 @@ def public_health_profile_dict() -> dict[str, Any]:
                         "id": "municipio-programa",
                         "text": "Implementé el programa municipal de zoonosis y tenencia "
                         "responsable de mascotas.",
-                        "tags": [],
+                        "tags": ["regulatorio", "relacionamiento_institucional"],
                         "metrics": {},
                     }
                 ],
@@ -319,6 +327,206 @@ def public_health_profile_dict() -> dict[str, Any]:
             ],
             "salud_publica": ["Salud pública", "Enfermedades zoonóticas"],
             "statistics": ["Bioestadística", "R"],
+        },
+        "publications": [],
+    }
+
+
+def surveillance_profile_dict() -> dict[str, Any]:
+    """Public-health profile looking for non-academic roles; the headline is made of degrees.
+
+    Fictitious person, employers and acronyms (#179): a surveillance consultant who has
+    never held a teaching post, written in Spanish, to be read against English postings.
+    """
+    return {
+        "personal": {
+            "name": "Valeria Ejemplo Ficticia",
+            "headline": "Doctora (c) en Ciencias Ficticias · Magíster en Salud Pública",
+            "city": None,
+            "country": "Chile",
+            "email": "valeria.ejemplo@example.com",
+        },
+        "summary": (
+            "Médica veterinaria con experiencia en vigilancia epidemiológica, zoonosis, "
+            "redes de laboratorio y sistemas de información de vigilancia."
+        ),
+        "specialties": ["Vigilancia epidemiológica", "Zoonosis"],
+        "experience": [
+            {
+                "id": "consultoria-sistemas",
+                "company": "Organización Regional de Salud Ficticia",
+                "title": "Consultora en Sistemas de Información de Vigilancia",
+                "location": None,
+                "start_date": "2023-01",
+                "current": True,
+                "achievements": [
+                    {
+                        "id": "consultoria-indicadores",
+                        "text": "Diseñé los indicadores del sistema de información de "
+                        "vigilancia de enfermedades inmunoprevenibles para ocho países.",
+                        "tags": ["sistemas_de_informacion"],
+                        "metrics": {"paises": 8},
+                    }
+                ],
+            },
+            {
+                "id": "red-laboratorios",
+                "company": "Instituto Nacional Ficticio de Diagnóstico",
+                "title": "Coordinadora de Red de Laboratorios",
+                "location": "Chile",
+                "start_date": "2020-03",
+                "end_date": "2022-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "red-covid",
+                        "text": "Coordiné la red nacional de laboratorios de diagnóstico "
+                        "durante la pandemia de COVID-19.",
+                        "tags": ["gestion_de_redes"],
+                        "metrics": {},
+                    }
+                ],
+            },
+            {
+                "id": "epi-regional",
+                "company": "Secretaría Regional Ficticia de Salud",
+                "title": "Epidemióloga de Vigilancia",
+                "location": "Chile",
+                "start_date": "2012-01",
+                "end_date": "2019-12",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "epi-brotes",
+                        "text": "Lideré la vigilancia epidemiológica de zoonosis y la "
+                        "investigación de brotes en la región.",
+                        "tags": ["vigilancia"],
+                        "metrics": {},
+                    },
+                    {
+                        "id": "epi-notificacion",
+                        "text": "Implementé la notificación electrónica de casos del "
+                        "Programa Integral de Zoonosis (PIZ).",
+                        "tags": ["vigilancia"],
+                        "metrics": {},
+                    },
+                ],
+            },
+            {
+                "id": "municipio-vet",
+                "company": "Municipalidad Ficticia",
+                "title": "Médica Veterinaria",
+                "location": "Chile",
+                "start_date": "2008-01",
+                "end_date": "2011-12",
+                "current": False,
+                "achievements": [],
+            },
+        ],
+        "education": [
+            {
+                "id": "vet",
+                "institution": "Universidad Ficticia del Sur",
+                "degree": "Médica Veterinaria",
+                "start_date": "2002-03",
+                "end_date": "2007-12",
+            },
+            {
+                "id": "magister",
+                "institution": "Universidad Ficticia del Sur",
+                "degree": "Magíster en Salud Pública",
+                "start_date": "2010-03",
+                "end_date": "2011-12",
+            },
+            {
+                "id": "doctorado",
+                "institution": "Universidad Ficticia del Litoral",
+                "degree": "Doctorado en Ciencias Ficticias",
+                "start_date": "2021-03",
+            },
+        ],
+        "skills": {
+            "vigilancia": [
+                "Vigilancia epidemiológica",
+                "Investigación de brotes",
+                "Sistemas de información en salud",
+                "SIVI-SMART",
+            ],
+            "herramientas": ["Epi Info", "QGIS", "R"],
+            "gestion": ["Coordinación interinstitucional", "Gestión de redes"],
+        },
+        "publications": [],
+    }
+
+
+def two_degrees_profile_dict() -> dict[str, Any]:
+    """Two degrees from two institutions and two employers, each with its own figure."""
+    return {
+        "personal": {
+            "name": "Daniela Rojas Ejemplo",
+            "headline": "Analista de Datos | Magíster en Estadística",
+            "city": "Santiago",
+            "country": "Chile",
+            "email": "daniela.rojas@example.com",
+        },
+        "summary": "Analista de datos con foco en pronóstico de demanda.",
+        "specialties": ["Pronóstico de Demanda"],
+        "experience": [
+            {
+                "id": "northwind-analista",
+                "company": "Northwind Analítica",
+                "title": "Analista de Datos",
+                "location": "Santiago, Chile",
+                "start_date": "2021-03",
+                "current": True,
+                "description": "Modelos de demanda para clientes de retail.",
+                "achievements": [
+                    {
+                        "id": "northwind-quiebre",
+                        "text": "Reduje en 18% el quiebre de stock con un modelo de "
+                        "pronóstico semanal.",
+                        "tags": ["pronóstico"],
+                        "metrics": {"quiebre_stock_pct": 18},
+                    }
+                ],
+            },
+            {
+                "id": "contoso-ingeniera",
+                "company": "Contoso Retail",
+                "title": "Ingeniera de Software",
+                "location": "Santiago, Chile",
+                "start_date": "2017-01",
+                "end_date": "2021-02",
+                "current": False,
+                "achievements": [
+                    {
+                        "id": "contoso-servicios",
+                        "text": "Migré 40 servicios a contenedores.",
+                        "tags": ["docker"],
+                        "metrics": {"servicios": 40},
+                    }
+                ],
+            },
+        ],
+        "education": [
+            {
+                "id": "litoral-ingenieria",
+                "institution": "Universidad del Litoral",
+                "degree": "Ingeniería Civil en Computación",
+                "start_date": "2010-03",
+                "end_date": "2016-12",
+            },
+            {
+                "id": "sur-magister",
+                "institution": "Universidad del Sur",
+                "degree": "Magíster en Estadística",
+                "start_date": "2018-03",
+                "end_date": "2020-12",
+            },
+        ],
+        "skills": {
+            "datos": ["Python", "SQL", "Pronóstico de Demanda"],
+            "software": ["Docker"],
         },
         "publications": [],
     }

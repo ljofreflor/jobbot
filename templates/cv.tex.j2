@@ -81,16 +81,19 @@
 
 {% if skills %}
 \section*{Skills}
+% Skill names are terms to match, not prose: break between them, never inside one.
+\begingroup\hyphenpenalty=10000\exhyphenpenalty=10000\emergencystretch=3em
 {% for group, items in skills.items() %}
 {{ bold(group_label(group)) }}: {{ items | map('latex') | join(', ') }}\\
 {% endfor %}
+\par\endgroup
 {% endif %}
 
 {% if publications %}
 \section*{Publications}
 \begin{itemize}
 {% for pub in publications %}
-  \item {% if pub.authors %}{{ pub.authors | map('latex') | join(', ') }}. {% endif %}{{ pub.title | latex }}{% if pub.journal %} --- \textit{ {{ pub.journal | latex }} }{% endif %}{% if pub.year %}, {{ pub.year }}{% endif %}{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %}. \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% endif %}
+  \item {% if pub.authors %}{{ pub.authors | map('latex') | join(', ') }}. {% endif %}{{ pub.title | latex }}{% if pub.journal %} --- \textit{ {{ pub.journal | latex }} }{% endif %}{% if pub.year %}, {{ pub.year }}{% endif %}{% if pub.status %} ({{ pub.status | latex }}){% endif %}{% if pub.doi %}. \href{https://doi.org/{{ pub.doi }}}{doi:{{ pub.doi | latex }}}{% elif pub.url %}. \href{ {{- pub.url | string | latex_url -}} }{ {{- pub.url | string | latex -}} }{% endif %}
 {% endfor %}
 \end{itemize}
 {% endif %}

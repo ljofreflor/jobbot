@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -249,6 +251,11 @@ def test_form_inside_an_iframe_is_filled_in_that_frame(project_root: Path) -> No
     assert frame.filled and frame.clicked == []
 
 
+class _PageInfo:
+    def __init__(self, page: FakePage) -> None:
+        self.value = page
+
+
 class _FakeContext:
     def __init__(self, page: FakePage) -> None:
         self._page = page
@@ -259,11 +266,31 @@ class _FakeContext:
         self.new_pages += 1
         return self._page
 
+    @contextmanager
+    def expect_page(self, **_kwargs: object) -> Iterator[_PageInfo]:
+        yield _PageInfo(self._page)
+
+
+class _FakeCdp:
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, dict[str, object]]] = []
+
+    def send(self, method: str, params: dict[str, object]) -> dict[str, str]:
+        self.sent.append((method, params))
+        return {"targetId": "T1"}
+
+    def detach(self) -> None:
+        return None
+
 
 class _FakeBrowser:
     def __init__(self, context: _FakeContext) -> None:
         self.contexts = [context]
         self.closed = False
+        self.cdp = _FakeCdp()
+
+    def new_browser_cdp_session(self) -> _FakeCdp:
+        return self.cdp
 
     def close(self) -> None:
         self.closed = True
@@ -310,7 +337,10 @@ def test_cdp_opens_a_new_tab_fills_and_only_disconnects(
     )
 
     assert playwright.chromium.cdp == ["http://127.0.0.1:9222"]
-    assert context.new_pages == 1, "your open tabs are never reused"
+    assert browser.cdp.sent == [
+        ("Target.createTarget", {"url": "about:blank", "background": True})
+    ], "a new background tab: your open tabs are never reused nor raised"
+    assert context.new_pages == 0
     assert page.visited == [ATS_URL]
     assert result.filled and result.attached
     assert browser.closed is False, "the user's Chrome is never closed"

@@ -142,7 +142,8 @@ def test_real_fst_negocios_coinvestigador_is_named_and_kept_out_of_chile(
     post = _load_real_post("fst_negocios_coinvestigador_ia", monkeypatch)
 
     assert post.vacancies == ()  # type: ignore[attr-defined]
-    assert post.ats_url is None  # type: ignore[attr-defined]
+    assert post.ats_kind == AtsKind.LINKEDIN  # type: ignore[attr-defined]
+    assert post.ats_url == post.post_url  # type: ignore[attr-defined]
     assert detect_country(post.text) == "PE"  # type: ignore[attr-defined]
     assert post_offers_wanted_country(post.text, wanted=["CL"]) is False  # type: ignore[attr-defined]
     assert post_offers_wanted_country(post.text, wanted=["PE"]) is True  # type: ignore[attr-defined]
@@ -153,7 +154,8 @@ def test_real_fst_negocios_coinvestigador_is_named_and_kept_out_of_chile(
     assert "inteligencia artificial" in job.title.casefold()
     # Title field must not win over the employer line ("En FST NEGOCIOS – Centro…").
     assert job.company != "INTELIGENCIA ARTIFICIAL"
-    assert job.ats_url is None
+    assert job.ats_url == job.url
+    assert job.ats_kind == "linkedin"
     assert "mensaje interno" in job.description.casefold()
 
 
@@ -181,3 +183,48 @@ def test_real_peopletrust_cddo_is_named_from_mailbox_and_kept_for_chile(
     assert "para empresa" not in job.title.casefold()
     assert job.ats_url == "mailto:postulaciones@peopletrust.cl"
     assert job.ats_kind == "email"
+
+
+def test_real_intermediait_chile_team_lead_is_dm_apply_and_keeps_the_client_unnamed(
+    monkeypatch: object,
+) -> None:
+    """https://lnkd.in/p/dQ9weDv4 — Chile hybrid; apply by LinkedIn message; unnamed client."""
+    from datetime import UTC, datetime
+
+    from jobbot.adapters.ats.apply import build_apply_plan
+    from jobbot.adapters.base import ApplyMethod
+    from jobbot.models.candidate import Candidate, PersonalInfo
+    from jobbot.portals.message_apply import asks_for_linkedin_message
+
+    post = _load_real_post("intermediait_chile_team_lead", monkeypatch)
+
+    assert post.vacancies == ()  # type: ignore[attr-defined]
+    assert post.ats_kind == AtsKind.LINKEDIN  # type: ignore[attr-defined]
+    assert post.ats_url == post.post_url  # type: ignore[attr-defined]
+    assert "utm_" not in (post.post_url or "")  # type: ignore[attr-defined]
+    assert "rcm=" not in (post.post_url or "")  # type: ignore[attr-defined]
+    assert detect_country(post.text) == "CL"  # type: ignore[attr-defined]
+    assert post_offers_wanted_country(post.text, wanted=["CL"]) is True  # type: ignore[attr-defined]
+    assert asks_for_linkedin_message(post.text)  # type: ignore[attr-defined]
+    assert post.posted_at == datetime(2026, 10, 2, 20, 0, 33, 67000, tzinfo=UTC)  # type: ignore[attr-defined]
+
+    job = post_to_job(post)  # type: ignore[arg-type]
+    assert "data team lead" in job.title.casefold()
+    assert "advanced analytics" in job.title.casefold()
+    assert "híbrido" not in job.title.casefold()
+    # Agency hashtag / author / board host must not become the unnamed client.
+    assert job.company == "Unknown company"
+    assert "intermedia" not in job.company.casefold()
+    assert job.company.casefold() != "dalma merlo"
+    assert job.ats_kind == "linkedin"
+    assert job.ats_url == job.url
+
+    plan = build_apply_plan(
+        Candidate(personal=PersonalInfo(name="Ana", headline="Editor")),
+        job,
+    )
+    assert plan.method == ApplyMethod.LINKEDIN_MESSAGE
+    assert plan.ats_kind == AtsKind.LINKEDIN
+    assert plan.ats_url == job.url
+    assert "never sends" in plan.message.casefold()
+    assert plan.fields_to_fill == []

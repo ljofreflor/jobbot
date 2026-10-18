@@ -1,0 +1,17 @@
+# Example web-search hits for `jobbot companies discover … --search-results`.
+# JobBot does not query a search engine. Collect URLs yourself (e.g. after running
+# `jobbot jobs queries --region Spain`), then list them here.
+#
+# Shape A — map company slug → urls:
+results:
+  acme:
+    - https://jobs.ashbyhq.com/acme
+    - https://boards.greenhouse.io/acme
+  dataco:
+    - https://jobs.lever.co/dataco
+
+# Shape B (also accepted) — list of {company, urls}:
+# results:
+#   - company: acme
+#     urls:
+#       - https://jobs.ashbyhq.com/acme

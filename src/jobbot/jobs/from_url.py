@@ -26,15 +26,19 @@ from jobbot.models.application import ApplicationStatus
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch
-from jobbot.portals.detect import AtsKind
+from jobbot.portals.detect import ROBOTS_DISALLOWED_KINDS, AtsKind
 from jobbot.portals.knowledge import PortalKnowledge, lookup_portal
 
 # Re-export so CLI/tests catch filled career fixtures without a second import.
 __all__ = [
     "ClosedPostingError",
     "GetFromUrlResult",
+    "InvalidPostingUrlError",
+    "PortalDisallowedError",
+    "PortalShapeChangedError",
     "UnknownPortalError",
     "UnsupportedPortalFetchError",
+    "fetch_workday_posting",
     "ingest_hard_link",
 ]
 
@@ -45,6 +49,18 @@ class UnknownPortalError(ValueError):
 
 class UnsupportedPortalFetchError(ValueError):
     """Portal is known but JobBot cannot fetch a JD from that host yet."""
+
+
+class PortalDisallowedError(ValueError):
+    """The portal's robots.txt forbids automated reading: a decision, not a missing fetcher."""
+
+
+class InvalidPostingUrlError(UnsupportedPortalFetchError):
+    """The host has a fetcher, but this URL does not name one posting."""
+
+
+class PortalShapeChangedError(UnsupportedPortalFetchError):
+    """The portal answered with a shape the fetcher no longer understands."""
 
 
 @dataclass(frozen=True)
@@ -140,12 +156,30 @@ def _fetch_job(
         return job_from_hard_link(portal.url, html=html, on_chunk=on_chunk)
     if portal.ats_kind == AtsKind.INDEED:
         return _fetch_indeed_job(portal, html=html, cdp_url=cdp_url)
+    if portal.ats_kind == AtsKind.EMPLEOS_PUBLICOS:
+        return _fetch_empleos_publicos_job(portal, html=html)
+    if portal.ats_kind in ROBOTS_DISALLOWED_KINDS and html is None:
+        msg = (
+            f"{portal.domain} asks robots not to read it (robots.txt: Disallow: /), "
+            "so JobBot does not fetch it. Open the page in your browser, copy the ficha "
+            f"text into a file and run `jobbot jobs add --file ficha.txt --url {portal.url}`."
+        )
+        raise PortalDisallowedError(msg)
+    if portal.ats_kind == AtsKind.WORKDAY and html is None:
+        return fetch_workday_posting(portal.url)
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)
         except ClosedPostingError:
             raise
         except CareerPageParseError as exc:
+            if portal.ats_kind in ROBOTS_DISALLOWED_KINDS:
+                msg = (
+                    f"JobBot cannot read a saved {portal.domain} page yet. Copy the "
+                    "ficha text into a file and run "
+                    f"`jobbot jobs add --file ficha.txt --url {portal.url}`."
+                )
+                raise UnsupportedPortalFetchError(msg) from exc
             if portal.known:
                 msg = (
                     f"No hard-link fetcher for {portal.ats_kind.value} yet "
@@ -162,6 +196,62 @@ def _fetch_job(
         "or pass --fixture with saved career HTML."
     )
     raise UnsupportedPortalFetchError(msg)
+
+
+def fetch_workday_posting(url: str) -> JobPosting:
+    """Live CXS detail for a Workday link; closure and unreadable sites become clear errors."""
+    from jobbot.adapters.workday.cxs import (
+        WorkdayError,
+        WorkdayPostingClosed,
+        WorkdayShapeChanged,
+        fetch_workday_job,
+    )
+    from jobbot.jobs import closing
+
+    try:
+        job = fetch_workday_job(url)
+        state = closing.closing_state(job.closes_at, job.closes_on, now=closing.utc_now())
+        if state is closing.ClosingState.EXPIRED:
+            raise WorkdayPostingClosed(f"{job.url}: closing passed ({job.closes_text})")
+        return job
+    except WorkdayPostingClosed:
+        raise
+    except WorkdayShapeChanged as exc:
+        raise PortalShapeChangedError(f"Workday: {exc}") from exc
+    except WorkdayError as exc:
+        raise UnsupportedPortalFetchError(f"Workday: {exc}") from exc
+    except ValueError as exc:
+        raise InvalidPostingUrlError(str(exc)) from exc
+
+
+def _fetch_empleos_publicos_job(
+    portal: PortalKnowledge,
+    *,
+    html: str | None,
+) -> JobPosting:
+    """Parse an Empleos Públicos ficha (fixture-first; live board often 403)."""
+    from jobbot.adapters.empleospublicos.jobs import (
+        EmpleosPublicosParseError,
+        canonical_ficha_url,
+        job_from_ficha_html,
+    )
+
+    try:
+        canonical = canonical_ficha_url(portal.url)
+    except EmpleosPublicosParseError as exc:
+        raise UnsupportedPortalFetchError(str(exc)) from exc
+    if html is None:
+        msg = (
+            "Empleos Públicos ficha needs --fixture with saved HTML "
+            "(live portal is JS-loaded and often refuses automated fetch)."
+        )
+        raise UnsupportedPortalFetchError(msg)
+    try:
+        job = job_from_ficha_html(html, url=canonical)
+    except EmpleosPublicosParseError as exc:
+        raise UnsupportedPortalFetchError(str(exc)) from exc
+    job.url = canonical
+    return job
 
 
 def _fetch_indeed_job(

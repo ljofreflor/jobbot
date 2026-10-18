@@ -144,6 +144,42 @@ def normalize_countries(values: Sequence[str] | None) -> tuple[str, ...]:
     return tuple(out)
 
 
+_US_SHORT = re.compile(r"(?<![A-Za-z])U\.?S\.?(?![A-Za-z])|(?<![a-z])ee\.?\s?uu\.?(?![a-z])", re.I)
+_MIN_NAME = 4
+
+
+def countries_in_text(text: str) -> tuple[str, ...]:
+    """Every country a clause names, in order of appearance ('Peru and Colombia' → PE, CO).
+
+    Names come from CLDR in Spanish and English; bare two-letter codes are not read
+    ('in', 'es' are words), except the usual shorthands for the US and the UK.
+    A name inside a longer one ('Sudan' in 'South Sudan') counts once, as the longer.
+    """
+    clause = (text or "").strip()
+    folded = _fold(clause)
+    if not folded:
+        return ()
+    hits: list[tuple[int, int, str]] = []
+    for alias, code in _country_aliases().items():
+        if len(alias) < _MIN_NAME and alias not in _EXTRA_ALIASES:
+            continue
+        for match in re.finditer(rf"(?<![a-z]){re.escape(alias)}(?![a-z])", folded):
+            hits.append((match.start(), match.end(), code))
+    for match in _US_SHORT.finditer(clause):
+        if match.group(0).isupper() or "." in match.group(0) or match.group(0)[0] in "eE":
+            hits.append((match.start(), match.end(), "US"))
+    hits.sort(key=lambda hit: (hit[0], -(hit[1] - hit[0])))
+    out: list[str] = []
+    covered_until = -1
+    for start, end, code in hits:
+        if start < covered_until:
+            continue
+        covered_until = end
+        if code not in out:
+            out.append(code)
+    return tuple(out)
+
+
 def detect_country(text: str) -> str | None:
     """Best-effort country of a posting; None when the text does not say."""
     lowered = (text or "").casefold()

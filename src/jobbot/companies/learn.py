@@ -14,7 +14,11 @@ from jobbot.companies.registry import (
     load_companies,
     save_companies,
 )
-from jobbot.companies.urls import PrivateRouteRejected, company_hint_from_url
+from jobbot.companies.urls import (
+    PrivateRouteRejected,
+    ReservedDomainRejected,
+    company_hint_from_url,
+)
 from jobbot.config import JobbotConfig
 from jobbot.models.job import JobPosting
 
@@ -65,9 +69,7 @@ def learn_from_url(
         ats=classification.ats,
         evidence=classification.evidence,
         country=country,
-        reached_from=(
-            classification.requested_url if classification.redirects_to else None
-        ),
+        reached_from=(classification.requested_url if classification.redirects_to else None),
         notes=notes,
     )
 
@@ -105,6 +107,9 @@ def learn_from_job(
             source=source,
             notes=f"seen via {job.source}",
         )
+    except ReservedDomainRejected as exc:
+        logger.warning("Company knowledge skipped: %s", exc)
+        return None
     except PrivateRouteRejected as exc:
         logger.debug("Not shareable company knowledge (%s): %s", url, exc)
         return None

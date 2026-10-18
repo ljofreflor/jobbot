@@ -127,6 +127,7 @@ class _DummyPackage:
     def cv_pdf(self):  # noqa: ANN201
         return None
 
+
 def test_resolve_honors_stored_kind_on_custom_career_domain() -> None:
     """Host rules miss careers.neuralworks.cl; stored sniff kind must still drive the plan."""
     from jobbot.adapters.ats.apply import resolve_ats_url
@@ -148,3 +149,46 @@ def test_resolve_honors_stored_kind_on_custom_career_domain() -> None:
     )
     assert plan.ats_kind == AtsKind.TEAMTAILOR
     assert plan.method == ApplyMethod.EXTERNAL_ATS
+
+
+def test_linkedin_message_plan_opens_the_post_and_does_not_prefill() -> None:
+    from jobbot.adapters.ats.apply import resolve_ats_url
+    from jobbot.portals.detect import AtsKind
+
+    cand = Candidate(personal=PersonalInfo(name="Ana", headline="Editor"))
+    job = JobPosting(
+        id="J1",
+        title="Editor de Contenidos",
+        company="Unknown company",
+        url="https://www.linkedin.com/posts/recruiter_activity-7511877806738411520-MJ5G",
+        description="Si te interesa, mandame un mensaje indicando que te interesa este puesto.",
+    )
+    url, kind = resolve_ats_url(job)
+    assert url == job.url
+    assert kind == AtsKind.LINKEDIN
+    plan = build_apply_plan(cand, job)
+    assert plan.method == ApplyMethod.LINKEDIN_MESSAGE
+    assert "never sends" in plan.message.casefold()
+    assert plan.fields_to_fill == []
+
+
+def test_linkedin_permalink_without_a_message_ask_is_not_an_ats() -> None:
+    from jobbot.adapters.ats.apply import resolve_ats_url
+    from jobbot.portals.detect import AtsKind
+
+    job = JobPosting(
+        id="J1",
+        title="Machine Learning",
+        company="NORTHWIND DATA",
+        url="https://www.linkedin.com/posts/recruiter_activity-1-xxxx",
+        description="Buscamos talento. El link de postulación está en el primer comentario.",
+    )
+    url, kind = resolve_ats_url(job)
+    assert url is None
+    assert kind == AtsKind.UNKNOWN
+    plan = build_apply_plan(
+        Candidate(personal=PersonalInfo(name="Ana", headline="Editor")),
+        job,
+    )
+    assert plan.method == ApplyMethod.UNKNOWN
+    assert plan.ats_url == ""

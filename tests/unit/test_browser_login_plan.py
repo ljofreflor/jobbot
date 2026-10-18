@@ -199,6 +199,57 @@ def test_a_company_tab_is_never_a_ready_session(tmp_path: Path) -> None:
     assert gap is not None and gap.name == "Northwind"
 
 
+def test_login_port_is_never_one_held_by_another_chrome(tmp_path: Path) -> None:
+    """Regression: every probed port taken made --apply fall back to the first one."""
+    from jobbot.browser.login_plan import plan_logins
+
+    endpoints = [
+        CdpEndpoint(url=f"http://127.0.0.1:{port}", port=port) for port in (9222, 9223, 9224)
+    ]
+    plan = plan_logins(
+        tmp_path,
+        registry=_registry(),
+        sessions=_permanent(),
+        endpoints=endpoints,
+        processes=[],
+    )
+    assert plan.port not in (9222, 9223, 9224)
+
+    held = [ChromeProcess(pid=9, profile_dir=Path("/elsewhere/other"), cdp_port=9222)]
+    plan = plan_logins(
+        tmp_path,
+        registry=_registry(),
+        sessions=_permanent(),
+        endpoints=[],
+        processes=held,
+        ports=(9222, 9223),
+    )
+    assert plan.port == 9223
+
+
+def test_foreign_chrome_tab_does_not_count_as_an_open_company_tab(tmp_path: Path) -> None:
+    from jobbot.browser.login_plan import plan_logins
+
+    endpoints = [
+        CdpEndpoint(
+            url="http://127.0.0.1:9222",
+            port=9222,
+            page_urls=("https://acme.wd3.myworkdayjobs.com/en-US/careers",),
+            foreign=True,
+        )
+    ]
+    plan = plan_logins(
+        tmp_path,
+        registry=_registry(),
+        sessions=_permanent(),
+        endpoints=endpoints,
+        processes=[],
+    )
+    acme = next(row for row in plan.rows if row.name == "Acme")
+    assert acme.tab_open is False
+    assert "myworkdayjobs" not in acme.evidence
+
+
 def test_planner_does_not_launch_chrome_or_probe_processes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

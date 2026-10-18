@@ -147,6 +147,22 @@ def test_sweep_keeps_a_hiring_post_from_any_field() -> None:
     assert not looks_like_job_post(chatter)
 
 
+def test_linkedin_message_apply_is_a_channel_not_a_trade() -> None:
+    """A clinic or a newsroom can ask for a DM; the detector must not require a stack."""
+    from jobbot.portals.message_apply import asks_for_linkedin_message
+
+    clinical = (
+        "Seguimos buscando un(a) Enfermera Clínica | Chile | Híbrido. "
+        "Si te interesa, mandame un mensaje indicando que te interesa este puesto."
+    )
+    chatter = "Te mandé un mensaje ayer sobre el trekking en el cajón del Maipo."
+
+    assert looks_like_job_post(clinical)
+    assert asks_for_linkedin_message(clinical)
+    assert not asks_for_linkedin_message(chatter)
+    assert not looks_like_job_post(chatter)
+
+
 def test_refine_keeps_a_paragraph_backed_by_a_non_data_profile() -> None:
     """The old rule kept a paragraph only if it mentioned data-science words."""
     candidate = Candidate.model_validate(nurse_profile_dict())
@@ -271,6 +287,49 @@ def test_torre_maps_an_opportunity_from_any_field(project_root: Path) -> None:
     assert newsroom.description.startswith("Redactor de Contenidos")
 
 
+def test_empleos_publicos_ficha_is_field_agnostic(project_root: Path) -> None:
+    """A public-sector concurso parse must not assume a tech role vocabulary."""
+    from jobbot.adapters.empleospublicos.jobs import job_from_ficha_html
+
+    html = (project_root / "tests/fixtures/empleospublicos/aviso_ficha.html").read_text(
+        encoding="utf-8"
+    )
+    job = job_from_ficha_html(
+        html,
+        url="https://www.empleospublicos.cl/pub/convocatorias/avisotrabajoficha.aspx?i=990001",
+    )
+
+    assert "Epidemiólogo" in job.title
+    assert "vigilancia" in (job.description or "").casefold()
+    assert job.ats_kind == "empleos_publicos"
+
+
+def test_empleos_publicos_open_data_search_is_field_agnostic(project_root: Path) -> None:
+    """The candidate's own words find a clinical or a legal concurso alike."""
+    from datetime import datetime
+
+    from jobbot.adapters.empleospublicos.open_data import (
+        SANTIAGO,
+        parse_open_data_csv,
+        search_convocatorias,
+    )
+
+    items = parse_open_data_csv(
+        (project_root / "tests/fixtures/empleospublicos/open_data_convocatorias.csv").read_text(
+            encoding="utf-8-sig"
+        )
+    )
+    now = datetime(2026, 10, 5, 16, 0, tzinfo=SANTIAGO)
+
+    clinical = search_convocatorias(items, "enfermera paciente crítico", now=now)
+    legal = search_convocatorias(items, "abogada litigante", now=now)
+
+    assert [item.title for item in clinical] == [
+        "Enfermera(o) Clínica(o) Unidad de Paciente Crítico"
+    ]
+    assert [item.title for item in legal] == ["Abogado(a) Litigante Procuraduría Fiscal"]
+
+
 def test_form_learning_reads_any_field_s_application(project_root: Path) -> None:
     """A form is read by its markup, so a clinic's form works like a studio's."""
     from jobbot.portals.form_learn import learn_form_html
@@ -379,3 +438,74 @@ def test_board_searches_come_from_each_profile_s_own_experience() -> None:
     for blob in (nurse.casefold(), journalist.casefold()):
         assert "data" not in blob
         assert "python" not in blob
+
+
+NURSE_CONDITIONS_JOB = (
+    "Title: Enfermera Clínica\n"
+    "Company: Clínica Cordillera\n"
+    "Location: Valparaíso, Chile\n"
+    "Requisitos excluyentes:\n"
+    "- Registro clínico en ficha electrónica.\n"
+    "- Curso de manejo de heridas avanzadas vigente.\n"
+    "Deseable:\n"
+    "- Diplomado en gestión del cuidado.\n"
+    "Debe residir en Chile.\n"
+    "Contrato indefinido, turnos rotativos.\n"
+)
+
+
+def test_posting_conditions_read_a_clinical_posting() -> None:
+    """Mandatory/desirable and residency come from the wording, not from a field's terms."""
+    from jobbot.jobs.conditions import ConditionKind, posting_conditions
+
+    conditions = posting_conditions(parse_job_text(NURSE_CONDITIONS_JOB, job_id="J0620"))
+    requirements = {
+        c.detail: c.mandatory for c in conditions if c.kind is ConditionKind.REQUIREMENT
+    }
+
+    assert requirements["Registro clínico en ficha electrónica"] is True
+    assert requirements["Diplomado en gestión del cuidado"] is False
+    residency = [c for c in conditions if c.kind is ConditionKind.RESIDENCY]
+    assert residency[0].countries == ("CL",)
+    assert [c.contract for c in conditions if c.kind is ConditionKind.CONTRACT] == ["indefinite"]
+
+
+def test_un_careers_feed_matches_whatever_field_the_query_names() -> None:
+    """The feed filter is the query's words only: no field's vocabulary decides a hit."""
+    from jobbot.adapters.un_careers.feed import parse_feed
+    from tests.fixtures.un_careers_http import fixture_text
+
+    items = parse_feed(fixture_text("jobfeed.xml"))
+
+    def hits(query: str) -> set[str]:
+        return {item.job_id for item in items if item.matches(query)}
+
+    assert hits("public information") == {"283445", "285569"}
+    assert hits("humanitarian affairs") == {"285531", "900001"}
+    assert hits("data engineer") == {"285646"}
+
+
+def test_eligibility_judges_a_nurse_against_a_clinical_posting() -> None:
+    """The nurse's own skills back an excluyente; what she never claimed becomes a question."""
+    from jobbot.jobs.conditions import ConditionKind, posting_conditions
+    from jobbot.jobs.eligibility import (
+        ApplicationAnswers,
+        VerdictStatus,
+        assess_conditions,
+        has_dealbreaker,
+    )
+
+    candidate = Candidate.model_validate(nurse_profile_dict())
+    job = parse_job_text(NURSE_CONDITIONS_JOB, job_id="J0621")
+    verdicts = assess_conditions(posting_conditions(job), candidate, ApplicationAnswers())
+    mandatory = {
+        v.condition.detail: v.status
+        for v in verdicts
+        if v.condition.kind is ConditionKind.REQUIREMENT and v.condition.mandatory
+    }
+
+    assert mandatory["Registro clínico en ficha electrónica"] is VerdictStatus.MEETS
+    assert mandatory["Curso de manejo de heridas avanzadas vigente"] is VerdictStatus.ASK
+    residency = [v for v in verdicts if v.condition.kind is ConditionKind.RESIDENCY]
+    assert residency[0].status is VerdictStatus.MEETS
+    assert not has_dealbreaker(verdicts)

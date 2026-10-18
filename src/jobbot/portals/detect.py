@@ -22,9 +22,17 @@ class AtsKind(StrEnum):
     WORKABLE = "workable"
     RECRUITEE = "recruitee"
     BREEZY = "breezy"
+    MANATAL = "manatal"
+    CORNERSTONE = "cornerstone"
     TORRE = "torre"
     JOBTOME = "jobtome"
     REMOSHIFT = "remoshift"
+    REMOTEYEAH = "remoteyeah"
+    JOBGETHER = "jobgether"
+    VACANTES = "vacantes"
+    EMPLEOS_PUBLICOS = "empleos_publicos"
+    ALTA_DIRECCION_PUBLICA = "alta_direccion_publica"
+    UN_CAREERS = "un_careers"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -40,8 +48,25 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.TORRE,
         AtsKind.JOBTOME,
         AtsKind.REMOSHIFT,
+        AtsKind.REMOTEYEAH,
+        AtsKind.JOBGETHER,
+        AtsKind.VACANTES,
+        AtsKind.EMPLEOS_PUBLICOS,
+        AtsKind.ALTA_DIRECCION_PUBLICA,
+        AtsKind.UN_CAREERS,
     }
 )
+
+# Boards whose robots.txt forbids automated reading (``Disallow: /``). They are still
+# recognised, so a link is not mistaken for an employer's own site, but JobBot never
+# fetches them: the human opens the page and may hand over the saved HTML.
+ROBOTS_DISALLOWED_KINDS: frozenset[AtsKind] = frozenset({AtsKind.ALTA_DIRECCION_PUBLICA})
+
+# Aggregators that republish other employers' openings from their own ATS tenant
+# (jobs.lever.co/<tenant>): the vendor is real, the tenant is still a board.
+_AGGREGATOR_TENANTS: dict[str, AtsKind] = {
+    "jobgether": AtsKind.JOBGETHER,
+}
 
 
 # Host suffix / substring → kind (checked in order)
@@ -68,10 +93,20 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("workable.com", AtsKind.WORKABLE),
     ("recruitee.com", AtsKind.RECRUITEE),
     ("breezy.hr", AtsKind.BREEZY),
+    ("careers-page.com", AtsKind.MANATAL),
+    ("csod.com", AtsKind.CORNERSTONE),
     ("torre.ai", AtsKind.TORRE),
     ("torre.co", AtsKind.TORRE),
     ("jobtome.com", AtsKind.JOBTOME),
     ("remoshift.com", AtsKind.REMOSHIFT),
+    ("remoteyeah.com", AtsKind.REMOTEYEAH),
+    ("jobgether.com", AtsKind.JOBGETHER),
+    ("vacantes.com", AtsKind.VACANTES),
+    ("empleospublicos.cl", AtsKind.EMPLEOS_PUBLICOS),
+    # Servicio Civil's ADP concursos (and its mirror); adp.cl is an unrelated payroll firm.
+    ("adp.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
+    ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
+    ("careers.un.org", AtsKind.UN_CAREERS),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
@@ -94,7 +129,12 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         AtsKind.WORKDAY,
         "workday tenant host",
     ),
-    (re.compile(r"jobs\.ashbyhq\.com/[a-z0-9_-]+", re.I), AtsKind.ASHBY, "ashby board link"),
+    (
+        # Board slugs may carry a dot (an employer named after its domain).
+        re.compile(r"jobs\.ashbyhq\.com/[a-z0-9_-]+(?:\.[a-z0-9_-]+)*", re.I),
+        AtsKind.ASHBY,
+        "ashby board link",
+    ),
     (
         re.compile(r"(?:careers|jobs)\.smartrecruiters\.com/[a-z0-9_-]+", re.I),
         AtsKind.SMARTRECRUITERS,
@@ -115,6 +155,11 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
     (re.compile(r"[a-z0-9_-]+\.recruitee\.com", re.I), AtsKind.RECRUITEE, "recruitee host"),
     (re.compile(r"[a-z0-9_-]+\.breezy\.hr", re.I), AtsKind.BREEZY, "breezy host"),
     (
+        re.compile(r"(?:[a-z0-9_-]+\.)?careers-page\.com(?:/[a-z0-9_-]+)?", re.I),
+        AtsKind.MANATAL,
+        "manatal careers page",
+    ),
+    (
         re.compile(r"[a-z0-9_-]*\.(?:successfactors|sapsf)\.(?:com|eu)", re.I),
         AtsKind.SUCCESSFACTORS,
         "successfactors host",
@@ -125,6 +170,12 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "oracle/taleo host",
     ),
     (re.compile(r"[a-z0-9_-]+\.bamboohr\.com", re.I), AtsKind.BAMBOOHR, "bamboohr host"),
+    (
+        # Cornerstone OnDemand: careersite hosts and CSP/frame-src on corporate SPAs.
+        re.compile(r"[a-z0-9_-]+\.csod\.com", re.I),
+        AtsKind.CORNERSTONE,
+        "cornerstone csod host",
+    ),
 )
 
 
@@ -144,6 +195,27 @@ def detect_ats(url: str) -> AtsKind:
         if host == needle or host.endswith("." + needle) or needle in host:
             return kind
     return AtsKind.UNKNOWN
+
+
+def aggregator_board(url: str) -> AtsKind | None:
+    """Board kind when an ATS tenant belongs to an aggregator, else None."""
+    kind = detect_ats(url)
+    if kind in {AtsKind.UNKNOWN, AtsKind.EMAIL} or kind in JOB_BOARD_KINDS:
+        return None
+    raw = url.strip() if re.match(r"^https?://", url.strip(), re.I) else f"https://{url.strip()}"
+    parsed = urlparse(raw)
+    labels = (parsed.hostname or "").lower().split(".")
+    segments = [seg.casefold() for seg in parsed.path.split("/") if seg]
+    for tenant in (labels[0] if labels else "", segments[0] if segments else ""):
+        board = _AGGREGATOR_TENANTS.get(tenant)
+        if board is not None:
+            return board
+    return None
+
+
+def html_marker_kinds() -> tuple[AtsKind, ...]:
+    """Platforms recognisable from a corporate page's own markup, in marker order."""
+    return tuple(dict.fromkeys(kind for _, kind, _ in _HTML_MARKERS))
 
 
 def detect_ats_in_html(html: str) -> tuple[AtsKind, str]:

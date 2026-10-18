@@ -109,6 +109,7 @@ extra:
 
 nav:
   - Inicio: index.md
+  - Manifiesto: manifesto.md
   - Instalación: instalacion.md
   - Comandos: comandos.md
   - Prior art: prior-art.md
@@ -124,6 +125,7 @@ not_in_nav: |
   library-audit.md
   portal-learning.md
   sdk.md
+  software-design.md
   tutorial.md
 
 validation:
