@@ -256,11 +256,6 @@
           </p>
         </div>
       </div>
-      <p class="jb-scrolly__pin-more">
-        <a id="jb-scrolly-more" href="#cmd-get">
-          {% if en %}In the catalog · get{% else %}En el catálogo · get{% endif %}
-        </a>
-      </p>
     </div>
     <div class="jb-scrolly__steps">
       <h2 id="jb-scrolly-title">
@@ -400,7 +395,6 @@
       var bar = document.getElementById("jb-scrolly-bar");
       var count = document.getElementById("jb-scrolly-count");
       var pin = root.querySelector(".jb-scrolly__pin");
-      var more = document.getElementById("jb-scrolly-more");
       var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
       function show(step) {
         var index = Array.prototype.indexOf.call(steps, step);
@@ -434,10 +428,6 @@
         if (beat && title) beat.textContent = title.textContent;
         if (prose && blurb) prose.textContent = blurb.textContent;
         var moreSrc = step.querySelector(".jb-scrolly__more a");
-        if (more && moreSrc) {
-          more.setAttribute("href", moreSrc.getAttribute("href"));
-          more.textContent = moreSrc.textContent;
-        }
         if (cmd && moreSrc) {
           cmd.setAttribute("href", moreSrc.getAttribute("href"));
           cmd.setAttribute("aria-label", moreSrc.textContent);
