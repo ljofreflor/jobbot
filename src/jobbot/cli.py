@@ -10,7 +10,7 @@ import sys
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer
 import yaml
@@ -18,6 +18,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from jobbot.adapters.indeed.client import IndeedAdapter
 
 from jobbot import __version__
 from jobbot.applications.manager import (
@@ -4717,13 +4720,94 @@ def indeed_diff(
     console.print(render_profile_diff(candidate, config.output_dir, "indeed", section=section))
 
 
+def _sync_indeed_preferences(
+    adapter: IndeedAdapter, *, apply_changes: bool, yes: bool
+) -> None:
+    from jobbot.adapters.indeed.preferences import plan_preferences, save_preferences
+    from jobbot.jobs.eligibility import (
+        ApplicationAnswers,
+        default_answers_path,
+        read_answers_mapping,
+    )
+    from jobbot.profile.loader import load_profile
+
+    candidate = load_profile(adapter.config.profile_path)
+    answers_path = default_answers_path(adapter.config.root)
+    answers = (
+        ApplicationAnswers.model_validate(read_answers_mapping(answers_path))
+        if answers_path.is_file()
+        else ApplicationAnswers()
+    )
+    for line in plan_preferences(candidate, answers).lines:
+        console.print(line)
+    if not apply_changes:
+        return
+    with adapter._session() as browser:
+        confirmed = yes or typer.confirm("¿Guardar preferencias en Indeed?", default=False)
+        if not confirmed:
+            raise typer.Exit(USER_CANCEL)
+        save_preferences(browser.page, confirmed=True)
+
+
+@indeed_app.command("upload-cv")
+def indeed_upload_cv(
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Upload when the hash differs (default: check only)"),
+    ] = False,
+    variant: Annotated[
+        str,
+        typer.Option("--variant", help="base_es or base_en when --cv is omitted"),
+    ] = "base_es",
+    cv: Annotated[
+        Path | None,
+        typer.Option("--cv", help="PDF to upload (default: output/base/cv.pdf)"),
+    ] = None,
+    cdp: Annotated[str | None, typer.Option("--cdp")] = None,
+) -> None:
+    """Replace the Indeed PDF when its hash differs from the last receipt."""
+    from jobbot.adapters.indeed.cv_upload import (
+        ALREADY_CURRENT,
+        KNOWN_VARIANTS,
+        file_sha256,
+        icon_glyph_message,
+        load_receipt_sha,
+    )
+
+    config = load_config()
+    if variant not in KNOWN_VARIANTS:
+        err_console.print(f"variante desconocida: {variant}")
+        raise typer.Exit(VALIDATION_FAILURE)
+    path = cv if cv is not None else config.output_dir / "base" / "cv.pdf"
+    if not path.is_file():
+        err_console.print(f"no está el PDF: {path}")
+        raise typer.Exit(VALIDATION_FAILURE)
+    reason = icon_glyph_message(path)
+    if reason:
+        err_console.print(reason)
+        raise typer.Exit(VALIDATION_FAILURE)
+    digest = file_sha256(path)
+    if load_receipt_sha(config.output_dir) == digest:
+        console.print(ALREADY_CURRENT)
+        return
+    if not apply_changes:
+        console.print(f"subiría {path.name}")
+        return
+    from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.browser.cdp import resolve_cdp_url
+
+    adapter = IndeedAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
+    with adapter._session() as browser:
+        browser.page.set_input_files('input[type="file"]', str(path))
+
+
 @indeed_app.command("sync")
 def indeed_sync(
     section: Annotated[
         str,
         typer.Option(
             "--section",
-            help="headline|summary|skills|experience|all (default: all)",
+            help="headline|summary|skills|experience|preferences|all (default: all)",
         ),
     ] = "all",
     apply_changes: Annotated[
@@ -4746,12 +4830,15 @@ def indeed_sync(
         typer.Option("--cdp", help="Attach to Chrome CDP (e.g. http://127.0.0.1:9222)"),
     ] = None,
 ) -> None:
-    """Dry-run (default) or apply Indeed profile sync from profile.yaml."""
+    """Dry-run or apply Indeed sync; --section preferences plans titles and salary."""
     from jobbot.adapters.indeed.client import IndeedAdapter
     from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
     adapter = IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp))
+    if section == "preferences":
+        _sync_indeed_preferences(adapter, apply_changes=apply_changes, yes=yes)
+        return
     if reconcile:
         if not apply_changes:
             console.print(

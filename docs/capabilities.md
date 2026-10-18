@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-126 commands, 181 modules, 1067 public symbols.
+127 commands, 183 modules, 1076 public symbols.
 
 ## Commands
 
@@ -59,7 +59,8 @@ writing it again — the promotion rule lives in
 - `jobbot indeed prepare` — Write Indeed sync package markdown from profile.yaml (no portal write).
 - `jobbot indeed pull` — Pull Indeed profile snapshot (read). Refuses when the structured editor is gone.
 - `jobbot indeed status` — Check whether an Indeed session appears valid.
-- `jobbot indeed sync` — Dry-run (default) or apply Indeed profile sync from profile.yaml.
+- `jobbot indeed sync` — Dry-run or apply Indeed sync; --section preferences plans titles and salary.
+- `jobbot indeed upload-cv` — Replace the Indeed PDF when its hash differs from the last receipt.
 - `jobbot init` — Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone).
 - `jobbot jobs add` — Add a job posting from a text file or stdin (manual fallback).
 - `jobbot jobs admissibility` — Admissibility of a stored posting against the profile (offline). Sends nothing.
@@ -198,10 +199,12 @@ writing it again — the promotion rule lives in
 ### `adapters/indeed`
 
 - `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `indeed_session_authenticated`, `normalize_indeed_continue_url`
+- `cv_upload.py` — Decide whether an Indeed PDF upload is needed. The portal write stays HITL. · `receipt_path`, `file_sha256`, `load_receipt_sha`, `icon_glyph_message`
 - `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
+- `preferences.py` — Project local preferences onto Indeed's Preferencias tab. Sends nothing. · `PreferencePlan`, `desired_titles`, `plan_preferences`, `save_preferences`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
-- `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `IndeedUiChanged`, `resume_editor_state`, `editor_state_path`, `record_editor_state`, `load_editor_state`, `ensure_structured_editor`, `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `apply_resume_sections`, `parse_resume_page_text`, `clamp_portal_ym`, `role_identity`, `roles_already_listed`, `add_missing_experiences`, `headline_visible_in_contact`
+- `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `IndeedUiChanged`, `resume_editor_state`, `preferences_tab_missing`, `editor_state_path`, `record_editor_state`, `load_editor_state`, `ensure_structured_editor`, `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `apply_resume_sections`, `parse_resume_page_text`, `clamp_portal_ym`, `role_identity`, `roles_already_listed`, `add_missing_experiences`, `headline_visible_in_contact`
 - `selectors.py` — Indeed selector hints (prefer role/label over obfuscated CSS). · `indeed_jobs_base`, `select_list_testid`
 
 ### `adapters/linkedin`

@@ -18,12 +18,14 @@ from jobbot.adapters.indeed.package import (
 )
 from jobbot.adapters.indeed.resume_edit import (
     DOCUMENT_ONLY_MESSAGE,
+    PREFERENCES_TAB_MISSING,
     IndeedUiChanged,
     apply_full_resume_from_candidate,
     apply_resume_sections,
     ensure_structured_editor,
     open_resume,
     parse_resume_page_text,
+    preferences_tab_missing,
     record_editor_state,
     resume_editor_state,
     wait_for_resume_render,
@@ -159,6 +161,8 @@ class IndeedAdapter:
                 browser.page.goto(selectors.INDEED_RESUME, wait_until="domcontentloaded")
             wait_for_resume_render(browser.page)
             html = browser.page.content()
+            if preferences_tab_missing(str(browser.page.url), html):
+                raise IndeedUiChanged(PREFERENCES_TAB_MISSING)
             if resume_editor_state(browser.page.url, html) == "document_only":
                 raise IndeedUiChanged(DOCUMENT_ONLY_MESSAGE)
             body = browser.page.inner_text("body")

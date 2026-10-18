@@ -45,6 +45,7 @@ DOCUMENT_ONLY_MESSAGE = (
     "El perfil es el PDF subido y Preferencias."
 )
 MISSING_HEADLINE_MESSAGE = "campo Título no encontrado"
+PREFERENCES_TAB_MISSING = "pestaña Preferencias no encontrada"
 _EDITOR_MARKERS = (
     'data-testid="work-experience-section"',
     'data-testid="education-section"',
@@ -69,6 +70,17 @@ def resume_editor_state(url: str, html: str) -> EditorState:
     if has_cv and has_prefs:
         return "document_only"
     return "unknown"
+
+
+def preferences_tab_missing(url: str, html: str) -> bool:
+    """The PDF shell is open and the Preferencias tab is not on it."""
+    if any(marker in html for marker in _EDITOR_MARKERS):
+        return False
+    has_prefs = re.search(r">\s*preferencias\s*<", html, flags=re.IGNORECASE) is not None
+    if has_prefs:
+        return False
+    has_cv = re.search(r">\s*cv\s*<", html, flags=re.IGNORECASE) is not None
+    return has_cv or "/document/view" in url.casefold()
 
 
 def editor_state_path(output_dir: Path) -> Path:
