@@ -76,6 +76,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs discover --source buk --site URL` | Pide solo `robots.txt`. Si prohíbe `/`, no recorre el portal y sugiere `jobs add --file`. |
 | `jobs discover --source pdf-index --url PAGINA --dry-run` | Lista los PDF del mismo host cuyo nombre contiene `--match` (por defecto `concurso`). No descarga los PDF y no escribe. |
+| `jobs discover --source lumesse --site HOST` | No llama a TalentLink. `robots.txt` prohíbe `/fo/rest` para jobbot (revisado 2026-10-08); sale 2 y sugiere `jobs add --file`. |
 | `jobs add --file listado.html --url https://acme.buk.cl/trabaja-con-nosotros` | Ingiere las tarjetas `jobs__card` de un HTML guardado. Sin tarjetas, sale 5. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |

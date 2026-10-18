@@ -55,6 +55,7 @@ _LABELS: dict[str, str] = {
     "empleos_publicos": "Empleos Públicos",
     "alta_direccion_publica": "Alta Dirección Pública",
     "buk": "Marca blanca RR.HH.",
+    "lumesse": "TalentLink",
     "un_careers": "UN Careers",
     "indeed": "Indeed",
     "linkedin": "LinkedIn",

@@ -3182,7 +3182,7 @@ def jobs_discover(
         str,
         typer.Option(
             "--source",
-            help="Public source to read: workday, un-careers, buk, pdf-index",
+            help="Public source to read: workday, un-careers, buk, pdf-index, lumesse",
         ),
     ],
     site: Annotated[
@@ -3308,7 +3308,7 @@ def jobs_discover(
             if outcome.detail:
                 line += f" ({outcome.detail})"
             style = "green" if outcome.answered else "yellow"
-            console.print(line, style=style, markup=False, highlight=False)
+            console.print(line, style=style, markup=False, highlight=False, soft_wrap=True)
     fed = feed_summary(outcomes)
     if fed is not None:
         console.print(
@@ -3387,6 +3387,8 @@ def jobs_discover(
             console.print(f"Next: [bold]jobbot jobs show {first}[/bold] or jobbot jobs shortlist")
 
     code = exit_code_for(outcomes)
+    if source == "lumesse" and code != SUCCESS:
+        code = VALIDATION_FAILURE
     if code == UI_CHANGED and not dry_run:
         changed = next(o for o in outcomes if o.status is SiteStatus.CHANGED)
         raise _RecordedExit(
@@ -6688,6 +6690,10 @@ def companies_learn(
         bool,
         typer.Option("--verify", help="Promote straight to active (you confirm it is right)"),
     ] = False,
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Saved HTML used to recognise an embedded ATS"),
+    ] = None,
 ) -> None:
     """Register a company/portal relation you found yourself (candidate by default)."""
     from jobbot.companies.learn import learn_from_url
@@ -6700,6 +6706,7 @@ def companies_learn(
     narrator = _narrator()
     narrator.phase(Phase.UPDATING_WORLD, "company career platforms")
     try:
+        page = fixture.read_text(encoding="utf-8") if fixture is not None else None
         outcome = learn_from_url(
             registry,
             company=company or company_hint_from_url(url),
@@ -6707,6 +6714,7 @@ def companies_learn(
             source=DiscoverySource.USER_OBSERVATION,
             country=country,
             resolve=resolve,
+            html=page,
         )
     except PrivateRouteRejected as exc:
         err_console.print(f"[red]Not shareable company knowledge:[/red] {exc}")

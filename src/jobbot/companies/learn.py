@@ -47,9 +47,17 @@ def learn_from_url(
     country: str | None = None,
     resolve: bool = False,
     notes: str | None = None,
+    html: str | None = None,
 ) -> ObserveOutcome | None:
     """Classify a URL and record it as candidate knowledge. Boards are ignored."""
-    classification = classify_url(url, resolve=resolve)
+    from jobbot.portals.detect import LUMESSE_ROBOTS_REASON, AtsKind
+
+    classification = classify_url(url, html=html, resolve=resolve)
+    evidence = classification.evidence
+    if classification.ats is AtsKind.LUMESSE:
+        if "discovery: blocked (robots)" not in evidence:
+            evidence = f"{evidence}; {LUMESSE_ROBOTS_REASON}".strip("; ")
+        notes = notes or LUMESSE_ROBOTS_REASON
     if not classification.is_company_specific:
         return None
     root = career_root_url(classification.url, classification.ats)
@@ -67,7 +75,7 @@ def learn_from_url(
         source=source,
         site_type=site_type,
         ats=classification.ats,
-        evidence=classification.evidence,
+        evidence=evidence,
         country=country,
         reached_from=(classification.requested_url if classification.redirects_to else None),
         notes=notes,

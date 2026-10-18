@@ -142,6 +142,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.buk.discover import BukDiscover
 
         register_source("buk", BukDiscover)
+    if "lumesse" not in _FACTORIES:
+        from jobbot.adapters.lumesse.discover import LumesseDiscover
+
+        register_source("lumesse", LumesseDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:
