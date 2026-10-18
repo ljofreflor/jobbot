@@ -4724,6 +4724,7 @@ def _sync_indeed_preferences(
     adapter: IndeedAdapter, *, apply_changes: bool, yes: bool
 ) -> None:
     from jobbot.adapters.indeed.preferences import plan_preferences, save_preferences
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.jobs.eligibility import (
         ApplicationAnswers,
         default_answers_path,
@@ -4738,7 +4739,8 @@ def _sync_indeed_preferences(
         if answers_path.is_file()
         else ApplicationAnswers()
     )
-    for line in plan_preferences(candidate, answers).lines:
+    plan = plan_preferences(candidate, answers)
+    for line in plan.lines:
         console.print(line)
     if not apply_changes:
         return
@@ -4746,7 +4748,13 @@ def _sync_indeed_preferences(
         confirmed = yes or typer.confirm("¿Guardar preferencias en Indeed?", default=False)
         if not confirmed:
             raise typer.Exit(USER_CANCEL)
-        save_preferences(browser.page, confirmed=True)
+        try:
+            missing = save_preferences(browser.page, plan, confirmed=True)
+        except IndeedUiChanged as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(UI_CHANGED) from exc
+    for label in missing:
+        console.print(f"{label}  needs_human: no está en el formulario")
 
 
 @indeed_app.command("upload-cv")
@@ -4769,9 +4777,12 @@ def indeed_upload_cv(
     from jobbot.adapters.indeed.cv_upload import (
         ALREADY_CURRENT,
         KNOWN_VARIANTS,
+        IndeedCvUploadError,
         file_sha256,
         icon_glyph_message,
         load_receipt_sha,
+        upload_cv,
+        write_receipt,
     )
 
     config = load_config()
@@ -4798,7 +4809,14 @@ def indeed_upload_cv(
 
     adapter = IndeedAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
     with adapter._session() as browser:
-        browser.page.set_input_files('input[type="file"]', str(path))
+        try:
+            upload_cv(browser.page, path)
+        except IndeedCvUploadError as exc:
+            err_console.print(str(exc))
+            raise typer.Exit(UI_CHANGED) from exc
+    receipt = write_receipt(config.output_dir, path, sha256=digest, variant=variant)
+    console.print(f"[green]Subido[/green] {path.name}")
+    console.print(f"recibo: {receipt}")
 
 
 @indeed_app.command("sync")
