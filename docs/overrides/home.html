@@ -742,6 +742,10 @@
       watch();
       if (narrow.addEventListener) narrow.addEventListener("change", watch);
     })();
+  </script>
+  {{ page.content }}
+  {# Catalog nav lives in page.content, so this runs after it is parsed. #}
+  <script>
     (function () {
       function focusCommand() {
         var id = (location.hash || "").replace(/^#/, "");
@@ -862,5 +866,4 @@
       }
     })();
   </script>
-  {{ page.content }}
 {% endblock %}
