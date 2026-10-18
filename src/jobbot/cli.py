@@ -3182,7 +3182,7 @@ def jobs_discover(
         str,
         typer.Option(
             "--source",
-            help="Public source to read: workday, un-careers, buk, pdf-index, lumesse",
+            help="Public source to read: workday, un-careers, buk, pdf-index, lumesse, cornerstone",
         ),
     ],
     site: Annotated[
@@ -3387,7 +3387,7 @@ def jobs_discover(
             console.print(f"Next: [bold]jobbot jobs show {first}[/bold] or jobbot jobs shortlist")
 
     code = exit_code_for(outcomes)
-    if source == "lumesse" and code != SUCCESS:
+    if source in {"lumesse", "cornerstone"} and code != SUCCESS:
         code = VALIDATION_FAILURE
     if code == UI_CHANGED and not dry_run:
         changed = next(o for o in outcomes if o.status is SiteStatus.CHANGED)
