@@ -111,65 +111,69 @@
           </header>
           <div class="jb-term__body">
             {% if en %}
-              <p class="jb-term__line jb-term__line--cmd" style="--i:0">
+              <p class="jb-term__line jb-term__line--label" style="--i:0"># loop 1 · apply</p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:1">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…'</span>
+                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…' &amp;&amp; jobbot jobs match J0002</span>
               </p>
-              <p class="jb-term__line jb-term__line--out" style="--i:1">
-                Stored J0002 · Lead Data Scientist · remote Chile
+              <p class="jb-term__line jb-term__line--out" style="--i:2">
+                J0002 · 82% · from <code>profile.yaml</code> · nothing invented
               </p>
-              <p class="jb-term__line jb-term__line--cmd" style="--i:2">
+              <p class="jb-term__line jb-term__line--cmd" style="--i:3">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot jobs match J0002</span>
+                <span class="jb-term__cmd">jobbot cv build --job J0002 &amp;&amp; jobbot application apply J0002 --apply</span>
               </p>
-              <p class="jb-term__line jb-term__line--out" style="--i:3">
-                82% · evidence from <code>profile.yaml</code> · nothing invented
+              <p class="jb-term__line jb-term__line--hitl" style="--i:4">
+                Form open — <strong>you submit</strong>. Never clicks Send.
               </p>
-              <p class="jb-term__line jb-term__line--cmd" style="--i:4">
-                <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot cv build --job J0002</span>
-              </p>
-              <p class="jb-term__line jb-term__line--out" style="--i:5">
-                Wrote <code>output/jobs/J0002/</code> · facts reordered, not fabricated
-              </p>
+              <p class="jb-term__line jb-term__line--label" style="--i:5"># loop 2 · standing presence</p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:6">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot application apply J0002 --apply</span>
+                <span class="jb-term__cmd">jobbot cv advise --apply</span>
               </p>
-              <p class="jb-term__line jb-term__line--hitl" style="--i:7">
-                Form open — <strong>you submit</strong>. Jobbot never clicks Send.
+              <p class="jb-term__line jb-term__line--out" style="--i:7">
+                Presentation only · confirm one by one · no new facts
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:8">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot cv sync --apply &amp;&amp; jobbot status</span>
+              </p>
+              <p class="jb-term__line jb-term__line--hitl" style="--i:9">
+                Portals up to date — <strong>you confirm</strong> each destination.
               </p>
             {% else %}
-              <p class="jb-term__line jb-term__line--cmd" style="--i:0">
+              <p class="jb-term__line jb-term__line--label" style="--i:0"># bucle 1 · postular</p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:1">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…'</span>
+                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…' &amp;&amp; jobbot jobs match J0002</span>
               </p>
-              <p class="jb-term__line jb-term__line--out" style="--i:1">
-                Guardado J0002 · Lead Data Scientist · remoto Chile
+              <p class="jb-term__line jb-term__line--out" style="--i:2">
+                J0002 · 82% · desde <code>profile.yaml</code> · nada inventado
               </p>
-              <p class="jb-term__line jb-term__line--cmd" style="--i:2">
+              <p class="jb-term__line jb-term__line--cmd" style="--i:3">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot jobs match J0002</span>
+                <span class="jb-term__cmd">jobbot cv build --job J0002 &amp;&amp; jobbot application apply J0002 --apply</span>
               </p>
-              <p class="jb-term__line jb-term__line--out" style="--i:3">
-                82% · evidencia de <code>profile.yaml</code> · nada inventado
+              <p class="jb-term__line jb-term__line--hitl" style="--i:4">
+                Formulario abierto — <strong>tú envías</strong>. Nunca pulsa Enviar.
               </p>
-              <p class="jb-term__line jb-term__line--cmd" style="--i:4">
-                <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot cv build --job J0002</span>
-              </p>
-              <p class="jb-term__line jb-term__line--out" style="--i:5">
-                Escrito <code>output/jobs/J0002/</code> · hechos reordenados, no fabricados
-              </p>
+              <p class="jb-term__line jb-term__line--label" style="--i:5"># bucle 2 · presencia</p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:6">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot application apply J0002 --apply</span>
+                <span class="jb-term__cmd">jobbot cv advise --apply</span>
               </p>
-              <p class="jb-term__line jb-term__line--hitl" style="--i:7">
-                Formulario abierto — <strong>tú envías</strong>. Jobbot nunca pulsa Enviar.
+              <p class="jb-term__line jb-term__line--out" style="--i:7">
+                Solo presentación · confirmás una por una · sin hechos nuevos
+              </p>
+              <p class="jb-term__line jb-term__line--cmd" style="--i:8">
+                <span class="jb-term__prompt">$</span>
+                <span class="jb-term__cmd">jobbot cv sync --apply &amp;&amp; jobbot status</span>
+              </p>
+              <p class="jb-term__line jb-term__line--hitl" style="--i:9">
+                Portales al día — <strong>confirmás</strong> cada destino.
               </p>
             {% endif %}
-            <p class="jb-term__line jb-term__line--prompt" style="--i:8">
+            <p class="jb-term__line jb-term__line--prompt" style="--i:10">
               <span class="jb-term__prompt">$</span>
               <span class="jb-term__caret"></span>
             </p>

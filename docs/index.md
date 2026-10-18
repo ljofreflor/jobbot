@@ -185,7 +185,8 @@ Reglas del producto, no del marketing.
 
 <ul class="jb-principles">
   <li><strong>No postula por ti</strong> Human-in-the-loop: prepara el paquete y abre el formulario. Enviar es tuyo.</li>
-  <li><strong>No inventa datos sobre ti</strong> <code>data/profile.yaml</code> es la única fuente de verdad. El CV adaptado reordena; no fabrica experiencia.</li>
+  <li><strong>No inventa datos sobre ti</strong> <code>data/profile.yaml</code> es la única fuente de verdad. Advise, tune y sync reordenan o preguntan; no fabrican experiencia.</li>
+  <li><strong>No sincroniza portales en silencio</strong> <code>cv sync --apply</code> confirma destino por destino. Sin evidencia local, <code>status</code> no inventa que “quedó al día”.</li>
   <li><strong>No sale de tu disco</strong> Perfil, SQLite, sesiones de navegador y <code>output/</code> están gitignoreados, con un hook que bloquea commitearlos.</li>
   <li><strong>No evade CAPTCHAs</strong> Cuando un portal pide un desafío, te pasa el teclado.</li>
 </ul>

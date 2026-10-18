@@ -185,7 +185,8 @@ Product rules, not slogans.
 
 <ul class="jb-principles">
   <li><strong>Never submits for you</strong> Human-in-the-loop: it prepares the package and opens the form. Sending is yours.</li>
-  <li><strong>Never invents facts about you</strong> <code>data/profile.yaml</code> is the only source of professional truth.</li>
+  <li><strong>Never invents facts about you</strong> <code>data/profile.yaml</code> is the only source of truth. Advise, tune, and sync reorder or ask — they do not fabricate experience.</li>
+  <li><strong>Never syncs portals silently</strong> <code>cv sync --apply</code> confirms destination by destination. Without local evidence, <code>status</code> does not invent that you are “up to date”.</li>
   <li><strong>Never leaves your disk</strong> Profile, SQLite, browser sessions and <code>output/</code> are gitignored.</li>
   <li><strong>No CAPTCHA bypass</strong> When a portal challenges you, it hands you the keyboard.</li>
 </ul>

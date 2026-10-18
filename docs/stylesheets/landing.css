@@ -277,11 +277,11 @@ body:has(.jb-hero) .md-tabs {
 }
 
 .jb-term {
-  --jb-term-cycle: 16s;
+  --jb-term-cycle: 20s;
   display: flex;
   flex-direction: column;
-  height: 30rem;
-  max-height: min(30rem, 70vh);
+  height: 32rem;
+  max-height: min(32rem, 72vh);
   background: var(--jb-term);
   color: var(--jb-term-text);
   border-radius: 0.65rem;
@@ -380,6 +380,15 @@ body:has(.jb-hero) .md-tabs {
   color: #e8eef8;
 }
 
+.jb-term__line--label {
+  margin-top: 0.35rem !important;
+  color: #5a9bff;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+
 .jb-term__line--out {
   color: var(--jb-term-dim);
   padding-left: 1.1rem;
@@ -442,13 +451,13 @@ body:has(.jb-hero) .md-tabs {
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  4%,
-  82% {
+  3%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -459,18 +468,18 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t2 {
   0%,
-  8% {
+  6% {
     opacity: 0;
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  12%,
-  82% {
+  9%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -481,18 +490,18 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t3 {
   0%,
-  16% {
+  12% {
     opacity: 0;
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  20%,
-  82% {
+  15%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -503,18 +512,18 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t4 {
   0%,
-  24% {
+  18% {
     opacity: 0;
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  28%,
-  82% {
+  21%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -525,18 +534,18 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t5 {
   0%,
-  32% {
+  24% {
     opacity: 0;
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  36%,
-  82% {
+  27%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -547,18 +556,18 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t6 {
   0%,
-  40% {
+  30% {
     opacity: 0;
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  44%,
-  82% {
+  33%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -569,18 +578,18 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t7 {
   0%,
-  48% {
+  36% {
     opacity: 0;
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  52%,
-  82% {
+  39%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -591,18 +600,18 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t8 {
   0%,
-  56% {
+  42% {
     opacity: 0;
     max-height: 0;
     transform: translateY(0.25rem);
   }
-  60%,
-  82% {
+  45%,
+  84% {
     opacity: 1;
     max-height: 4.5rem;
     transform: none;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
     max-height: 0;
@@ -613,16 +622,62 @@ body:has(.jb-hero) .md-tabs {
 }
 @keyframes jb-t9 {
   0%,
-  64% {
+  48% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(0.25rem);
+  }
+  51%,
+  84% {
+    opacity: 1;
+    max-height: 4.5rem;
+    transform: none;
+  }
+  92%,
+  100% {
     opacity: 0;
     max-height: 0;
   }
-  68%,
-  86% {
+}
+.jb-term__line:nth-child(10) {
+  animation: jb-t10 var(--jb-term-cycle) ease-in-out infinite;
+}
+@keyframes jb-t10 {
+  0%,
+  54% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(0.25rem);
+  }
+  57%,
+  84% {
+    opacity: 1;
+    max-height: 4.5rem;
+    transform: none;
+  }
+  92%,
+  100% {
+    opacity: 0;
+    max-height: 0;
+  }
+}
+.jb-term__line:nth-child(11) {
+  animation: jb-t11 var(--jb-term-cycle) ease-in-out infinite;
+}
+@keyframes jb-t11 {
+  0%,
+  60% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(0.25rem);
+  }
+  64%,
+  88% {
     opacity: 1;
     max-height: 2rem;
+    transform: none;
   }
-  94%,
+  96%,
   100% {
     opacity: 0;
     max-height: 0;
