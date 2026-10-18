@@ -1,0 +1,7 @@
+User-agent: googlebot
+Allow: /fo/rest
+Allow: /apply-app/
+Disallow: /
+
+User-agent: *
+Disallow: /

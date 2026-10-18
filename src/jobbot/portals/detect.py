@@ -33,6 +33,7 @@ class AtsKind(StrEnum):
     EMPLEOS_PUBLICOS = "empleos_publicos"
     ALTA_DIRECCION_PUBLICA = "alta_direccion_publica"
     BUK = "buk"
+    LUMESSE = "lumesse"
     UN_CAREERS = "un_careers"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
@@ -62,13 +63,19 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
 # recognised, so a link is not mistaken for an employer's own site, but JobBot never
 # fetches them: the human opens the page and may hand over the saved HTML.
 ROBOTS_DISALLOWED_KINDS: frozenset[AtsKind] = frozenset(
-    {AtsKind.ALTA_DIRECCION_PUBLICA, AtsKind.BUK}
+    {AtsKind.ALTA_DIRECCION_PUBLICA, AtsKind.BUK, AtsKind.LUMESSE}
 )
 
 # Buk's robots.txt forbids every generic agent. Recorded on a candidate, never fetched.
 BUK_ROBOTS_REASON = (
     "discovery: blocked (robots). robots.txt de buk.cl prohíbe agentes genéricos "
     "(verificado 2026-10-08). Usa jobs add --file."
+)
+
+# TalentLink's front-office API is allowed for Googlebot and forbidden for everyone else.
+LUMESSE_ROBOTS_REASON = (
+    "discovery: blocked (robots). robots.txt de recruitmentplatform.com prohíbe /fo/rest "
+    "para bots que no son de búsqueda (revisado 2026-10-08). Usa jobs add --file."
 )
 
 # Aggregators that republish other employers' openings from their own ATS tenant
@@ -117,6 +124,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("buk.co", AtsKind.BUK),
     ("buk.pe", AtsKind.BUK),
     ("buk.mx", AtsKind.BUK),
+    ("recruitmentplatform.com", AtsKind.LUMESSE),
     ("adp.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("careers.un.org", AtsKind.UN_CAREERS),
@@ -187,6 +195,11 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         re.compile(r"jobs__card|job__card-name", re.I),
         AtsKind.BUK,
         "buk job card",
+    ),
+    (
+        re.compile(r"data-talentlink-fo-|recruitmentplatform\.com/apply-app/", re.I),
+        AtsKind.LUMESSE,
+        "talentlink widget",
     ),
     (
         # Cornerstone OnDemand: careersite hosts and CSP/frame-src on corporate SPAs.
