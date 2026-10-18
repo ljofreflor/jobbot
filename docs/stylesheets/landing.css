@@ -1797,6 +1797,12 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
     transition: none;
   }
 
+  /* Chapter dimming is decorative; keep both loops fully readable. */
+  .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child,
+  .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child {
+    opacity: 1;
+  }
+
   .jb-term__line--hitl {
     padding: 0.45rem 0.6rem !important;
   }
