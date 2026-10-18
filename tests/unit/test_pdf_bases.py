@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import urllib.request
 from datetime import datetime
+from email.message import Message
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -12,11 +13,14 @@ import pytest
 import yaml
 
 from jobbot.cli import run_cli
-from jobbot.jobs.pdf_posting import PublicBody, posting_identity
+from jobbot.jobs.pdf_posting import PublicBody, fetch_public, posting_identity
 from tests.fixtures.cv_pdf import build_pdf, content_stream, write_scanned_cv
 
 PAGE = "https://municipio-ejemplo.cl/transparencia"
 PDF_URL = "https://municipio-ejemplo.cl/docs/bases_concurso_apoyo.pdf"
+ACCENTED_URL = "https://municipio-ejemplo.cl/docs/bases_consultoría.pdf"
+WIRE_URL = "https://municipio-ejemplo.cl/docs/bases_consultor%C3%ADa.pdf"
+ROBOTS_URL = "https://municipio-ejemplo.cl/robots.txt"
 _PAD = (
     "El presente documento describe las bases del llamado. "
     "Los antecedentes se reciben en la oficina de partes. "
@@ -58,6 +62,29 @@ def _install(
 
     monkeypatch.setattr(urllib.request, "urlopen", refuse)
     monkeypatch.setattr("jobbot.jobs.pdf_posting.fetch_public", lambda _url: fetched)
+
+
+class _Response:
+    """What `urlopen` returns: a context manager with headers and a body."""
+
+    def __init__(self, url: str, body: bytes, content_type: str) -> None:
+        self.status = 200
+        self.headers = Message()
+        self.headers["Content-Type"] = content_type
+        self._url = url
+        self._body = body
+
+    def geturl(self) -> str:
+        return self._url
+
+    def read(self, *_args: int) -> bytes:
+        return self._body
+
+    def __enter__(self) -> _Response:
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        return None
 
 
 def _stored(tmp_path: Path) -> list[dict[str, object]]:
@@ -157,12 +184,58 @@ def test_a_deserted_contest_is_not_stored(
     data = _pdf(
         tmp_path / "bases.pdf",
         "Municipalidad de Ejemplo",
-        "Este concurso declarado desierto.",
+        "El concurso fue declarado desierto por falta de postulantes.",
     )
     _install(monkeypatch, _body(data, content_type="application/pdf"))
     code = run_cli(["jobs", "add", "--url", PDF_URL], standalone_mode=False)
     assert code == 2
     assert _stored(tmp_path) == []
+
+
+def test_the_clause_reserving_a_desierto_does_not_close_the_contest(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bases almost always reserve that right; a contest to come is still open."""
+    _workspace(tmp_path, project_root, monkeypatch)
+    data = _pdf(
+        tmp_path / "bases.pdf",
+        "Municipalidad de Ejemplo",
+        "Concurso para un cargo de apoyo administrativo",
+        "Plazo de postulación hasta el 30 de octubre de 2026",
+        "El concurso podrá ser declarado desierto si no hay postulantes idóneos.",
+        "La Municipalidad se reserva el derecho de declarar desierto el llamado.",
+    )
+    _install(monkeypatch, _body(data, content_type="application/pdf"))
+    assert run_cli(["jobs", "add", "--url", PDF_URL], standalone_mode=False) == 0
+    job = _stored(tmp_path)[0]
+    got = datetime.fromisoformat(str(job["closes_at"]))
+    assert got == datetime(2026, 10, 30, 23, 59, 59, tzinfo=ZoneInfo("America/Santiago"))
+
+
+def test_a_later_timeline_does_not_become_the_deadline(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only the application period closes the posting; contract dates do not."""
+    _workspace(tmp_path, project_root, monkeypatch)
+    data = _pdf(
+        tmp_path / "bases.pdf",
+        "Municipalidad de Ejemplo",
+        "Concurso para un cargo de apoyo administrativo",
+        "Plazo de postulación: desde el 20 de octubre de 2026",
+        "hasta el 30 de octubre de 2026",
+        "Los resultados se publican hasta el 20 de noviembre de 2026",
+        "El contrato rige hasta el 31 de diciembre de 2026",
+    )
+    _install(monkeypatch, _body(data, content_type="application/pdf"))
+    assert run_cli(["jobs", "add", "--url", PDF_URL], standalone_mode=False) == 0
+    job = _stored(tmp_path)[0]
+    got = datetime.fromisoformat(str(job["closes_at"]))
+    assert got == datetime(2026, 10, 30, 23, 59, 59, tzinfo=ZoneInfo("America/Santiago"))
+    assert "30 de octubre de 2026" in str(job["closes_text"])
 
 
 def test_the_same_pdf_twice_does_not_duplicate(
@@ -183,6 +256,28 @@ def test_the_same_pdf_twice_does_not_duplicate(
     stored = _stored(tmp_path)
     assert len(stored) == 1
     assert stored[0]["source_job_id"] == posting_identity(PDF_URL)
+
+
+def test_an_accented_pdf_url_is_requested_percent_encoded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`urllib` only sends ASCII, and municipal paths carry accents."""
+    data = _pdf(tmp_path / "bases.pdf", "Municipalidad de Ejemplo", "Concurso publico")
+    asked: list[str] = []
+
+    def opener(request: object, *_args: object, **_kwargs: object) -> _Response:
+        url = str(getattr(request, "full_url", request))
+        asked.append(url)
+        if url == ROBOTS_URL:
+            return _Response(url, b"User-agent: *\nAllow: /\n", "text/plain")
+        return _Response(url, data, "application/pdf")
+
+    monkeypatch.setattr(urllib.request, "urlopen", opener)
+    fetched = fetch_public(ACCENTED_URL)
+    assert asked == [ROBOTS_URL, WIRE_URL]
+    assert fetched.final_url == WIRE_URL
+    assert fetched.body == data
 
 
 def test_pdf_index_dry_run_lists_the_two_matching_links(

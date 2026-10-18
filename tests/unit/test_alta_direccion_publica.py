@@ -187,6 +187,34 @@ def test_jobs_add_keeps_the_adp_link_as_evidence_without_fetching(
     assert job.url == FICHA_URL
 
 
+def test_jobs_add_url_never_downloads_an_adp_page_as_a_pdf(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    no_network: list[str],
+) -> None:
+    """A bare --url reads PDFs; a disallowed host is refused before robots.txt."""
+    from jobbot.cli import run_cli
+
+    (tmp_path / "data").mkdir(exist_ok=True)
+    (tmp_path / "data" / "profile.yaml").write_text(
+        (project_root / "data" / "profile.example.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    args = ["jobs", "add", "--url", FICHA_URL]
+    assert run_cli(args, standalone_mode=False) == VALIDATION_FAILURE
+
+    flat = " ".join(capsys.readouterr().err.split())
+    assert "robots.txt" in flat
+    assert f"jobbot jobs add --file ficha.txt --url {FICHA_URL}" in flat
+    assert no_network == []
+    failures_dir = tmp_path / "output" / "ops" / "failures"
+    assert not failures_dir.exists() or not any(failures_dir.iterdir())
+
+
 def test_posting_status_check_never_reads_adp(no_network: list[str]) -> None:
     with pytest.raises(OSError, match="robots.txt"):
         fetch_posting_text(FICHA_URL)

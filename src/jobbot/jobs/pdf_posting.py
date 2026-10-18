@@ -7,12 +7,14 @@ import re
 import unicodedata
 import urllib.error
 import urllib.request
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import parse_qsl, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
+from jobbot.companies.urls import request_url
 from jobbot.jobs.closure import closure_evidence
 from jobbot.models.job import JobPosting
 from jobbot.pdf_text import PdfTextError, text_from_pdf_bytes
@@ -35,13 +37,25 @@ _MONTHS = {
     "noviembre": 11,
     "diciembre": 12,
 }
+# Tried in order: the first lead that dates the application period wins, so a later
+# timeline (contrato, resultados, consultas) never becomes the deadline.
 _LEADS = (
     "plazo de postulacion",
     "recepcion de antecedentes",
     "fecha de cierre",
-    "hasta el",
 )
+# "hasta el <fecha>" closes many timelines; it is the deadline only when the words
+# before it are about receiving applications.
+_UNTIL = "hasta el"
+_APPLY_WORDS = ("postulacion", "postular", "antecedentes")
+_WINDOW = 96
 _DATE = re.compile(r"(\d{1,2}) de ([a-z]+) de (\d{4})")
+# Bases almost always reserve the right to declare the contest deserted ("podrá ser
+# declarado desierto"); only a declaration already made closes it.
+_DESERTED = re.compile(
+    r"(?:fue|fueron|ha\s+sido|han\s+sido|queda|quedo|se\s+declara|se\s+declaro)\s+"
+    r"(?:declarad[oa]s?\s+)?desiert[oa]s?\b"
+)
 _ORG = re.compile(
     r"((?:Ilustre\s+)?Municipalidad\s+de\s+\S+"
     r"|Corporaci[oó]n\s+Municipal\s+\S+"
@@ -97,14 +111,25 @@ class PdfDraft:
 def fetch_public(url: str) -> PublicBody:
     """Download a public URL after robots.txt. Tests replace this."""
     from jobbot.companies.oneshot import RobotsPolicy, RobotsVerdict, UrllibFetcher
+    from jobbot.portals.detect import ROBOTS_DISALLOWED_KINDS, detect_ats
 
+    if detect_ats(url) in ROBOTS_DISALLOWED_KINDS:
+        raise PdfBlocked(
+            f"{urlsplit(url).netloc} pide a los robots no leerlo (robots.txt: Disallow: /), "
+            "así que JobBot no lo descarga. Abre la página, guarda el documento y usa "
+            f"`jobbot jobs add --file ficha.txt --url {url}`."
+        )
+    try:
+        wire = request_url(url)
+    except ValueError as exc:
+        raise PdfFetchError(f"no se puede pedir esta URL: {exc}") from exc
     policy = RobotsPolicy(UrllibFetcher(delay=0))
-    verdict = policy.verdict(url)
+    verdict = policy.verdict(wire)
     if verdict is RobotsVerdict.DISALLOWED:
         raise PdfBlocked("robots.txt no permite esta URL. Copia el PDF y usa jobs add --file.")
     if verdict is RobotsVerdict.HOST_REFUSED:
         raise PdfFetchError("el sitio no entregó robots.txt")
-    request = urllib.request.Request(url, headers={"User-Agent": "jobbot"})
+    request = urllib.request.Request(wire, headers={"User-Agent": "jobbot"})
     try:
         with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
             status = int(getattr(response, "status", 200))
@@ -190,38 +215,65 @@ def _fold(text: str) -> str:
 
 
 def _deserted(text: str) -> bool:
-    if "declarado desierto" in _fold(text):
+    if _DESERTED.search(_fold(text)) is not None:
         return True
     return closure_evidence(text) is not None
 
 
 def _closing(text: str) -> tuple[datetime, str] | None:
     folded = _fold(text)
-    found: list[date] = []
-    evidence = ""
     for lead in _LEADS:
-        start = 0
-        while True:
-            at = folded.find(lead, start)
-            if at < 0:
-                break
-            window = folded[at : at + 96]
-            match = _DATE.search(window)
-            if match is not None:
-                month = _MONTHS.get(match.group(2))
-                if month is not None:
-                    try:
-                        when = date(int(match.group(3)), month, int(match.group(1)))
-                    except ValueError:
-                        when = None
-                    if when is not None:
-                        found.append(when)
-                        evidence = match.group(0)
-            start = at + len(lead)
-    if not found:
-        return None
-    latest = max(found)
-    moment = datetime(latest.year, latest.month, latest.day, 23, 59, 59, tzinfo=_SANTIAGO)
+        for at in _occurrences(folded, lead):
+            dated = _period_end(folded[at : at + _WINDOW])
+            if dated is not None:
+                return _moment(dated)
+    for at in _occurrences(folded, _UNTIL):
+        before = folded[max(0, at - _WINDOW) : at]
+        if any(word in before for word in _APPLY_WORDS):
+            dated = _period_end(folded[at : at + _WINDOW])
+            if dated is not None:
+                return _moment(dated)
+    return None
+
+
+def _occurrences(folded: str, needle: str) -> Iterator[int]:
+    start = 0
+    while True:
+        at = folded.find(needle, start)
+        if at < 0:
+            return
+        yield at
+        start = at + len(needle)
+
+
+def _period_end(window: str) -> tuple[date, str] | None:
+    """The day the period closes: what follows "hasta", else the first date written."""
+    at = window.find("hasta")
+    if at >= 0:
+        after = _dates_in(window[at:])
+        if after:
+            return after[0]
+    dates = _dates_in(window)
+    return dates[0] if dates else None
+
+
+def _dates_in(window: str) -> list[tuple[date, str]]:
+    found: list[tuple[date, str]] = []
+    for match in _DATE.finditer(window):
+        month = _MONTHS.get(match.group(2))
+        if month is None:
+            continue
+        try:
+            when = date(int(match.group(3)), month, int(match.group(1)))
+        except ValueError:
+            continue
+        found.append((when, match.group(0)))
+    return found
+
+
+def _moment(dated: tuple[date, str]) -> tuple[datetime, str]:
+    when, evidence = dated
+    moment = datetime(when.year, when.month, when.day, 23, 59, 59, tzinfo=_SANTIAGO)
     return moment, evidence
 
 
