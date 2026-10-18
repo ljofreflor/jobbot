@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-115 commands, 170 modules, 945 public symbols.
+115 commands, 172 modules, 958 public symbols.
 
 ## Commands
 
@@ -35,7 +35,7 @@ writing it again — the promotion rule lives in
 - `jobbot companies recon` — Learn ATS markers and form questions from a page you entered (issue #45).
 - `jobbot companies reject` — Mark a discovered portal as wrong so it stops coming back.
 - `jobbot companies show` — Show one company with every portal, observation and contradiction.
-- `jobbot companies signup` — Sheet of what registering asks; --apply fills known fields (HITL create).
+- `jobbot companies signup` — Sheet of what registering asks; --apply fills or opens login (HITL create).
 - `jobbot companies sites` — Career portals reusable by later job discovery.
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
@@ -254,7 +254,7 @@ writing it again — the promotion rule lives in
 - `application_log.py` — Opt-in last page of a job CV: which posting it was built for, the match, and where · `LogText`, `ApplicationLogOptions`, `EvidenceLine`, `ApplicationLog`, `posting_url`, `build_application_log`, `strong_requirement_evidence`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
 - `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
-- `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `write_company_receipt`
+- `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `MissingAdaptedCvError`, `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `resolve_job_adapted_cv`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `has_receipt_for`, `write_company_receipt`
 - `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_url`, `escape_latex_multiline`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
@@ -336,9 +336,11 @@ writing it again — the promotion rule lives in
 
 ### `portals`
 
+- `ats_lifecycle.py` — ATS portal lifecycle: knowledge, account/session, and form-field gaps. · `AccountSessionState`, `FieldGapState`, `PortalAction`, `account_session_state`, `next_portal_action`, `field_gap_state`
 - `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `aggregator_board`, `html_marker_kinds`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
+- `field_gap_issue.py` — Draft (and optionally open) GitHub issues for novel / unanswered portal fields. · `FieldGapIssueDraft`, `draft_field_gap_issue`, `gaps_from_form`, `create_field_gap_issue`
 - `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
