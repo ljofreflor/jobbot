@@ -1320,6 +1320,13 @@ a.jb-in-story__tag:focus-visible {
   gap: 0.35rem;
 }
 
+/* Same chapter break as the meter notch: apply cluster | presence cluster. */
+.jb-scrolly__chapter + .jb-scrolly__chapter {
+  padding-left: 0.7rem;
+  margin-left: 0.2rem;
+  border-left: 1px solid rgba(200, 216, 248, 0.35);
+}
+
 a.jb-scrolly__loop {
   display: inline-flex;
   align-items: center;
