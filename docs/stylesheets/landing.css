@@ -1177,6 +1177,12 @@ a.jb-in-story__tag:focus-visible {
   opacity: 1;
 }
 
+.jb-scrolly__step:focus {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;

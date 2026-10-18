@@ -451,6 +451,12 @@
           held = null;
           holdTimer = 0;
         }, 1200);
+        if (!step.hasAttribute("tabindex")) step.setAttribute("tabindex", "-1");
+        try {
+          step.focus({ preventScroll: true });
+        } catch (err) {
+          step.focus();
+        }
       }
       function showHashed() {
         var id = (location.hash || "").replace(/^#/, "");
