@@ -14,6 +14,7 @@ import yaml
 
 from jobbot.branding import MARK, stamp_description
 from jobbot.models.candidate import Candidate
+from jobbot.models.education import Education
 from jobbot.models.experience import Experience
 from jobbot.models.job import JobPosting
 
@@ -21,6 +22,7 @@ EXPERIENCE_MIN = 300
 EXPERIENCE_MAX = 2000
 EDUCATION_MIN = 100
 EDUCATION_MAX = 2000
+EDUCATION_ITEM_DETAIL_MAX = 220
 
 JOBBOT_SIGNATURE = MARK
 
@@ -34,6 +36,9 @@ class PermanentProfileFields:
     headline: str
     skills: list[str]
     signature: str = JOBBOT_SIGNATURE
+    omitted_education: int = 0
+    omitted_teaching: int = 0
+    omitted_publications: int = 0
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -42,6 +47,9 @@ class PermanentProfileFields:
             "headline": self.headline,
             "skills": list(self.skills),
             "signature": self.signature,
+            "omitted_education": self.omitted_education,
+            "omitted_teaching": self.omitted_teaching,
+            "omitted_publications": self.omitted_publications,
             "limits": {
                 "experiencia_chars": len(self.experiencia_y_perfil),
                 "formacion_chars": len(self.formacion_academica),
@@ -57,12 +65,15 @@ def build_permanent_profile_fields(candidate: Candidate) -> PermanentProfileFiel
         _fit(_draft_experience(candidate), EXPERIENCE_MAX),
         max_len=EXPERIENCE_MAX,
     )
-    education = _fit(_draft_education(candidate), EDUCATION_MAX)
+    education = _pack_education(candidate)
     return PermanentProfileFields(
         experiencia_y_perfil=experience,
-        formacion_academica=education,
+        formacion_academica=education.text,
         headline=candidate.personal.headline,
         skills=list(candidate.skills.all_skills())[:10],
+        omitted_education=education.omitted_education,
+        omitted_teaching=education.omitted_teaching,
+        omitted_publications=education.omitted_publications,
     )
 
 
@@ -91,44 +102,62 @@ def draft_getonboard_fields(
     }
 
 
+def omission_line(fields: PermanentProfileFields) -> str:
+    """The warning when a whole education item, teaching line or publication did not fit."""
+    if not (fields.omitted_education or fields.omitted_teaching or fields.omitted_publications):
+        return ""
+    return (
+        "Omitido por largo: "
+        f"{fields.omitted_education} ítems de formación, "
+        f"{fields.omitted_teaching} de docencia, "
+        f"{fields.omitted_publications} publicaciones"
+    )
+
+
 def render_permanent_profile_markdown(fields: PermanentProfileFields) -> str:
-    return "\n".join(
+    notice = omission_line(fields)
+    lines = [
+        "# Get on Board — perfil permanente (mantenedor)",
+        "",
+        "Fuente: data/profile.yaml + iteración previa (computación acumulativa).",
+        "No se descarta el texto anterior: se refina con hechos actuales.",
+        "La descripción cierra con la firma. Pegala junto con el texto.",
+        f"Firma: {fields.signature}",
+        "",
+        "URL: https://www.getonbrd.com/webpros/edit",
+        "",
+        "Orden HITL:",
+        "1. Abre Editar perfil y reemplaza los textos anteriores por los de abajo.",
+        "2. Pega los bloques de abajo (GoB los guarda para futuras postulaciones).",
+        "3. Tus CVs: sube output/base/cv.pdf y márcalo default.",
+        "4. Recién entonces postula a un cargo.",
+        "",
+        f"## Headline ({len(fields.headline)} chars)",
+        "",
+        fields.headline,
+        "",
+        f"## experiencia_y_perfil ({len(fields.experiencia_y_perfil)} chars; "
+        f"límite {EXPERIENCE_MIN}–{EXPERIENCE_MAX})",
+        "",
+        fields.experiencia_y_perfil,
+        "",
+        f"## formacion_academica ({len(fields.formacion_academica)} chars; "
+        f"límite {EDUCATION_MIN}–{EDUCATION_MAX})",
+        "",
+        fields.formacion_academica,
+        "",
+    ]
+    if notice:
+        lines.extend([notice, ""])
+    lines.extend(
         [
-            "# Get on Board — perfil permanente (mantenedor)",
-            "",
-            "Fuente: data/profile.yaml + iteración previa (computación acumulativa).",
-            "No se descarta el texto anterior: se refina con hechos actuales.",
-            "La descripción cierra con la firma. Pegala junto con el texto.",
-            f"Firma: {fields.signature}",
-            "",
-            "URL: https://www.getonbrd.com/webpros/edit",
-            "",
-            "Orden HITL:",
-            "1. Abre Editar perfil y reemplaza textos viejos (Matlab/VTK/Ceamos, etc.).",
-            "2. Pega los bloques de abajo (GoB los guarda para futuras postulaciones).",
-            "3. Tus CVs: sube output/base/cv.pdf y márcalo default.",
-            "4. Recién entonces postula a un cargo.",
-            "",
-            f"## Headline ({len(fields.headline)} chars)",
-            "",
-            fields.headline,
-            "",
-            f"## experiencia_y_perfil ({len(fields.experiencia_y_perfil)} chars; "
-            f"límite {EXPERIENCE_MIN}–{EXPERIENCE_MAX})",
-            "",
-            fields.experiencia_y_perfil,
-            "",
-            f"## formacion_academica ({len(fields.formacion_academica)} chars; "
-            f"límite {EDUCATION_MIN}–{EDUCATION_MAX})",
-            "",
-            fields.formacion_academica,
-            "",
             "## Skills (máx. 10 en GoB)",
             "",
             ", ".join(fields.skills) if fields.skills else "_(none)_",
             "",
         ]
     )
+    return "\n".join(lines)
 
 
 def render_getonboard_markdown(fields: dict[str, str], *, job: JobPosting) -> str:
@@ -197,11 +226,16 @@ def fields_from_seed_text(
     candidate: Candidate,
 ) -> PermanentProfileFields:
     """Seed a PermanentProfileFields from pasted portal text (accumulated capital)."""
+    packed = _pack_education(candidate)
+    seeded = formacion.strip()
     return PermanentProfileFields(
         experiencia_y_perfil=stamp_description(experiencia, max_len=EXPERIENCE_MAX),
-        formacion_academica=formacion.strip() or _fit(_draft_education(candidate), EDUCATION_MAX),
+        formacion_academica=seeded or packed.text,
         headline=candidate.personal.headline,
         skills=list(candidate.skills.all_skills())[:10],
+        omitted_education=0 if seeded else packed.omitted_education,
+        omitted_teaching=0 if seeded else packed.omitted_teaching,
+        omitted_publications=0 if seeded else packed.omitted_publications,
     )
 
 
@@ -225,6 +259,9 @@ def load_permanent_profile(root_output: Path) -> PermanentProfileFields | None:
         headline=str(raw.get("headline") or ""),
         skills=[str(s) for s in skills][:10],
         signature=str(raw.get("signature") or JOBBOT_SIGNATURE),
+        omitted_education=_nonnegative(raw.get("omitted_education")),
+        omitted_teaching=_nonnegative(raw.get("omitted_teaching")),
+        omitted_publications=_nonnegative(raw.get("omitted_publications")),
     )
 
 
@@ -260,11 +297,11 @@ def _draft_experience(candidate: Candidate) -> str:
         # One achievement per role keeps two roles under the GoB character cap.
         achs = [a.text.strip() for a in exp.achievements[:1] if a.text.strip()]
         if achs:
-            paragraphs.append(f"{head} {' '.join(achs)}")
+            paragraphs.append(_join_sentences([head, *achs]))
         elif exp.description:
-            paragraphs.append(f"{head} {exp.description.strip()}")
+            paragraphs.append(_join_sentences([head, exp.description.strip()]))
         else:
-            paragraphs.append(head)
+            paragraphs.append(_join_sentences([head]))
 
     skills = candidate.skills.all_skills()
     if skills:
@@ -284,7 +321,7 @@ def _draft_experience(candidate: Candidate) -> str:
         ).casefold()
         highlighted = [skill for skill in skills if skill.casefold() in emphasis]
         shown = (highlighted + [s for s in skills if s not in highlighted])[:8]
-        paragraphs.append("Stack habitual: " + ", ".join(shown) + ".")
+        paragraphs.append(_join_sentences(["Stack habitual: " + ", ".join(shown)]))
 
     if candidate.summary:
         # The summary leads, but the roles own their space: it gets what is left of
@@ -310,20 +347,50 @@ def _sentence_prefix(text: str, maximum: int) -> str:
     return window if window.endswith(".") else ""
 
 
-def _draft_education(candidate: Candidate) -> str:
-    parts: list[str] = []
-    edu_lines: list[str] = []
-    for edu in candidate.education:
-        line = f"{edu.degree} — {edu.institution}"
-        dates = "–".join(d for d in (edu.start_date, edu.end_date) if d)
-        if dates:
-            line += f" ({dates})"
-        if edu.details:
-            line += f". {edu.details.strip()}"
-        edu_lines.append(line)
-    if edu_lines:
-        parts.append(". ".join(edu_lines) + ".")
+def _nonnegative(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return 0
+    return value if value > 0 else 0
 
+
+def _ends_sentence(text: str) -> bool:
+    stripped = text.rstrip()
+    return stripped.endswith((".", "!", "?", "…", "..."))
+
+
+def _join_sentences(parts: list[str]) -> str:
+    """Join clauses with a single stop. A part that already ends a sentence keeps its stop."""
+    sentences: list[str] = []
+    for part in parts:
+        text = " ".join(part.split())
+        if not text:
+            continue
+        if not _ends_sentence(text):
+            text += "."
+        sentences.append(text)
+    return " ".join(sentences)
+
+
+@dataclass(frozen=True)
+class _EducationPack:
+    text: str
+    omitted_education: int = 0
+    omitted_teaching: int = 0
+    omitted_publications: int = 0
+
+
+def _education_item(edu: Education) -> str:
+    line = f"{edu.degree} — {edu.institution}"
+    dates = "–".join(date for date in (edu.start_date, edu.end_date) if date)
+    if dates:
+        line += f" ({dates})"
+    detail = _sentence_prefix((edu.details or "").strip(), EDUCATION_ITEM_DETAIL_MAX)
+    if detail:
+        return _join_sentences([line, detail])
+    return _join_sentences([line])
+
+
+def _teaching_line(candidate: Candidate) -> str:
     teaching: list[str] = []
     for exp in candidate.experience:
         title_l = exp.title.casefold()
@@ -338,9 +405,12 @@ def _draft_education(candidate: Candidate) -> str:
             )
         ):
             teaching.append(f"{exp.title} en {exp.company}")
-    if teaching:
-        parts.append("He sido " + "; ".join(teaching) + ".")
+    if not teaching:
+        return ""
+    return _join_sentences(["He sido " + "; ".join(teaching)])
 
+
+def _publications_line(candidate: Candidate) -> str:
     pubs: list[str] = []
     for pub in candidate.publications[:3]:
         bits = [pub.title]
@@ -351,10 +421,36 @@ def _draft_education(candidate: Candidate) -> str:
         if pub.doi:
             bits.append(f"DOI {pub.doi}")
         pubs.append(" — ".join(bits))
-    if pubs:
-        parts.append("Publicaciones relevantes: " + "; ".join(pubs) + ".")
+    if not pubs:
+        return ""
+    return _join_sentences(["Publicaciones relevantes: " + "; ".join(pubs)])
 
-    return "\n\n".join(parts).strip()
+
+def _pack_units(units: list[tuple[str, str]], maximum: int) -> _EducationPack:
+    """Keep whole units in order. One that does not fit is skipped and counted."""
+    kept: list[str] = []
+    omitted = {"education": 0, "teaching": 0, "publications": 0}
+    for kind, text in units:
+        if not text:
+            continue
+        trial = "\n\n".join([*kept, text])
+        if len(trial) <= maximum:
+            kept.append(text)
+        else:
+            omitted[kind] += 1
+    return _EducationPack(
+        text="\n\n".join(kept),
+        omitted_education=omitted["education"],
+        omitted_teaching=omitted["teaching"],
+        omitted_publications=omitted["publications"],
+    )
+
+
+def _pack_education(candidate: Candidate) -> _EducationPack:
+    units = [("education", _education_item(edu)) for edu in candidate.education]
+    units.append(("teaching", _teaching_line(candidate)))
+    units.append(("publications", _publications_line(candidate)))
+    return _pack_units(units, EDUCATION_MAX)
 
 
 def _fit(text: str, maximum: int) -> str:

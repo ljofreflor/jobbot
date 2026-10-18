@@ -4825,6 +4825,7 @@ def getonboard_prepare(
 ) -> None:
     """Maintain permanent GoB profile: cumulative refine by default (not cold replace)."""
     from jobbot.adapters.getonboard.client import GetOnBoardProfileClient
+    from jobbot.adapters.getonboard.draft import omission_line
 
     seed_exp = seed.read_text(encoding="utf-8") if seed is not None else None
     path, result = GetOnBoardProfileClient.from_config(load_config()).prepare_package(
@@ -4837,6 +4838,9 @@ def getonboard_prepare(
         f"mode={result.mode}  kept={result.kept_paragraphs}  "
         f"added={result.added_paragraphs}  dropped={result.dropped_paragraphs}"
     )
+    notice = omission_line(result.fields)
+    if notice:
+        console.print(notice)
     console.print(
         "También: output/getonboard/profile_permanent.yaml + sync_package.md "
         "(history/ guarda versiones previas)"
