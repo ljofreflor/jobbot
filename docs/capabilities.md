@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 211 modules, 1187 public symbols.
+129 commands, 213 modules, 1198 public symbols.
 
 ## Commands
 
@@ -292,6 +292,11 @@ writing it again — the promotion rule lives in
 
 - `feed.py` — UN Careers' public RSS feed and, on request, one posting's public JSON detail. · `UnCareersError`, `UnCareersRobotsDisallowed`, `UnCareersRefused`, `UnCareersShapeChanged`, `Answer`, `pause`, `UnCareersClient`, `FeedItem`, `canonical_url`, `job_id_from_url`, `parse_meta`, `parse_feed`, `parse_stamp`, `is_home_based`, `employment_type`, `organization`, `job_from_item`, `with_detail`
 - `jobs.py` — UN Careers as a job source: filter the public feed locally, map postings. · `UnCareersDiscover`, `UnCareersJobSource`
+
+### `adapters/vacantes`
+
+- `discover.py` — `jobs discover --source vacantes` reads a landing or the vacancy sitemap. · `pause`, `fetch_public`, `VacantesDiscover`
+- `parse.py` — Vacantes.com landing links, sitemap locs, robots rules and JSON-LD jobs. · `ListingLink`, `canonical_job_url`, `link_from_url`, `listing_links`, `xml_locs`, `disallowed`, `path_blocked`, `job_from_html`
 
 ### `adapters/workday`
 

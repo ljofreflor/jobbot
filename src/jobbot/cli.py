@@ -3218,7 +3218,7 @@ def jobs_discover(
                 "Public source to read: workday, un-careers, buk, pdf-index, "
                 "lumesse, cornerstone, avature, unops, impactpool, "
                 "pageup, unicef, pjud, smartrecruiters, greenhouse, "
-                "oracle_orc, bne, chiletrabajos"
+                "oracle_orc, bne, chiletrabajos, vacantes"
             ),
         ),
     ],
@@ -3241,8 +3241,15 @@ def jobs_discover(
     ] = None,
     country: Annotated[
         str | None,
-        typer.Option("--country", help="ISO 3166 country for SmartRecruiters"),
+        typer.Option("--country", help="ISO 3166 country (SmartRecruiters or Vacantes)"),
     ] = None,
+    all_sitemap: Annotated[
+        bool,
+        typer.Option(
+            "--all-sitemap",
+            help="Vacantes: vacancy sitemap instead of the country landing",
+        ),
+    ] = False,
     board_token: Annotated[
         str | None,
         typer.Option("--board", help="Greenhouse board token"),
@@ -3385,6 +3392,24 @@ def jobs_discover(
 
         if isinstance(adapter, OracleOrcDiscover) and not dry_run:
             adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for("oracle_orc")
+    if source == "vacantes":
+        from jobbot.adapters.vacantes.discover import LANDINGS, VacantesDiscover
+
+        if isinstance(adapter, VacantesDiscover):
+            chosen = country or (config.search.countries[0] if config.search.countries else "CL")
+            chosen = chosen.upper()
+            if chosen not in LANDINGS:
+                listed = ", ".join(sorted(LANDINGS))
+                err_console.print(
+                    f"[red]{chosen} has no Vacantes landing.[/red] Available: {listed}"
+                )
+                raise typer.Exit(VALIDATION_FAILURE)
+            adapter.country = chosen
+            adapter.all_sitemap = all_sitemap
+            if not dry_run:
+                adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for(
+                    "vacantes"
+                )
     if source in {"pjud", "greenhouse"} and query is None:
         queries = [""]
     else:
