@@ -1318,6 +1318,9 @@ a.jb-in-story__tag:focus-visible {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #9bb4d8;
+  padding: 0.12rem 0.35rem;
+  border-radius: 0.25rem;
+  background: transparent;
 }
 
 .jb-scrolly__count {
@@ -1358,11 +1361,13 @@ a.jb-in-story__tag:focus-visible {
 }
 
 .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child b {
-  color: #7eb0ff;
+  color: #e8eef8;
+  background: rgba(0, 88, 248, 0.4);
 }
 
 .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child b {
-  color: #7eb0ff;
+  color: #e8eef8;
+  background: rgba(0, 88, 248, 0.4);
 }
 
 .jb-scrolly__meter {
