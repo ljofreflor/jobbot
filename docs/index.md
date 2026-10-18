@@ -3,7 +3,7 @@ template: home.html
 title: Jobbot — búsqueda mientras programas
 description: >-
   CLI local para buscar trabajo sin salir del editor: encuentra dónde publican,
-  prepara sin inventar, postula con vos al mando. Humano + bot, en tu máquina.
+  prepara sin inventar, postula con el control en tus manos. Humano + bot, en tu máquina.
 hide:
   - navigation
   - toc
@@ -35,7 +35,7 @@ que no existe. [Manifiesto completo](manifesto.md).
     <div class="jb-benefits__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M20 19H3"/></svg>
     </div>
-    <strong>Postula con vos al mando</strong>
+    <strong>Postula con el control en tus manos</strong>
     <span>Matching, shortlist y evidencia — HITL, sin telemetría ni cuenta.</span>
   </li>
 </ul>
@@ -51,7 +51,7 @@ que no existe. [Manifiesto completo](manifesto.md).
 El canal puede ser la terminal o un agente (Cursor, VS Code, Claude Code…).
 El producto es el CLI local. Dos bucles; un solo SoT: `data/profile.yaml`.
 
-**1 · Postular a una vacante** — match → CV → plan; **vos enviás**.
+**1 · Postular a una vacante** — match → CV → plan; **tú envías**.
 
 ```bash
 jobbot linkedin sweep "machine learning"
@@ -64,7 +64,7 @@ jobbot application apply J0002        # plan; tú envías
 dejar el CV al día en portales activos (HITL; nunca inventa hechos).
 
 ```bash
-jobbot cv advise --apply              # presentación; confirmás una por una
+jobbot cv advise --apply              # presentación; confirmas una por una
 jobbot cv sync --apply                # permanentes + companies active
 jobbot status                         # evidencia local de qué quedó al día
 ```
@@ -133,7 +133,7 @@ Adapters de Indeed, LinkedIn y Get on Board: login, inspect, pull, diff y sync
 ```bash
 jobbot indeed sync --section headline   # plan; --apply escribe
 jobbot linkedin sync --section publications --apply
-jobbot cv sync --apply                  # presencia; confirmás por destino
+jobbot cv sync --apply                  # presencia; confirmas por destino
 ```
 
 </section>
@@ -153,7 +153,7 @@ jobbot version
 # más adelante: jobbot update
 ```
 
-¿Contribuís al código? Ahí sí: `git clone` + `uv sync --group dev` (ver [instalación](instalacion.md)).
+¿Contribuyes al código? Ahí sí: `git clone` + `uv sync --group dev` (ver [instalación](instalacion.md)).
 
 </section>
 
