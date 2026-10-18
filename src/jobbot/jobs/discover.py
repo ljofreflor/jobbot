@@ -138,6 +138,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.un_careers.jobs import UnCareersDiscover
 
         register_source("un-careers", UnCareersDiscover)
+    if "buk" not in _FACTORIES:
+        from jobbot.adapters.buk.discover import BukDiscover
+
+        register_source("buk", BukDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

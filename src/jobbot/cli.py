@@ -2909,6 +2909,23 @@ def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> 
 # ── jobs ─────────────────────────────────────────────────────────────────────
 
 
+def _add_buk_list(session: Session, config: JobbotConfig, html: str, url: str) -> None:
+    """Store each card of a saved Buk list. A page without cards is a shape change."""
+    from jobbot.adapters.buk.listings import BukShapeError, jobs_from_list_html
+
+    try:
+        jobs = jobs_from_list_html(html, page_url=url)
+    except BukShapeError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
+    repo = JobRepository(session)
+    for job in jobs:
+        stored = repo.upsert_external(job)
+        path = write_job_json(stored, config.output_dir)
+        console.print(f"[green]Added[/green] {stored.id}  {stored.company}  {stored.title}")
+        console.print(f"Wrote {path}")
+
+
 @jobs_app.command("add")
 def jobs_add(
     file: Annotated[
@@ -2928,6 +2945,9 @@ def jobs_add(
     from jobbot.portals.detect import AtsKind, detect_ats
 
     session, config = _session()
+    if file is not None and url and detect_ats(url) == AtsKind.BUK:
+        _add_buk_list(session, config, file.read_text(encoding="utf-8"), url)
+        return
     if file is not None:
         text = file.read_text(encoding="utf-8")
     elif stdin:
@@ -3102,7 +3122,7 @@ def jobs_search(
 def jobs_discover(
     source: Annotated[
         str,
-        typer.Option("--source", help="Public source to read: workday, un-careers"),
+        typer.Option("--source", help="Public source to read: workday, un-careers, buk"),
     ],
     site: Annotated[
         list[str] | None,
