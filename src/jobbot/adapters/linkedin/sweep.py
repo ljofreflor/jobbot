@@ -255,6 +255,31 @@ def posted_at_from_text(text: str, *, now: datetime | None = None) -> datetime |
     return None
 
 
+# LinkedIn prints the card's age on a line of its own ("19 de ago.", "hace 1 d"), sometimes
+# followed by "• Editado". A date written inside a sentence belongs to the advert — a start
+# date, a deadline — and is never when the post was published.
+_CARD_DATE_LINE = re.compile(
+    r"^(?P<stamp>\d{1,2}\s+de\s+[a-záéíóúñ]+\.?"
+    r"|[a-záéíóúñ]{3,9}\.?\s+\d{1,2}"
+    r"|hace\s+\d+\s*[a-záéíóúñ]+\.?"
+    r"|\d+\s*[a-z]+\s+ago)"
+    r"(?:\s*[•·].*)?$",
+    re.IGNORECASE,
+)
+
+
+def _posted_at_from_card_line(text: str, *, now: datetime | None = None) -> datetime | None:
+    """The age stamped on its own line, ignoring the calendar the advert itself names."""
+    for raw in text.splitlines():
+        line = _CARD_DATE_LINE.match(raw.strip())
+        if line is None:
+            continue
+        found = posted_at_from_text(line.group("stamp"), now=now)
+        if found is not None:
+            return found
+    return None
+
+
 _FEED_HEADERS = ("publicación en el feed", "publicacion en el feed", "feed post")
 _CHROME_LINE = re.compile(
     r"^(?:•\s*\d+\S*|seguir|follow|recomendar|editado.*"
@@ -451,7 +476,7 @@ def parse_post_blob(
         post_url=post_url,
         ats_url=ats_url,
         ats_kind=ats_kind,
-        posted_at=posted_at_from_url(post_url) or posted_at_from_text(blob),
+        posted_at=posted_at_from_url(post_url) or _posted_at_from_card_line(blob),
         vacancies=tuple(vacancies),
     )
 

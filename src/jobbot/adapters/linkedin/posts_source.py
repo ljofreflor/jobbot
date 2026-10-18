@@ -226,8 +226,6 @@ class LinkedInPostJobSource:
                 post.text, wanted=countries, allow_remote=allow_remote
             ):
                 continue
-            if max_age_days > 0 and post.posted_at is None:
-                continue
             if not is_fresh(post.posted_at, max_age_days=max_age_days, now=current_time()):
                 continue
             if (
@@ -262,10 +260,7 @@ class LinkedInPostJobSource:
             ):
                 reasons.append("país")
                 continue
-            stale = post.posted_at is None or not is_fresh(
-                post.posted_at, max_age_days=max_age_days, now=now
-            )
-            if max_age_days > 0 and stale:
+            if not is_fresh(post.posted_at, max_age_days=max_age_days, now=now):
                 reasons.append("antigüedad")
         return reasons
 
@@ -381,9 +376,6 @@ def collect_jobs_from_feed_page(
             extra_urls=hrefs,
         )
         reference = now or current_time()
-        if query.max_age_days > 0 and post.posted_at is None:
-            logger.info("Skipped post with unknown age (max %d days)", query.max_age_days)
-            continue
         if not is_fresh(post.posted_at, max_age_days=query.max_age_days, now=reference):
             logger.info(
                 "Skipped post published %s ago (max %d days)",

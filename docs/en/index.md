@@ -273,6 +273,7 @@ Nothing in this list submits alone or invents a fact. Rows marked **story** are 
 | `jobbot linkedin login` | The same for LinkedIn: `status`, `inspect`, `pull`, `diff`, `sync`. |
 | `jobbot linkedin sync --section publications` | Writes Publications. With `--apply`, each item waits for you. |
 | `jobbot linkedin sweep [QUERY]` | Reads recruiter posts and stores vacancies. With no query it uses the profile's searches. |
+| `jobbot linkedin jobs [QUERY]` | Stores the cards of a job search. `--dry-run` writes nothing. |
 | `jobbot getonboard prepare` | Refines the permanent-profile draft from your facts. |
 | `jobbot getonboard show-profile` | Shows the local draft. |
 | `jobbot getonboard open-profile` | Opens the editor in the browser. It does not save on its own. |

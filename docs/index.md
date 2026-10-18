@@ -273,6 +273,7 @@ lista postula solo ni inventa un hecho. Los que llevan la marca **relato** son l
 | `jobbot linkedin login` | Igual para LinkedIn: `status`, `inspect`, `pull`, `diff`, `sync`. |
 | `jobbot linkedin sync --section publications` | Escribe Publicaciones, con confirmación por ítem si pasas `--apply`. |
 | `jobbot linkedin sweep [CONSULTA]` | Lee posts de reclutadores y guarda vacantes. Sin consulta usa las del perfil. |
+| `jobbot linkedin jobs [CONSULTA]` | Guarda los avisos de una búsqueda de empleos. `--dry-run` no escribe. |
 | `jobbot getonboard prepare` | Refina el borrador del perfil permanente desde tus hechos. |
 | `jobbot getonboard show-profile` | Muestra el borrador local. |
 | `jobbot getonboard open-profile` | Abre el editor en el navegador. No guarda solo. |
