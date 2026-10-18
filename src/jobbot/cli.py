@@ -5999,7 +5999,7 @@ def companies_learn(
 ) -> None:
     """Register a company/portal relation you found yourself (candidate by default)."""
     from jobbot.companies.learn import learn_from_url
-    from jobbot.companies.models import DiscoverySource
+    from jobbot.companies.models import DiscoverySource, KnowledgeStatus
     from jobbot.companies.registry import save_companies
     from jobbot.companies.urls import PrivateRouteRejected, company_hint_from_url
 
@@ -6040,10 +6040,55 @@ def companies_learn(
     if outcome.conflict:
         err_console.print(f"[yellow]Contradiction:[/yellow] {outcome.conflict}")
     if not verify:
-        console.print(
-            f"Candidate stored. Confirm with: [bold]jobbot companies promote "
-            f"{outcome.company.id} --site {outcome.site.url}[/bold]"
-        )
+        if outcome.site.status == KnowledgeStatus.CANDIDATE:
+            console.print(
+                f"Candidate stored. Confirm with: [bold]jobbot companies promote "
+                f"{outcome.company.id} --site {outcome.site.url}[/bold]"
+            )
+        else:
+            console.print(f"Recorded. Status stays {outcome.site.status.value}.")
+
+
+@companies_app.command("recheck")
+def companies_recheck(
+    company: Annotated[
+        str | None,
+        typer.Argument(help="One company id or name; omit to recheck every saved site"),
+    ] = None,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Confirm each detector change before writing"),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Apply every proposed change")] = False,
+) -> None:
+    """Re-run offline detectors on saved sites. Dry-run writes nothing."""
+    from jobbot.companies.recheck import apply_recheck, plan_recheck
+    from jobbot.companies.registry import save_companies
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    if company is not None and registry.find_company(company) is None:
+        err_console.print(f"[red]No company {company!r} in the registry.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    changes = plan_recheck(registry, company=company)
+    if not changes:
+        console.print("No detector changes.")
+        return
+    for change in changes:
+        console.print(f"{change.company_id}  {change.action}  {change.detail}")
+    if not apply_changes:
+        console.print("Dry-run only. Re-run with [bold]--apply[/bold] to confirm each change.")
+        return
+    confirmed = []
+    for change in changes:
+        if yes or typer.confirm(f"Apply {change.action} on {change.url}?", default=False):
+            confirmed.append(change)
+    if not confirmed:
+        console.print("Nothing applied.")
+        return
+    apply_recheck(registry, confirmed)
+    save_companies(registry, path)
+    console.print(f"Applied {len(confirmed)} change(s).")
 
 
 @companies_app.command("list")

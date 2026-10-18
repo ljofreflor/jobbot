@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-121 commands, 175 modules, 988 public symbols.
+122 commands, 176 modules, 991 public symbols.
 
 ## Commands
 
@@ -32,6 +32,7 @@ writing it again — the promotion rule lives in
 - `jobbot companies learn` — Register a company/portal relation you found yourself (candidate by default).
 - `jobbot companies list` — List known companies and their career platforms.
 - `jobbot companies promote` — Promote candidate knowledge to active (the only way it becomes truth).
+- `jobbot companies recheck` — Re-run offline detectors on saved sites. Dry-run writes nothing.
 - `jobbot companies recon` — Learn ATS markers and form questions from a page you entered (issue #45).
 - `jobbot companies reject` — Mark a discovered portal as wrong so it stops coming back.
 - `jobbot companies show` — Show one company with every portal, observation and contradiction.
@@ -249,6 +250,7 @@ writing it again — the promotion rule lives in
 - `learn.py` — Turn URLs seen during normal use into candidate company knowledge. · `LearnResult`, `learn_from_url`, `company_name_for_job`, `learn_from_job`
 - `models.py` — Company ↔ career platform knowledge model (shareable; never candidate PII). · `utc_now`, `CareerSiteType`, `KnowledgeStatus`, `DiscoverySource`, `Observation`, `CareerSite`, `CompanyRecord`
 - `oneshot.py` — One-shot seeding of company career portals from public sources (not a crawler). · `CompanySeed`, `CompanyPortalCandidate`, `FetchResult`, `Fetcher`, `UrllibFetcher`, `OneshotReport`, `CandidateGroups`, `group_candidates`, `RobotsVerdict`, `RobotsPolicy`, `load_seeds`, `load_search_hits`, `candidate_urls`, `is_refusal`, `www_variant`, `CompanyProbe`, `discover_company`, `run_oneshot`, `write_candidates`, `load_candidates`, `import_candidates`
+- `recheck.py` — Re-run today's offline detectors on sites already stored in the registry. · `RecheckChange`, `plan_recheck`, `apply_recheck`
 - `recon.py` — Learn portal truth from a page you are already on (issue #45). · `ReconReport`, `ReconError`, `resolve_recon_site`, `recon_from_html`, `plan_recon`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
 - `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `account_need`, `signup_target`, `signup_sheet`, `screening_to_prepare`
