@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 213 modules, 1198 public symbols.
+129 commands, 214 modules, 1205 public symbols.
 
 ## Commands
 
@@ -173,7 +173,7 @@ writing it again — the promotion rule lives in
 - `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`
 - `getonboard.py` — Get on Board adapter — open job page + known-field map (HITL submit). · `GetOnBoardAdapter`
 - `greenhouse.py` — Greenhouse ATS adapter stub — open + known-field map only (HITL submit). · `GreenhouseAdapter`
-- `indeed_apply.py` — Indeed apply handoff — open the right page and stop before submit. · `IndeedApplyAdapter`, `apply_target`
+- `indeed_apply.py` — Indeed apply handoff — open the right page and stop before submit. · `IndeedApplyAdapter`, `apply_route`, `apply_target`
 - `lever.py` — Lever ATS adapter — open + known-field map only (HITL submit). · `LeverAdapter`
 - `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `supported_kinds`, `adapter_for_kind`, `adapter_for_job`
 - `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
@@ -236,6 +236,7 @@ writing it again — the promotion rule lives in
 
 - `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `indeed_session_authenticated`, `normalize_indeed_continue_url`
 - `cv_upload.py` — Decide whether an Indeed PDF upload is needed. The portal write stays HITL. · `receipt_path`, `file_sha256`, `load_receipt_sha`, `icon_glyph_message`
+- `external.py` — An Indeed posting whose apply step leaves Indeed. · `IndeedVerificationRequired`, `read_apply_entry`, `gate_indeed_entry`, `external_apply_url`, `remember_external_landing`, `strip_indeed_tracking`
 - `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `preferences.py` — Project local preferences onto Indeed's Preferencias tab. Sends nothing. · `PreferencePlan`, `desired_titles`, `plan_preferences`, `save_preferences`

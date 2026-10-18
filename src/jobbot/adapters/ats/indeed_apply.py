@@ -42,6 +42,16 @@ class IndeedApplyAdapter:
         return url
 
 
+def apply_route(job: JobPosting) -> tuple[str, tuple[str, ...]]:
+    """Where apply goes, and the Indeed Apply steps. An external host has no Indeed steps."""
+    target = apply_target(job)
+    if not target:
+        return "", ()
+    if _is_indeed_url(target):
+        return target, ("applystart",)
+    return target, ()
+
+
 def apply_target(job: JobPosting) -> str | None:
     """External ATS when the posting leaves Indeed; otherwise Indeed Apply."""
     if job.ats_url and not _is_indeed_url(job.ats_url):

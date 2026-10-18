@@ -342,30 +342,9 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
         ],
     )
     
-    # Detect external ATS URL (Apply on company site button)
-    ats_url = None
-    
-    # Look for "Apply on company site" or similar external apply links
-    apply_patterns = [
-        r'href="([^"]+)"[^>]*>Apply on company site',
-        r'href="([^"]+)"[^>]*>Apply on employer site',
-        r'href="([^"]+)"[^>]*>Aplicar en el sitio de la empresa',
-        r'data-tn-element="[^"]*externalApply[^"]*"[^>]*href="([^"]+)"',
-    ]
-    
-    for pattern in apply_patterns:
-        match = re.search(pattern, html, flags=re.I)
-        if match:
-            ats_url = match.group(1)
-            # Clean up Indeed redirect wrapper if present
-            if "indeed.com" in ats_url and ("rclk?jk=" in ats_url or "/rc/clk" in ats_url):
-                # Extract actual URL from Indeed redirect
-                redirect_match = re.search(r'[?&]dest=([^&]+)', ats_url)
-                if redirect_match:
-                    from urllib.parse import unquote
-                    ats_url = unquote(redirect_match.group(1))
-            break
-    
+    from jobbot.adapters.indeed.external import external_apply_url
+
+    ats_url = external_apply_url(html)
     return {
         "title": _clean(title),
         "company": _clean(company),
