@@ -3191,7 +3191,7 @@ def jobs_discover(
             help=(
                 "Public source to read: workday, un-careers, buk, pdf-index, "
                 "lumesse, cornerstone, avature, unops, impactpool, "
-                "pageup, unicef, pjud, smartrecruiters, greenhouse, oracle_orc"
+                "pageup, unicef, pjud, smartrecruiters, greenhouse, oracle_orc, bne"
             ),
         ),
     ],
