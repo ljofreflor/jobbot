@@ -1062,9 +1062,25 @@ body:has(.jb-hero) .md-tabs {
 
 .jb-scrolly__dots {
   display: flex;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.85rem;
   margin: 0;
   padding: 0;
+}
+
+.jb-scrolly__chapter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.jb-scrolly__chapter b {
+  font-family: var(--jb-font-body);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9bb4d8;
 }
 
 .jb-scrolly__count {
@@ -1094,8 +1110,12 @@ body:has(.jb-hero) .md-tabs {
   box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
 }
 
-.jb-scrolly__dots i:nth-child(6) {
-  margin-left: 0.65rem;
+.jb-scrolly__stage:not(.is-presence) .jb-scrolly__chapter:first-child b {
+  color: #7eb0ff;
+}
+
+.jb-scrolly__stage.is-presence .jb-scrolly__chapter:last-child b {
+  color: #7eb0ff;
 }
 
 .jb-scrolly__meter {
