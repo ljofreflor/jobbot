@@ -1092,6 +1092,17 @@ a.jb-in-story__tag:hover {
   .jb-scrolly__steps {
     min-width: 0;
   }
+
+  .jb-cmdnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .jb-cmdnav a {
+    flex: 0 0 auto;
+  }
 }
 
 /* Scroll story: sticky terminal, steps in the HTML (no scrollama / GSAP). */
