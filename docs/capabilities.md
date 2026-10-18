@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 190 modules, 1105 public symbols.
+128 commands, 191 modules, 1107 public symbols.
 
 ## Commands
 
@@ -182,6 +182,10 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source buk` reads robots.txt and then stops. · `fetch_robots`, `disallows_all`, `BukDiscover`
 - `listings.py` — Saved Buk list HTML into postings. The live site stays unread. · `BukShapeError`, `tenant_from_url`, `jobs_from_list_html`
+
+### `adapters/cornerstone`
+
+- `discover.py` — `jobs discover --source cornerstone` refuses without requesting the guest token. · `refusal`, `CornerstoneDiscover`
 
 ### `adapters/empleospublicos`
 

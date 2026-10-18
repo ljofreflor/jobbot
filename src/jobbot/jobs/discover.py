@@ -146,6 +146,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.lumesse.discover import LumesseDiscover
 
         register_source("lumesse", LumesseDiscover)
+    if "cornerstone" not in _FACTORIES:
+        from jobbot.adapters.cornerstone.discover import CornerstoneDiscover
+
+        register_source("cornerstone", CornerstoneDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

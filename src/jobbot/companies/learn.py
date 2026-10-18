@@ -50,14 +50,21 @@ def learn_from_url(
     html: str | None = None,
 ) -> ObserveOutcome | None:
     """Classify a URL and record it as candidate knowledge. Boards are ignored."""
-    from jobbot.portals.detect import LUMESSE_ROBOTS_REASON, AtsKind
+    from jobbot.portals.detect import (
+        CORNERSTONE_TOKEN_REASON,
+        LUMESSE_ROBOTS_REASON,
+        AtsKind,
+    )
 
     classification = classify_url(url, html=html, resolve=resolve)
     evidence = classification.evidence
-    if classification.ats is AtsKind.LUMESSE:
-        if "discovery: blocked (robots)" not in evidence:
-            evidence = f"{evidence}; {LUMESSE_ROBOTS_REASON}".strip("; ")
-        notes = notes or LUMESSE_ROBOTS_REASON
+    blocked = {
+        AtsKind.LUMESSE: LUMESSE_ROBOTS_REASON,
+        AtsKind.CORNERSTONE: CORNERSTONE_TOKEN_REASON,
+    }.get(classification.ats)
+    if blocked is not None and blocked not in evidence:
+        evidence = f"{evidence}; {blocked}".strip("; ")
+        notes = notes or blocked
     if not classification.is_company_specific:
         return None
     root = career_root_url(classification.url, classification.ats)

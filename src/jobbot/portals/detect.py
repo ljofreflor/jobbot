@@ -78,6 +78,13 @@ LUMESSE_ROBOTS_REASON = (
     "para bots que no son de búsqueda (revisado 2026-10-08). Usa jobs add --file."
 )
 
+# The career-site SPA hands out a guest JWT. Until a maintainer says that token is
+# public, JobBot does not request the home page or the search API.
+CORNERSTONE_TOKEN_REASON = (
+    "discovery: blocked (requires session token). La búsqueda pública de csod.com "
+    "exige el token de invitado de la página (revisado 2026-10-08). Usa jobs add --file."
+)
+
 # Aggregators that republish other employers' openings from their own ATS tenant
 # (jobs.lever.co/<tenant>): the vendor is real, the tenant is still a board.
 _AGGREGATOR_TENANTS: dict[str, AtsKind] = {
