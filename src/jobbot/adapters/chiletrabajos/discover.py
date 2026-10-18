@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
 
@@ -30,16 +31,23 @@ def pause() -> None:
 
 
 def fetch_public(url: str) -> tuple[int, str, str]:
-    """GET one public page. Tests replace this. Disallowed paths are refused."""
+    """GET one public page. Tests replace this. Disallowed paths are refused.
+
+    An HTTP error comes back as its status, because a gone ficha is a 404 to read,
+    not a crash.
+    """
     if blocked(url):
         msg = f"robots.txt disallows {url}"
         raise ValueError(msg)
     pause()
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
-        status = int(getattr(response, "status", 200))
-        body = response.read().decode("utf-8", errors="replace")
-        final = str(response.geturl())
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+            status = int(getattr(response, "status", 200))
+            body = response.read().decode("utf-8", errors="replace")
+            final = str(response.geturl())
+    except urllib.error.HTTPError as exc:
+        return int(exc.code), exc.read().decode("utf-8", errors="replace"), url
     return status, body, final
 
 
@@ -68,7 +76,6 @@ class ChiletrabajosDiscover:
         details: bool,
         filters: JobFilters | None = None,
     ) -> SiteOutcome:
-        del details
         text = query.strip()
         if not text:
             return SiteOutcome(
@@ -80,16 +87,26 @@ class ChiletrabajosDiscover:
         jobs: list[JobPosting] = []
         seen: set[str] = set()
         seen_pages: set[str] = set()
+        problem = ""
         page: str | None = search_url(text)
         while page and len(jobs) < limit:
             if page in seen_pages or blocked(page):
                 break
             seen_pages.add(page)
-            status, body, final = fetch_public(page)
+            try:
+                status, body, final = fetch_public(page)
+            except OSError as exc:
+                return SiteOutcome(
+                    site=target.url,
+                    status=SiteStatus.FAILED,
+                    jobs=jobs[:limit],
+                    detail=str(exc),
+                )
             if status != 200:
                 return SiteOutcome(
                     site=target.url,
                     status=SiteStatus.FAILED,
+                    jobs=jobs[:limit],
                     detail=f"HTTP {status}",
                 )
             items, nxt = parse_listing(body, page_url=final or page)
@@ -118,22 +135,27 @@ class ChiletrabajosDiscover:
                 if len(jobs) >= limit or item.number in seen:
                     continue
                 seen.add(item.number)
-                job, problem = _detail(item)
-                if problem:
-                    changed = problem.startswith("la ficha")
-                    return SiteOutcome(
-                        site=target.url,
-                        status=SiteStatus.CHANGED if changed else SiteStatus.FAILED,
-                        detail=problem,
-                    )
+                job, trouble = _detail(item) if details else (job_from_listing(item), "")
+                problem = problem or trouble
                 if job is not None and filters.keeps(job):
                     jobs.append(job)
-            page = nxt if len(jobs) < limit else None
+            page = nxt if len(jobs) < limit and not problem else None
+        if problem:
+            changed = problem.startswith("la ficha")
+            return SiteOutcome(
+                site=target.url,
+                status=SiteStatus.CHANGED if changed else SiteStatus.FAILED,
+                jobs=jobs[:limit],
+                detail=problem,
+            )
         return SiteOutcome(site=target.url, status=SiteStatus.OK, jobs=jobs[:limit])
 
 
 def _detail(item: ListingItem) -> tuple[JobPosting | None, str]:
-    status, body, _final = fetch_public(item.url)
+    try:
+        status, body, _final = fetch_public(item.url)
+    except OSError as exc:
+        return None, str(exc)
     if status == 404:
         return job_from_listing(item), ""
     if status != 200:

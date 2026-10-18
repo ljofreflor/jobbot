@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import io
 import json
+import urllib.error
 import urllib.request
 from datetime import datetime
+from email.message import Message
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -249,6 +252,82 @@ def test_learning_an_offer_stays_a_board(
     assert code == 0
     assert "Not company-specific" in captured.out
     assert not (tmp_path / "data" / "companies.yaml").exists()
+
+
+def test_an_http_error_is_its_status_not_a_crash(monkeypatch: pytest.MonkeyPatch) -> None:
+    def urlopen(request: urllib.request.Request, timeout: int = 30) -> object:
+        del request, timeout
+        raise urllib.error.HTTPError(OFFER, 404, "Not Found", Message(), io.BytesIO(b"gone"))
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr("jobbot.adapters.chiletrabajos.discover.pause", lambda: None)
+    assert fetch_public(OFFER) == (404, "gone", OFFER)
+
+
+def test_a_broken_ficha_keeps_the_other_rows(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    pages = _pages(project_root)
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        if "pagina=2" in url:
+            return 200, pages["page2"], url
+        if "encuentra-un-empleo" in url:
+            return 200, pages["page1"], url
+        if "3911436" in url:
+            return 200, pages["3911436"], url
+        return 200, "<html><body><h1>Office analyst</h1></body></html>", url
+
+    _install(monkeypatch, fetch)
+    code = run_cli(
+        ["jobs", "discover", "--source", "chiletrabajos", "--query", "abogado"],
+        standalone_mode=False,
+    )
+    stored = list((tmp_path / "output" / "jobs").glob("*/job.json"))
+    assert code == 5
+    assert len(stored) == 1
+    assert json.loads(stored[0].read_text(encoding="utf-8"))["source_job_id"] == "3911436"
+
+
+def test_no_details_reads_the_listing_only(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    pages = _pages(project_root)
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        if "/trabajo/" in url:
+            raise AssertionError(url)
+        if "pagina=2" in url:
+            return 200, pages["page2"], url
+        return 200, pages["page1"], url
+
+    _install(monkeypatch, fetch)
+    code = run_cli(
+        [
+            "jobs",
+            "discover",
+            "--source",
+            "chiletrabajos",
+            "--query",
+            "abogado",
+            "--no-details",
+            "--limit",
+            "1",
+        ],
+        standalone_mode=False,
+    )
+    stored = list((tmp_path / "output" / "jobs").glob("*/job.json"))
+    assert code == 0
+    assert len(stored) == 1
+    row = json.loads(stored[0].read_text(encoding="utf-8"))
+    assert row["title"] == "Health advisor"
+    assert row["company"] == "Empresa Ejemplo"
 
 
 def test_a_listing_without_jobs_exits_5(
