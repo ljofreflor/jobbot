@@ -31,6 +31,54 @@ def test_full_answers_file_is_valid() -> None:
     assert salary_migration_hint(answers) is None
 
 
+def test_candidate_spellings_are_folded_into_the_stored_tokens(tmp_path: Path) -> None:
+    path = tmp_path / "answers.yaml"
+    path.write_text(
+        "identity:\n  gender_to_declare: Prefer Not To Say\n"
+        "salary:\n  amount: 1500000\n  currency: clp\n  period: Month\n  basis: Gross\n",
+        encoding="utf-8",
+    )
+
+    answers = load_application_answers(path)
+
+    assert answers.identity.gender_to_declare == "prefer_not_to_say"
+    assert answers.salary is not None
+    assert answers.salary.currency == "CLP"
+    assert answers.salary.period == "month"
+    assert answers.salary.basis == "gross"
+
+
+def test_job_answers_override_the_new_blocks_without_wiping_the_global_file(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "answers.yaml"
+    path.write_text(
+        "identity:\n  birth_date: 1990-01-01\n  comuna: Comuna Ejemplo\n"
+        "salary:\n  amount: 1500000\n  currency: CLP\n  period: month\n  basis: net\n"
+        "job_types: [full_time]\n",
+        encoding="utf-8",
+    )
+    job_answers = tmp_path / "job-answers.yaml"
+    job_answers.write_text(
+        "identity:\n  birth_date:\n  comuna: Otra Comuna\n"
+        "salary:\n  amount: 2000000\n  currency:\n  period:\n  basis:\n"
+        "availability:\n  from_date: 2026-11-01\n"
+        "job_types: []\ndesired_titles: [Analista]\n",
+        encoding="utf-8",
+    )
+
+    answers = load_application_answers(path, job_answers=job_answers)
+
+    assert answers.identity.comuna == "Otra Comuna"
+    assert answers.identity.birth_date is not None
+    assert answers.salary is not None
+    assert answers.salary.amount == 2000000
+    assert answers.salary.currency == "CLP"
+    assert answers.availability is not None
+    assert answers.desired_titles == ["Analista"]
+    assert answers.job_types == ["full_time"]
+
+
 def test_unknown_rut_key_is_named() -> None:
     with pytest.raises(ValueError, match="rut"):
         load_application_answers(FIXTURES / "with_rut.yaml")
