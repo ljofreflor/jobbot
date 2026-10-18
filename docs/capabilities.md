@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 202 modules, 1152 public symbols.
+128 commands, 204 modules, 1162 public symbols.
 
 ## Commands
 
@@ -245,6 +245,11 @@ writing it again — the promotion rule lives in
 ### `adapters/lumesse`
 
 - `discover.py` — `jobs discover --source lumesse` refuses without calling the front-office API. · `forbids_fo_rest`, `refusal`, `LumesseDiscover`
+
+### `adapters/oracle_orc`
+
+- `discover.py` — `jobs discover --source oracle_orc` reads the public requisition search. · `pause`, `fetch_public`, `search_url`, `detail_url`, `OracleOrcDiscover`
+- `parse.py` — Map an Oracle Recruiting Cloud requisition. No network. · `parse_site`, `job_url`, `parse_list`, `job_from_row`, `apply_detail`
 
 ### `adapters/pageup`
 

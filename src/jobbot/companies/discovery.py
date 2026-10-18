@@ -182,6 +182,17 @@ def classify_url(
     )
 
 
+_ORACLE_SITE = re.compile(r"/hcmUI/CandidateExperience/([^/]+)/sites/([^/]+)", re.I)
+
+
+def _oracle_site(path: str) -> tuple[str, str] | None:
+    """Language and siteNumber from a Candidate Experience path."""
+    found = _ORACLE_SITE.search(path)
+    if found is None:
+        return None
+    return found.group(1), found.group(2)
+
+
 def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
     """Collapse a single posting to the portal that lists the company's openings."""
     normalized = public_url(url)
@@ -196,9 +207,14 @@ def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
     if ats in {AtsKind.WORKABLE, AtsKind.MANATAL} and host in _PATH_TENANT_HOSTS:
         # Shared vendor host: the company is the first path segment.
         return f"https://{host}/{segments[0]}" if segments else f"https://{host}"
+    if ats == AtsKind.ORACLE:
+        site = _oracle_site(parsed.path)
+        if site is not None:
+            lang, number = site
+            return f"https://{host}/hcmUI/CandidateExperience/{lang}/sites/{number}"
+        return f"https://{host}"
     if ats in {
         AtsKind.SUCCESSFACTORS,
-        AtsKind.ORACLE,
         AtsKind.TEAMTAILOR,
         AtsKind.WORKABLE,
         AtsKind.MANATAL,
