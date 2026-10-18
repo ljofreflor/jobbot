@@ -84,6 +84,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source pjud` | Lee los concursos en postulación del Poder Judicial (una página, sin login). Sin `--query` trae todos; `--query` filtra por cargo y tribunal. `--dry-run` no escribe. Una grilla de otra forma sale 5. |
 | `jobs discover --source smartrecruiters --company ID` | Lee la Posting API pública. Sin `--company` recorre los tableros del registro. `--country` (por defecto el de la búsqueda) filtra también en local. `--limit` puede llegar a 300. Un 404 se informa y se sigue. |
 | `jobs discover --source greenhouse [--board TOKEN]` | Lee la Job Board API pública. Sin `--board` recorre los boards del registro. Un aviso ya guardado no vuelve a pedir su detalle. Un 404 se informa y se sigue. |
+| `jobs discover --source oracle_orc [--site HOST/SITIO]` | Lee la búsqueda pública de Oracle Recruiting Cloud. Conserva el `siteNumber`. Un 403 se informa y se sigue. |
 | `jobs add --file listado.html --url https://acme.buk.cl/trabaja-con-nosotros` | Ingiere las tarjetas `jobs__card` de un HTML guardado. Sin tarjetas, sale 5. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |

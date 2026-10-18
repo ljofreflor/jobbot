@@ -176,6 +176,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.greenhouse.discover import GreenhouseDiscover
 
         register_source("greenhouse", GreenhouseDiscover)
+    if "oracle_orc" not in _FACTORIES:
+        from jobbot.adapters.oracle_orc.discover import OracleOrcDiscover
+
+        register_source("oracle_orc", OracleOrcDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

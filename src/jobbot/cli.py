@@ -3191,7 +3191,7 @@ def jobs_discover(
             help=(
                 "Public source to read: workday, un-careers, buk, pdf-index, "
                 "lumesse, cornerstone, avature, unops, impactpool, "
-                "pageup, unicef, pjud, smartrecruiters, greenhouse"
+                "pageup, unicef, pjud, smartrecruiters, greenhouse, oracle_orc"
             ),
         ),
     ],
@@ -3353,6 +3353,11 @@ def jobs_discover(
 
         if isinstance(adapter, GreenhouseDiscover) and not dry_run:
             adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for("greenhouse")
+    if source == "oracle_orc":
+        from jobbot.adapters.oracle_orc.discover import OracleOrcDiscover
+
+        if isinstance(adapter, OracleOrcDiscover) and not dry_run:
+            adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for("oracle_orc")
     if source in {"pjud", "greenhouse"} and query is None:
         queries = [""]
     else:
