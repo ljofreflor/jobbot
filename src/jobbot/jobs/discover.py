@@ -184,6 +184,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.bne.discover import BneDiscover
 
         register_source("bne", BneDiscover)
+    if "chiletrabajos" not in _FACTORIES:
+        from jobbot.adapters.chiletrabajos.discover import ChiletrabajosDiscover
+
+        register_source("chiletrabajos", ChiletrabajosDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:
