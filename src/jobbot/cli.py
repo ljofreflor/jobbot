@@ -4527,6 +4527,14 @@ def _application_apply_one(
     console.print(f"ATS: {plan.ats_kind.value}  adapter={adapter_name}  {plan.ats_url or '(none)'}")
     console.print(f"Method: {plan.method.value}")
     console.print(plan.message)
+    if plan.ats_kind.value == "indeed" and plan.ats_url:
+        from jobbot.adapters.indeed.external import IndeedVerificationRequired, gate_indeed_entry
+
+        try:
+            gate_indeed_entry(plan.ats_url)
+        except IndeedVerificationRequired as exc:
+            err_console.print(f"[yellow]{exc}[/yellow]")
+            raise _QuietExit(MANUAL_CHALLENGE) from exc
     _warn_if_login_needed(config, plan.ats_kind, cdp)
 
     if plan.method == ApplyMethod.LINKEDIN_MESSAGE:
