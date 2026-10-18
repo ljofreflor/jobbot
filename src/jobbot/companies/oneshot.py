@@ -310,7 +310,6 @@ def candidate_urls(seed: CompanySeed) -> list[str]:
             add(f"https://{domain}{path}")
         for sub in CAREER_SUBDOMAINS:
             add(f"https://{sub}.{domain}")
-    add(f"https://{seed.company_id}.buk.cl/trabaja-con-nosotros")
     return urls
 
 
@@ -394,19 +393,7 @@ def discover_company(
             if verdict is RobotsVerdict.DISALLOWED:
                 probe.robots_skips += 1
                 if detect_ats(target) is AtsKind.BUK:
-                    probe.candidates.append(
-                        CompanyPortalCandidate(
-                            company=seed.name,
-                            company_id=seed.company_id,
-                            country=seed.country,
-                            sector=seed.sector,
-                            career_url=target,
-                            site_type=CareerSiteType.ATS_INSTANCE,
-                            ats=AtsKind.BUK,
-                            evidence=BUK_ROBOTS_REASON,
-                            source=source,
-                        )
-                    )
+                    probe.candidates.append(_buk_candidate(seed, target, source))
                 continue
             if verdict is RobotsVerdict.HOST_REFUSED:
                 probe.refusals += 1
@@ -455,6 +442,15 @@ def discover_company(
                 source=source,
             )
         )
+    # The Buk tenant is guessed from the company id, not reached from its domain, so it
+    # is asked apart from the probe budget: its robots.txt is the whole answer, and a
+    # tenant that is not there says nothing about the company's own site.
+    if robots is not None and len(probe.candidates) < max_sites:
+        tenant = f"https://{seed.company_id}.buk.cl/trabaja-con-nosotros"
+        known = {canonical_key(candidate.career_url) for candidate in probe.candidates}
+        unseen = canonical_key(tenant) not in known
+        if unseen and robots.verdict(tenant) is RobotsVerdict.DISALLOWED:
+            probe.candidates.append(_buk_candidate(seed, tenant, DiscoverySource.OFFICIAL_SITE))
     return probe
 
 
@@ -548,6 +544,21 @@ def import_candidates(
             continue
         outcomes.append(outcome)
     return outcomes
+
+
+def _buk_candidate(seed: CompanySeed, url: str, source: DiscoverySource) -> CompanyPortalCandidate:
+    """A Buk portal we are not allowed to read: recorded as blocked, never fetched."""
+    return CompanyPortalCandidate(
+        company=seed.name,
+        company_id=seed.company_id,
+        country=seed.country,
+        sector=seed.sector,
+        career_url=url,
+        site_type=CareerSiteType.ATS_INSTANCE,
+        ats=AtsKind.BUK,
+        evidence=BUK_ROBOTS_REASON,
+        source=source,
+    )
 
 
 def _verifiable_evidence(classification: SiteClassification, result: FetchResult) -> str:

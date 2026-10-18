@@ -2924,6 +2924,7 @@ def _add_buk_list(session: Session, config: JobbotConfig, html: str, url: str) -
         path = write_job_json(stored, config.output_dir)
         console.print(f"[green]Added[/green] {stored.id}  {stored.company}  {stored.title}")
         console.print(f"Wrote {path}")
+        _learn_company_knowledge(config, stored)
 
 
 @jobs_app.command("add")

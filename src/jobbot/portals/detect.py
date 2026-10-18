@@ -184,9 +184,9 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
     ),
     (re.compile(r"[a-z0-9_-]+\.bamboohr\.com", re.I), AtsKind.BAMBOOHR, "bamboohr host"),
     (
-        re.compile(r"jobs__card|job__card-name", re.I),
+        re.compile(r"[a-z0-9_-]+\.buk\.(?:cl|co|pe|mx)", re.I),
         AtsKind.BUK,
-        "buk job card",
+        "buk tenant host",
     ),
     (
         # Cornerstone OnDemand: careersite hosts and CSP/frame-src on corporate SPAs.
