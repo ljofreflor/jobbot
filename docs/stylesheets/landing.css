@@ -914,6 +914,12 @@ body:has(.jb-hero) .md-tabs {
   border-bottom-color: var(--jb-cobalt);
 }
 
+.jb-cmdnav a:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 3px;
+  border-radius: 0.15rem;
+}
+
 .jb-cmdnav a.is-current {
   color: var(--jb-navy);
   border-bottom-color: var(--jb-navy);
@@ -1016,6 +1022,11 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
 a.jb-in-story__tag:hover {
   background: rgba(0, 88, 248, 0.22);
   color: var(--jb-navy);
+}
+
+a.jb-in-story__tag:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 2px;
 }
 
 @media (max-width: 960px) {
@@ -1205,6 +1216,13 @@ a.jb-in-story__tag:hover {
 .jb-scrolly__more a:hover,
 .jb-scrolly__pin-more a:hover {
   border-bottom-color: var(--jb-cobalt);
+}
+
+.jb-scrolly__more a:focus-visible,
+.jb-scrolly__pin-more a:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 3px;
+  border-radius: 0.15rem;
 }
 
 .jb-scrolly__terminal {
