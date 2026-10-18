@@ -1,0 +1,4 @@
+# Synthetic: careers.un.org serves no robots.txt today (it answers the app's HTML).
+User-agent: *
+Disallow: /jobfeed
+Disallow: /api/public/

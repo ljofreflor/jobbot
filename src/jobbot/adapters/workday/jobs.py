@@ -18,7 +18,13 @@ from jobbot.adapters.workday.cxs import (
 )
 from jobbot.companies.registry import CompanyRegistry
 from jobbot.jobs import closing
-from jobbot.jobs.discover import SiteOutcome, SiteStatus, SiteTarget, registry_sites_for
+from jobbot.jobs.discover import (
+    JobFilters,
+    SiteOutcome,
+    SiteStatus,
+    SiteTarget,
+    registry_sites_for,
+)
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
 from jobbot.portals.detect import AtsKind
@@ -28,6 +34,7 @@ class WorkdayDiscover:
     """`jobs discover --source workday`: one career site per target."""
 
     name = "workday"
+    default_details = True
 
     def __init__(self, client: CxsClient | None = None) -> None:
         self.client = client or CxsClient()
@@ -59,6 +66,7 @@ class WorkdayDiscover:
         query: str,
         limit: int,
         details: bool,
+        filters: JobFilters | None = None,
     ) -> SiteOutcome:
         site = parse_site_url(target.url)
         if site is None:
@@ -78,9 +86,12 @@ class WorkdayDiscover:
             row = job_from_search_item(site, item, company=target.company, today=today)
             if details:
                 row = self._with_detail(site, item, row, notes)
-            jobs.append(row)
+            if filters is None or filters.keeps(row):
+                jobs.append(row)
         status = SiteStatus.OK if jobs else SiteStatus.EMPTY
         detail = f"{len(jobs)} de {result.total}"
+        if filters is not None and filters.active:
+            detail += f"; {len(result.postings) - len(jobs)} fuera de --location/--level"
         if notes:
             detail += "; " + "; ".join(notes)
         return SiteOutcome(site.label, status, jobs=jobs, detail=detail, total=result.total)
