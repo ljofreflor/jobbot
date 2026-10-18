@@ -3184,7 +3184,7 @@ def jobs_discover(
             "--source",
             help=(
                 "Public source to read: workday, un-careers, buk, pdf-index, "
-                "lumesse, cornerstone, avature, unops, impactpool, pageup, unicef"
+                "lumesse, cornerstone, avature, unops, impactpool, pageup, unicef, pjud"
             ),
         ),
     ],
@@ -3296,7 +3296,10 @@ def jobs_discover(
         )
         raise typer.Exit(VALIDATION_FAILURE)
 
-    queries = _search_queries(config, query, max_queries)
+    if source == "pjud" and query is None:
+        queries = [""]
+    else:
+        queries = _search_queries(config, query, max_queries)
     read_details = adapter.default_details if details is None else details
     narrator = _narrator()
     outcomes: list[SiteOutcome] = []

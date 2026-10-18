@@ -164,6 +164,10 @@ def _load_builtin() -> None:
 
         register_source("pageup", PageupDiscover)
         register_source("unicef", UnicefDiscover)
+    if "pjud" not in _FACTORIES:
+        from jobbot.adapters.pjud.discover import PjudDiscover
+
+        register_source("pjud", PjudDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:
