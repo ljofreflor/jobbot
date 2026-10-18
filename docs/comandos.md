@@ -86,6 +86,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source greenhouse [--board TOKEN]` | Lee la Job Board API pública. Sin `--board` recorre los boards del registro. Un aviso ya guardado no vuelve a pedir su detalle. Un 404 se informa y se sigue. |
 | `jobs discover --source oracle_orc [--site HOST/SITIO]` | Lee la búsqueda pública de Oracle Recruiting Cloud. Conserva el `siteNumber`. Un 403 se informa y se sigue. |
 | `jobs discover --source bne --query TEXTO` | Lee el JSON público de la Bolsa Nacional de Empleo. Cero resultados no se relanza sin texto. Si el total coincide con el de toda la bolsa, avisa `filtro ignorado` y no guarda. |
+| `jobs discover --source chiletrabajos --query TEXTO` | Lee la búsqueda HTML pública (`f=2`). La ficha trae publicación y expiración en America/Santiago. No pide rutas que `robots.txt` prohíbe. Un listado sin avisos sale 5. |
 | `jobs add --file listado.html --url https://acme.buk.cl/trabaja-con-nosotros` | Ingiere las tarjetas `jobs__card` de un HTML guardado. Sin tarjetas, sale 5. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
