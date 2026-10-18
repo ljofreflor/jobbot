@@ -37,6 +37,7 @@ class AtsKind(StrEnum):
     LUMESSE = "lumesse"
     UN_CAREERS = "un_careers"
     IMPACTPOOL = "impactpool"
+    PAGEUP = "pageup"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -146,6 +147,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("careers.un.org", AtsKind.UN_CAREERS),
     ("impactpool.org", AtsKind.IMPACTPOOL),
+    ("pageuppeople.com", AtsKind.PAGEUP),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
@@ -233,6 +235,14 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         ),
         AtsKind.AVATURE,
         "avature careersmarketplace",
+    ),
+    (
+        re.compile(
+            r"careers-static\.pageuppeople\.com|secure\.dc\d+\.pageuppeople\.com/apply/",
+            re.I,
+        ),
+        AtsKind.PAGEUP,
+        "pageup assets",
     ),
 )
 

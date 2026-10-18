@@ -159,6 +159,11 @@ def _load_builtin() -> None:
         from jobbot.adapters.impactpool.discover import ImpactpoolDiscover
 
         register_source("impactpool", ImpactpoolDiscover)
+    if "pageup" not in _FACTORIES:
+        from jobbot.adapters.pageup.discover import PageupDiscover, UnicefDiscover
+
+        register_source("pageup", PageupDiscover)
+        register_source("unicef", UnicefDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

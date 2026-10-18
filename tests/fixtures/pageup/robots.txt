@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /admin
+Disallow: /awake
+Disallow: /uat
+Disallow: /cwuat
+Disallow: /ciuat
+Disallow: /ci
+Disallow: /uatinternal
+Disallow: /testint
+Disallow: /staging

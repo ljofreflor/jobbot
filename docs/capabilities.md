@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 194 modules, 1121 public symbols.
+128 commands, 196 modules, 1132 public symbols.
 
 ## Commands
 
@@ -240,6 +240,11 @@ writing it again — the promotion rule lives in
 ### `adapters/lumesse`
 
 - `discover.py` — `jobs discover --source lumesse` refuses without calling the front-office API. · `forbids_fo_rest`, `refusal`, `LumesseDiscover`
+
+### `adapters/pageup`
+
+- `discover.py` — `jobs discover --source pageup` reads a public listing. `unicef` is one host. · `pause`, `fetch_public`, `listing_url`, `PageupDiscover`, `UnicefDiscover`
+- `parse.py` — Read a PageUp listing. No network. · `ListingPage`, `site_host`, `company_name`, `allowed`, `canonical_job_url`, `parse_listing`
 
 ### `adapters/torre`
 
