@@ -22,6 +22,7 @@ class Experience(BaseModel):
     start_date: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     end_date: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     current: bool = False
+    leadership: bool | None = None
     description: str | None = None
     achievements: list[Achievement] = Field(default_factory=list)
 

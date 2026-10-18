@@ -11,6 +11,7 @@ class Education(BaseModel):
     degree: str = Field(min_length=1)
     start_date: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     end_date: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    duration_semesters: int | None = Field(default=None, ge=1)
     details: str | None = None
 
     @model_validator(mode="after")

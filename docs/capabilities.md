@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-123 commands, 178 modules, 1029 public symbols.
+124 commands, 179 modules, 1035 public symbols.
 
 ## Commands
 
@@ -62,6 +62,7 @@ writing it again — the promotion rule lives in
 - `jobbot indeed sync` — Dry-run (default) or apply Indeed profile sync from profile.yaml.
 - `jobbot init` — Create a portable workspace with ``.local/`` inside DIR (cold install; no git clone).
 - `jobbot jobs add` — Add a job posting from a text file or stdin (manual fallback).
+- `jobbot jobs admissibility` — Admissibility of a stored posting against the profile (offline). Sends nothing.
 - `jobbot jobs audit` — List (or mark) stored Indeed decoys and title/company duplicates (#211).
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs check-open` — Re-check online whether stored postings are still open (read-only; unknown if unsure).
@@ -280,6 +281,7 @@ writing it again — the promotion rule lives in
 
 ### `jobs`
 
+- `admissibility.py` — Offline admissibility of a public contest against the local profile. · `AdmissibilityRule`, `AdmissibilityVerdict`, `contest_code`, `extract_rules`, `assess`, `shortlist_mark`
 - `ats_queries.py` — ATS host search-query templates — conditions of possibility for board discovery. · `AtsSearchQuery`, `build_ats_search_queries`, `format_queries_help`
 - `audit.py` — Offline audit of stored jobs (Indeed decoy keys and title/company dupes). · `AuditFinding`, `audit_indeed_jobs`
 - `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`

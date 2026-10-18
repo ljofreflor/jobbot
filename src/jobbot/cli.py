@@ -3539,6 +3539,7 @@ def jobs_shortlist(
     ] = False,
 ) -> None:
     """Rank stored jobs by match score; hides postings verified closed (jobs check-open)."""
+    from jobbot.jobs.admissibility import shortlist_mark
     from jobbot.jobs.check_open import is_verified_closed, verification_label
 
     session, config = _session()
@@ -3570,7 +3571,8 @@ def jobs_shortlist(
     rows.sort(key=lambda r: r[0], reverse=True)
     console.print("[bold]TOP MATCHES[/bold]")
     for score, jid, title, company, flag, reasons in rows:
-        line = f"{score:5.1f}%  {jid}  {title}  {company}{flag}"
+        mark = shortlist_mark(config.output_dir / "jobs" / jid / "admissibility.json")
+        line = f"{score:5.1f}%  {jid}  {title}  {company}{flag}{mark}"
         console.print(line, markup=False, highlight=False)
         for reason in reasons:
             console.print(f"         {reason}", markup=False, highlight=False, soft_wrap=True)
@@ -3579,6 +3581,78 @@ def jobs_shortlist(
             f"{hidden} hidden: verified closed by jobs check-open (--include-closed to list them)."
         )
     _warn_if_matcher_blind([row[0] for row in rows])
+
+
+@jobs_app.command("admissibility")
+def jobs_admissibility(
+    job_ids: Annotated[list[str] | None, typer.Argument(help="Stored job ids")] = None,
+    source: Annotated[
+        str | None,
+        typer.Option("--source", help="Only stored postings from this source"),
+    ] = None,
+    open_only: Annotated[
+        bool,
+        typer.Option("--open", help="Skip postings already marked closed"),
+    ] = False,
+    as_json: Annotated[bool, typer.Option("--json", help="Print the verdicts as JSON")] = False,
+) -> None:
+    """Admissibility of a stored posting against the profile (offline). Sends nothing."""
+    import json
+
+    from jobbot.jobs.admissibility import assess, contest_code, extract_rules
+    from jobbot.jobs.open_signals import OpenStatus
+
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    repo = JobRepository(session)
+    if job_ids:
+        jobs = []
+        for job_id in job_ids:
+            job = repo.get(job_id)
+            if job is None:
+                err_console.print(f"aviso desconocido: {job_id}")
+                raise typer.Exit(VALIDATION_FAILURE)
+            jobs.append(job)
+    elif source:
+        jobs = [job for job in repo.list_all() if job.source == source]
+        if open_only:
+            jobs = [job for job in jobs if job.open_status != OpenStatus.CLOSED.value]
+        if not jobs:
+            err_console.print("fuente sin concursos guardados")
+            raise typer.Exit(VALIDATION_FAILURE)
+    else:
+        err_console.print("indica un id o --source")
+        raise typer.Exit(VALIDATION_FAILURE)
+    payload = []
+    for job in jobs:
+        text = job.raw_description or ""
+        verdict = assess(
+            extract_rules(text),
+            candidate,
+            contest_code=contest_code(text, job.id),
+        )
+        path = config.output_dir / "jobs" / job.id / "admissibility.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(verdict.as_dict(), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        payload.append({"job_id": job.id, **verdict.as_dict()})
+        if not as_json:
+            console.print(
+                f"{job.id}  {verdict.status}  {verdict.rule}",
+                markup=False,
+                highlight=False,
+            )
+            detail = verdict.question or verdict.evidence
+            if detail:
+                console.print(f"  {detail}", markup=False, highlight=False)
+    if as_json:
+        console.print(json.dumps(payload, ensure_ascii=False, indent=2), markup=False)
 
 
 @jobs_app.command("digest")
