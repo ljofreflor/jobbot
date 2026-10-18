@@ -559,6 +559,7 @@ uv run jobbot profile import-pdf /path/to/cv.pdf # PDF con capa de texto; sin OC
 uv run jobbot cv build
 uv run jobbot cv build --job J0001            # moderncv (tu diseño) por defecto
 uv run jobbot cv build --job J0001 --style plain
+uv run jobbot cv build --job J0001 --full     # todos los roles y logros; los del aviso primero en cada rol
 uv run jobbot cv sync                      # plan: permanentes + companies active (#43)
 uv run jobbot cv sync --apply              # HITL: permanentes + fill/signup sheet por destino
 uv run jobbot cv propagate                 # alias permanente-only de sync (sin filas companies)

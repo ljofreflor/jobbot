@@ -1759,8 +1759,20 @@ def cv_build(
         CvStyle,
         typer.Option("--style", help="moderncv (your CV design) or plain (portable article)"),
     ] = CvStyle.MODERNCV,
+    full: Annotated[
+        bool,
+        typer.Option(
+            "--full",
+            help="With --job: keep every role and achievement, most related first per role",
+        ),
+    ] = False,
 ) -> None:
     """Build CV from profile.yaml (base or job-specific)."""
+    if full and not job_id:
+        raise typer.BadParameter(
+            "--full only applies with --job; the base CV already keeps every fact.",
+            param_hint="--full",
+        )
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
@@ -1808,6 +1820,7 @@ def cv_build(
             style=style,
             application_log=application_log_options(config.cv),
             credit=config.cv.jobbot_signature,
+            full=full,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         err_console.print(f"[red]{exc}[/red]")
