@@ -130,13 +130,14 @@ def experience_years(roles: list[Experience], *, today: date | None = None) -> f
     for role in roles:
         start = _month(role.start_date)
         if role.end_date:
-            end = _month(role.end_date)
+            last = _month(role.end_date)
         elif role.current:
-            end = when.year * 12 + when.month
+            last = when.year * 12 + when.month
         else:
             continue
-        if end >= start:
-            spans.append((start, end))
+        if last >= start:
+            # The dates name months, and the last one was worked: the span closes after it.
+            spans.append((start, last + 1))
     if not spans:
         return 0.0
     ordered = sorted(spans)
@@ -199,7 +200,7 @@ def _cell(field: PortalField, candidate: Candidate, answers: ApplicationAnswers)
         )
         return "listo" if filled or answers.salary_expectation else _missing("salary")
     if field.label == "Tipos de trabajo":
-        return "listo" if answers.job_types or answers.desired_titles else _missing("job_types")
+        return "listo" if answers.job_types else _missing("job_types")
     if field.label == "Comentario":
         return "listo" if (candidate.summary or "").strip() else _missing("summary")
     if field.label == "Experiencia laboral":
