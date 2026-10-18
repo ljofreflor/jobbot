@@ -7,8 +7,10 @@ description: Todos los comandos del CLI de JobBot, verificados contra src/jobbot
 
 Tras [instalar con curl](instalacion.md), corre `jobbot <grupo> <comando>`. En un
 clon del repo, `uv run jobbot …`. Esta página lista lo que existe hoy en
-`src/jobbot/cli.py`; si un comando no aparece aquí, probablemente no existe.
-Para las opciones completas, `jobbot <grupo> <comando> --help`.
+`src/jobbot/cli.py`, incluidas las tablas de abajo que completan grupos que el
+texto largo no repetía. Si un comando no aparece aquí, probablemente no existe.
+La [portada](index.md#comandos) los describe en una línea. Para las opciones
+completas, `jobbot <grupo> <comando> --help`.
 
 ## Workspace e instalación
 
@@ -266,6 +268,35 @@ No hay telemetría: las fallas se guardan en tu base local y se quedan ahí.
 | `secrets deny-fill` | Apaga `fill_login`. |
 
 Oculto ≠ cifrado. No sincronices el archivo a Drive/Dropbox. Ver issue #157.
+
+## El resto del CLI
+
+Estos comandos también están en `cli.py`. La portada los describe; aquí queda
+el nombre para que la lista esté completa.
+
+| Comando | Qué hace |
+|---------|----------|
+| `status` | Evidencia local de CV y portales activos. Alias: `cv status`. |
+| `capture URL` | Deja un enlace como candidato, sin descarga. `--list` muestra pendientes. |
+| `workspace list` / `new` / `show` / `adopt` / `delete` | Sandboxes de varios candidatos. |
+| `workspace consent NOMBRE` | Consentimiento y fecha de borrado de un sandbox. |
+| `advisor status` / `advisor report` | Estado cruzado y resumen redactado. Sin el nombre del candidato. |
+| `cv advise` | Mejoras de presentación. `--apply` confirma una por una. |
+| `cv tune-for Jxxxx` | Advise acotado a un aviso o a un enlace. |
+| `cv sync` | Presencia: permanentes y empresas activas. `--apply` confirma. |
+| `jobs queries` | Imprime búsquedas web para hosts ATS. No busca. |
+| `jobs audit --source indeed` | Señuelos y duplicados de Indeed. `--apply` los marca. |
+| `getonboard upload-cv` | Valida el PDF. `--apply` lo sube. |
+| `portals form-learn URL` | Lee las preguntas de un formulario. No envía. |
+| `portals profile status` / `sheet` / `mark-updated` / `import` / `seed` / `push` | Cobertura, hoja de llenado y seguimiento. `push` no tipea en el portal. |
+| `companies recon NOMBRE` | Aprende ATS y preguntas desde HTML. |
+| `companies signup NOMBRE` | Alta asistida. Crear la cuenta queda en tus manos. |
+| `browser sessions` | Estado de sesión por evidencia. No se adjunta solo. |
+| `browser login` | Portales sin sesión probada. `--apply` abre el siguiente. |
+| `ops failure show` / `triage` / `issue` / `work` | Una falla local. `issue` y `work --apply` son HITL; no hay commit ni push automáticos. |
+| `ops symptom note` / `list` / `show` / `plan` / `triage` / `issue` | Síntomas locales, redactados al guardar. |
+| `ops capabilities` | Índice de módulos. `--write` regenera `docs/capabilities.md`. |
+| `recruiters discover` / `list` / `show` / `promote` / `reject` / `export` | Prácticas públicas de reclutamiento. Sin personas. |
 
 ## Misceláneos
 

@@ -51,7 +51,7 @@
             <a class="jb-btn jb-btn--ghost" href="../manifesto/">Manifesto</a>
           </div>
         {% else %}
-          <h1 class="jb-hero__title">Humano + bot. Vos al mando.</h1>
+          <h1 class="jb-hero__title">Humano + bot. Tú al mando.</h1>
           <p class="jb-hero__lede">
             CLI local en la terminal o en tu agente: encuentra dónde publican, prepara
             desde <code>profile.yaml</code> sin inventar, y el envío lo haces tú.
@@ -114,14 +114,14 @@
               <p class="jb-term__line jb-term__line--label" style="--i:0"># loop 1 · apply</p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:1">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…' &amp;&amp; jobbot jobs match J0002</span>
+                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…'</span>
               </p>
               <p class="jb-term__line jb-term__line--out" style="--i:2">
                 J0002 · 82% · from <code>profile.yaml</code> · nothing invented
               </p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:3">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot cv build --job J0002 &amp;&amp; jobbot application apply J0002 --apply</span>
+                <span class="jb-term__cmd">jobbot application apply J0002 --apply</span>
               </p>
               <p class="jb-term__line jb-term__line--hitl" style="--i:4">
                 Form open — <strong>you submit</strong>. Never clicks Send.
@@ -136,7 +136,7 @@
               </p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:8">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot cv sync --apply &amp;&amp; jobbot status</span>
+                <span class="jb-term__cmd">jobbot cv sync --apply</span>
               </p>
               <p class="jb-term__line jb-term__line--hitl" style="--i:9">
                 Portals up to date — <strong>you confirm</strong> each destination.
@@ -145,14 +145,14 @@
               <p class="jb-term__line jb-term__line--label" style="--i:0"># bucle 1 · postular</p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:1">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…' &amp;&amp; jobbot jobs match J0002</span>
+                <span class="jb-term__cmd">jobbot get 'https://lnkd.in/p/…'</span>
               </p>
               <p class="jb-term__line jb-term__line--out" style="--i:2">
                 J0002 · 82% · desde <code>profile.yaml</code> · nada inventado
               </p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:3">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot cv build --job J0002 &amp;&amp; jobbot application apply J0002 --apply</span>
+                <span class="jb-term__cmd">jobbot application apply J0002 --apply</span>
               </p>
               <p class="jb-term__line jb-term__line--hitl" style="--i:4">
                 Formulario abierto — <strong>tú envías</strong>. Nunca pulsa Enviar.
@@ -163,14 +163,14 @@
                 <span class="jb-term__cmd">jobbot cv advise --apply</span>
               </p>
               <p class="jb-term__line jb-term__line--out" style="--i:7">
-                Solo presentación · confirmás una por una · sin hechos nuevos
+                Solo presentación · confirmas una por una · sin hechos nuevos
               </p>
               <p class="jb-term__line jb-term__line--cmd" style="--i:8">
                 <span class="jb-term__prompt">$</span>
-                <span class="jb-term__cmd">jobbot cv sync --apply &amp;&amp; jobbot status</span>
+                <span class="jb-term__cmd">jobbot cv sync --apply</span>
               </p>
               <p class="jb-term__line jb-term__line--hitl" style="--i:9">
-                Portales al día — <strong>confirmás</strong> cada destino.
+                Portales al día — <strong>confirmas</strong> cada destino.
               </p>
             {% endif %}
             <p class="jb-term__line jb-term__line--prompt" style="--i:10">
@@ -214,5 +214,262 @@
 {% endblock %}
 
 {% block content %}
+  <section class="jb-scrolly" id="jb-scrolly" aria-labelledby="jb-scrolly-title">
+    <div class="jb-scrolly__pin">
+      <div class="jb-scrolly__stage" aria-hidden="true">
+        <div class="jb-scrolly__progress" aria-hidden="true">
+          <p class="jb-scrolly__dots" id="jb-scrolly-dots">
+            <span class="jb-scrolly__chapter">
+              <i class="is-current"></i><i></i><i></i><i></i><i></i>
+              <b>{% if en %}apply{% else %}postular{% endif %}</b>
+            </span>
+            <span class="jb-scrolly__chapter">
+              <i></i><i></i>
+              <b>{% if en %}presence{% else %}presencia{% endif %}</b>
+            </span>
+          </p>
+          <p class="jb-scrolly__count" id="jb-scrolly-count">1 / 7</p>
+        </div>
+        <p class="jb-scrolly__meter" aria-hidden="true"><span id="jb-scrolly-bar"></span></p>
+        <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker">
+          {% if en %}1 · apply{% else %}1 · postular{% endif %}
+        </p>
+        <p class="jb-scrolly__stage-title" id="jb-scrolly-beat">
+          {% if en %}Find where they publish{% else %}Encuentra dónde publican{% endif %}
+        </p>
+        <p class="jb-scrolly__stage-prose" id="jb-scrolly-prose">
+          {% if en %}A link or a sweep stores the posting on your machine. The portal receives nothing yet.{% else %}Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.{% endif %}
+        </p>
+        <p class="jb-scrolly__stage-cmd">
+          <span class="jb-scrolly__prompt">$</span>
+          <span id="jb-scrolly-cmd">jobbot get 'https://…'</span>
+        </p>
+        <p class="jb-scrolly__stage-out" id="jb-scrolly-out">
+          {% if en %}Job stored. Nothing is sent.{% else %}Aviso guardado. Nada se envía.{% endif %}
+        </p>
+      </div>
+      <p class="jb-scrolly__pin-more">
+        <a id="jb-scrolly-more" href="{% if en %}#cmd-vacancies{% else %}#cmd-vacantes{% endif %}">
+          {% if en %}In the catalog{% else %}En el catálogo{% endif %}
+        </a>
+      </p>
+    </div>
+    <div class="jb-scrolly__steps">
+      <h2 id="jb-scrolly-title">
+        {% if en %}Two loops, as you scroll{% else %}Dos bucles, al bajar{% endif %}
+      </h2>
+      <p class="jb-scrolly__lede">
+        {% if en %}Apply, then standing presence. A write waits for you.{% else %}Postular, luego presencia. Si escribe, espera tu confirmación.{% endif %}
+      </p>
+      {% if en %}
+        <article class="jb-scrolly__step is-active">
+          <p class="jb-scrolly__kicker">1 · apply</p>
+          <h3>Find where they publish</h3>
+          <p>A link or a sweep stores the posting on your machine. The portal receives nothing yet.</p>
+          <p class="jb-scrolly__echo"><code>jobbot get 'https://…'</code></p>
+          <p class="jb-scrolly__echo-out">Job stored. Nothing is sent.</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacancies">In the catalog</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">2 · apply</p>
+          <h3>The match cites your facts</h3>
+          <p>The score comes from <code>profile.yaml</code>. No evidence, no invented match.</p>
+          <p class="jb-scrolly__echo"><code>jobbot jobs match J0002</code></p>
+          <p class="jb-scrolly__echo-out">82% · evidence from profile.yaml</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacancies">In the catalog</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">3 · apply</p>
+          <h3>The CV reorders. It does not fabricate.</h3>
+          <p>The build writes the posting's PDF from facts already in the profile.</p>
+          <p class="jb-scrolly__echo"><code>jobbot cv build --job J0002</code></p>
+          <p class="jb-scrolly__echo-out">output/jobs/J0002/ · facts reordered</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">In the catalog</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">4 · apply</p>
+          <h3>Conditions, before the form</h3>
+          <p>Closed, language, residence, contract: read from the posting against your profile. A blank answer stays a question.</p>
+          <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
+          <p class="jb-scrolly__echo-out">✅ backed · ⚠️ asks you · ❌ blocked</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacancies">In the catalog</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">5 · apply</p>
+          <h3>You submit</h3>
+          <p><code>--apply</code> opens the form. Jobbot never clicks Send.</p>
+          <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
+          <p class="jb-scrolly__echo-out">Form open · the click is yours</p>
+          <p class="jb-scrolly__more"><a href="#cmd-applications">In the catalog</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">6 · presence</p>
+          <h3>Presentation waits for a yes</h3>
+          <p><code>advise</code> only restates what you already did. Each change waits for you.</p>
+          <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
+          <p class="jb-scrolly__echo-out">Presentation only · no new facts</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">In the catalog</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">7 · presence</p>
+          <h3>Each portal, with evidence</h3>
+          <p><code>sync</code> confirms one destination at a time. <code>status</code> shows what was recorded locally.</p>
+          <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
+          <p class="jb-scrolly__echo-out">status · local evidence, not an invented “up to date”</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">In the catalog</a></p>
+        </article>
+      {% else %}
+        <article class="jb-scrolly__step is-active">
+          <p class="jb-scrolly__kicker">1 · postular</p>
+          <h3>Encuentra dónde publican</h3>
+          <p>Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.</p>
+          <p class="jb-scrolly__echo"><code>jobbot get 'https://…'</code></p>
+          <p class="jb-scrolly__echo-out">Aviso guardado. Nada se envía.</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacantes">En el catálogo</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">2 · postular</p>
+          <h3>El match cita tus hechos</h3>
+          <p>El puntaje sale de <code>profile.yaml</code>. Sin evidencia no hay match inventado.</p>
+          <p class="jb-scrolly__echo"><code>jobbot jobs match J0002</code></p>
+          <p class="jb-scrolly__echo-out">82% · evidencia de profile.yaml</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacantes">En el catálogo</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">3 · postular</p>
+          <h3>El CV reordena, no fabrica</h3>
+          <p>El build arma el PDF del aviso con lo que ya está en el perfil.</p>
+          <p class="jb-scrolly__echo"><code>jobbot cv build --job J0002</code></p>
+          <p class="jb-scrolly__echo-out">output/jobs/J0002/ · hechos reordenados</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">En el catálogo</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">4 · postular</p>
+          <h3>Las condiciones, antes del formulario</h3>
+          <p>Cerrado, idioma, residencia, contrato: se leen del aviso contra tu perfil. Una respuesta en blanco sigue siendo una pregunta.</p>
+          <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
+          <p class="jb-scrolly__echo-out">✅ con evidencia · ⚠️ te pregunta · ❌ impedimento</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacantes">En el catálogo</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">5 · postular</p>
+          <h3>Tú envías</h3>
+          <p><code>--apply</code> abre el formulario. Jobbot no pulsa Enviar.</p>
+          <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
+          <p class="jb-scrolly__echo-out">Formulario abierto · el clic es tuyo</p>
+          <p class="jb-scrolly__more"><a href="#cmd-postulaciones">En el catálogo</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">6 · presencia</p>
+          <h3>La presentación espera un sí</h3>
+          <p><code>advise</code> solo reordena cómo se dice lo que ya hiciste. Cada cambio espera tu confirmación.</p>
+          <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
+          <p class="jb-scrolly__echo-out">Solo presentación · sin hechos nuevos</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">En el catálogo</a></p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">7 · presencia</p>
+          <h3>Cada portal, con evidencia</h3>
+          <p><code>sync</code> confirma destino por destino. <code>status</code> muestra lo que quedó registrado en local.</p>
+          <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
+          <p class="jb-scrolly__echo-out">status · evidencia local, no un “al día” inventado</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">En el catálogo</a></p>
+        </article>
+      {% endif %}
+    </div>
+  </section>
+  <script>
+    (function () {
+      var root = document.getElementById("jb-scrolly");
+      if (!root || !("IntersectionObserver" in window)) return;
+      var steps = root.querySelectorAll(".jb-scrolly__step");
+      var cmd = document.getElementById("jb-scrolly-cmd");
+      var out = document.getElementById("jb-scrolly-out");
+      var kicker = document.getElementById("jb-scrolly-kicker");
+      var beat = document.getElementById("jb-scrolly-beat");
+      var prose = document.getElementById("jb-scrolly-prose");
+      var dots = root.querySelectorAll(".jb-scrolly__dots i");
+      var bar = document.getElementById("jb-scrolly-bar");
+      var count = document.getElementById("jb-scrolly-count");
+      var stage = root.querySelector(".jb-scrolly__stage");
+      var more = document.getElementById("jb-scrolly-more");
+      function show(step) {
+        var index = Array.prototype.indexOf.call(steps, step);
+        steps.forEach(function (node) {
+          node.classList.toggle("is-active", node === step);
+        });
+        dots.forEach(function (dot, i) {
+          dot.classList.toggle("is-current", i === index);
+          dot.classList.toggle("is-done", i < index);
+        });
+        if (bar && steps.length) {
+          bar.style.width = ((index + 1) / steps.length * 100) + "%";
+        }
+        if (count && steps.length) {
+          count.textContent = (index + 1) + " / " + steps.length;
+        }
+        if (stage) stage.classList.toggle("is-presence", index >= 5);
+        var echo = step.querySelector(".jb-scrolly__echo code");
+        var note = step.querySelector(".jb-scrolly__echo-out");
+        var label = step.querySelector(".jb-scrolly__kicker");
+        var title = step.querySelector("h3");
+        var blurb = step.querySelector(
+          "p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more)"
+        );
+        if (cmd && echo) cmd.textContent = echo.textContent;
+        if (out && note) out.textContent = note.textContent;
+        if (kicker && label) kicker.textContent = label.textContent;
+        if (beat && title) beat.textContent = title.textContent;
+        if (prose && blurb) prose.textContent = blurb.textContent;
+        var moreSrc = step.querySelector(".jb-scrolly__more a");
+        if (more && moreSrc) {
+          more.setAttribute("href", moreSrc.getAttribute("href"));
+          more.textContent = moreSrc.textContent;
+        }
+      }
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        steps.forEach(function (node) { node.classList.add("is-active"); });
+        if (bar) bar.style.width = "100%";
+        if (count && steps.length) count.textContent = steps.length + " / " + steps.length;
+        return;
+      }
+      if (steps[0]) show(steps[0]);
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) show(entry.target);
+        });
+      }, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
+      steps.forEach(function (step) { observer.observe(step); });
+    })();
+    (function () {
+      var nav = document.querySelector(".jb-cmdnav");
+      if (!nav || !("IntersectionObserver" in window)) return;
+      var links = nav.querySelectorAll("a[href^='#']");
+      var targets = [];
+      links.forEach(function (link) {
+        var id = link.getAttribute("href").slice(1);
+        var heading = document.getElementById(id);
+        if (heading) targets.push({ link: link, heading: heading });
+      });
+      if (!targets.length) return;
+      function mark(current) {
+        links.forEach(function (link) {
+          var on = link === current;
+          link.classList.toggle("is-current", on);
+          if (on) link.setAttribute("aria-current", "location");
+          else link.removeAttribute("aria-current");
+        });
+      }
+      var groupObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          targets.forEach(function (item) {
+            if (item.heading === entry.target) mark(item.link);
+          });
+        });
+      }, { rootMargin: "-20% 0px -65% 0px", threshold: 0 });
+      targets.forEach(function (item) { groupObserver.observe(item.heading); });
+    })();
+  </script>
   {{ page.content }}
 {% endblock %}
