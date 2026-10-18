@@ -35,6 +35,7 @@ from jobbot.exit_codes import (
     GENERIC_FAILURE,
     MANUAL_CHALLENGE,
     SUCCESS,
+    UPDATE_AVAILABLE,
     USER_CANCEL,
     VALIDATION_FAILURE,
 )
@@ -53,8 +54,9 @@ from jobbot.profile.importer_common import write_generated_profile
 from jobbot.profile.importer_latex import LatexImportError, import_latex_cv
 from jobbot.profile.importer_pdf import PdfImportError, import_pdf_cv
 from jobbot.profile.loader import ProfileLoadError, load_profile, load_profile_raw
-from jobbot.profile.validator import validate_candidate
+from jobbot.profile.validator import unknown_profile_keys, validate_candidate
 from jobbot.self_update import update_jobbot
+from jobbot.self_update_schedule import ScheduleAction
 from jobbot.workspace import (
     DEFAULT_LABEL,
     STAMP_NAME,
@@ -346,9 +348,10 @@ def workspace_init(
     console.print(
         Panel(
             "Next:\n"
-            "  1. Edit .local/profile.yaml  (or: jobbot profile import-pdf CV.pdf)\n"
-            "  2. jobbot profile validate\n"
-            "  3. jobbot getonboard search\n"
+            "  1. Read AGENTS.md  (operating guide for you and AI assistants)\n"
+            "  2. Edit .local/profile.yaml  (or: jobbot profile import-pdf CV.pdf)\n"
+            "  3. jobbot profile validate\n"
+            "  4. jobbot getonboard search\n"
             "Sync this whole folder (including .local/) with Drive/Dropbox/Syncthing/…\n"
             "If you later run jobbot secrets init, exclude .local/.vault.yaml from sync.",
             title="Cold start",
@@ -362,8 +365,46 @@ def update_cmd(
         str | None,
         typer.Option("--ref", help="Git ref to install (default: JOBBOT_REF or main)"),
     ] = None,
+    schedule: Annotated[
+        ScheduleAction | None,
+        typer.Option(
+            "--schedule",
+            help=(
+                "daily: run `jobbot update` every day (launchd on macOS, crontab on Linux); "
+                "off: remove it; status: show it"
+            ),
+        ),
+    ] = None,
+    check: Annotated[
+        bool,
+        typer.Option(
+            "--check",
+            help=f"Only compare installed vs latest commit; exit {UPDATE_AVAILABLE} if newer",
+        ),
+    ] = False,
+    scheduled: Annotated[
+        bool,
+        typer.Option("--scheduled", hidden=True, help="Run by the daily scheduled job"),
+    ] = False,
 ) -> None:
     """Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub)."""
+    if sum((schedule is not None, check, scheduled)) > 1 or (
+        ref is not None and (schedule is not None or scheduled)
+    ):
+        err_console.print(
+            "[red]--schedule, --check and --scheduled are exclusive; "
+            "the scheduled job follows main (or JOBBOT_REF), not --ref.[/red]"
+        )
+        raise _QuietExit(VALIDATION_FAILURE)
+    if scheduled:
+        _run_scheduled_update()
+        return
+    if check:
+        _check_update(ref)
+        return
+    if schedule is not None:
+        _schedule_update(schedule)
+        return
     console.print(f"Current: {__version__}")
     result = update_jobbot(ref=ref)
     if not result.ok:
@@ -374,6 +415,91 @@ def update_cmd(
         console.print(f"Now: {result.version_line}")
     else:
         console.print("Run [bold]jobbot version[/bold] in a new shell if PATH changed.")
+
+
+def _check_update(ref: str | None) -> None:
+    from jobbot.self_update import _in_docker, check_for_update, docker_hint
+
+    if _in_docker():
+        err_console.print(docker_hint(), markup=False)
+        raise _QuietExit(GENERIC_FAILURE)
+    result = check_for_update(ref=ref)
+    if result.status == "up_to_date":
+        console.print(f"[green]{result.message}[/green]")
+        return
+    if result.status == "available":
+        console.print(f"[yellow]{result.message}[/yellow]")
+        console.print("Run [bold]jobbot update[/bold] to install it.")
+        raise _QuietExit(UPDATE_AVAILABLE)
+    err_console.print(result.message, style="red", markup=False)
+    raise _QuietExit(GENERIC_FAILURE)
+
+
+def _schedule_update(action: ScheduleAction) -> None:
+    from jobbot.self_update import _in_docker, docker_hint, installed_info
+    from jobbot.self_update_schedule import (
+        Scheduler,
+        auto_update_opt_out,
+        resolve_binary,
+        user_config_path,
+    )
+
+    if _in_docker():
+        err_console.print(docker_hint(), markup=False)
+        raise _QuietExit(GENERIC_FAILURE)
+    scheduler = Scheduler()
+    if action is ScheduleAction.status:
+        status = scheduler.status()
+        for line in status.lines():
+            console.print(line, markup=False, highlight=False)
+        if status.backend is None:
+            raise _QuietExit(GENERIC_FAILURE)
+        return
+    if action is ScheduleAction.off:
+        outcome = scheduler.remove()
+    else:
+        if installed_info().editable:
+            err_console.print(
+                "[red]Editable install (development checkout): not scheduling. "
+                "Use git pull.[/red]"
+            )
+            raise _QuietExit(VALIDATION_FAILURE)
+        binary = resolve_binary()
+        if binary is None:
+            err_console.print("[red]jobbot not found on PATH; run scripts/install.sh first.[/red]")
+            raise _QuietExit(GENERIC_FAILURE)
+        uv = shutil.which("uv")
+        if uv is None:
+            err_console.print(
+                "[yellow]uv not found on PATH; the job will fail until it is.[/yellow]"
+            )
+        outcome = scheduler.install(
+            scheduler.spec(binary, extra_path=[Path(uv).parent if uv else None])
+        )
+    if not outcome.ok:
+        err_console.print(outcome.message, style="red", markup=False)
+        raise typer.Exit(GENERIC_FAILURE)
+    console.print(outcome.message, markup=False, highlight=False)
+    reason = auto_update_opt_out(scheduler.env, user_config_path(scheduler.home))
+    if action is ScheduleAction.daily and reason:
+        console.print(f"[yellow]Opt-out active ({reason}): the job will skip.[/yellow]")
+
+
+def _run_scheduled_update() -> None:
+    import os
+
+    from jobbot.self_update import _in_docker
+    from jobbot.self_update_schedule import run_scheduled_update, user_config_path
+
+    run = run_scheduled_update(
+        env=os.environ,
+        config_path=user_config_path(Path.home()),
+        in_docker=_in_docker,
+    )
+    for line in run.lines:
+        typer.echo(line)
+    if run.exit_code != SUCCESS:
+        raise _QuietExit(run.exit_code)
 
 
 @app.command("status")
@@ -1126,24 +1252,39 @@ def advisor_report(
 
 
 @profile_app.command("validate")
-def profile_validate() -> None:
+def profile_validate(
+    strict: Annotated[
+        bool,
+        typer.Option(
+            "--strict",
+            help="Treat unknown YAML keys as errors (default: warn and exit 0)",
+        ),
+    ] = False,
+) -> None:
     """Validate data/profile.yaml."""
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
+        raw = load_profile_raw(config.profile_path)
     except ProfileLoadError as exc:
         err_console.print("[bold red]PROFILE INVALID[/bold red]")
         err_console.print(str(exc))
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
     result = validate_candidate(candidate)
-    if not result.ok:
+    unknowns = unknown_profile_keys(raw)
+    if not result.ok or (strict and unknowns):
         err_console.print("[bold red]PROFILE INVALID[/bold red]")
         for issue in result.issues:
             err_console.print(str(issue))
+        if strict:
+            for issue in unknowns:
+                err_console.print(f"{issue.path}: {issue.message}")
         raise typer.Exit(VALIDATION_FAILURE)
 
     console.print("[bold green]PROFILE VALID[/bold green]")
+    for issue in unknowns:
+        err_console.print(f"[yellow]{issue.path}: {issue.message}[/yellow]")
     console.print(f"Experiences: {len(candidate.experience)}")
     console.print(f"Achievements: {candidate.achievement_count()}")
     console.print(f"Skills: {candidate.skills.count()}")
@@ -1623,6 +1764,7 @@ def cv_build(
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
+        raw = load_profile_raw(config.profile_path)
     except ProfileLoadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
@@ -1633,6 +1775,13 @@ def cv_build(
         for issue in result.issues:
             err_console.print(str(issue))
         raise typer.Exit(VALIDATION_FAILURE)
+
+    unknowns = unknown_profile_keys(raw)
+    if unknowns:
+        err_console.print(
+            f"[yellow]{len(unknowns)} claves desconocidas en profile.yaml se ignoran "
+            "(jobbot profile validate).[/yellow]"
+        )
 
     job = None
     match = None
@@ -2835,6 +2984,46 @@ def jobs_note(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
     console.print(f"[green]Noted[/green] {job_id}")
+
+
+@jobs_app.command("audit")
+def jobs_audit(
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Job source to audit (only 'indeed' today)"),
+    ],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Mark decoys/duplicates invalid (skip submitted)"),
+    ] = False,
+) -> None:
+    """List (or mark) stored Indeed decoys and title/company duplicates (#211)."""
+    from jobbot.jobs.audit import audit_indeed_jobs
+
+    if source.casefold() != "indeed":
+        err_console.print(f"[red]Unknown audit source:[/red] {source} (supported: indeed)")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    try:
+        session, _ = _session()
+        findings = audit_indeed_jobs(
+            JobRepository(session),
+            ApplicationRepository(session),
+            apply=apply,
+        )
+    except OSError as exc:
+        err_console.print(f"[red]Could not open job store:[/red] {exc}")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+
+    if not findings:
+        console.print("[green]No suspicious Indeed jobs.[/green]")
+        return
+
+    console.print("[bold]Indeed audit[/bold]" + (" (--apply)" if apply else " (dry-run)"))
+    for finding in findings:
+        flag = " [protected: submitted]" if finding.protected else ""
+        action = "marked" if apply and not finding.protected else "suspect"
+        console.print(f"  {finding.job_id}  {action}  {finding.reason}{flag}")
 
 
 # ── application(s) ───────────────────────────────────────────────────────────
