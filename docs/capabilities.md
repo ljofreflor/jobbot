@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 204 modules, 1162 public symbols.
+128 commands, 206 modules, 1169 public symbols.
 
 ## Commands
 
@@ -182,6 +182,11 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source avature` reads a public SearchJobs list. `unops` is one site. · `pause`, `fetch_public`, `search_url`, `AvatureDiscover`, `UnopsDiscover`, `blocked_qtvc`
 - `parse.py` — Read an Avature SearchJobs page and a JobDetail page. No network. · `SearchPage`, `site_key`, `canonical_job_url`, `source_job_id`, `company_name`, `parse_search`, `apply_detail`
+
+### `adapters/bne`
+
+- `discover.py` — `jobs discover --source bne` reads the public list and does not retry it empty. · `pause`, `fetch_public`, `BneDiscover`
+- `parse.py` — Map one `buscarListas` page. No network. · `SearchPage`, `search_url`, `parse_page`, `job_from_row`
 
 ### `adapters/buk`
 

@@ -49,6 +49,7 @@ _LABELS: dict[str, str] = {
     "avature": "Avature",
     "impactpool": "Impactpool",
     "pageup": "PageUp",
+    "bne": "BNE",
     "torre": "Torre",
     "jobtome": "Jobtome",
     "remoshift": "Remoshift",

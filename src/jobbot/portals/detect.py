@@ -38,6 +38,7 @@ class AtsKind(StrEnum):
     UN_CAREERS = "un_careers"
     IMPACTPOOL = "impactpool"
     PAGEUP = "pageup"
+    BNE = "bne"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -60,6 +61,7 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.ALTA_DIRECCION_PUBLICA,
         AtsKind.UN_CAREERS,
         AtsKind.IMPACTPOOL,
+        AtsKind.BNE,
     }
 )
 
@@ -147,6 +149,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("careers.un.org", AtsKind.UN_CAREERS),
     ("impactpool.org", AtsKind.IMPACTPOOL),
+    ("bne.cl", AtsKind.BNE),
     ("pageuppeople.com", AtsKind.PAGEUP),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),

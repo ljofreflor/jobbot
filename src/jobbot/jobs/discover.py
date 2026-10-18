@@ -180,6 +180,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.oracle_orc.discover import OracleOrcDiscover
 
         register_source("oracle_orc", OracleOrcDiscover)
+    if "bne" not in _FACTORIES:
+        from jobbot.adapters.bne.discover import BneDiscover
+
+        register_source("bne", BneDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:
