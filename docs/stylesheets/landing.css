@@ -887,10 +887,18 @@ body:has(.jb-hero) .md-tabs {
 }
 
 .jb-cmdnav {
+  position: sticky;
+  top: 3.1rem;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 0.7rem;
   margin: 0 0 1.25rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(0, 24, 56, 0.1);
+  border-radius: 0.45rem;
+  background: rgba(245, 248, 252, 0.94);
+  backdrop-filter: blur(6px);
 }
 
 .jb-cmdnav a {
@@ -907,6 +915,7 @@ body:has(.jb-hero) .md-tabs {
 
 .jb-section--cmds h3 {
   margin: 1.6rem 0 0.55rem;
+  scroll-margin-top: 6.5rem;
   font-family: var(--jb-font-brand);
   font-weight: 800;
   font-size: 1.05rem;
