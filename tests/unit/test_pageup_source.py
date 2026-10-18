@@ -184,6 +184,62 @@ def test_a_captcha_listing_exits_4(
     assert len(list((tmp_path / "output" / "jobs").glob("*/job.json"))) == 0
 
 
+def test_a_captcha_does_not_discard_a_site_that_answered(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    challenge = (project_root / FIXTURES / "listing_captcha.html").read_text(encoding="utf-8")
+    listing = (
+        '<div class="list-view--item">'
+        '<a class="job-link" href="/en-us/job/7/role">Role</a>'
+        '<span class="close-date"><time datetime="2026-11-01T00:00:00Z"></time></span>'
+        "</div>"
+    )
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        return 200, (challenge if "walled" in url else listing), url
+
+    _install(monkeypatch, fetch)
+    code = run_cli(
+        [
+            "jobs",
+            "discover",
+            "--source",
+            "pageup",
+            "--site",
+            "jobs.unicef.org",
+            "--site",
+            "walled.pageuppeople.com",
+            "--query",
+            "health",
+            "--limit",
+            "5",
+        ],
+        standalone_mode=False,
+    )
+    assert code == 0
+    assert len(list((tmp_path / "output" / "jobs").glob("*/job.json"))) == 1
+
+
+def test_a_home_based_place_is_remote_but_remote_sensing_is_not() -> None:
+    html = (
+        '<div class="list-view--item">'
+        '<a class="job-link" href="/en-us/job/1/programme-specialist">Programme specialist</a>'
+        '<span class="location">Home-based</span>'
+        "</div>"
+        '<div class="list-view--item">'
+        '<a class="job-link" href="/en-us/job/2/remote-sensing-data-engineer">'
+        "Remote Sensing Data Engineer</a>"
+        '<span class="location">Santiago, Chile</span>'
+        "</div>"
+    )
+    jobs = {job.source_job_id: job for job in parse_listing(html, HOST, HOST).jobs}
+    assert jobs["jobs.unicef.org:1"].remote_type == "remote"
+    assert jobs["jobs.unicef.org:2"].remote_type is None
+
+
 def test_an_expired_closing_is_not_stored(
     tmp_path: Path,
     project_root: Path,

@@ -9,6 +9,7 @@ from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup, Tag
 
+from jobbot.jobs.normalization import fold_text
 from jobbot.models.job import JobPosting
 
 _JOB = re.compile(r"/en-us/job/(\d+)", re.I)
@@ -92,7 +93,7 @@ def parse_listing(html: str, site_url: str, page_url: str) -> ListingPage:
             location = " ".join(place.get_text(" ", strip=True).split()) or None
         teaser = card.select_one("div.row--teaser")
         summary = teaser.get_text(" ", strip=True) if isinstance(teaser, Tag) else ""
-        remote = _remote(title, href)
+        remote = _remote(title, href, location)
         jobs.append(
             JobPosting(
                 id="pending",
@@ -119,11 +120,15 @@ def parse_listing(html: str, site_url: str, page_url: str) -> ListingPage:
     return ListingPage(jobs=jobs, next_url=next_url, empty=empty, captcha=captcha)
 
 
-def _remote(title: str, href: str) -> str | None:
-    blob = f"{title} {href}".casefold()
-    if "home-based" in blob or "home based" in blob or "remote" in blob:
+def _remote(title: str, href: str, location: str | None) -> str | None:
+    """Home-based is a work mode wherever it reads; "Remote" only as a place.
+
+    A title like "Remote Sensing Data Engineer" names a field, not a work mode.
+    """
+    place = fold_text(location or "")
+    if "home based" in fold_text(f"{title} {href} {location or ''}"):
         return "remote"
-    return None
+    return "remote" if "remote" in place.split() else None
 
 
 def _closing(card: Tag) -> datetime | None:
