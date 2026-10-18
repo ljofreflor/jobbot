@@ -441,12 +441,23 @@
           cmd.setAttribute("aria-label", moreSrc.textContent);
         }
       }
+      var held = null;
+      var holdTimer = 0;
+      function hold(step) {
+        held = step;
+        show(step);
+        if (holdTimer) window.clearTimeout(holdTimer);
+        holdTimer = window.setTimeout(function () {
+          held = null;
+          holdTimer = 0;
+        }, 1200);
+      }
       function showHashed() {
         var id = (location.hash || "").replace(/^#/, "");
         if (!id) return false;
         for (var i = 0; i < steps.length; i++) {
           if (steps[i].id === id) {
-            show(steps[i]);
+            hold(steps[i]);
             return true;
           }
         }
@@ -459,10 +470,15 @@
         return;
       }
       dots.forEach(function (dot) {
-        dot.addEventListener("click", function () {
+        dot.addEventListener("click", function (event) {
+          event.preventDefault();
           var id = (dot.getAttribute("href") || "").replace(/^#/, "");
           for (var i = 0; i < steps.length; i++) {
-            if (steps[i].id === id) show(steps[i]);
+            if (steps[i].id !== id) continue;
+            hold(steps[i]);
+            if (location.hash !== "#" + id) location.hash = id;
+            steps[i].scrollIntoView({ block: "nearest", behavior: "smooth" });
+            break;
           }
         });
       });
@@ -473,6 +489,7 @@
       function watch() {
         if (observer) observer.disconnect();
         observer = new IntersectionObserver(function (entries) {
+          if (held) return;
           entries.forEach(function (entry) {
             if (entry.isIntersecting) show(entry.target);
           });
