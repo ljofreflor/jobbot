@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -51,6 +51,51 @@ def test_spanish_card_date_is_discarded_for_age(
     assert code == 0
     assert "descartada por antigüedad" in captured.out
     assert not _stored_jobs(tmp_path)
+
+
+def test_a_post_without_a_date_survives_the_age_filter(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """JobBot does not hide work it failed to date, filter or no filter."""
+    from jobbot.adapters.linkedin.posts_source import LinkedInPostJobSource
+    from jobbot.config import JobbotConfig, PathsConfig
+
+    monkeypatch.setattr("jobbot.adapters.linkedin.sweep._clock", lambda: FIXED_NOW)
+    fixture = tmp_path / "undated.txt"
+    fixture.write_text(
+        "author: Ana Ejemplo\n"
+        "url: https://www.linkedin.com/in/ana-ejemplo/\n\n"
+        "Buscamos a alguien para el equipo de terreno en Chile.\n"
+        "Enviar CV a persona@example.com\n",
+        encoding="utf-8",
+    )
+    config = JobbotConfig(paths=PathsConfig(output=tmp_path / "out"), root=project_root)
+    source = LinkedInPostJobSource(config)
+
+    jobs = source.search_from_fixture(fixture, query="equipo", max_age_days=30)
+
+    assert [job.posted_at for job in jobs] == [None]
+    assert source.fixture_skip_reasons(fixture, max_age_days=30) == []
+
+
+def test_a_date_written_in_the_advert_is_not_the_card_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A start date or a deadline is the advert's calendar, not when the post went up."""
+    from jobbot.adapters.linkedin.sweep import parse_post_blob
+
+    monkeypatch.setattr("jobbot.adapters.linkedin.sweep._clock", lambda: FIXED_NOW)
+
+    post = parse_post_blob(
+        "Buscamos a alguien para el equipo de terreno en Chile.\n"
+        "El contrato empieza el 15 de marzo y la convocatoria cierra el 30 de abril.\n"
+        "hace 2 d\n"
+        "Enviar CV a persona@example.com"
+    )
+
+    assert post.posted_at == FIXED_NOW - timedelta(days=2)
 
 
 def test_madrid_without_a_location_line_is_discarded_for_country(
