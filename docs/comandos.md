@@ -74,6 +74,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
 | `jobs check-open [JOB_ID…] [--all] [--dry-run] [--json]` | Vuelve a consultar en línea si cada aviso guardado sigue abierto: `abierto` / `cerrado` / `desconocido`, con motivo y fecha de verificación. `--all` omite los cerrados verificados hace menos de 24 h; `--dry-run` no escribe; `--json` trae la URL completa. Solo lectura. |
 | `jobs shortlist [--include-closed]` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. Oculta las que `jobs check-open` verificó cerradas (`--include-closed` las muestra marcadas). |
+| `jobs digest [--since] [--format whatsapp\|md]` | Resumen compartible de avisos nuevos y vigentes, sin red y sin notas internas. Parte el texto de WhatsApp en mensajes de hasta 4.096 caracteres. |
 | `jobs conditions JOB_ID… [--all-prepared]` | Lee las condiciones del aviso (cerrado, residencia, idioma, excluyentes, contrato, renta, modalidad) contra tu perfil y `data/application_answers.yaml`: ✅ cumple, ⚠️ pregunta exacta, ❌ impedimento (exit 1). Offline. |
 | `jobs backfill-dates` | Data vacantes ya guardadas usando el activity id de la URL (offline). |
 | `jobs note JOB_ID TEXTO` | Adjunta una nota libre a una vacante. |
