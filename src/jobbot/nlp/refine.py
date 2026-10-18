@@ -139,6 +139,9 @@ class CumulativeProfileRefiner:
             headline=candidate.personal.headline or previous.headline,
             skills=list(candidate.skills.all_skills())[:10] or previous.skills,
             signature=previous.signature,
+            omitted_education=cold.omitted_education,
+            omitted_teaching=cold.omitted_teaching,
+            omitted_publications=cold.omitted_publications,
         )
         return RefineResult(
             fields=fields,
