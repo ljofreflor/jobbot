@@ -218,8 +218,9 @@
     <div class="jb-scrolly__pin">
       <div class="jb-scrolly__stage" aria-hidden="true">
         <p class="jb-scrolly__dots" id="jb-scrolly-dots" aria-hidden="true">
-          <i class="is-current"></i><i></i><i></i><i></i><i></i><i></i>
+          <i class="is-current"></i><i></i><i></i><i></i><i></i><i></i><i></i>
         </p>
+        <p class="jb-scrolly__meter" aria-hidden="true"><span id="jb-scrolly-bar"></span></p>
         <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker">
           {% if en %}1 · apply{% else %}1 · postular{% endif %}
         </p>
@@ -234,8 +235,11 @@
     </div>
     <div class="jb-scrolly__steps">
       <h2 id="jb-scrolly-title">
-        {% if en %}The story, as you scroll{% else %}El relato, al bajar{% endif %}
+        {% if en %}Two loops, as you scroll{% else %}Dos bucles, al bajar{% endif %}
       </h2>
+      <p class="jb-scrolly__lede">
+        {% if en %}Apply, then standing presence. A write waits for you.{% else %}Postular, luego presencia. Si escribe, espera tu confirmación.{% endif %}
+      </p>
       {% if en %}
         <article class="jb-scrolly__step is-active">
           <p class="jb-scrolly__kicker">1 · apply</p>
@@ -260,20 +264,27 @@
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">4 · apply</p>
+          <h3>Conditions, before the form</h3>
+          <p>Closed, language, residence, contract: read from the posting against your profile. A blank answer stays a question.</p>
+          <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
+          <p class="jb-scrolly__echo-out">✅ backed · ⚠️ asks you · ❌ blocked</p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">5 · apply</p>
           <h3>You submit</h3>
           <p><code>--apply</code> opens the form. Jobbot never clicks Send.</p>
           <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
           <p class="jb-scrolly__echo-out">Form open · the click is yours</p>
         </article>
         <article class="jb-scrolly__step">
-          <p class="jb-scrolly__kicker">5 · presence</p>
+          <p class="jb-scrolly__kicker">6 · presence</p>
           <h3>Presentation waits for a yes</h3>
           <p><code>advise</code> only restates what you already did. Each change waits for you.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
           <p class="jb-scrolly__echo-out">Presentation only · no new facts</p>
         </article>
         <article class="jb-scrolly__step">
-          <p class="jb-scrolly__kicker">6 · presence</p>
+          <p class="jb-scrolly__kicker">7 · presence</p>
           <h3>Each portal, with evidence</h3>
           <p><code>sync</code> confirms one destination at a time. <code>status</code> shows what was recorded locally.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
@@ -303,20 +314,27 @@
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">4 · postular</p>
+          <h3>Las condiciones, antes del formulario</h3>
+          <p>Cerrado, idioma, residencia, contrato: se leen del aviso contra tu perfil. Una respuesta en blanco sigue siendo una pregunta.</p>
+          <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
+          <p class="jb-scrolly__echo-out">✅ con evidencia · ⚠️ te pregunta · ❌ impedimento</p>
+        </article>
+        <article class="jb-scrolly__step">
+          <p class="jb-scrolly__kicker">5 · postular</p>
           <h3>Tú envías</h3>
           <p><code>--apply</code> abre el formulario. Jobbot no pulsa Enviar.</p>
           <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
           <p class="jb-scrolly__echo-out">Formulario abierto · el clic es tuyo</p>
         </article>
         <article class="jb-scrolly__step">
-          <p class="jb-scrolly__kicker">5 · presencia</p>
+          <p class="jb-scrolly__kicker">6 · presencia</p>
           <h3>La presentación espera un sí</h3>
           <p><code>advise</code> solo reordena cómo se dice lo que ya hiciste. Cada cambio espera tu confirmación.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
           <p class="jb-scrolly__echo-out">Solo presentación · sin hechos nuevos</p>
         </article>
         <article class="jb-scrolly__step">
-          <p class="jb-scrolly__kicker">6 · presencia</p>
+          <p class="jb-scrolly__kicker">7 · presencia</p>
           <h3>Cada portal, con evidencia</h3>
           <p><code>sync</code> confirma destino por destino. <code>status</code> muestra lo que quedó registrado en local.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
@@ -334,6 +352,8 @@
       var out = document.getElementById("jb-scrolly-out");
       var kicker = document.getElementById("jb-scrolly-kicker");
       var dots = root.querySelectorAll(".jb-scrolly__dots i");
+      var bar = document.getElementById("jb-scrolly-bar");
+      var stage = root.querySelector(".jb-scrolly__stage");
       function show(step) {
         var index = Array.prototype.indexOf.call(steps, step);
         steps.forEach(function (node) {
@@ -343,6 +363,10 @@
           dot.classList.toggle("is-current", i === index);
           dot.classList.toggle("is-done", i < index);
         });
+        if (bar && steps.length) {
+          bar.style.width = ((index + 1) / steps.length * 100) + "%";
+        }
+        if (stage) stage.classList.toggle("is-presence", index >= 5);
         var echo = step.querySelector(".jb-scrolly__echo code");
         var note = step.querySelector(".jb-scrolly__echo-out");
         var label = step.querySelector(".jb-scrolly__kicker");
@@ -352,6 +376,7 @@
       }
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         steps.forEach(function (node) { node.classList.add("is-active"); });
+        if (bar) bar.style.width = "100%";
         return;
       }
       if (steps[0]) show(steps[0]);

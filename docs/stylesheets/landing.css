@@ -882,6 +882,38 @@ body:has(.jb-hero) .md-tabs {
   padding-bottom: 2rem;
 }
 
+.jb-section--cmds {
+  max-width: 68rem;
+}
+
+.jb-section--cmds h3 {
+  margin: 1.6rem 0 0.55rem;
+  font-family: var(--jb-font-brand);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--jb-navy);
+}
+
+.jb-section--cmds table {
+  display: table;
+  width: 100%;
+  font-size: 0.92rem;
+}
+
+.jb-section--cmds th,
+.jb-section--cmds td {
+  vertical-align: top;
+}
+
+.jb-section--cmds td:first-child,
+.jb-section--cmds th:first-child {
+  width: 42%;
+}
+
+.jb-section--cmds code {
+  overflow-wrap: anywhere;
+}
+
 /* Scroll story: sticky terminal, steps in the HTML (no scrollama / GSAP). */
 
 .jb-scrolly {
@@ -995,8 +1027,36 @@ body:has(.jb-hero) .md-tabs {
   box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
 }
 
-.jb-scrolly__dots i:nth-child(5) {
+.jb-scrolly__dots i:nth-child(6) {
   margin-left: 0.65rem;
+}
+
+.jb-scrolly__meter {
+  height: 2px;
+  margin: -0.35rem 0 0.85rem;
+  background: rgba(200, 216, 248, 0.22);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.jb-scrolly__meter span {
+  display: block;
+  height: 100%;
+  width: calc(100% / 7);
+  background: #7eb0ff;
+  transition: width 0.2s ease;
+}
+
+.jb-scrolly__stage.is-presence {
+  box-shadow: 0 18px 40px rgba(0, 88, 248, 0.28);
+}
+
+.jb-scrolly__lede {
+  margin: 0 0 0.25rem;
+  max-width: 38rem;
+  color: var(--jb-navy-soft);
+  font-size: 1.02rem;
+  line-height: 1.5;
 }
 
 .jb-scrolly__stage-kicker {
@@ -1128,6 +1188,10 @@ body:has(.jb-hero) .md-tabs {
   .jb-scrolly__step {
     opacity: 1;
     min-height: 0;
+    transition: none;
+  }
+
+  .jb-scrolly__meter span {
     transition: none;
   }
 

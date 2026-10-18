@@ -69,8 +69,8 @@ jobbot cv sync --apply                # permanent + active company portals
 jobbot status                         # local evidence of what is up to date
 ```
 
-[Install & quickstart](../instalacion.md) · [Command reference](../comandos.md) ·
-[Manifesto](../manifesto.md)
+[Install & quickstart](../instalacion.md) · [Every command](#commands) ·
+[Flag reference](../comandos.md) · [Manifesto](../manifesto.md)
 
 </section>
 
@@ -171,6 +171,157 @@ and Chile / Latam focus in searches and roundups.
   <li><code>application apply --apply</code> — opens the form; you submit</li>
   <li>Latam roundups: country per role (<code>--country CL</code>), not per whole post</li>
 </ul>
+
+</section>
+
+<section class="jb-section jb-section--cmds" markdown="1">
+
+## The commands {#commands}
+
+Every public command in `src/jobbot/cli.py`, one line each. Flags are in the
+[reference](../comandos.md) (Spanish). `jobbot <command> --help` prints the rest.
+Nothing in this list submits alone or invents a fact.
+
+### On your machine
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot init [DIR]` | Creates the workspace in that folder: config, `AGENTS.md`, and local data. |
+| `jobbot update` | Reinstalls the executable from GitHub. `--check` only compares with `main`. `--schedule daily`, `off`, or `status` sets, removes, or shows the daily check. |
+| `jobbot version` | Prints the installed version. |
+| `jobbot status` | Local evidence for the CV and active portals. Without evidence it does not claim you are up to date. |
+| `jobbot capture URL` | Keeps a shared link as a candidate, with no download. `--list` shows what is still pending. |
+| `jobbot workspace list` | Lists sandboxes. Also `new`, `show`, `adopt`, `delete`. |
+| `jobbot workspace consent` | Records consent and a deletion date for one sandbox. |
+| `jobbot advisor status` | One line per sandbox: fingerprint, counts, proposal, retention. Never the name. |
+| `jobbot advisor report` | Writes the redacted summary for the selected workspace. |
+
+### Profile
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot profile validate` | Checks the local YAML. |
+| `jobbot profile show` | Short profile summary. |
+| `jobbot profile import-pdf PATH` | Reads the PDF text layer into a generated file. No OCR. |
+| `jobbot profile import-latex [PATH]` | Imports a legacy LaTeX CV into the generated file. |
+| `jobbot profile promote-generated` | Copies the generated file onto `profile.yaml` after you confirm. |
+| `jobbot profile suggest-from-market` | Suggests wording from stored postings. It does not touch the profile without `--promote` and your yes. |
+| `jobbot profile queries` | Derives searches from your experience. `--apply` saves them if you confirm. |
+| `jobbot profile status` | Consistency between local data and portal snapshots. |
+| `jobbot profile diff` | Shows that diff. |
+
+### CV
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot cv build` | Builds the CV from the profile. `--job` orders it for one posting; `--full` keeps every role. `--target cv` or `ats`. |
+| `jobbot cv advise` | A few presentation edits. `--apply` confirms them one by one. |
+| `jobbot cv tune-for Jxxxx` | The same advise, scoped to one posting or one link. |
+| `jobbot cv propagate` | Plan for permanent profiles. `--apply` confirms each destination. |
+| `jobbot cv sync` | Standing presence: permanent profiles and active companies. `--apply` waits for you. |
+| `jobbot cv status` | Alias of `jobbot status`. |
+
+### Vacancies
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot get URL` | Downloads one posting (Get on Board, Indeed, Workday), builds the CV and the package. It does not send. |
+| `jobbot jobs add` | Stores a vacancy from a file or stdin. |
+| `jobbot jobs search QUERY` | Searches Indeed and stores results locally. |
+| `jobbot jobs discover` | Discovers via a public API: `--source workday` or `--source un-careers`. `--dry-run` writes nothing. |
+| `jobbot jobs queries` | Prints web-search queries for ATS hosts. It does not search. |
+| `jobbot jobs show Jxxxx` | Shows a stored posting, including its close date when the posting publishes one. |
+| `jobbot jobs match Jxxxx` | Scores it against the profile. It helps you decide; it does not decide. |
+| `jobbot jobs conditions Jxxxx` | Posting conditions: met, a question, or a blocker. Offline. |
+| `jobbot jobs check-open` | Checks again whether a stored posting is still open. Read-only. |
+| `jobbot jobs shortlist` | Sorts by score and marks expired or closing-soon rows. |
+| `jobbot jobs backfill-dates` | Dates already stored postings from the URL id. Offline. |
+| `jobbot jobs note Jxxxx TEXT` | Attaches a free-text note. |
+| `jobbot jobs audit --source indeed` | Lists Indeed decoys and duplicates. `--apply` marks them; it does not delete submitted applications. |
+
+### Applications
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot application prepare Jxxxx` | Builds the package. It does not invent answers. |
+| `jobbot application show Jxxxx` | Path and status of the package. |
+| `jobbot application open Jxxxx` | Opens the posting or ATS URL. It does not apply. |
+| `jobbot application apply Jxxxx` | Prefill plan. `--apply` opens the form; you submit. `--all` walks the queue, pausing between jobs. |
+| `jobbot application check-answer Jxxxx` | Checks a free-text answer against the profile and the posting. Motivation stays yours. |
+| `jobbot applications list` | Lists recorded applications. Alias: `applications status`. |
+
+### Standing portals
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot indeed login` | Opens Indeed so you can sign in. Also `status`, `inspect`, `prepare`, `pull`, `diff`, `sync`. Sync writes only with `--apply`. |
+| `jobbot linkedin login` | The same for LinkedIn: `status`, `inspect`, `pull`, `diff`, `sync`. |
+| `jobbot linkedin sync --section publications` | Writes Publications. With `--apply`, each item waits for you. |
+| `jobbot linkedin sweep [QUERY]` | Reads recruiter posts and stores vacancies. With no query it uses the profile's searches. |
+| `jobbot getonboard prepare` | Refines the permanent-profile draft from your facts. |
+| `jobbot getonboard show-profile` | Shows the local draft. |
+| `jobbot getonboard open-profile` | Opens the editor in the browser. It does not save on its own. |
+| `jobbot getonboard open-cvs` | Opens the CV page. |
+| `jobbot getonboard upload-cv` | Validates the PDF. `--apply` uploads it; you confirm. |
+| `jobbot getonboard sync` | Propagates the profile. Dry-run unless `--apply`. |
+| `jobbot getonboard search [QUERY]` | Searches the board. With no query it uses the profile's searches. |
+| `jobbot torre search [QUERY]` | Public Torre search. The full posting is opened separately. |
+| `jobbot empleospublicos search [QUERY]` | Open Chilean civil-service contests from open data. `--dry-run` writes nothing. |
+
+### Browser
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot browser chrome-debug` | Opens Chrome with debugging so you can solve CAPTCHA or 2FA. It does not solve them. |
+| `jobbot browser sessions` | Reports session state from evidence. It never attaches on its own. |
+| `jobbot browser login` | Lists portals with no proven session. `--apply` opens the next one; you sign in. |
+
+### Companies, forms, and hiring practice
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot portals list` | Lists known portals. |
+| `jobbot portals detect URL` | Detects the ATS kind. |
+| `jobbot portals add` | Adds or updates a portal. |
+| `jobbot portals form-learn URL` | Reads what a form asks. It does not store what you type and it does not submit. |
+| `jobbot portals profile status` | Coverage of tracked portals. It opens nothing. |
+| `jobbot portals profile sheet PORTAL` | Fill sheet from the profile. It does not open a browser. |
+| `jobbot portals profile mark-updated` | Records local evidence that a section was updated. |
+| `jobbot portals profile import` | Seeds state from a CSV. Without `--apply` it writes nothing. |
+| `jobbot portals profile seed` | Registers known career portals that are missing. Dry-run unless `--apply`. |
+| `jobbot portals profile push PORTAL` | Refuses to type into the portal. The fill is the sheet. |
+| `jobbot companies detect URL` | Classifies a URL. It writes nothing. |
+| `jobbot companies learn URL` | Records a company and portal as a candidate. |
+| `jobbot companies list` | Lists companies and their career sites. |
+| `jobbot companies show NAME` | One company, its portals, and contradictions. |
+| `jobbot companies recon NAME` | Learns ATS and questions from HTML. `--apply` stores the observation. |
+| `jobbot companies signup NAME` | Opens signup and lists what the profile already answers. `--apply` fills known fields; creating the account is yours. |
+| `jobbot companies promote NAME` | Promotes a candidate to active. That is the only way it becomes truth. |
+| `jobbot companies reject NAME` | Marks a discovered portal as wrong. |
+| `jobbot companies discover SEEDS` | One-shot: candidates under `output/`. It does not touch the registry. |
+| `jobbot companies import FILE` | Merges those candidates. They stay candidates. |
+| `jobbot companies export` | Shareable snapshot: active rows only, no PII. |
+| `jobbot companies sites` | Portals the vacancy discovery can reuse. |
+| `jobbot recruiters discover URL` | Stores public hiring practice, not people. |
+| `jobbot recruiters list` | Lists practices. Also `show`, `promote`, `reject`, `export`. |
+
+### Operations and secrets
+
+| Command | What it does |
+|---------|----------------|
+| `jobbot ops failures` | Lists local failures, grouped. |
+| `jobbot ops failure show Fxxxx` | Shows one failure. `triage` changes its status. |
+| `jobbot ops failure issue Fxxxx` | Opens a GitHub issue if you confirm. It does not open one on crash. |
+| `jobbot ops failure work Fxxxx` | Prints the issue, branch, and PR lane. `--apply` opens the issue and the branch; it does not commit or push. |
+| `jobbot ops symptom note` | Records a local symptom, redacted on write. Also `list`, `show`, `plan`, `triage`, `issue`. |
+| `jobbot ops loop` | Repeats a maintenance step. On failure it stores `Fxxxx` and continues. |
+| `jobbot ops capabilities` | Index of what the code already does. `--write` regenerates the doc. |
+| `jobbot secrets init` | Creates an empty local vault, mode 0600. It invents no entries. |
+| `jobbot secrets list` | Lists sites. It never prints the value. |
+| `jobbot secrets set SITE` | Asks for the password without putting it on the command line. |
+| `jobbot secrets delete SITE` | Deletes that entry. |
+| `jobbot secrets allow-fill` | Consent for a future fill. CAPTCHA, 2FA, and submit stay yours. |
+| `jobbot secrets deny-fill` | Turns that consent off. |
 
 </section>
 
