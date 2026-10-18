@@ -1497,14 +1497,14 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
 
   .jb-scrolly__step {
     min-height: 0;
-    scroll-margin-top: 14rem;
+    scroll-margin-top: 20rem;
     padding: 1rem 0 1.75rem;
     justify-content: flex-start;
   }
 
   /* Material's :target margin is 3.6rem and hides the prose under the sticky pin. */
   body:has(.jb-hero) .md-typeset .jb-scrolly__step:target {
-    --md-scroll-margin: 24rem;
+    --md-scroll-margin: 20rem;
   }
 
   .jb-scrolly__step + .jb-scrolly__step {
