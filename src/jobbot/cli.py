@@ -5167,6 +5167,14 @@ def linkedin_sweep(
         )
 
     found = _unique_postings(_run_portal_queries(queries, search_one, portal="LinkedIn"))
+    if fixture is not None:
+        for reason in source.fixture_skip_reasons(
+            fixture.expanduser().resolve(),
+            countries=countries,
+            allow_remote=config.search.allow_remote,
+            max_age_days=max_age,
+        ):
+            console.print(f"descartada por {reason}")
 
     if not found:
         console.print("No relevant posts found.")
@@ -5250,6 +5258,80 @@ def linkedin_sweep(
     )
     if candidate is not None:
         _warn_if_matcher_blind(scores)
+
+
+@linkedin_app.command("jobs")
+def linkedin_jobs(
+    query: Annotated[
+        str | None,
+        typer.Argument(help="Job search keywords (default: the profile's search queries)"),
+    ] = None,
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Parse a saved search-results page (no browser)"),
+    ] = None,
+    country: Annotated[
+        list[str] | None,
+        typer.Option("--country", help="Keep cards in these countries (default: CL)"),
+    ] = None,
+    any_country: Annotated[
+        bool,
+        typer.Option("--any-country", help="Keep cards from every country"),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Print the table and write nothing"),
+    ] = False,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to Chrome CDP; without this or --fixture, stop"),
+    ] = None,
+) -> None:
+    """Save LinkedIn job cards from a search page; --dry-run writes nothing."""
+    from jobbot.adapters.linkedin.job_search import jobs_from_search_html
+    from jobbot.jobs.geo import detect_country, resolve_countries
+
+    config = load_config()
+    countries = resolve_countries(config.search.countries, country, any_country=any_country)
+    if fixture is not None:
+        html = fixture.expanduser().resolve().read_text(encoding="utf-8")
+    elif cdp:
+        err_console.print("linkedin jobs --cdp aún no abre la búsqueda; pasa --fixture")
+        raise typer.Exit(VALIDATION_FAILURE)
+    else:
+        err_console.print("pasa --fixture o --cdp; no abro un navegador solo")
+        raise typer.Exit(VALIDATION_FAILURE)
+    cards = jobs_from_search_html(html)
+    if countries:
+        cards = [
+            card
+            for card in cards
+            if (detected := detect_country(f"{card.location or ''}\n{card.title}")) is None
+            or detected in countries
+        ]
+    label = query or "perfil"
+    table = Table(title=f"LinkedIn jobs: {label}" + (" (dry-run)" if dry_run else ""))
+    table.add_column("Title")
+    table.add_column("Company")
+    table.add_column("Where")
+    table.add_column("URL")
+    for card in cards:
+        table.add_row(
+            card.title[:40],
+            card.company[:28],
+            card.location or "?",
+            card.url or "",
+        )
+    console.print(table)
+    if dry_run:
+        console.print("Dry-run: nothing written.")
+        return
+    _session_pair, config = _session()
+    repo = JobRepository(_session_pair)
+    for card in cards:
+        stored = repo.upsert_external(card)
+        write_job_json(stored, config.output_dir)
+    console.print("Next: jobbot jobs shortlist")
 
 
 @getonboard_app.command("prepare")

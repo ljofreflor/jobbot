@@ -181,8 +181,11 @@ en el recibo; niega un PDF de glyphs de íconos).
 
 `linkedin login`, `linkedin status`, `linkedin inspect`, `linkedin pull`,
 `linkedin diff`, `linkedin sync` (Publications, con DOI y coautores),
-`linkedin sweep [QUERY]` (barrido de posts de reclutadores → vacantes + detección de ATS).
+`linkedin sweep [QUERY]` (barrido de posts de reclutadores → vacantes + detección de ATS;
+descarta "19 de ago." fuera de `--max-age-days` y un texto que nombra Madrid cuando el país es CL).
 Sin `QUERY`, corre las `search_queries` del perfil (o las deriva). `--max-queries N` limita cuántas.
+`linkedin jobs [QUERY] --fixture PATH` guarda avisos de una búsqueda (dedupe por `/jobs/view/<id>/`,
+sin el panel "% de candidatos"). `--dry-run` no escribe. Sin `--fixture` ni `--cdp` no abre navegador.
 
 ### Get on Board
 

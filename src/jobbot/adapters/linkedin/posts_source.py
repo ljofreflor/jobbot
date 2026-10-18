@@ -11,6 +11,7 @@ from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
 
 from jobbot.adapters.linkedin.sweep import (
+    current_time,
     dedupe_jobs_by_apply_target,
     looks_like_job_post,
     parse_post_blob,
@@ -225,7 +226,9 @@ class LinkedInPostJobSource:
                 post.text, wanted=countries, allow_remote=allow_remote
             ):
                 continue
-            if not is_fresh(post.posted_at, max_age_days=max_age_days):
+            if max_age_days > 0 and post.posted_at is None:
+                continue
+            if not is_fresh(post.posted_at, max_age_days=max_age_days, now=current_time()):
                 continue
             if (
                 q
@@ -237,6 +240,34 @@ class LinkedInPostJobSource:
                 continue
             jobs.extend(post_to_jobs(post, countries=countries))
         return dedupe_jobs_by_apply_target(jobs)
+
+    def fixture_skip_reasons(
+        self,
+        path: Path,
+        *,
+        query: str | None = None,
+        countries: Sequence[str] = (),
+        allow_remote: bool = True,
+        max_age_days: int = 0,
+    ) -> list[str]:
+        """Why a fixture post was not stored: `país` or `antigüedad`."""
+        del self, query
+        reasons: list[str] = []
+        now = current_time()
+        for post in parse_posts_fixture(path.read_text(encoding="utf-8")):
+            if not post.vacancies and not looks_like_job_post(post.text):
+                continue
+            if not post_offers_wanted_country(
+                post.text, wanted=countries, allow_remote=allow_remote
+            ):
+                reasons.append("país")
+                continue
+            stale = post.posted_at is None or not is_fresh(
+                post.posted_at, max_age_days=max_age_days, now=now
+            )
+            if max_age_days > 0 and stale:
+                reasons.append("antigüedad")
+        return reasons
 
     def search_live(self, query: JobSearchQuery) -> list[JobPosting]:
         """Open LinkedIn content search; user assists; scrape visible post texts."""
@@ -349,10 +380,14 @@ def collect_jobs_from_feed_page(
             mailto_urls=mailtos,
             extra_urls=hrefs,
         )
-        if not is_fresh(post.posted_at, max_age_days=query.max_age_days, now=now):
+        reference = now or current_time()
+        if query.max_age_days > 0 and post.posted_at is None:
+            logger.info("Skipped post with unknown age (max %d days)", query.max_age_days)
+            continue
+        if not is_fresh(post.posted_at, max_age_days=query.max_age_days, now=reference):
             logger.info(
                 "Skipped post published %s ago (max %d days)",
-                age_label(post.posted_at, now=now),
+                age_label(post.posted_at, now=reference),
                 query.max_age_days,
             )
             continue

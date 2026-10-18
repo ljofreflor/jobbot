@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-127 commands, 183 modules, 1076 public symbols.
+128 commands, 184 modules, 1079 public symbols.
 
 ## Commands
 
@@ -78,6 +78,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs show` — Show a stored job posting.
 - `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot (read-only audit).
 - `jobbot linkedin inspect` — Inspect LinkedIn page for selector development.
+- `jobbot linkedin jobs` — Save LinkedIn job cards from a search page; --dry-run writes nothing.
 - `jobbot linkedin login` — Open LinkedIn login with persistent browser profile.
 - `jobbot linkedin pull` — Pull LinkedIn profile snapshot (read-only).
 - `jobbot linkedin status` — Check whether a LinkedIn session appears valid.
@@ -210,11 +211,12 @@ writing it again — the promotion rule lives in
 ### `adapters/linkedin`
 
 - `client.py` — LinkedIn adapter — read-only audit + publications sync (HITL). · `LinkedInAdapter`
+- `job_search.py` — LinkedIn job-search cards, read from saved HTML. Sends nothing. · `jobs_from_search_html`
 - `package.py` — LinkedIn publications sync package from Candidate (facts only). · `LinkedInPublicationItem`, `doi_url`, `build_linkedin_publication_items`, `publications_missing_from_remote`
 - `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
 - `publications.py` — Playwright helpers for LinkedIn Publications (Spanish UI; HITL; no CAPTCHA bypass). · `profile_publications_new_url`, `profile_publications_details_url`, `vanity_from_linkedin_url`, `list_remote_publication_titles`, `open_new_publication_form`, `open_edit_publication_form`, `fill_publication_form`, `save_publication`
 - `selectors.py` — LinkedIn selector hints.
-- `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `looks_like_job_post`, `PostVacancy`, `LinkedInPostCandidate`, `posted_at_from_url`, `strip_engagement_chrome`, `strip_feed_chrome`, `labelled_vacancy_links`, `split_vacancy_links`, `post_offers_wanted_country`, `parse_post_blob`, `parse_posts_fixture`, `post_to_jobs`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`, `employer_from_post`
+- `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `looks_like_job_post`, `PostVacancy`, `LinkedInPostCandidate`, `posted_at_from_url`, `current_time`, `posted_at_from_text`, `strip_engagement_chrome`, `strip_feed_chrome`, `labelled_vacancy_links`, `split_vacancy_links`, `post_offers_wanted_country`, `parse_post_blob`, `parse_posts_fixture`, `post_to_jobs`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`, `employer_from_post`
 
 ### `adapters/torre`
 
