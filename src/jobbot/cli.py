@@ -5286,6 +5286,7 @@ def getonboard_upload_cv(
     """Validate the local CV PDF, upload it, and report whether the portal rewrote the profile."""
     from jobbot.adapters.getonboard.cv_upload import (
         PROFILE_REWRITE_WARNING,
+        UNKNOWN_OVERWRITE,
         GobCvUploadError,
         profile_rewrite_guard,
         resolve_base_cv,
@@ -5322,6 +5323,7 @@ def getonboard_upload_cv(
         with _getonboard_session(config, cdp) as browser:
             page = browser.page
             page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+            page.wait_for_timeout(1500)
             before = read_current(page)
             result = upload_cv(
                 page,
@@ -5330,21 +5332,30 @@ def getonboard_upload_cv(
                 make_default=make_default,
                 check=check,
             )
-            if not wait_for_cv_parse(page):
-                err_console.print("la lectura del CV no terminó")
-                console.print(PROFILE_REWRITE_WARNING)
-                raise typer.Exit(GENERIC_FAILURE)
-            page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
-            after = read_current(page)
+            guard = None
+            if wait_for_cv_parse(page):
+                page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+                page.wait_for_timeout(1500)
+                guard = profile_rewrite_guard(before, read_current(page))
     except GobCvUploadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
-    guard = profile_rewrite_guard(before, after)
-    write_upload_receipt(config.output_dir, check, result, overwrite=guard.receipt)
+    # The PDF is already on the portal: record it even when the parse never settled,
+    # so a retry can tell this hash apart from a first upload.
+    write_upload_receipt(
+        config.output_dir,
+        check,
+        result,
+        overwrite=guard.receipt if guard is not None else UNKNOWN_OVERWRITE,
+    )
     console.print(
         f"[green]Uploaded[/green] {result.path.name} as {result.label!r} "
         f"(default={result.is_default}) → {result.resumes_url}"
     )
+    if guard is None:
+        err_console.print("la lectura del CV no terminó")
+        console.print(PROFILE_REWRITE_WARNING)
+        raise typer.Exit(GENERIC_FAILURE)
     if guard.overwritten:
         for line in guard.lines:
             console.print(line, markup=False)

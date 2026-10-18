@@ -279,7 +279,14 @@ def _item_actions(html: str, label: str) -> str:
 
 
 NO_OVERWRITE = "sin sobrescritura"
+UNKNOWN_OVERWRITE = "sobrescritura desconocida"
 _PARSE_MARKER = "estamos leyendo tu último cv"
+# A PDF parse takes the portal far longer than a page load, so the budget is minutes.
+_PARSE_POLL_MS = 2000
+_PARSE_ATTEMPTS = 30
+# Polls the marker gets to show up before silence counts as "the portal finished".
+_PARSE_START_ATTEMPTS = 3
+_PROFILE_SETTLE_MS = 1500
 
 
 @dataclass(frozen=True)
@@ -312,12 +319,34 @@ def profile_rewrite_guard(before: dict[str, str], after: dict[str, str]) -> Rewr
     return RewriteGuard(True, tuple(lines), "sobrescritura")
 
 
-def wait_for_cv_parse(page: PageLike, *, attempts: int = 5) -> bool:
-    """True once the portal stops saying it is reading the CV. False on timeout."""
-    for _ in range(attempts):
-        if _PARSE_MARKER not in page.content().casefold():
+def _reload_profile(page: PageLike) -> None:
+    from jobbot.adapters.getonboard.profile_edit import GOB_EDIT_URL
+
+    page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(_PROFILE_SETTLE_MS)
+
+
+def wait_for_cv_parse(
+    page: PageLike,
+    *,
+    attempts: int = _PARSE_ATTEMPTS,
+    poll_ms: float = _PARSE_POLL_MS,
+) -> bool:
+    """True once the profile stops saying it is reading the CV. False on timeout.
+
+    The marker lives on the profile form, not on Tus CVs, and it only appears
+    once the portal starts reading the PDF: an absence at the first look is also
+    the state before the parse begins, so the form is reloaded for a few polls
+    before silence counts as a finished parse.
+    """
+    seen = False
+    for attempt in range(attempts):
+        _reload_profile(page)
+        if _PARSE_MARKER in page.content().casefold():
+            seen = True
+        elif seen or attempt >= _PARSE_START_ATTEMPTS:
             return True
-        page.wait_for_timeout(200)
+        page.wait_for_timeout(poll_ms)
     return False
 
 
