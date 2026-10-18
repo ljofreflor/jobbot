@@ -1408,6 +1408,22 @@ a.jb-scrolly__loop:focus-visible {
   background: rgba(0, 88, 248, 0.4);
 }
 
+/* Soften the other loop so the active chapter cluster leads the eye. */
+.jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child {
+  opacity: 0.42;
+}
+
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child {
+  opacity: 0.5;
+}
+
+.jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
+.jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:focus-within,
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:hover,
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:focus-within {
+  opacity: 1;
+}
+
 .jb-scrolly__meter {
   position: relative;
   height: 2px;
