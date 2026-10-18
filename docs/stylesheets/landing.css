@@ -1554,6 +1554,16 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   color: #dce6f8;
 }
 
+/* Presence steps: navy echo of the catalog presence rows. */
+.jb-scrolly__pin.is-presence .jb-scrolly__stage-kicker {
+  color: #c5d4ee;
+}
+
+.jb-scrolly__pin.is-presence .jb-scrolly__stage-out {
+  border-color: rgba(197, 212, 238, 0.45);
+  background: rgba(0, 24, 56, 0.35);
+}
+
 @media (max-width: 960px) {
   .jb-hero {
     min-height: auto;
