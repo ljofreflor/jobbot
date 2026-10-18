@@ -183,7 +183,7 @@ evidencia, y foco en Chile / Latam en búsquedas y roundups.
 
 Cada comando público de `src/jobbot/cli.py`, en una línea. Las banderas están en la
 [referencia](comandos.md). `jobbot <comando> --help` imprime el resto. Nada de esta
-lista postula solo ni inventa un hecho. Los que llevan **postular** o **presencia** son los siete pasos de arriba; la marca vuelve a ese paso del bucle.
+lista postula solo ni inventa un hecho. Los que llevan **postular** o **presencia** son los siete pasos de arriba; la marca vuelve a ese paso del bucle. En la barra, **CV**, **Vacantes** y **Postulaciones** van subrayados: ahí viven esos siete.
 
 <nav class="jb-cmdnav" aria-label="Grupos de comandos">
   <a href="#cmd-maquina">Máquina local</a>
