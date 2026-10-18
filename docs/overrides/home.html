@@ -226,7 +226,7 @@
               <a href="#story-build" class="jb-scrolly__dot" aria-label="{% if en %}Step 3, build{% else %}Paso 3, build{% endif %}"></a>
               <a href="#story-conditions" class="jb-scrolly__dot" aria-label="{% if en %}Step 4, conditions{% else %}Paso 4, conditions{% endif %}"></a>
               <a href="#story-apply" class="jb-scrolly__dot" aria-label="{% if en %}Step 5, apply{% else %}Paso 5, apply{% endif %}"></a>
-              <a href="#story-get" class="jb-scrolly__loop" aria-label="{% if en %}Jump to the Apply loop{% else %}Ir al bucle Postular{% endif %}">{% if en %}apply{% else %}postular{% endif %}</a>
+              <a href="#story-get" class="jb-scrolly__loop" aria-current="true" aria-label="{% if en %}Jump to the Apply loop{% else %}Ir al bucle Postular{% endif %}">{% if en %}apply{% else %}postular{% endif %}</a>
             </span>
             <span class="jb-scrolly__chapter">
               <a href="#story-advise" class="jb-scrolly__dot" aria-label="{% if en %}Step 6, advise{% else %}Paso 6, advise{% endif %}"></a>
@@ -413,6 +413,13 @@
           dot.classList.toggle("is-done", i < index);
           if (i === index) dot.setAttribute("aria-current", "step");
           else dot.removeAttribute("aria-current");
+        });
+        loops.forEach(function (loop) {
+          var href = loop.getAttribute("href") || "";
+          var presence = href.indexOf("story-advise") !== -1;
+          var on = presence ? index >= 5 : index < 5;
+          if (on) loop.setAttribute("aria-current", "true");
+          else loop.removeAttribute("aria-current");
         });
         if (bar && steps.length) {
           bar.style.width = ((index + 1) / steps.length * 100) + "%";
