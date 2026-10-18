@@ -1,12 +1,20 @@
-"""Playwright helpers to edit Indeed Resume UI (no PDF upload)."""
+"""Playwright helpers to edit Indeed Resume UI (no PDF upload).
+
+Indeed no longer ships a structured resume editor: ``/resume`` redirects to
+``/document/view`` (the uploaded PDF plus Preferences). Writers refuse that
+shape instead of filling a field by position.
+"""
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
+from typing import Literal
 
 from playwright.sync_api import Locator, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
@@ -31,6 +39,70 @@ RESUME_SECTIONS = (
 )
 INDEED_EXPERIENCE_ADD = "https://profile.indeed.com/resume/experience/add"
 INDEED_CONTACT_EDIT = "https://profile.indeed.com/edit/contact"
+
+DOCUMENT_ONLY_MESSAGE = (
+    "Indeed ya no tiene CV estructurado (redirige a /document/view). "
+    "El perfil es el PDF subido y Preferencias."
+)
+MISSING_HEADLINE_MESSAGE = "campo Título no encontrado"
+_EDITOR_MARKERS = (
+    'data-testid="work-experience-section"',
+    'data-testid="education-section"',
+    'data-testid="skills-section"',
+    'data-testid="summary-section"',
+)
+EditorState = Literal["structured", "document_only", "unknown"]
+
+
+class IndeedUiChanged(RuntimeError):
+    """The structured resume editor is gone, or a labeled control is missing."""
+
+
+def resume_editor_state(url: str, html: str) -> EditorState:
+    """Classify the open Indeed profile page. Pure: no network, no browser."""
+    if "/document/view" in url.casefold():
+        return "document_only"
+    if any(marker in html for marker in _EDITOR_MARKERS):
+        return "structured"
+    has_cv = re.search(r">\s*cv\s*<", html, flags=re.IGNORECASE) is not None
+    has_prefs = re.search(r">\s*preferencias\s*<", html, flags=re.IGNORECASE) is not None
+    if has_cv and has_prefs:
+        return "document_only"
+    return "unknown"
+
+
+def editor_state_path(output_dir: Path) -> Path:
+    return output_dir / "indeed" / "editor_state.json"
+
+
+def record_editor_state(output_dir: Path, state: EditorState) -> None:
+    path = editor_state_path(output_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"state": state}) + "\n", encoding="utf-8")
+
+
+def load_editor_state(output_dir: Path) -> str | None:
+    path = editor_state_path(output_dir)
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    state = data.get("state") if isinstance(data, dict) else None
+    return state if isinstance(state, str) else None
+
+
+def ensure_structured_editor(page: Page) -> None:
+    """Raise when the open page is the PDF/Preferences shell."""
+    try:
+        url = str(page.url)
+        html = page.content()
+    except Exception:  # noqa: BLE001 — a fake page with no content is not document-only
+        return
+    if resume_editor_state(url, html) == "document_only":
+        raise IndeedUiChanged(DOCUMENT_ONLY_MESSAGE)
+
 
 _MONTHS_ES = {
     1: "Enero",
@@ -98,11 +170,11 @@ def set_summary(page: Page, summary: str) -> None:
 def set_headline_via_contact(page: Page, headline: str) -> None:
     page.goto(INDEED_CONTACT_EDIT, wait_until="domcontentloaded", timeout=60_000)
     page.wait_for_timeout(1000)
+    ensure_structured_editor(page)
     by_testid = page.get_by_test_id(HEADLINE_INPUT)
     field = by_testid if by_testid.count() else _headline_field_by_label(page)
-    if field is None:
-        msg = "Could not find editable Título/headline field on contact edit"
-        raise RuntimeError(msg)
+    if field is None or not field.count():
+        raise IndeedUiChanged(MISSING_HEADLINE_MESSAGE)
     field.fill(headline)
     save = page.get_by_test_id(CONTACT_SAVE)
     if save.count():
@@ -241,6 +313,7 @@ def apply_full_resume_from_candidate(
     skip_existing_companies: bool = True,
 ) -> ResumeEditResult:
     """Push headline, summary, experiences, skills, education from Candidate."""
+    ensure_structured_editor(page)
     package = build_indeed_sync_package(candidate)
     errors: list[str] = []
     summary_ok = headline_ok = False
@@ -250,12 +323,16 @@ def apply_full_resume_from_candidate(
     try:
         set_summary(page, package.summary)
         summary_ok = True
+    except IndeedUiChanged:
+        raise
     except Exception as exc:  # noqa: BLE001
         errors.append(f"summary: {exc}")
 
     try:
         set_headline_via_contact(page, package.headline)
         headline_ok = True
+    except IndeedUiChanged:
+        raise
     except Exception as exc:  # noqa: BLE001
         errors.append(f"headline: {exc}")
 
@@ -287,6 +364,65 @@ def apply_full_resume_from_candidate(
             edu_added += 1
         except Exception as exc:  # noqa: BLE001
             errors.append(f"education {edu.institution}: {exc}")
+
+    return ResumeEditResult(
+        summary=summary_ok,
+        headline=headline_ok,
+        experiences_added=exp_added,
+        skills_added=skills_added,
+        education_added=edu_added,
+        errors=tuple(errors),
+    )
+
+
+def apply_resume_sections(
+    page: Page,
+    candidate: Candidate,
+    sections: set[str],
+) -> ResumeEditResult:
+    """Write only the sections present in a sync plan.
+
+    ``apply_full_resume_from_candidate`` stays the writer for an explicit
+    ``--section all``. A missing labeled control aborts before guardar.
+    """
+    ensure_structured_editor(page)
+    wanted = {section.casefold() for section in sections}
+    package = build_indeed_sync_package(candidate)
+    errors: list[str] = []
+    summary_ok = headline_ok = False
+    skills_added = exp_added = edu_added = 0
+
+    if "summary" in wanted:
+        set_summary(page, package.summary)
+        summary_ok = True
+    if "headline" in wanted:
+        set_headline_via_contact(page, package.headline)
+        headline_ok = True
+    if "experience" in wanted:
+        section_text = ""
+        try:
+            open_resume(page)
+            section_text = page.get_by_test_id("work-experience-section").inner_text()
+        except Exception:  # noqa: BLE001
+            section_text = ""
+        exp_added, exp_errors = add_missing_experiences(
+            page, list(candidate.experience), section_text
+        )
+        errors.extend(exp_errors)
+    if "skills" in wanted:
+        skills_added = add_skills(page, package.skills)
+    if "education" in wanted:
+        edu_text = ""
+        try:
+            open_resume(page)
+            edu_text = page.get_by_test_id("education-section").inner_text().casefold()
+        except Exception:  # noqa: BLE001
+            edu_text = ""
+        for edu in candidate.education:
+            if edu.institution.casefold() in edu_text or edu.degree.casefold() in edu_text:
+                continue
+            add_education(page, edu)
+            edu_added += 1
 
     return ResumeEditResult(
         summary=summary_ok,

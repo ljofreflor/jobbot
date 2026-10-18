@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,9 +17,15 @@ from jobbot.adapters.indeed.package import (
     render_sync_package_markdown,
 )
 from jobbot.adapters.indeed.resume_edit import (
+    DOCUMENT_ONLY_MESSAGE,
+    IndeedUiChanged,
     apply_full_resume_from_candidate,
+    apply_resume_sections,
+    ensure_structured_editor,
     open_resume,
     parse_resume_page_text,
+    record_editor_state,
+    resume_editor_state,
     wait_for_resume_render,
 )
 from jobbot.browser.debug import inspect_page
@@ -121,7 +128,7 @@ class IndeedAdapter:
         try:
             with self._session() as browser:
                 browser.page.goto(selectors.INDEED_HOME, wait_until="domcontentloaded")
-                return not _is_auth_url(browser.page.url)
+                return _session_authenticated(browser.page)
         except Exception as exc:  # noqa: BLE001
             logger.warning("session check failed: %s", exc)
             return False
@@ -152,6 +159,8 @@ class IndeedAdapter:
                 browser.page.goto(selectors.INDEED_RESUME, wait_until="domcontentloaded")
             wait_for_resume_render(browser.page)
             html = browser.page.content()
+            if resume_editor_state(browser.page.url, html) == "document_only":
+                raise IndeedUiChanged(DOCUMENT_ONLY_MESSAGE)
             body = browser.page.inner_text("body")
             try:
                 profile = parse_indeed_profile_html(html)
@@ -188,7 +197,12 @@ class IndeedAdapter:
             return profile
 
     def pull_and_save(self) -> Path:
-        profile = self.pull_profile()
+        try:
+            profile = self.pull_profile()
+        except IndeedUiChanged:
+            record_editor_state(self.config.output_dir, "document_only")
+            raise
+        record_editor_state(self.config.output_dir, "structured")
         return save_snapshot(profile, self.config.output_dir)
 
     def build_sync_plan(self, *, section: str | None = "headline") -> SyncPlan:
@@ -200,16 +214,14 @@ class IndeedAdapter:
         sec = None if section in (None, "all") else section
         return build_sync_plan("indeed", candidate, external, section=sec)
 
-    def apply_sync_plan(self, plan: SyncPlan) -> SyncResult:
+    def apply_sync_plan(self, plan: SyncPlan, *, section: str = "all") -> SyncResult:
         """Apply profile.yaml → Indeed Resume editor (add-mostly; prefer reconcile for mirror)."""
         if not plan.actionable:
             return SyncResult(target="indeed", verified=True, message="No changes required.")
 
         candidate = load_profile(self.config.profile_path)
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-        before_path = (
-            self.config.output_dir / "snapshots" / "indeed" / f"before-sync-{stamp}.json"
-        )
+        before_path = self.config.output_dir / "snapshots" / "indeed" / f"before-sync-{stamp}.json"
         external = load_snapshot(self.config.output_dir, "indeed")
         if external:
             before_path.write_text(external.model_dump_json(indent=2), encoding="utf-8")
@@ -228,7 +240,11 @@ class IndeedAdapter:
                 "[bold]Applying Indeed Resume from profile.yaml[/bold] "
                 "(no PDF upload; publications are not synced to Recognitions)."
             )
-            edit = apply_full_resume_from_candidate(browser.page, candidate)
+            ensure_structured_editor(browser.page)
+            if section in (None, "", "all"):
+                edit = apply_full_resume_from_candidate(browser.page, candidate)
+            else:
+                edit = apply_resume_sections(browser.page, candidate, {section})
             console.print(
                 f"summary={edit.summary} headline={edit.headline} "
                 f"experiences+={edit.experiences_added} skills+={edit.skills_added} "
@@ -258,6 +274,7 @@ class IndeedAdapter:
                 "[bold]Reconciling Indeed Resume → full mirror of profile.yaml[/bold]\n"
                 "Publications stay in profile only (not Indeed Recognitions)."
             )
+            ensure_structured_editor(browser.page)
             result = reconcile_resume_to_candidate(browser.page, candidate)
             console.print(
                 f"summary={result.summary} headline={result.headline} "
@@ -287,9 +304,7 @@ class IndeedAdapter:
             )
             # empty plan placeholder for SyncResult.applied
             plan = SyncPlan(target="indeed", operations=[])
-            snap = self._snapshot_after(
-                browser, candidate, plan, stamp, edit_verified=verified
-            )
+            snap = self._snapshot_after(browser, candidate, plan, stamp, edit_verified=verified)
             return SyncResult(
                 target="indeed",
                 applied=snap.applied,
@@ -318,29 +333,90 @@ class IndeedAdapter:
         summary_val = parsed.get("summary")
         summary = str(summary_val) if isinstance(summary_val, str) and summary_val else None
         rendered = parse_indeed_profile_html(browser.page.content())
+        read_headline = rendered.headline
+        if _looks_like_marketing_headline(read_headline):
+            read_headline = None
         # A resume that did not render is not a resume that lost its history.
+        # Copied rows are kept, and they do not count as a verified read.
         previous = load_snapshot(self.config.output_dir, "indeed")
-        experience = rendered.experience or (previous.experience if previous else [])
-        education = rendered.education or (previous.education if previous else [])
+        reused_previous = False
+        if rendered.experience:
+            experience = rendered.experience
+        elif previous and previous.experience:
+            experience = previous.experience
+            reused_previous = True
+        else:
+            experience = []
+        if rendered.education:
+            education = rendered.education
+        elif previous and previous.education:
+            education = previous.education
+            reused_previous = True
+        else:
+            education = []
+        if skills:
+            stored_skills = skills
+        elif previous and previous.skills:
+            stored_skills = previous.skills
+            reused_previous = True
+        else:
+            stored_skills = []
         observed = ExternalProfile(
             source="indeed",
-            headline=candidate.personal.headline,
+            headline=read_headline,
             summary=summary,
             location=candidate.personal.location_line(),
             experience=experience,
             education=education,
-            skills=skills or (previous.skills if previous else []),
+            skills=stored_skills,
             captured_at=datetime.now(UTC),
         )
         save_snapshot(observed, self.config.output_dir)
         after_path = self.config.output_dir / "snapshots" / "indeed" / f"after-sync-{stamp}.json"
         after_path.write_text(observed.model_dump_json(indent=2), encoding="utf-8")
+        verified = bool(edit_verified and read_headline is not None and not reused_previous)
         return SyncResult(
             target="indeed",
             applied=list(plan.actionable),
-            verified=edit_verified,
+            verified=verified,
             message="Snapshot saved.",
         )
+
+
+def indeed_session_authenticated(
+    *,
+    url: str,
+    html: str,
+    cookie_names: Sequence[str],
+) -> bool:
+    """True only with an account menu or a confirmed session cookie.
+
+    The visitor cookie ``CTK`` is present on a logged-out browser and is not
+    a session. ``SOCK`` and ``SHOE`` were observed on a signed-in profile.
+    """
+    if _is_auth_url(url):
+        return False
+    names = {name.casefold() for name in cookie_names}
+    if "sock" in names or "shoe" in names:
+        return True
+    lowered = html.casefold()
+    return any(marker in lowered for marker in ("account-menu", "cerrar sesión", "sign out"))
+
+
+def _session_authenticated(page: object) -> bool:
+    url = str(getattr(page, "url", ""))
+    try:
+        html = str(page.content())  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        html = ""
+    names: list[str] = []
+    try:
+        context = page.context  # type: ignore[attr-defined]
+        cookies = context.cookies()
+        names = [str(cookie.get("name", "")) for cookie in cookies if isinstance(cookie, dict)]
+    except Exception:  # noqa: BLE001
+        names = []
+    return indeed_session_authenticated(url=url, html=html, cookie_names=names)
 
 
 def _is_auth_url(url: str) -> bool:
@@ -368,8 +444,7 @@ def normalize_indeed_continue_url(url: str) -> str:
     )
     if not host_ok or "://" not in raw:
         raise ValueError(
-            "Continue URL must be an Indeed link from the sign-in email "
-            f"(got {raw!r})"
+            f"Continue URL must be an Indeed link from the sign-in email (got {raw!r})"
         )
     return raw
 
