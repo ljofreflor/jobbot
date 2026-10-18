@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-126 commands, 180 modules, 1061 public symbols.
+126 commands, 181 modules, 1067 public symbols.
 
 ## Commands
 
@@ -352,6 +352,7 @@ writing it again — the promotion rule lives in
 ### `portals`
 
 - `ats_lifecycle.py` — ATS portal lifecycle: knowledge, account/session, and form-field gaps. · `AccountSessionState`, `FieldGapState`, `PortalAction`, `account_session_state`, `next_portal_action`, `field_gap_state`
+- `chiletrabajos.py` — Chiletrabajos fill sheet projected from the source of truth. · `PortalField`, `experience_bucket`, `education_level`, `gender_label`, `experience_years`, `render_chiletrabajos_sheet`
 - `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `aggregator_board`, `html_marker_kinds`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`

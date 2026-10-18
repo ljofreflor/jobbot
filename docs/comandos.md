@@ -223,6 +223,7 @@ desafíos que aparezcan. No hay resolución automática de CAPTCHAs.
 | Comando | Qué hace |
 |---------|----------|
 | `portals list` | Lista los portales de reclutamiento conocidos. |
+| `portals profile sheet chiletrabajos` | Hoja de llenado: cada campo tiene hogar en el SST o `needs_human`. No imprime correo, teléfono ni RUT. |
 | `portals detect URL` | Detecta el tipo de ATS de una URL. |
 | `portals add` | Agrega o actualiza un portal en el registro de portales. |
 | `companies detect URL` | Clasifica una URL (aviso / portal / ATS / redirección). No escribe nada. |
