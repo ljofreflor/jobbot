@@ -182,7 +182,19 @@ Every public command in `src/jobbot/cli.py`, one line each. Flags are in the
 [reference](../comandos.md) (Spanish). `jobbot <command> --help` prints the rest.
 Nothing in this list submits alone or invents a fact.
 
-### On your machine
+<nav class="jb-cmdnav" aria-label="Command groups">
+  <a href="#cmd-machine">On your machine</a>
+  <a href="#cmd-profile">Profile</a>
+  <a href="#cmd-cv">CV</a>
+  <a href="#cmd-vacancies">Vacancies</a>
+  <a href="#cmd-applications">Applications</a>
+  <a href="#cmd-portals">Portals</a>
+  <a href="#cmd-browser">Browser</a>
+  <a href="#cmd-companies">Companies</a>
+  <a href="#cmd-ops">Operations</a>
+</nav>
+
+### On your machine {#cmd-machine}
 
 | Command | What it does |
 |---------|----------------|
@@ -196,7 +208,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot advisor status` | One line per sandbox: fingerprint, counts, proposal, retention. Never the name. |
 | `jobbot advisor report` | Writes the redacted summary for the selected workspace. |
 
-### Profile
+### Profile {#cmd-profile}
 
 | Command | What it does |
 |---------|----------------|
@@ -210,7 +222,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot profile status` | Consistency between local data and portal snapshots. |
 | `jobbot profile diff` | Shows that diff. |
 
-### CV
+### CV {#cmd-cv}
 
 | Command | What it does |
 |---------|----------------|
@@ -221,7 +233,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot cv sync` | Standing presence: permanent profiles and active companies. `--apply` waits for you. |
 | `jobbot cv status` | Alias of `jobbot status`. |
 
-### Vacancies
+### Vacancies {#cmd-vacancies}
 
 | Command | What it does |
 |---------|----------------|
@@ -239,7 +251,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot jobs note Jxxxx TEXT` | Attaches a free-text note. |
 | `jobbot jobs audit --source indeed` | Lists Indeed decoys and duplicates. `--apply` marks them; it does not delete submitted applications. |
 
-### Applications
+### Applications {#cmd-applications}
 
 | Command | What it does |
 |---------|----------------|
@@ -250,7 +262,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot application check-answer Jxxxx` | Checks a free-text answer against the profile and the posting. Motivation stays yours. |
 | `jobbot applications list` | Lists recorded applications. Alias: `applications status`. |
 
-### Standing portals
+### Standing portals {#cmd-portals}
 
 | Command | What it does |
 |---------|----------------|
@@ -268,7 +280,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot torre search [QUERY]` | Public Torre search. The full posting is opened separately. |
 | `jobbot empleospublicos search [QUERY]` | Open Chilean civil-service contests from open data. `--dry-run` writes nothing. |
 
-### Browser
+### Browser {#cmd-browser}
 
 | Command | What it does |
 |---------|----------------|
@@ -276,7 +288,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot browser sessions` | Reports session state from evidence. It never attaches on its own. |
 | `jobbot browser login` | Lists portals with no proven session. `--apply` opens the next one; you sign in. |
 
-### Companies, forms, and hiring practice
+### Companies, forms, and hiring practice {#cmd-companies}
 
 | Command | What it does |
 |---------|----------------|
@@ -305,7 +317,7 @@ Nothing in this list submits alone or invents a fact.
 | `jobbot recruiters discover URL` | Stores public hiring practice, not people. |
 | `jobbot recruiters list` | Lists practices. Also `show`, `promote`, `reject`, `export`. |
 
-### Operations and secrets
+### Operations and secrets {#cmd-ops}
 
 | Command | What it does |
 |---------|----------------|
