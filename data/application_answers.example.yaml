@@ -13,11 +13,30 @@ languages:
   english:
 # true / false: a contractor or service contract instead of an employment contract.
 accepts_contractor:
-# true / false: an onsite or hybrid seat in another country.
+# false, or within_country / international. true still means the candidate accepts relocating.
 relocation:
 # remote / hybrid / onsite (blank: no preference).
 remote_preference:
 # e.g. "two weeks", "immediate".
 notice_period:
-# e.g. "USD 3000 monthly gross".
+# e.g. "USD 3000 monthly gross". A clear sentence is only a suggestion:
+# `profile validate` names salary.amount / currency / period / basis and does not write.
 salary_expectation:
+# Declared identity. Blank stays a question. Never store a national id here.
+identity:
+  birth_date:
+  nationality: []
+  gender_to_declare:
+  comuna:
+  region:
+# amount, currency (CLP, USD, …), period (month/year/hour/day), basis (net/gross).
+# Net is not converted into gross.
+salary:
+  amount:
+  currency:
+  period:
+  basis:
+availability:
+  from_date:
+job_types: []
+desired_titles: []

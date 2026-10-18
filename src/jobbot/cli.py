@@ -91,6 +91,10 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 profile_app = typer.Typer(help="Candidate profile operations", no_args_is_help=True)
+answers_app = typer.Typer(
+    help="Local application answers (preferences, not professional facts)",
+    no_args_is_help=True,
+)
 cv_app = typer.Typer(help="Build CV variants", no_args_is_help=True)
 jobs_app = typer.Typer(help="Search and inspect jobs", no_args_is_help=True)
 application_app = typer.Typer(help="Prepare or open one application", no_args_is_help=True)
@@ -146,6 +150,7 @@ secrets_app = typer.Typer(
 
 app.add_typer(workspace_app, name="workspace")
 app.add_typer(secrets_app, name="secrets")
+profile_app.add_typer(answers_app, name="answers")
 app.add_typer(profile_app, name="profile")
 app.add_typer(cv_app, name="cv")
 app.add_typer(jobs_app, name="jobs")
@@ -1294,7 +1299,7 @@ def profile_validate(
         ),
     ] = False,
 ) -> None:
-    """Validate data/profile.yaml."""
+    """Validate data/profile.yaml and application_answers.yaml."""
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
@@ -1315,13 +1320,105 @@ def profile_validate(
                 err_console.print(f"{issue.path}: {issue.message}")
         raise typer.Exit(VALIDATION_FAILURE)
 
+    from jobbot.jobs.eligibility import (
+        default_answers_path,
+        load_application_answers,
+        salary_migration_hint,
+    )
+
+    answers_path = default_answers_path(config.root)
+    try:
+        answers = load_application_answers(answers_path)
+    except ValueError as exc:
+        err_console.print("[bold red]ANSWERS INVALID[/bold red]")
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
     console.print("[bold green]PROFILE VALID[/bold green]")
+    hint = salary_migration_hint(answers)
+    if hint:
+        console.print(hint, markup=False)
     for issue in unknowns:
         err_console.print(f"[yellow]{issue.path}: {issue.message}[/yellow]")
     console.print(f"Experiences: {len(candidate.experience)}")
     console.print(f"Achievements: {candidate.achievement_count()}")
     console.print(f"Skills: {candidate.skills.count()}")
     console.print(f"Publications: {len(candidate.publications)}")
+    raise typer.Exit(SUCCESS)
+
+
+@answers_app.command("show")
+def profile_answers_show(
+    reveal: Annotated[
+        bool,
+        typer.Option("--reveal", help="Print stored values. Default: block names only"),
+    ] = False,
+) -> None:
+    """Show which application-answer blocks are filled, without values."""
+    from jobbot.jobs.eligibility import (
+        default_answers_path,
+        format_answers_show,
+        load_application_answers,
+    )
+
+    config = load_config()
+    try:
+        answers = load_application_answers(default_answers_path(config.root))
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    if reveal:
+        import yaml
+
+        payload = answers.model_dump(mode="json")
+        console.print(
+            yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
+            markup=False,
+        )
+    else:
+        console.print(format_answers_show(answers), markup=False)
+    raise typer.Exit(SUCCESS)
+
+
+@answers_app.command("set")
+def profile_answers_set(
+    key: Annotated[str, typer.Argument(help="Dotted key, such as salary.amount")],
+    value: Annotated[str, typer.Argument(help="Value to store")],
+    yes: Annotated[bool, typer.Option("--yes", help="Write the file. Default: print only")] = False,
+) -> None:
+    """Set one application answer. Refuses a national id. Writes only with --yes."""
+    import yaml
+    from pydantic import ValidationError
+
+    from jobbot.jobs.eligibility import (
+        ApplicationAnswers,
+        answer_key_refused,
+        assign_answer,
+        default_answers_path,
+        read_answers_mapping,
+    )
+
+    if answer_key_refused(key):
+        err_console.print(f"no se guarda un identificador nacional: {key}")
+        raise typer.Exit(VALIDATION_FAILURE)
+    config = load_config()
+    path = default_answers_path(config.root)
+    try:
+        data = read_answers_mapping(path)
+        assign_answer(data, key, value)
+        ApplicationAnswers.model_validate(data)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    except ValidationError as exc:
+        err_console.print(f"{key}: {exc}")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    if not yes:
+        console.print(f"no se escribió: {key}", markup=False)
+        raise typer.Exit(SUCCESS)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    console.print(f"escrito: {key}", markup=False)
     raise typer.Exit(SUCCESS)
 
 

@@ -36,7 +36,9 @@ jobbot update --schedule status
 
 | Comando | Qué hace |
 |---------|----------|
-| `profile validate` | Valida el perfil (`.local/profile.yaml` o `data/profile.yaml`). |
+| `profile validate` | Valida el perfil y `application_answers.yaml`. Una clave desconocida (por ejemplo `rut:`) sale con 2 y la nombra. Si `salary_expectation` se lee sin ambigüedad, sugiere la migración y no escribe. |
+| `profile answers show [--reveal]` | Muestra qué bloques de respuestas tienen datos. Sin `--reveal` no imprime valores. |
+| `profile answers set CLAVE VALOR [--yes]` | Escribe una clave (por ejemplo `salary.amount`). Sin `--yes` no escribe. Se niega a guardar un RUN. |
 | `profile show` | Resumen del perfil local. |
 | `profile import-pdf RUTA` | Importa un CV PDF (capa de texto) a `profile.generated.yaml`. `--promote` lo copia a `profile.yaml` tras validar. |
 | `profile import-latex [RUTA]` | Importa un CV LaTeX legado a `profile.generated.yaml`. |

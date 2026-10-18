@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from babel import Locale
@@ -99,6 +99,122 @@ def _modality_preference(value: str) -> str:
     return value.strip()
 
 
+_CURRENCIES = frozenset({"CLP", "USD", "EUR", "GBP", "ARS", "BRL", "MXN", "COP", "PEN", "UYU"})
+_JOB_TYPES = frozenset({"full_time", "contract", "consultancy"})
+_GENDERS = frozenset({"female", "male", "non_binary", "prefer_not_to_say"})
+_RELOCATION_SCOPES = frozenset({"within_country", "international"})
+REFUSED_ANSWER_KEYS = frozenset({"rut", "run", "national_id"})
+_KNOWN_BLOCKS = (
+    "identity",
+    "salary",
+    "availability",
+    "relocation",
+    "job_types",
+    "desired_titles",
+    "residence_country",
+    "work_authorization",
+    "languages",
+    "accepts_contractor",
+    "remote_preference",
+    "notice_period",
+    "salary_expectation",
+)
+
+
+def _blank(value: object) -> object:
+    if value == "":
+        return None
+    return value
+
+
+def _country_list(value: object) -> object:
+    if value is None or value == "":
+        return []
+    if isinstance(value, str):
+        value = re.split(r"[,;/]", value)
+    if isinstance(value, list):
+        return list(normalize_countries([str(item) for item in value if str(item).strip()]))
+    return value
+
+
+class IdentityAnswers(BaseModel):
+    """Declared identity a form may ask. A national id is not a field here."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    birth_date: date | None = None
+    nationality: list[str] = Field(default_factory=list)
+    gender_to_declare: Literal["female", "male", "non_binary", "prefer_not_to_say"] | None = None
+    comuna: str | None = None
+    region: str | None = None
+
+    @field_validator("birth_date", "comuna", "region", "gender_to_declare", mode="before")
+    @classmethod
+    def _empty(cls, value: object) -> object:
+        return _blank(value)
+
+    @field_validator("nationality", mode="before")
+    @classmethod
+    def _codes(cls, value: object) -> object:
+        return _country_list(value)
+
+    @field_validator("gender_to_declare")
+    @classmethod
+    def _gender(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = value.strip().casefold().replace("-", "_").replace(" ", "_")
+        if text not in _GENDERS:
+            msg = f"gender_to_declare: {value}"
+            raise ValueError(msg)
+        return text
+
+
+class SalaryAnswers(BaseModel):
+    """Pay the candidate states. Net and gross are never converted."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    amount: int | None = None
+    currency: str | None = None
+    period: Literal["month", "year", "hour", "day"] | None = None
+    basis: Literal["net", "gross"] | None = None
+
+    @field_validator("amount", "currency", "period", "basis", mode="before")
+    @classmethod
+    def _empty(cls, value: object) -> object:
+        return _blank(value)
+
+    @field_validator("currency")
+    @classmethod
+    def _currency(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        code = value.strip().upper()
+        if code not in _CURRENCIES:
+            msg = f"currency: {value}"
+            raise ValueError(msg)
+        return code
+
+    @field_validator("period", "basis")
+    @classmethod
+    def _token(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip().casefold()
+
+
+class AvailabilityAnswers(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    from_date: date | None = None
+
+    @field_validator("from_date", mode="before")
+    @classmethod
+    def _empty(cls, value: object) -> object:
+        return _blank(value)
+
+
 class ApplicationAnswers(BaseModel):
     """Answers the profile does not hold. Blank means unknown, and unknown is asked."""
 
@@ -108,20 +224,51 @@ class ApplicationAnswers(BaseModel):
     work_authorization: list[str] = Field(default_factory=list)
     languages: dict[str, str] = Field(default_factory=dict)
     accepts_contractor: bool | None = None
-    relocation: bool | None = None
+    relocation: bool | Literal["within_country", "international"] | None = None
     remote_preference: str | None = None
     notice_period: str | None = None
     salary_expectation: str | None = None
+    identity: IdentityAnswers = Field(default_factory=IdentityAnswers)
+    salary: SalaryAnswers | None = None
+    availability: AvailabilityAnswers | None = None
+    job_types: list[str] = Field(default_factory=list)
+    desired_titles: list[str] = Field(default_factory=list, max_length=10)
 
     @field_validator("work_authorization", mode="before")
     @classmethod
     def _countries(cls, value: object) -> object:
-        if value is None:
+        return _country_list(value)
+
+    @field_validator("identity", mode="before")
+    @classmethod
+    def _identity_block(cls, value: object) -> object:
+        if value in (None, ""):
+            return {}
+        return value
+
+    @field_validator("salary", "availability", mode="before")
+    @classmethod
+    def _optional_block(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
+
+    @field_validator("job_types", "desired_titles", mode="before")
+    @classmethod
+    def _lists(cls, value: object) -> object:
+        if value in (None, ""):
             return []
         if isinstance(value, str):
-            value = re.split(r"[,;/]", value)
-        if isinstance(value, list):
-            return list(normalize_countries([str(item) for item in value if item]))
+            return [part.strip() for part in value.split(",") if part.strip()]
+        return value
+
+    @field_validator("job_types")
+    @classmethod
+    def _known_job_types(cls, value: list[str]) -> list[str]:
+        unknown = [item for item in value if item not in _JOB_TYPES]
+        if unknown:
+            msg = f"job_types: {unknown[0]}"
+            raise ValueError(msg)
         return value
 
     @field_validator("languages", mode="before")
@@ -137,9 +284,21 @@ class ApplicationAnswers(BaseModel):
             }
         return value
 
-    @field_validator("accepts_contractor", "relocation", mode="before")
+    @field_validator("accepts_contractor", mode="before")
     @classmethod
     def _yes_no(cls, value: object) -> object:
+        return _to_bool(value)
+
+    @field_validator("relocation", mode="before")
+    @classmethod
+    def _relocation(cls, value: object) -> object:
+        if value is None or isinstance(value, bool):
+            return value
+        text = str(value).strip().casefold().replace("-", "_").replace(" ", "_")
+        if text in _RELOCATION_SCOPES:
+            return text
+        if text == "":
+            return None
         return _to_bool(value)
 
     @field_validator(
@@ -227,6 +386,140 @@ def load_application_answers(path: Path, *, job_answers: Path | None = None) -> 
     except ValidationError as exc:
         msg = f"{path}: {exc}"
         raise ValueError(msg) from exc
+
+
+def read_answers_mapping(path: Path) -> dict[str, Any]:
+    """Raw answers mapping. Missing file is an empty mapping."""
+    return _read_yaml(path)
+
+
+def answer_key_refused(key: str) -> bool:
+    """A national identifier is typed on the portal. It is never stored."""
+    return any(part.casefold() in REFUSED_ANSWER_KEYS for part in key.split("."))
+
+
+def filled_blocks(answers: ApplicationAnswers) -> list[str]:
+    """Block names that hold something. Values stay out of this list."""
+    filled: list[str] = []
+    identity = answers.identity
+    if any(
+        (
+            identity.birth_date,
+            identity.nationality,
+            identity.gender_to_declare,
+            identity.comuna,
+            identity.region,
+        )
+    ):
+        filled.append("identity")
+    salary = answers.salary
+    if salary is not None and any((salary.amount, salary.currency, salary.period, salary.basis)):
+        filled.append("salary")
+    if answers.availability is not None and answers.availability.from_date is not None:
+        filled.append("availability")
+    if answers.relocation is not None:
+        filled.append("relocation")
+    if answers.job_types:
+        filled.append("job_types")
+    if answers.desired_titles:
+        filled.append("desired_titles")
+    for name in (
+        "residence_country",
+        "work_authorization",
+        "languages",
+        "accepts_contractor",
+        "remote_preference",
+        "notice_period",
+        "salary_expectation",
+    ):
+        value = getattr(answers, name)
+        if value not in (None, "", [], {}):
+            filled.append(name)
+    return filled
+
+
+def format_answers_show(answers: ApplicationAnswers) -> str:
+    """Which blocks are filled. Never the values."""
+    filled = filled_blocks(answers)
+    empty = [name for name in _KNOWN_BLOCKS if name not in filled]
+    filled_line = ", ".join(filled) if filled else "ninguno"
+    empty_line = ", ".join(empty) if empty else "ninguno"
+    return f"con datos: {filled_line}\nvacíos: {empty_line}"
+
+
+def salary_migration_hint(answers: ApplicationAnswers) -> str | None:
+    """Suggest a structured salary when the legacy sentence is unambiguous. Writes nothing."""
+    salary = answers.salary
+    if salary is not None and any((salary.amount, salary.currency, salary.period, salary.basis)):
+        return None
+    parsed = _parse_legacy_salary(answers.salary_expectation or "")
+    if parsed is None:
+        return None
+    return (
+        "sugerencia: migrar salary_expectation a "
+        f"salary.amount: {parsed.amount}, salary.currency: {parsed.currency}, "
+        f"salary.period: {parsed.period}, salary.basis: {parsed.basis} "
+        "(no se escribió)"
+    )
+
+
+def assign_answer(data: dict[str, Any], key: str, raw: str) -> None:
+    """Put one dotted key into the raw mapping. The caller validates before writing."""
+    parts = [part for part in key.split(".") if part]
+    if len(parts) != len(key.split(".")):
+        msg = f"clave desconocida: {key}"
+        raise ValueError(msg)
+    cursor = data
+    for part in parts[:-1]:
+        child = cursor.get(part)
+        if not isinstance(child, dict):
+            child = {}
+            cursor[part] = child
+        cursor = child
+    cursor[parts[-1]] = _coerce_leaf(parts[-1], raw)
+
+
+def _coerce_leaf(leaf: str, raw: str) -> object:
+    if leaf == "amount":
+        return int(raw)
+    if leaf in {"nationality", "job_types", "desired_titles", "work_authorization"}:
+        return [part.strip() for part in raw.split(",") if part.strip()]
+    return raw
+
+
+def _parse_legacy_salary(text: str) -> SalaryAnswers | None:
+    if not text.strip():
+        return None
+    folded = text.casefold()
+    if re.search(r"liquid|l[ií]quid|\bnet\b", folded):
+        basis: Literal["net", "gross"] = "net"
+    elif re.search(r"brut|bruta|bruto|\bgross\b", folded):
+        basis = "gross"
+    else:
+        return None
+    if re.search(r"mensual|al mes|\bmonth", folded):
+        period: Literal["month", "year", "hour", "day"] = "month"
+    elif re.search(r"anual|al a[nñ]o|\byear", folded):
+        period = "year"
+    elif re.search(r"hora|\bhour", folded):
+        period = "hour"
+    elif re.search(r"\bd[ií]a\b|\bday\b", folded):
+        period = "day"
+    else:
+        return None
+    currency = next((code for code in _CURRENCIES if code.casefold() in folded), None)
+    match = re.search(r"\d{1,3}(?:\.\d{3})+|\d+", text)
+    if match is None:
+        return None
+    token = match.group(0)
+    if "." in token:
+        amount = int(token.replace(".", ""))
+        currency = currency or "CLP"
+    else:
+        amount = int(token)
+    if currency is None:
+        return None
+    return SalaryAnswers(amount=amount, currency=currency, period=period, basis=basis)
 
 
 def _language_name(code: str) -> str:
