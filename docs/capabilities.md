@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 193 modules, 1120 public symbols.
+128 commands, 194 modules, 1121 public symbols.
 
 ## Commands
 
@@ -211,6 +211,10 @@ writing it again — the promotion rule lives in
 
 - `compose.py` — Prepare a Gmail draft with the CV attached. HITL: the user presses Send. · `GmailComposeError`, `GmailAuthRequired`, `is_auth_url`, `attachment_chip_selector`, `prepare_gmail_draft`, `verify_attachment_upload`, `discard_compose`, `GmailComposeAdapter`
 - `selectors.py` — Gmail web selectors. SEND_BUTTON is here for assertions only — never clicked.
+
+### `adapters/impactpool`
+
+- `discover.py` — `jobs discover --source impactpool` refuses without reading the board. · `ImpactpoolDiscover`
 
 ### `adapters/indeed`
 
