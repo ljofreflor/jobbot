@@ -69,6 +69,7 @@ _POSTING_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"/vacancy/[^/]+", re.I),
     # A listing directory followed by a slug that carries an id is one opening.
     re.compile(r"/vacancies/[^/]*\d[^/]*", re.I),
+    re.compile(r"/jobdetail/[^/]+/\d+", re.I),
     re.compile(r"/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I),
 )
 
@@ -78,9 +79,10 @@ _LOCALE_SEGMENT = re.compile(r"^[a-z]{2}(?:-[a-zA-Z]{2})?$")
 
 # One vacancy, not the board that lists them. Singular on purpose: `/jobs/` and
 # `/vacantes/` are listings and keep their directory. `/job/<id>` plus an
-# optional title slug is still that one posting.
+# optional title slug is still that one posting, and so is Avature's
+# `/JobDetail/<slug>/<id>` under the portal path.
 _SINGULAR_OPENING_TAIL = re.compile(
-    r"/(?:job|vacante|vacancy|position|opening|oferta)/[^/]+(?:/.*)?$",
+    r"/(?:jobdetail|job|vacante|vacancy|position|opening|oferta)/[^/]+(?:/.*)?$",
     re.I,
 )
 
