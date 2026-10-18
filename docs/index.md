@@ -185,9 +185,9 @@ lista postula solo ni inventa un hecho. Los que llevan **postular** o **presenci
 <nav class="jb-cmdnav" aria-label="Grupos de comandos">
   <a href="#cmd-maquina">Máquina local</a>
   <a href="#cmd-perfil">Perfil</a>
-  <a href="#cmd-cv">CV</a>
-  <a href="#cmd-vacantes">Vacantes</a>
-  <a href="#cmd-postulaciones">Postulaciones</a>
+  <a href="#cmd-cv" class="jb-cmdnav__story" title="Incluye pasos del relato">CV</a>
+  <a href="#cmd-vacantes" class="jb-cmdnav__story" title="Incluye pasos del relato">Vacantes</a>
+  <a href="#cmd-postulaciones" class="jb-cmdnav__story" title="Incluye pasos del relato">Postulaciones</a>
   <a href="#cmd-portales">Portales</a>
   <a href="#cmd-navegador">Navegador</a>
   <a href="#cmd-empresas">Empresas</a>
