@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
 from urllib.parse import urlsplit
@@ -13,15 +14,27 @@ from jobbot.portals.detect import AtsKind
 
 PAGE_SIZE = 100
 
+_BOARD_URL = re.compile(r"(?:jobs|careers)\.smartrecruiters\.com/([a-z0-9_-]+)", re.I)
+
+
+def board_in_text(text: str) -> str:
+    """The board a SmartRecruiters URL names anywhere in a text, or '' when absent."""
+    found = _BOARD_URL.search(text)
+    return found.group(1) if found else ""
+
 
 def company_identifier(raw: str) -> str:
-    """First path segment of the normalized board URL, or a bare identifier."""
+    """First path segment of a board URL on the vendor host, or a bare identifier."""
     text = raw.strip()
     if "://" not in text and "/" not in text and "." not in text:
         return text
     rooted = career_root_url(text if "://" in text else f"https://{text}", AtsKind.SMARTRECRUITERS)
-    segment = urlsplit(rooted).path.strip("/").split("/")[0]
-    return segment
+    parts = urlsplit(rooted)
+    host = parts.hostname or ""
+    if host != "smartrecruiters.com" and not host.endswith(".smartrecruiters.com"):
+        # A custom career host (careers.empresa.cl) names no board in its path.
+        return ""
+    return parts.path.strip("/").split("/")[0]
 
 
 def parse_postings(payload: dict[str, Any], company_id: str) -> tuple[list[JobPosting], int] | None:
