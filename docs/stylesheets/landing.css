@@ -913,6 +913,11 @@ body:has(.jb-hero) .md-tabs {
   border-bottom-color: var(--jb-cobalt);
 }
 
+.jb-cmdnav a.is-current {
+  color: var(--jb-navy);
+  border-bottom-color: var(--jb-navy);
+}
+
 .jb-section--cmds h3 {
   margin: 1.6rem 0 0.55rem;
   scroll-margin-top: 6.5rem;
