@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-122 commands, 176 modules, 1004 public symbols.
+122 commands, 177 modules, 1014 public symbols.
 
 ## Commands
 
@@ -107,7 +107,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
-- `jobbot profile queries` — Job searches derived from your experience; --apply saves them for you to edit.
+- `jobbot profile queries` — Job searches from your experience; --check measures them, --apply saves them.
 - `jobbot profile show` — Show a summary of the local profile.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
@@ -374,6 +374,7 @@ writing it again — the promotion rule lives in
 - `loader.py` — Load Candidate from profile.yaml. · `ProfileLoadError`, `load_profile`, `load_profile_raw`
 - `market.py` — Market-language suggestions for baseline CV (no invention; no deletions). · `MarketGapQuestion`, `MarketSuggestion`, `suggest_from_market`, `render_suggestion_markdown`, `apply_confirmed_skills`, `merge_confirmed_skills_into_raw`
 - `pdf_glyphs.py` — Recover the ligature glyphs a PDF's /ToUnicode map forgets. · `repair_missing_ligatures`
+- `query_check.py` — Measure saved searches against title results before anything is stored. · `QueryCell`, `QueryWarning`, `QueryCheck`, `significant_stems`, `title_covers`, `dominant_words`, `measure_queries`, `format_cell`, `sources_or_reject`, `search_source_titles`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`, `unknown_profile_keys`
 

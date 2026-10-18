@@ -42,7 +42,7 @@ jobbot update --schedule status
 | `profile import-latex [RUTA]` | Importa un CV LaTeX legado a `profile.generated.yaml`. |
 | `profile promote-generated` | Copia `profile.generated.yaml` → `profile.yaml` tras confirmación. |
 | `profile suggest-from-market` | Sugiere redacción base desde las JDs guardadas; pregunta antes de agregar skills. |
-| `profile queries` | Deriva búsquedas desde la experiencia del perfil. `--apply` las guarda como `search_queries` (con confirmación). |
+| `profile queries` | Deriva búsquedas desde la experiencia del perfil. `--apply` las guarda como `search_queries` (con confirmación). `--check` mide cada consulta contra fuentes de texto (getonboard, indeed, torre) sin guardar avisos ni tocar el perfil. |
 | `profile status` | Consistencia entre lo local y los snapshots de portales. |
 | `profile diff` | Diff del perfil local contra los snapshots de portales. |
 
