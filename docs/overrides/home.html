@@ -221,17 +221,17 @@
         <nav class="jb-scrolly__progress" aria-label="{% if en %}Story steps{% else %}Pasos del relato{% endif %}">
           <p class="jb-scrolly__dots" id="jb-scrolly-dots">
             <span class="jb-scrolly__chapter">
-              <a href="#story-get" class="is-current" aria-current="step" aria-label="{% if en %}Step 1, get{% else %}Paso 1, get{% endif %}"></a>
-              <a href="#story-match" aria-label="{% if en %}Step 2, match{% else %}Paso 2, match{% endif %}"></a>
-              <a href="#story-build" aria-label="{% if en %}Step 3, build{% else %}Paso 3, build{% endif %}"></a>
-              <a href="#story-conditions" aria-label="{% if en %}Step 4, conditions{% else %}Paso 4, conditions{% endif %}"></a>
-              <a href="#story-apply" aria-label="{% if en %}Step 5, apply{% else %}Paso 5, apply{% endif %}"></a>
-              <b>{% if en %}apply{% else %}postular{% endif %}</b>
+              <a href="#story-get" class="jb-scrolly__dot is-current" aria-current="step" aria-label="{% if en %}Step 1, get{% else %}Paso 1, get{% endif %}"></a>
+              <a href="#story-match" class="jb-scrolly__dot" aria-label="{% if en %}Step 2, match{% else %}Paso 2, match{% endif %}"></a>
+              <a href="#story-build" class="jb-scrolly__dot" aria-label="{% if en %}Step 3, build{% else %}Paso 3, build{% endif %}"></a>
+              <a href="#story-conditions" class="jb-scrolly__dot" aria-label="{% if en %}Step 4, conditions{% else %}Paso 4, conditions{% endif %}"></a>
+              <a href="#story-apply" class="jb-scrolly__dot" aria-label="{% if en %}Step 5, apply{% else %}Paso 5, apply{% endif %}"></a>
+              <a href="#story-get" class="jb-scrolly__loop" aria-label="{% if en %}Jump to the Apply loop{% else %}Ir al bucle Postular{% endif %}">{% if en %}apply{% else %}postular{% endif %}</a>
             </span>
             <span class="jb-scrolly__chapter">
-              <a href="#story-advise" aria-label="{% if en %}Step 6, advise{% else %}Paso 6, advise{% endif %}"></a>
-              <a href="#story-sync" aria-label="{% if en %}Step 7, sync{% else %}Paso 7, sync{% endif %}"></a>
-              <b>{% if en %}presence{% else %}presencia{% endif %}</b>
+              <a href="#story-advise" class="jb-scrolly__dot" aria-label="{% if en %}Step 6, advise{% else %}Paso 6, advise{% endif %}"></a>
+              <a href="#story-sync" class="jb-scrolly__dot" aria-label="{% if en %}Step 7, sync{% else %}Paso 7, sync{% endif %}"></a>
+              <a href="#story-advise" class="jb-scrolly__loop" aria-label="{% if en %}Jump to the Presence loop{% else %}Ir al bucle Presencia{% endif %}">{% if en %}presence{% else %}presencia{% endif %}</a>
             </span>
           </p>
           <p class="jb-scrolly__count" id="jb-scrolly-count" aria-hidden="true">1 / 7</p>
@@ -396,7 +396,8 @@
       var kicker = document.getElementById("jb-scrolly-kicker");
       var beat = document.getElementById("jb-scrolly-beat");
       var prose = document.getElementById("jb-scrolly-prose");
-      var dots = root.querySelectorAll(".jb-scrolly__dots a");
+      var dots = root.querySelectorAll(".jb-scrolly__dot");
+      var loops = root.querySelectorAll(".jb-scrolly__loop");
       var bar = document.getElementById("jb-scrolly-bar");
       var count = document.getElementById("jb-scrolly-count");
       var pin = root.querySelector(".jb-scrolly__pin");
@@ -474,21 +475,28 @@
         }
         return false;
       }
+      function jumpTo(id) {
+        for (var i = 0; i < steps.length; i++) {
+          if (steps[i].id !== id) continue;
+          if (location.hash !== "#" + id) location.hash = id;
+          else hold(steps[i]);
+          steps[i].scrollIntoView({
+            block: "nearest",
+            behavior: reduceMotion.matches ? "auto" : "smooth"
+          });
+          break;
+        }
+      }
+      function onJump(event) {
+        event.preventDefault();
+        var id = (event.currentTarget.getAttribute("href") || "").replace(/^#/, "");
+        jumpTo(id);
+      }
       dots.forEach(function (dot) {
-        dot.addEventListener("click", function (event) {
-          event.preventDefault();
-          var id = (dot.getAttribute("href") || "").replace(/^#/, "");
-          for (var i = 0; i < steps.length; i++) {
-            if (steps[i].id !== id) continue;
-            if (location.hash !== "#" + id) location.hash = id;
-            else hold(steps[i]);
-            steps[i].scrollIntoView({
-              block: "nearest",
-              behavior: reduceMotion.matches ? "auto" : "smooth"
-            });
-            break;
-          }
-        });
+        dot.addEventListener("click", onJump);
+      });
+      loops.forEach(function (loop) {
+        loop.addEventListener("click", onJump);
       });
       window.addEventListener("hashchange", showHashed);
       if (!showHashed() && steps[0]) show(steps[0]);
