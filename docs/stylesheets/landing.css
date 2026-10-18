@@ -1195,6 +1195,17 @@ a.jb-in-story__tag:focus-visible {
   border-radius: 0.25rem;
 }
 
+.jb-scrolly__split {
+  margin: 0;
+  padding: 1.35rem 0 0.2rem;
+  border-top: 1px solid rgba(0, 88, 248, 0.22);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jb-cobalt);
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
