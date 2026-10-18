@@ -1455,10 +1455,14 @@ a.jb-in-story__tag:hover {
   }
 
   .jb-scrolly__step {
-    min-height: 58vh;
+    min-height: 0;
     scroll-margin-top: 14rem;
-    padding: 0.5rem 0;
+    padding: 1rem 0 1.75rem;
     justify-content: flex-start;
+  }
+
+  .jb-scrolly__step + .jb-scrolly__step {
+    border-top: 1px solid rgba(0, 24, 56, 0.08);
   }
 
   .jb-hero__title {
