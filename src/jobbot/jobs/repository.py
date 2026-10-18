@@ -134,11 +134,17 @@ class JobRepository:
         self._session.commit()
 
     def replace_description(self, job_id: str, description: str) -> JobPosting:
-        """Replace the stored description. The id, URL, note and status stay."""
+        """Replace the stored posting text. The id, URL, note and status stay.
+
+        Both copies are replaced: readers that quote the posting (``check-answer``)
+        index ``raw_description`` too, so leaving it behind would keep backing
+        claims from the text this call replaced.
+        """
         row = self._session.get(JobRow, job_id)
         if row is None:
             raise KeyError(job_id)
         row.description = description
+        row.raw_description = description
         self._session.commit()
         return _from_row(row)
 

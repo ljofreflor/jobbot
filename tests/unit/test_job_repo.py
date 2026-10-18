@@ -48,6 +48,24 @@ def test_posted_at_survives_the_roundtrip(tmp_path: Path) -> None:
     assert loaded.posted_at.astimezone(UTC) == posted
 
 
+def test_replace_description_leaves_no_trace_of_the_old_posting(tmp_path: Path) -> None:
+    """Regression: check-answer reads raw_description too, so a replace must cover it."""
+    engine = make_engine(tmp_path / "test.sqlite")
+    session = make_session_factory(engine)()
+    repo = JobRepository(session)
+    text = Path("tests/fixtures/jobs/senior_ds_retail.txt").read_text(encoding="utf-8")
+    job = repo.add_from_text(text)
+    assert job.raw_description.strip()
+
+    replaced = repo.replace_description(job.id, "Otro aviso, otra empresa.")
+
+    assert replaced.description == "Otro aviso, otra empresa."
+    assert replaced.raw_description == "Otro aviso, otra empresa."
+    loaded = repo.get(job.id)
+    assert loaded is not None
+    assert "Sodimac" not in loaded.raw_description
+
+
 def test_posted_at_column_is_added_to_an_existing_database(tmp_path: Path) -> None:
     """Regression: older SQLite files have no posted_at; make_engine must migrate."""
     from sqlalchemy import text

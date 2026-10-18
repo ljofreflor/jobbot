@@ -246,6 +246,7 @@ Nothing in this list submits alone or invents a fact. Rows marked **story** are 
 | `jobbot jobs discover` | Discovers via a public API: `--source workday` or `--source un-careers`. `--dry-run` writes nothing. |
 | `jobbot jobs queries` | Prints web-search queries for ATS hosts. It does not search. |
 | `jobbot jobs show Jxxxx` | Shows a stored posting, including its close date when the posting publishes one. |
+| `jobbot jobs describe Jxxxx --file posting.txt` | Replaces a stored posting's text. The id, URL, note and application stay. |
 | <span class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Scores it against the profile. It helps you decide; it does not decide. |
 | <span class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <span class="jb-in-story__tag">story</span></span> | Posting conditions: met, a question, or a blocker. Offline. |
 | `jobbot jobs check-open` | Checks again whether a stored posting is still open. Read-only. |

@@ -246,6 +246,7 @@ lista postula solo ni inventa un hecho. Los que llevan la marca **relato** son l
 | `jobbot jobs discover` | Descubre por API pública: `--source workday` o `--source un-careers`. `--dry-run` no escribe. |
 | `jobbot jobs queries` | Imprime búsquedas web para hosts ATS. No busca. |
 | `jobbot jobs show Jxxxx` | Muestra un aviso guardado, con su cierre si lo publica. |
+| `jobbot jobs describe Jxxxx --file aviso.txt` | Reemplaza el texto de un aviso guardado. Conserva el id, la URL, la nota y la postulación. |
 | <span class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Puntúa contra el perfil. Ayuda a decidir; no decide. |
 | <span class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Condiciones del aviso: cumple, pregunta o impedimento. Offline. |
 | `jobbot jobs check-open` | Vuelve a mirar si el aviso sigue abierto. Solo lectura del estado. |
