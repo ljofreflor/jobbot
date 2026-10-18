@@ -3407,11 +3407,18 @@ def jobs_discover(
             adapter.country = chosen
             adapter.all_sitemap = all_sitemap
             if not dry_run:
-                adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for(
-                    "vacantes"
+                from jobbot.adapters.vacantes.parse import hex_ids
+
+                stored = StoredJobIndex.read_only(config.database_path)
+                adapter.known_ids = stored.ids_for("vacantes") | hex_ids(
+                    stored.urls_for("vacantes")
                 )
     if source in {"pjud", "greenhouse"} and query is None:
         queries = [""]
+    elif source == "vacantes" and not all_sitemap:
+        # The country landing ignores the text: one pass per profile search would
+        # recrawl the same board, one request a second, for the same snapshot.
+        queries = [query or ""]
     else:
         queries = _search_queries(config, query, max_queries)
     read_details = adapter.default_details if details is None else details

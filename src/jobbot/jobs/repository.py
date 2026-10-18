@@ -161,11 +161,13 @@ class StoredJobIndex:
     def __init__(self, rows: list[tuple[str, str, str | None, str | None]] | None = None) -> None:
         self._by_source: dict[tuple[str, str], str] = {}
         self._by_url: dict[str, str] = {}
+        self._urls_by_source: dict[str, set[str]] = {}
         for job_id, source, source_job_id, url in rows or []:
             if source_job_id:
                 self._by_source.setdefault((source, source_job_id), job_id)
             if url:
                 self._by_url.setdefault(url, job_id)
+                self._urls_by_source.setdefault(source, set()).add(url)
 
     @classmethod
     def read_only(cls, db_path: Path) -> StoredJobIndex:
@@ -186,6 +188,10 @@ class StoredJobIndex:
     def ids_for(self, source: str) -> set[str]:
         """Stored ``source_job_id`` values for one source."""
         return {job_id for (stored, job_id) in self._by_source if stored == source}
+
+    def urls_for(self, source: str) -> set[str]:
+        """Stored ``url`` values for one source."""
+        return set(self._urls_by_source.get(source, ()))
 
     def lookup(self, job: JobPosting) -> str | None:
         if job.source_job_id:

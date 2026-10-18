@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 213 modules, 1198 public symbols.
+129 commands, 213 modules, 1199 public symbols.
 
 ## Commands
 
@@ -296,7 +296,7 @@ writing it again — the promotion rule lives in
 ### `adapters/vacantes`
 
 - `discover.py` — `jobs discover --source vacantes` reads a landing or the vacancy sitemap. · `pause`, `fetch_public`, `VacantesDiscover`
-- `parse.py` — Vacantes.com landing links, sitemap locs, robots rules and JSON-LD jobs. · `ListingLink`, `canonical_job_url`, `link_from_url`, `listing_links`, `xml_locs`, `disallowed`, `path_blocked`, `job_from_html`
+- `parse.py` — Vacantes.com landing links, sitemap locs, robots rules and JSON-LD jobs. · `ListingLink`, `canonical_job_url`, `link_from_url`, `hex_ids`, `listing_links`, `xml_locs`, `disallowed`, `path_blocked`, `job_from_html`
 
 ### `adapters/workday`
 

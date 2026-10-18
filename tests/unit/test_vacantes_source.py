@@ -5,6 +5,7 @@ from __future__ import annotations
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 import yaml
@@ -265,6 +266,93 @@ def test_known_uuid_is_not_fetched_again(
     assert run_cli(argv, standalone_mode=False) == 0
     assert list(tmp_path.glob("output/jobs/*/job.json")) == stored
     assert not any("/es/vacantes/" in url for url in calls)
+    capsys.readouterr()
+
+
+def test_landing_is_read_once_without_query(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    calls: list[str] = []
+
+    def fetch(url: str) -> tuple[int, str]:
+        calls.append(url)
+        if url == ROBOTS:
+            return 200, _text(project_root, "robots.txt")
+        if url == LANDING:
+            return 200, _text(project_root, "landing_chile.html")
+        return 200, _text(project_root, "detail_jsonld.html")
+
+    _install(monkeypatch, fetch)
+    code = run_cli(
+        ["jobs", "discover", "--source", "vacantes", "--country", "CL", "--dry-run"],
+        standalone_mode=False,
+    )
+    assert code == 0
+    assert calls.count(LANDING) == 1
+    capsys.readouterr()
+
+
+def test_robots_disallow_on_vacancies_stops_before_any_detail(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    calls: list[str] = []
+
+    def fetch(url: str) -> tuple[int, str]:
+        calls.append(url)
+        if url == ROBOTS:
+            return 200, "User-agent: *\nDisallow: /es/vacantes/\n"
+        raise AssertionError(url)
+
+    _install(monkeypatch, fetch)
+    code = run_cli(
+        ["jobs", "discover", "--source", "vacantes", "--country", "CL", "--query", "health"],
+        standalone_mode=False,
+    )
+    captured = capsys.readouterr()
+    assert code == 1
+    assert calls == [ROBOTS]
+    assert "robots.txt disallows /es/vacantes/" in captured.out
+
+
+def test_sitemap_does_not_refetch_a_stored_vacancy(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    calls: list[str] = []
+
+    def fetch(url: str) -> tuple[int, str]:
+        calls.append(url)
+        if url == ROBOTS:
+            return 200, _text(project_root, "robots.txt")
+        if url == LANDING:
+            return 200, _text(project_root, "landing_chile.html")
+        if url == SITEMAP:
+            return 200, _text(project_root, "sitemap_index.xml")
+        if url == VACANCIES:
+            return 200, _text(project_root, "sitemap_vacancies.xml")
+        slug = urlsplit(url).path.strip("/").rsplit("/", 1)[-1]
+        hex_id = slug[-8:]
+        return 200, _detail(project_root, f"Cargo {hex_id}", f"{hex_id}-uuid", slug)
+
+    _install(monkeypatch, fetch)
+    landing = ["jobs", "discover", "--source", "vacantes", "--country", "CL", "--query", "health"]
+    assert run_cli(landing, standalone_mode=False) == 0
+    calls.clear()
+    sitemap = [*landing[:-1], "cargo", "--all-sitemap"]
+    assert run_cli(sitemap, standalone_mode=False) == 0
+    assert not any("ccc33333" in url for url in calls)
+    assert any("ddd44444" in url for url in calls)
     capsys.readouterr()
 
 
