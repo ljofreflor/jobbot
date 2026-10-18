@@ -936,11 +936,22 @@ body:has(.jb-hero) .md-tabs {
 .jb-section--cmds th,
 .jb-section--cmds td {
   vertical-align: top;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.jb-section--cmds tbody tr:nth-child(odd) td {
+  background: rgba(0, 88, 248, 0.045);
 }
 
 .jb-section--cmds td:first-child,
 .jb-section--cmds th:first-child {
   width: 42%;
+}
+
+.jb-section--cmds td:first-child code {
+  font-weight: 650;
+  color: var(--jb-navy);
 }
 
 .jb-section--cmds code {
