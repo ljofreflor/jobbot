@@ -152,11 +152,14 @@ def test_cli_full_without_job_is_a_usage_error() -> None:
     from typer.testing import CliRunner
 
     from jobbot.cli import app
+    from tests.conftest import plain_cli_text
 
     result = CliRunner().invoke(app, ["cv", "build", "--full"])
 
     assert result.exit_code == 2
-    assert "--job" in result.output
+    text = plain_cli_text(result.output)
+    assert "--job" in text
+    assert "only applies with" in text
 
 
 def test_build_cv_full_writes_the_full_selection(
