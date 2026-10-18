@@ -3176,6 +3176,32 @@ def jobs_search(
     console.print("Or: [bold]jobbot jobs shortlist[/bold]")
 
 
+@jobs_app.command("describe")
+def jobs_describe(
+    job_id: Annotated[str, typer.Argument(help="Stored job id")],
+    file: Annotated[
+        Path | None,
+        typer.Option("--file", help="Plain text that replaces the stored description"),
+    ] = None,
+) -> None:
+    """Replace one stored posting's description. The id, URL, note and application stay."""
+    if file is None:
+        err_console.print("[red]Pass --file with the posting text.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    text = file.expanduser().read_text(encoding="utf-8").strip()
+    if not text:
+        err_console.print("[red]--file is empty.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    session, config = _session()
+    try:
+        job = JobRepository(session).replace_description(job_id, text)
+    except KeyError:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from None
+    write_job_json(job, config.output_dir)
+    console.print(f"Updated {job.id} description ({len(text)} characters).")
+
+
 def _iso_territory(code: str) -> bool:
     from babel import Locale
 
@@ -4698,7 +4724,8 @@ def application_check_answer(
     """Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
 
     Exit 0 when every claim is backed, 2 when a claim is unbacked or misattributed,
-    4 when the question asks for motivation (only you can answer it).
+    4 when the question asks for motivation, including a cover letter whose claims
+    are all backed: the output says so, and only you can confirm the motivation.
     """
     from jobbot.applications.answer_check import Verdict, check_answer, render_answer_check
 

@@ -133,6 +133,15 @@ class JobRepository:
             row.closes_text = text
         self._session.commit()
 
+    def replace_description(self, job_id: str, description: str) -> JobPosting:
+        """Replace the stored description. The id, URL, note and status stay."""
+        row = self._session.get(JobRow, job_id)
+        if row is None:
+            raise KeyError(job_id)
+        row.description = description
+        self._session.commit()
+        return _from_row(row)
+
     def set_note(self, job_id: str, note: str) -> None:
         row = self._session.get(JobRow, job_id)
         if row is None:
