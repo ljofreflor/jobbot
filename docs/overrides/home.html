@@ -503,48 +503,55 @@
       if (narrow.addEventListener) narrow.addEventListener("change", watch);
     })();
     (function () {
-      var nav = document.querySelector(".jb-cmdnav");
-      if (!nav) return;
-      var links = nav.querySelectorAll("a[href^='#']");
-      var targets = [];
-      links.forEach(function (link) {
-        var id = link.getAttribute("href").slice(1);
-        var heading = document.getElementById(id);
-        if (heading) targets.push({ link: link, heading: heading });
-      });
-      if (!targets.length) return;
-      function mark(current) {
+      function boot() {
+        var nav = document.querySelector(".jb-cmdnav");
+        if (!nav) return;
+        var links = nav.querySelectorAll("a[href^='#']");
+        var targets = [];
         links.forEach(function (link) {
-          var on = link === current;
-          link.classList.toggle("is-current", on);
-          if (on) link.setAttribute("aria-current", "location");
-          else link.removeAttribute("aria-current");
+          var id = link.getAttribute("href").slice(1);
+          var heading = document.getElementById(id);
+          if (heading) targets.push({ link: link, heading: heading });
         });
-      }
-      var frame = 0;
-      function place() {
-        frame = 0;
-        var line = 6.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
-        var chosen = null;
-        targets.forEach(function (item) {
-          if (item.heading.getBoundingClientRect().top <= line + 4) chosen = item;
-        });
-        mark(chosen ? chosen.link : null);
-        if (!chosen) return;
-        var linkBox = chosen.link.getBoundingClientRect();
-        var navBox = nav.getBoundingClientRect();
-        if (linkBox.left < navBox.left || linkBox.right > navBox.right) {
-          nav.scrollLeft += linkBox.left - navBox.left - 8;
+        if (!targets.length) return;
+        function mark(current) {
+          links.forEach(function (link) {
+            var on = link === current;
+            link.classList.toggle("is-current", on);
+            if (on) link.setAttribute("aria-current", "location");
+            else link.removeAttribute("aria-current");
+          });
         }
+        var frame = 0;
+        function place() {
+          frame = 0;
+          var line = 6.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+          var chosen = null;
+          targets.forEach(function (item) {
+            if (item.heading.getBoundingClientRect().top <= line + 4) chosen = item;
+          });
+          mark(chosen ? chosen.link : null);
+          if (!chosen) return;
+          var linkBox = chosen.link.getBoundingClientRect();
+          var navBox = nav.getBoundingClientRect();
+          if (linkBox.left < navBox.left || linkBox.right > navBox.right) {
+            nav.scrollLeft += linkBox.left - navBox.left - 8;
+          }
+        }
+        function schedule() {
+          if (frame) return;
+          frame = window.requestAnimationFrame(place);
+        }
+        place();
+        window.addEventListener("scroll", schedule, { passive: true });
+        window.addEventListener("resize", schedule);
+        window.addEventListener("hashchange", schedule);
       }
-      function schedule() {
-        if (frame) return;
-        frame = window.requestAnimationFrame(place);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+      } else {
+        boot();
       }
-      place();
-      window.addEventListener("scroll", schedule, { passive: true });
-      window.addEventListener("resize", schedule);
-      window.addEventListener("hashchange", schedule);
     })();
   </script>
   {{ page.content }}
