@@ -256,6 +256,7 @@
           <p>A link or a sweep stores the posting on your machine. The portal receives nothing yet.</p>
           <p class="jb-scrolly__echo"><code>jobbot get 'https://…'</code></p>
           <p class="jb-scrolly__echo-out">Job stored. Nothing is sent.</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacancies">In the catalog</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">2 · apply</p>
@@ -263,6 +264,7 @@
           <p>The score comes from <code>profile.yaml</code>. No evidence, no invented match.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs match J0002</code></p>
           <p class="jb-scrolly__echo-out">82% · evidence from profile.yaml</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacancies">In the catalog</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">3 · apply</p>
@@ -270,6 +272,7 @@
           <p>The build writes the posting's PDF from facts already in the profile.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv build --job J0002</code></p>
           <p class="jb-scrolly__echo-out">output/jobs/J0002/ · facts reordered</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">In the catalog</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">4 · apply</p>
@@ -277,6 +280,7 @@
           <p>Closed, language, residence, contract: read from the posting against your profile. A blank answer stays a question.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
           <p class="jb-scrolly__echo-out">✅ backed · ⚠️ asks you · ❌ blocked</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacancies">In the catalog</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">5 · apply</p>
@@ -284,6 +288,7 @@
           <p><code>--apply</code> opens the form. Jobbot never clicks Send.</p>
           <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
           <p class="jb-scrolly__echo-out">Form open · the click is yours</p>
+          <p class="jb-scrolly__more"><a href="#cmd-applications">In the catalog</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">6 · presence</p>
@@ -291,6 +296,7 @@
           <p><code>advise</code> only restates what you already did. Each change waits for you.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
           <p class="jb-scrolly__echo-out">Presentation only · no new facts</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">In the catalog</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">7 · presence</p>
@@ -298,6 +304,7 @@
           <p><code>sync</code> confirms one destination at a time. <code>status</code> shows what was recorded locally.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
           <p class="jb-scrolly__echo-out">status · local evidence, not an invented “up to date”</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">In the catalog</a></p>
         </article>
       {% else %}
         <article class="jb-scrolly__step is-active">
@@ -306,6 +313,7 @@
           <p>Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.</p>
           <p class="jb-scrolly__echo"><code>jobbot get 'https://…'</code></p>
           <p class="jb-scrolly__echo-out">Aviso guardado. Nada se envía.</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacantes">En el catálogo</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">2 · postular</p>
@@ -313,6 +321,7 @@
           <p>El puntaje sale de <code>profile.yaml</code>. Sin evidencia no hay match inventado.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs match J0002</code></p>
           <p class="jb-scrolly__echo-out">82% · evidencia de profile.yaml</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacantes">En el catálogo</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">3 · postular</p>
@@ -320,6 +329,7 @@
           <p>El build arma el PDF del aviso con lo que ya está en el perfil.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv build --job J0002</code></p>
           <p class="jb-scrolly__echo-out">output/jobs/J0002/ · hechos reordenados</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">En el catálogo</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">4 · postular</p>
@@ -327,6 +337,7 @@
           <p>Cerrado, idioma, residencia, contrato: se leen del aviso contra tu perfil. Una respuesta en blanco sigue siendo una pregunta.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
           <p class="jb-scrolly__echo-out">✅ con evidencia · ⚠️ te pregunta · ❌ impedimento</p>
+          <p class="jb-scrolly__more"><a href="#cmd-vacantes">En el catálogo</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">5 · postular</p>
@@ -334,6 +345,7 @@
           <p><code>--apply</code> abre el formulario. Jobbot no pulsa Enviar.</p>
           <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
           <p class="jb-scrolly__echo-out">Formulario abierto · el clic es tuyo</p>
+          <p class="jb-scrolly__more"><a href="#cmd-postulaciones">En el catálogo</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">6 · presencia</p>
@@ -341,6 +353,7 @@
           <p><code>advise</code> solo reordena cómo se dice lo que ya hiciste. Cada cambio espera tu confirmación.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
           <p class="jb-scrolly__echo-out">Solo presentación · sin hechos nuevos</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">En el catálogo</a></p>
         </article>
         <article class="jb-scrolly__step">
           <p class="jb-scrolly__kicker">7 · presencia</p>
@@ -348,6 +361,7 @@
           <p><code>sync</code> confirma destino por destino. <code>status</code> muestra lo que quedó registrado en local.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
           <p class="jb-scrolly__echo-out">status · evidencia local, no un “al día” inventado</p>
+          <p class="jb-scrolly__more"><a href="#cmd-cv">En el catálogo</a></p>
         </article>
       {% endif %}
     </div>
@@ -387,7 +401,7 @@
         var label = step.querySelector(".jb-scrolly__kicker");
         var title = step.querySelector("h3");
         var blurb = step.querySelector(
-          "p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out)"
+          "p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more)"
         );
         if (cmd && echo) cmd.textContent = echo.textContent;
         if (out && note) out.textContent = note.textContent;
