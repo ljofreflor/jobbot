@@ -114,6 +114,10 @@ empleospublicos_app = typer.Typer(
     no_args_is_help=True,
 )
 portals_app = typer.Typer(help="Recruitment portal registry (ATS)", no_args_is_help=True)
+portals_profile_app = typer.Typer(
+    help="Profile coverage and fill sheets from the source of truth (no browser)",
+    no_args_is_help=True,
+)
 companies_app = typer.Typer(
     help="Company ↔ career platform knowledge (candidate → promote; public data only)",
     no_args_is_help=True,
@@ -154,6 +158,7 @@ app.add_typer(torre_app, name="torre")
 app.add_typer(empleospublicos_app, name="empleospublicos")
 app.add_typer(browser_app, name="browser")
 app.add_typer(portals_app, name="portals")
+portals_app.add_typer(portals_profile_app, name="profile")
 app.add_typer(companies_app, name="companies")
 app.add_typer(recruiters_app, name="recruiters")
 app.add_typer(ops_app, name="ops")
@@ -484,8 +489,7 @@ def _schedule_update(action: ScheduleAction) -> None:
     else:
         if installed_info().editable:
             err_console.print(
-                "[red]Editable install (development checkout): not scheduling. "
-                "Use git pull.[/red]"
+                "[red]Editable install (development checkout): not scheduling. Use git pull.[/red]"
             )
             raise _QuietExit(VALIDATION_FAILURE)
         binary = resolve_binary()
@@ -5424,6 +5428,292 @@ def portals_form_learn(
         console.print(f"Learned (candidate knowledge): {stored}")
     elif save:
         console.print("[yellow]Nothing stored: the form could not be read.[/yellow]")
+
+
+def _profile_states_or_exit(path: Path) -> list[Any]:
+    from jobbot.portals.profile_state import ProfileStateError, load_states
+
+    try:
+        return load_states(path)
+    except ProfileStateError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+
+def _candidate_or_none(config: JobbotConfig) -> Any:
+    from jobbot.profile.loader import ProfileLoadError, load_profile
+
+    if not config.profile_path.is_file():
+        return None
+    try:
+        return load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+
+def _resolve_portal_state(config: JobbotConfig, portal_id: str) -> Any:
+    from jobbot.portals.fill_catalog import catalog_state, fill_portal
+    from jobbot.portals.profile_state import default_state_path
+
+    states = _profile_states_or_exit(default_state_path(config.root))
+    for state in states:
+        if state.portal == portal_id:
+            return state
+    known = fill_portal(portal_id)
+    if known is None:
+        err_console.print(f"[red]Unknown portal: {portal_id}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    return catalog_state(known)
+
+
+@portals_profile_app.command("status")
+def portals_profile_status(
+    portal: Annotated[str | None, typer.Argument(help="One portal id")] = None,
+    as_json: Annotated[bool, typer.Option("--json", help="Machine-readable rows")] = False,
+) -> None:
+    """Coverage of tracked portals. Numbers and labels only; nothing is opened."""
+    from datetime import UTC, datetime
+
+    from jobbot.portals.profile_state import (
+        coverage_report,
+        cv_hashes_from_output,
+        default_state_path,
+    )
+
+    config = load_config()
+    path = default_state_path(config.root)
+    if path.is_file():
+        states = _profile_states_or_exit(path)
+    else:
+        from jobbot.portals.profile_state import AccountState, PortalProfileState, Priority
+        from jobbot.portals.registry import default_portals_path, load_registry
+
+        registry = load_registry(default_portals_path(config.root))
+        states = [
+            PortalProfileState(
+                portal=entry.domain,
+                adapter=entry.ats_kind.value,
+                priority=Priority.medium,
+                account=AccountState.unknown,
+            )
+            for entry in registry.portals
+        ]
+    if portal is not None:
+        states = [item for item in states if item.portal == portal]
+        if not states:
+            err_console.print(f"[red]Unknown portal: {portal}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+    report = coverage_report(
+        states,
+        _candidate_or_none(config) if path.is_file() else None,
+        now=datetime.now(UTC),
+        cv_hashes=cv_hashes_from_output(config.root),
+    )
+    if as_json:
+        console.print_json(data=report.to_public_dict())
+        return
+    console.print(
+        f"KPI {report.kpi_num}/{report.kpi_den}  "
+        f"automation {report.automation:.0%}  "
+        f"SST gap {report.sst_gap}  due {report.due}"
+    )
+    table = Table(title="Portal profile coverage")
+    table.add_column("Portal")
+    table.add_column("Status")
+    table.add_column("Level")
+    table.add_column("c_p")
+    table.add_column("CV")
+    for row in report.portals:
+        table.add_row(
+            row.portal,
+            row.status.value,
+            str(row.level),
+            f"{row.covered}/{row.applicable}",
+            "yes" if row.cv_current else "no",
+        )
+    console.print(table)
+
+
+@portals_profile_app.command("sheet")
+def portals_profile_sheet(
+    portal: Annotated[str, typer.Argument(help="Portal id from the fill catalog or the tracker")],
+    lang: Annotated[str, typer.Option("--lang", help="es or en")] = "es",
+    out: Annotated[Path | None, typer.Option("--out", help="Write the sheet here")] = None,
+) -> None:
+    """Fill sheet from the source of truth. Does not open a browser."""
+    from jobbot.portals.fill_catalog import fill_portal
+    from jobbot.portals.profile_sheet import render_fill_sheet
+    from jobbot.portals.profile_state import default_alias_path, load_aliases
+
+    config = load_config()
+    candidate = _candidate_or_none(config)
+    if candidate is None:
+        err_console.print("[red]Profile not found. The sheet needs data/profile.yaml.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    state = _resolve_portal_state(config, portal)
+    try:
+        text = render_fill_sheet(
+            state,
+            candidate,
+            load_aliases(default_alias_path(config.root)),
+            lang=lang,
+            catalog=fill_portal(portal),
+        )
+    except ValueError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    if out is not None:
+        destination = out.expanduser()
+        if not destination.is_absolute():
+            destination = config.root / destination
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(text, encoding="utf-8")
+        console.print(f"Wrote {destination}")
+        return
+    console.print(text, markup=False)
+
+
+@portals_profile_app.command("mark-updated")
+def portals_profile_mark_updated(
+    portal: Annotated[str, typer.Argument()],
+    sections: Annotated[str, typer.Option("--sections", help="Comma-separated canonical sections")],
+    evidence: Annotated[str, typer.Option("--evidence", help="diff, receipt, or none")],
+    note: Annotated[str | None, typer.Option("--note")] = None,
+) -> None:
+    """Record a manual fill. evidence=none does not raise coverage."""
+    from datetime import UTC, datetime
+
+    from jobbot.portals.profile_state import (
+        EvidenceKind,
+        ProfileStateError,
+        cv_hashes_from_output,
+        default_state_path,
+        mark_updated,
+        save_states,
+    )
+
+    config = load_config()
+    path = default_state_path(config.root)
+    states = _profile_states_or_exit(path)
+    index = next((i for i, item in enumerate(states) if item.portal == portal), None)
+    if index is None:
+        err_console.print(f"[red]Unknown portal: {portal}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        kind = EvidenceKind(evidence)
+    except ValueError as exc:
+        err_console.print("[red]evidence must be diff, receipt, or none[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    evidence_dir = config.root / "output" / "portals" / portal
+    if kind is not EvidenceKind.none and not any(evidence_dir.glob("*")):
+        err_console.print(
+            f"[red]Missing evidence file in {evidence_dir}. "
+            "A declaration without a file does not count.[/red]"
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+    names = [item.strip() for item in sections.split(",") if item.strip()]
+    try:
+        states[index] = mark_updated(
+            states[index],
+            sections=names,
+            evidence=kind,
+            by="manual",
+            now=datetime.now(UTC),
+            candidate=_candidate_or_none(config),
+            current_cv_sha256=cv_hashes_from_output(config.root).get(states[index].cv_variant),
+            note=note,
+        )
+    except ProfileStateError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    save_states(states, path)
+    console.print(f"Recorded {portal} evidence={kind.value} sections={','.join(names)}")
+
+
+@portals_profile_app.command("import")
+def portals_profile_import(
+    csv_path: Annotated[Path, typer.Option("--csv", help="Tracker export")],
+    apply: Annotated[bool, typer.Option("--apply", help="Write the tracker")] = False,
+) -> None:
+    """Seed portal state from a CSV. Without --apply, nothing is written."""
+    from jobbot.portals.profile_state import (
+        ProfileStateError,
+        default_state_path,
+        preview_import,
+        save_states,
+    )
+
+    config = load_config()
+    source = csv_path.expanduser()
+    if not source.is_absolute():
+        source = config.root / source
+    if not source.is_file():
+        err_console.print(f"[red]CSV not found: {source}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        preview = preview_import(source)
+    except ProfileStateError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    for column in preview.ignored_columns:
+        console.print(f"ignorada: {column}")
+    console.print(f"{len(preview.rows)} portal(s): {', '.join(preview.portals)}")
+    if not apply:
+        console.print("Dry run. Pass --apply to write data/portal_profiles.yaml.")
+        return
+    save_states(preview.rows, default_state_path(config.root))
+    console.print(f"Wrote {default_state_path(config.root)}")
+
+
+@portals_profile_app.command("seed")
+def portals_profile_seed(
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write catalog portals that are missing"),
+    ] = False,
+) -> None:
+    """Register the known career portals (UN, UNICEF, FAO, ADP, Devex, Impactpool, and the rest)."""
+    from jobbot.portals.fill_catalog import FILL_PORTALS, catalog_state
+    from jobbot.portals.profile_state import default_state_path, save_states
+
+    config = load_config()
+    path = default_state_path(config.root)
+    states = _profile_states_or_exit(path)
+    have = {item.portal for item in states}
+    missing = [catalog_state(item) for item in FILL_PORTALS if item.portal not in have]
+    for item in missing:
+        console.print(f"{item.portal}  adapter={item.adapter}  account={item.account.value}")
+    if not apply:
+        console.print(f"Dry run. {len(missing)} portal(s). Pass --apply to write.")
+        return
+    save_states([*states, *missing], path)
+    console.print(f"Wrote {len(missing)} portal(s) to {path}")
+
+
+@portals_profile_app.command("push")
+def portals_profile_push(
+    portal: Annotated[str, typer.Argument()],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Refused: no browser writer types into these portals"),
+    ] = False,
+) -> None:
+    """Refuse to type into a portal. Identity-bound sites never attach; the sheet is the fill."""
+    config = load_config()
+    state = _resolve_portal_state(config, portal)
+    if state.account.value == "identity_bound" or state.adapter == "identity_bound":
+        err_console.print(
+            "[red]identity_bound: jobbot does not attach to this portal. "
+            "Use `jobbot portals profile sheet`.[/red]"
+        )
+        raise typer.Exit(VALIDATION_FAILURE)
+    err_console.print(
+        f"[red]adapter {state.adapter} has no browser writer. "
+        "Nothing was typed. The fill is `jobbot portals profile sheet`.[/red]"
+    )
+    del apply
+    raise typer.Exit(VALIDATION_FAILURE)
 
 
 def _fetch_public_html(url: str) -> str | None:

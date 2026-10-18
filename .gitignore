@@ -27,6 +27,11 @@ data/recruiters.yaml
 # Answers profile.yaml does not hold (language level, contract, pay): local only.
 data/application_answers.yaml
 data/application_answers.yaml.*
+# Per-portal sync state and the alias each portal account uses. Local only.
+data/portal_profiles.yaml
+data/portal_profiles.yaml.*
+data/aliases.yaml
+data/aliases.yaml.*
 
 # Keep sanitized templates tracked
 !data/profile.example.yaml

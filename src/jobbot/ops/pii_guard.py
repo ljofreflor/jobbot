@@ -31,7 +31,16 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
         "your answers to application questions (language level, contract, pay)",
     ),
     (
-        r"^data/(profile|portals|companies|recruiters|form_knowledge|application_answers)"
+        r"^data/portal_profiles\.yaml$",
+        "which portals hold this candidate's profile, and the sync record",
+    ),
+    (
+        r"^data/aliases\.yaml$",
+        "email aliases used to open portal accounts",
+    ),
+    (
+        r"^data/(profile|portals|companies|recruiters|form_knowledge|application_answers|"
+        r"portal_profiles|aliases)"
         r"\.yaml\..+$",
         "backup or variant of a local data file (same data as the original)",
     ),

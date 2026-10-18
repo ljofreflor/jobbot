@@ -1,0 +1,4 @@
+portal,adapter,priority,account,sections,email_alias,extra
+alpha,generic,high,unknown,"identity,experience",alias-01,ignore-me
+beta,taleo,medium,identity_bound,identity,alias-02,ignore-me
+gamma,pageup,low,unknown,cv,,ignore-me
