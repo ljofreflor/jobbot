@@ -45,6 +45,7 @@ _LABELS: dict[str, str] = {
     "recruitee": "Recruitee",
     "breezy": "Breezy HR",
     "manatal": "Manatal",
+    "cornerstone": "Cornerstone",
     "torre": "Torre",
     "jobtome": "Jobtome",
     "remoshift": "Remoshift",
@@ -53,6 +54,7 @@ _LABELS: dict[str, str] = {
     "vacantes": "Vacantes.com",
     "empleos_publicos": "Empleos Públicos",
     "alta_direccion_publica": "Alta Dirección Pública",
+    "un_careers": "UN Careers",
     "indeed": "Indeed",
     "linkedin": "LinkedIn",
     "email": "Correo al reclutador",
@@ -122,7 +124,8 @@ def platform_flavours() -> tuple[Flavour, ...]:
         return group(kind for kind in ats if account_need(kind) is need)
 
     sources = source_kinds()
-    boards = [*sources, *(k for k in known if k in JOB_BOARD_KINDS and k not in sources)]
+    board_sources = [kind for kind in sources if kind in JOB_BOARD_KINDS]
+    boards = [*board_sources, *(k for k in known if k in JOB_BOARD_KINDS and k not in sources)]
     searched = _spoken_list([platform_label(kind) for kind in sources])
     markers = len(html_marker_kinds())
     return (

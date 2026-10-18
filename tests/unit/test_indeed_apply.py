@@ -14,8 +14,9 @@ from tests.fixtures.profile import sample_profile_dict
 
 
 def _card(url: str) -> dict[str, str]:
+    jk = url.rsplit("jk=", 1)[-1].split("&", 1)[0]
     return {
-        "source_job_id": "abc123",
+        "source_job_id": jk,
         "url": url,
         "title": "",
         "company": "",
@@ -41,15 +42,15 @@ def test_indeed_adapter_is_registered_like_the_others() -> None:
 
 
 def test_indeed_apply_url_when_the_posting_stays_on_indeed() -> None:
-    url = "https://cl.indeed.com/viewjob?jk=abc123"
+    url = "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
     job = card_to_job_posting(_card(url), detail_html=_html(), placeholder_id="TMP")
 
-    assert job.ats_url == "https://cl.indeed.com/applystart?jk=abc123"
+    assert job.ats_url == "https://cl.indeed.com/applystart?jk=8a5fab1a7c476a97"
     assert job.ats_kind == "indeed"
 
 
 def test_external_apply_link_wins_over_indeed_apply() -> None:
-    url = "https://mx.indeed.com/viewjob?jk=abc123"
+    url = "https://mx.indeed.com/viewjob?jk=8a5fab1a7c476a97"
     html = _html(
         extra=(
             '<a href="https://jobs.lever.co/acme/role-1">Apply on company site</a>'
@@ -62,7 +63,7 @@ def test_external_apply_link_wins_over_indeed_apply() -> None:
 
 
 def test_a_closed_posting_is_refused() -> None:
-    url = "https://cl.indeed.com/viewjob?jk=abc123"
+    url = "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
     html = _html(extra="<p>Ya no acepta aplicaciones.</p>")
 
     with pytest.raises(IndeedJobClosed):
@@ -79,8 +80,8 @@ def test_open_uses_the_external_ats_when_one_was_stored(
     job = JobPosting(
         id="J0001",
         source="indeed",
-        source_job_id="abc123",
-        url="https://cl.indeed.com/viewjob?jk=abc123",
+        source_job_id="8a5fab1a7c476a97",
+        url="https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
         title="Editor",
         company="Diario",
         ats_url="https://jobs.lever.co/acme/role-1",
@@ -97,7 +98,7 @@ def test_prefill_does_not_invent_a_password() -> None:
     job = JobPosting(
         id="J0001",
         source="indeed",
-        url="https://cl.indeed.com/viewjob?jk=abc123",
+        url="https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
         title="Editor",
         company="Diario",
     )

@@ -19,6 +19,7 @@ _SHORT_JD_CHARS = 400
 _MIN_EXPERIENCES = 4
 _MIN_ACHIEVEMENTS = 4
 _FLOOR_REASON = "floor: short JD — kept recent evidence so the CV stays usable"
+_FULL_REASON = "full: kept from profile, no overlap with the posting"
 
 
 @dataclass
@@ -36,6 +37,8 @@ class SelectionResult:
     skill_names: list[str]
     include_publications: bool = True
     job_id: str | None = None
+    # Achievements render in selection order (by relevance) instead of profile order.
+    full: bool = False
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -48,6 +51,8 @@ class SelectionResult:
         }
         if self.job_id:
             payload["job_id"] = self.job_id
+        if self.full:
+            payload["full"] = True
         return payload
 
 
@@ -69,9 +74,17 @@ def select_for_job(
     candidate: Candidate,
     job: JobPosting,
     match: JobMatch | None = None,
+    *,
+    full: bool = False,
 ) -> SelectionResult:
-    """Select achievements/skills overlapping the job — never invent."""
+    """Select achievements/skills overlapping the job — never invent.
+
+    ``full`` keeps every role and achievement; inside each role the ones the posting
+    names come first (most overlap first, ties in profile order).
+    """
     job_tokens = _job_tokens(job)
+    if full:
+        return _select_full(candidate, job, job_tokens)
     selected: list[SelectedAchievement] = []
     exp_ids: list[str] = []
 
@@ -130,6 +143,36 @@ def select_for_job(
     )
 
 
+def _select_full(
+    candidate: Candidate,
+    job: JobPosting,
+    job_tokens: set[str],
+) -> SelectionResult:
+    selected: list[SelectedAchievement] = []
+    for exp in candidate.experience:
+        scored = [
+            SelectedAchievement(
+                id=ach.id,
+                reason=_achievement_reasons(ach, exp, job_tokens, job) or [_FULL_REASON],
+            )
+            for ach in exp.achievements
+        ]
+        selected += sorted(scored, key=lambda item: -_overlap(item))
+    related = [s for s in candidate.skills.all_skills() if normalize_skill(s) in job_tokens]
+    return SelectionResult(
+        experience_ids=[exp.id for exp in candidate.experience],
+        selected_achievements=selected,
+        skill_names=related + [s for s in candidate.skills.all_skills() if s not in related],
+        include_publications=True,
+        job_id=job.id,
+        full=True,
+    )
+
+
+def _overlap(item: SelectedAchievement) -> int:
+    return sum(1 for reason in item.reason if reason != _FULL_REASON)
+
+
 def _pad_selection_floor(
     candidate: Candidate,
     exp_ids: list[str],
@@ -163,14 +206,20 @@ def filter_experiences(
     candidate: Candidate,
     selection: SelectionResult,
 ) -> list[tuple[Experience, list[Achievement]]]:
-    """Return experiences with only selected achievements, preserving order."""
-    selected_ids = {a.id for a in selection.selected_achievements}
+    """Return experiences with only selected achievements.
+
+    Roles keep profile order. Achievements keep profile order too, unless the selection
+    is ``full``: then they follow the selection's relevance order.
+    """
+    rank = {a.id: i for i, a in enumerate(selection.selected_achievements)}
     allowed_exp = set(selection.experience_ids)
     result: list[tuple[Experience, list[Achievement]]] = []
     for exp in candidate.experience:
         if exp.id not in allowed_exp:
             continue
-        achs = [a for a in exp.achievements if a.id in selected_ids]
+        achs = [a for a in exp.achievements if a.id in rank]
+        if selection.full:
+            achs.sort(key=lambda a: rank[a.id])
         result.append((exp, achs))
     return result
 

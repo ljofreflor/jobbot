@@ -84,8 +84,17 @@ def test_every_job_source_maps_to_a_platform() -> None:
 
 def test_job_sources_lead_the_board_flavour() -> None:
     boards = next(f for f in platform_flavours() if f.key == "boards")
-    leading = tuple(p.kind for p in boards.platforms[: len(source_kinds())])
-    assert leading == source_kinds()
+    board_sources = tuple(k for k in source_kinds() if k in JOB_BOARD_KINDS)
+    leading = tuple(p.kind for p in boards.platforms[: len(board_sources)])
+    assert leading == board_sources
+
+
+def test_an_ats_source_stays_an_ats_and_is_named_as_searched() -> None:
+    boards = next(f for f in platform_flavours() if f.key == "boards")
+    assert AtsKind.WORKDAY in source_kinds()
+    assert AtsKind.WORKDAY in _kinds_in("ats_account")
+    assert AtsKind.WORKDAY not in _kinds_in("boards")
+    assert "Workday" in boards.note
 
 
 def test_own_sites_note_counts_platforms_detectable_from_markup() -> None:

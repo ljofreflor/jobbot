@@ -1,0 +1,16 @@
+Title: Analista de Datos Hídricos
+Company: Aguas del Ejemplo
+Location: Santiago, Chile
+
+Buscamos una persona analista para modelar redes de distribución de agua y
+apoyar decisiones de operación con datos de sensores en terreno.
+
+Requisitos:
+- Python
+- SQL
+- Kriging
+- Modelamiento de redes hidráulicas con datos de caudal y presión.
+- Experiencia presentando resultados a equipos de operación y mantención.
+
+Ofrecemos trabajo híbrido, equipo multidisciplinario y foco en impacto
+operacional medible sobre pérdidas de agua y continuidad del servicio.

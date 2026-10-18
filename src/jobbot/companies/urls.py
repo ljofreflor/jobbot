@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse, urlunparse
 
+import httpx
+
 
 class PrivateRouteRejected(ValueError):
     """Raised when a URL cannot be shared as company knowledge (e.g. mailto:)."""
@@ -77,6 +79,19 @@ def public_url(url: str) -> str:
     path = re.sub(r"/{2,}", "/", parsed.path or "").rstrip("/")
     scheme = parsed.scheme.lower() if parsed.scheme in {"http", "https"} else "https"
     return urlunparse((scheme, netloc, path, "", "", ""))
+
+
+def request_url(url: str) -> str:
+    """What goes on the wire: IDNA host, percent-encoded path and query, no fragment.
+
+    Stored URLs keep what the portal printed (``…/consultoría-…``); ``urllib`` only
+    sends ASCII. Already-encoded parts are left as they are. Raises ``ValueError``
+    for a URL that cannot be sent at all.
+    """
+    try:
+        return str(httpx.URL(url.strip()).copy_with(fragment=None))
+    except httpx.InvalidURL as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def canonical_key(url: str) -> str:

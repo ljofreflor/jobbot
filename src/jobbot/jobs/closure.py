@@ -9,6 +9,7 @@ from collections.abc import Callable
 
 from bs4 import BeautifulSoup, Tag
 
+from jobbot.companies.urls import request_url
 from jobbot.models.job import JobPosting
 
 # Phrases that state this opening is gone. A bare "closed" or "filled" is not
@@ -46,6 +47,10 @@ _CLOSED_PHRASES: tuple[str, ...] = (
     "la oferta ya no está disponible",
     "la oferta ya no esta disponible",
     "esta oferta ha expirado",
+    "este anuncio ha expirado",
+    "oferta finalizada",
+    "este empleo caducó",
+    "este empleo ha caducado",
     "esta vacante ya no está disponible",
     "esta vacante ya no esta disponible",
 )
@@ -117,13 +122,18 @@ def _is_hidden(node: Tag) -> bool:
 
 def fetch_posting_text(url: str, *, timeout: float = 20.0) -> str:
     """Read a public posting page. Raises OSError when it cannot be read."""
+    try:
+        wire = request_url(url)
+    except ValueError as exc:
+        msg = f"posting URL cannot be requested: {exc}"
+        raise OSError(msg) from exc
     from jobbot.portals.detect import ROBOTS_DISALLOWED_KINDS, detect_ats
 
     if detect_ats(url) in ROBOTS_DISALLOWED_KINDS:
         msg = f"robots.txt disallows automated reading of {url}"
         raise OSError(msg)
     req = urllib.request.Request(
-        url,
+        wire,
         headers={
             "User-Agent": "jobbot/0.1 (local; posting status)",
             "Accept": "text/html,application/xhtml+xml",

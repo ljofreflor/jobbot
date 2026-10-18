@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic: the recorded channel header with no open postings. -->
+<rss version="2.0">
+    <channel>
+        <title>United Nations Job Openings</title>
+        <link>https://careers.un.org</link>
+        <description>United Nations Job Openings</description>
+        <lastBuildDate>Fri, 09 Oct 2026 20:16:58 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+    </channel>
+</rss>

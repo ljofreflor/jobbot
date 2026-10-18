@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+import sqlite3
+from contextlib import closing
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sqlalchemy import select
@@ -71,6 +73,10 @@ class JobRepository:
             job.note = existing.note
         if job.match_score is None:
             job.match_score = existing.match_score
+        if job.open_status is None:
+            job.open_status = existing.open_status
+            job.checked_at = existing.checked_at
+            job.open_evidence = existing.open_evidence
         self.save(job)
         return job
 
@@ -80,9 +86,20 @@ class JobRepository:
             return None
         return _from_row(row)
 
-    def list_all(self) -> list[JobPosting]:
+    def list_all(self, *, include_invalid: bool = False) -> list[JobPosting]:
         rows = self._session.scalars(select(JobRow).order_by(JobRow.id)).all()
-        return [_from_row(r) for r in rows]
+        jobs = [_from_row(r) for r in rows]
+        if include_invalid:
+            return jobs
+        return [job for job in jobs if not job.invalid_reason]
+
+    def mark_invalid(self, job_id: str, reason: str) -> None:
+        row = self._session.get(JobRow, job_id)
+        if row is None:
+            msg = f"Job not found: {job_id}"
+            raise KeyError(msg)
+        row.invalid_reason = reason
+        self._session.commit()
 
     def update_match_score(self, job_id: str, score: float) -> None:
         row = self._session.get(JobRow, job_id)
@@ -92,6 +109,30 @@ class JobRepository:
         row.match_score = score
         self._session.commit()
 
+    def record_open_check(
+        self,
+        job_id: str,
+        *,
+        status: str,
+        evidence: str,
+        checked_at: datetime,
+        closes: tuple[date | None, datetime | None, str | None] | None = None,
+    ) -> None:
+        """Persist an online check; ``closes`` (on, at, text) refreshes the stored closing."""
+        row = self._session.get(JobRow, job_id)
+        if row is None:
+            msg = f"Job not found: {job_id}"
+            raise KeyError(msg)
+        row.open_status = status
+        row.checked_at = checked_at
+        row.open_evidence = evidence
+        if closes is not None:
+            on, at, text = closes
+            row.closes_on = on
+            row.closes_at = at.isoformat() if at else None
+            row.closes_text = text
+        self._session.commit()
+
     def set_note(self, job_id: str, note: str) -> None:
         row = self._session.get(JobRow, job_id)
         if row is None:
@@ -99,6 +140,46 @@ class JobRepository:
             raise KeyError(msg)
         row.note = note
         self._session.commit()
+
+
+class StoredJobIndex:
+    """Which jobs are already stored, read without touching the database file.
+
+    A preview (`--dry-run`) must not create the database or migrate it, so this
+    opens SQLite read-only and asks for three columns every version has.
+    """
+
+    def __init__(self, rows: list[tuple[str, str, str | None, str | None]] | None = None) -> None:
+        self._by_source: dict[tuple[str, str], str] = {}
+        self._by_url: dict[str, str] = {}
+        for job_id, source, source_job_id, url in rows or []:
+            if source_job_id:
+                self._by_source.setdefault((source, source_job_id), job_id)
+            if url:
+                self._by_url.setdefault(url, job_id)
+
+    @classmethod
+    def read_only(cls, db_path: Path) -> StoredJobIndex:
+        if not db_path.is_file():
+            return cls()
+        uri = f"{db_path.resolve().as_uri()}?mode=ro"
+        try:
+            with closing(sqlite3.connect(uri, uri=True)) as conn:
+                rows = conn.execute("SELECT id, source, source_job_id, url FROM jobs").fetchall()
+        except sqlite3.Error:
+            return cls()
+        return cls([(str(r[0]), str(r[1]), r[2], r[3]) for r in rows])
+
+    @classmethod
+    def from_repository(cls, repo: JobRepository) -> StoredJobIndex:
+        return cls([(j.id, j.source, j.source_job_id, j.url) for j in repo.list_all()])
+
+    def lookup(self, job: JobPosting) -> str | None:
+        if job.source_job_id:
+            found = self._by_source.get((job.source, job.source_job_id))
+            if found:
+                return found
+        return self._by_url.get(job.url) if job.url else None
 
 
 def write_job_json(job: JobPosting, output_dir: Path) -> Path:
@@ -133,7 +214,24 @@ def _to_row_fields(job: JobPosting) -> dict[str, object]:
         else job.discovered_at,
         "note": job.note,
         "match_score": job.match_score,
+        "closes_at": job.closes_at.isoformat() if job.closes_at else None,
+        "closes_on": job.closes_on,
+        "closes_text": job.closes_text,
+        "ats_signals_json": json.dumps(job.ats_signals) if job.ats_signals else None,
+        "open_status": job.open_status,
+        "checked_at": job.checked_at,
+        "open_evidence": job.open_evidence,
+        "invalid_reason": job.invalid_reason,
     }
+
+
+def _closes_at(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 def _as_utc(moment: datetime | None) -> datetime | None:
@@ -166,4 +264,12 @@ def _from_row(row: JobRow) -> JobPosting:
         discovered_at=row.discovered_at,
         note=row.note,
         match_score=row.match_score,
+        closes_at=_closes_at(getattr(row, "closes_at", None)),
+        closes_on=getattr(row, "closes_on", None),
+        closes_text=getattr(row, "closes_text", None),
+        ats_signals=json.loads(getattr(row, "ats_signals_json", None) or "{}"),
+        open_status=getattr(row, "open_status", None),
+        checked_at=_as_utc(getattr(row, "checked_at", None)),
+        open_evidence=getattr(row, "open_evidence", None),
+        invalid_reason=getattr(row, "invalid_reason", None),
     )

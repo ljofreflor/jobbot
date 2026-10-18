@@ -33,9 +33,12 @@ from jobbot.portals.knowledge import PortalKnowledge, lookup_portal
 __all__ = [
     "ClosedPostingError",
     "GetFromUrlResult",
+    "InvalidPostingUrlError",
     "PortalDisallowedError",
+    "PortalShapeChangedError",
     "UnknownPortalError",
     "UnsupportedPortalFetchError",
+    "fetch_workday_posting",
     "ingest_hard_link",
 ]
 
@@ -50,6 +53,14 @@ class UnsupportedPortalFetchError(ValueError):
 
 class PortalDisallowedError(ValueError):
     """The portal's robots.txt forbids automated reading: a decision, not a missing fetcher."""
+
+
+class InvalidPostingUrlError(UnsupportedPortalFetchError):
+    """The host has a fetcher, but this URL does not name one posting."""
+
+
+class PortalShapeChangedError(UnsupportedPortalFetchError):
+    """The portal answered with a shape the fetcher no longer understands."""
 
 
 @dataclass(frozen=True)
@@ -154,6 +165,8 @@ def _fetch_job(
             f"text into a file and run `jobbot jobs add --file ficha.txt --url {portal.url}`."
         )
         raise PortalDisallowedError(msg)
+    if portal.ats_kind == AtsKind.WORKDAY and html is None:
+        return fetch_workday_posting(portal.url)
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)
@@ -183,6 +196,32 @@ def _fetch_job(
         "or pass --fixture with saved career HTML."
     )
     raise UnsupportedPortalFetchError(msg)
+
+
+def fetch_workday_posting(url: str) -> JobPosting:
+    """Live CXS detail for a Workday link; closure and unreadable sites become clear errors."""
+    from jobbot.adapters.workday.cxs import (
+        WorkdayError,
+        WorkdayPostingClosed,
+        WorkdayShapeChanged,
+        fetch_workday_job,
+    )
+    from jobbot.jobs import closing
+
+    try:
+        job = fetch_workday_job(url)
+        state = closing.closing_state(job.closes_at, job.closes_on, now=closing.utc_now())
+        if state is closing.ClosingState.EXPIRED:
+            raise WorkdayPostingClosed(f"{job.url}: closing passed ({job.closes_text})")
+        return job
+    except WorkdayPostingClosed:
+        raise
+    except WorkdayShapeChanged as exc:
+        raise PortalShapeChangedError(f"Workday: {exc}") from exc
+    except WorkdayError as exc:
+        raise UnsupportedPortalFetchError(f"Workday: {exc}") from exc
+    except ValueError as exc:
+        raise InvalidPostingUrlError(str(exc)) from exc
 
 
 def _fetch_empleos_publicos_job(

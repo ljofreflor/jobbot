@@ -11,7 +11,7 @@ from jobbot.config import JobbotConfig
 from jobbot.models.job import JobPosting
 
 JobSourceName = Literal[
-    "indeed", "linkedin_post", "getonboard", "torre", "empleos_publicos"
+    "indeed", "linkedin_post", "getonboard", "torre", "empleos_publicos", "workday", "un_careers"
 ]
 
 
@@ -60,5 +60,13 @@ def get_job_source(
         from jobbot.adapters.empleospublicos.jobs import EmpleosPublicosJobSource
 
         return EmpleosPublicosJobSource(config, fixture=fixture)
+    if name == "workday":
+        from jobbot.adapters.workday.jobs import WorkdayJobSource
+
+        return WorkdayJobSource()
+    if name == "un_careers":
+        from jobbot.adapters.un_careers.jobs import UnCareersJobSource
+
+        return UnCareersJobSource()
     msg = f"Unknown job source: {name}"
     raise ValueError(msg)

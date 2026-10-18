@@ -1,0 +1,39 @@
+{
+  "jobPostingInfo": {
+    "id": "0247c2567e7b1000be08561273620000",
+    "title": "National PAHO Consultant - Comunicaciones",
+    "jobDescription": "<p style=\"text-align:left\"><b>OBJECTIVE OF THE OFFICE/DEPARTMENT</b></p><p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>This is a requisition for employment at the Pan American Health Organization (PAHO)/Regional Office of the World Health Organization (WHO)</b></p><p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>Contractual Agreement:</b></p>Non-Staff - National PAHO Consultant<p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>Job Posting:</b></p>septiembre 17, 2026<p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>Closing Date:</b></p>octubre 11, 2026, 11:59 PM Eastern Time<p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>Primary Location:</b></p>Off Site<p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>Organization:</b></p>COL Colombia<p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>Schedule:</b></p>Full time<p style=\"text-align:inherit\"></p><p style=\"text-align:left\"><b>PURPOSE OF CONSULTANCY</b></p>This requisition is for a consultancy at the Pan American Health Organization (PAHO)/Regional Office of the World Health Organization (WHO).<br>•\tProvide a short description of the objective of the office/department here. <br>•\tProvide a description of the purpose of the consultancy here.<p style=\"text-align:inherit\"></p>",
+    "location": "Off Site",
+    "postedOn": "Posted 2 Days Ago",
+    "startDate": "2026-10-07",
+    "timeType": "Full time",
+    "jobReqId": "Req-06070",
+    "jobPostingId": "National-PAHO-Consultant---Comunicaciones_Req-06070",
+    "jobPostingSiteId": "pahocareers",
+    "country": {
+      "descriptor": "United States of America",
+      "id": "bc33aa3152ec42d4995f4791a106ed09"
+    },
+    "canApply": false,
+    "posted": true,
+    "includeResumeParsing": false,
+    "jobRequisitionLocation": {
+      "descriptor": "Off Site",
+      "country": {
+        "descriptor": "United States of America",
+        "id": "bc33aa3152ec42d4995f4791a106ed09",
+        "alpha2Code": "US"
+      }
+    },
+    "externalUrl": "https://paho.wd5.myworkdayjobs.com/pahocareers/job/Off-Site/National-PAHO-Consultant---Comunicaciones_Req-06070",
+    "questionnaireId": "3855e307cfb901014bbf92cb12960000",
+    "secondaryQuestionnaireId": "3855e307cfb901014bc00573e9bb0000",
+    "endDate": "2026-10-12"
+  },
+  "hiringOrganization": {
+    "name": "Pan American Sanitary Bureau",
+    "url": ""
+  },
+  "similarJobs": [],
+  "userAuthenticated": false
+}

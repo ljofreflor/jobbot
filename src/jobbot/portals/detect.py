@@ -23,6 +23,7 @@ class AtsKind(StrEnum):
     RECRUITEE = "recruitee"
     BREEZY = "breezy"
     MANATAL = "manatal"
+    CORNERSTONE = "cornerstone"
     TORRE = "torre"
     JOBTOME = "jobtome"
     REMOSHIFT = "remoshift"
@@ -31,6 +32,7 @@ class AtsKind(StrEnum):
     VACANTES = "vacantes"
     EMPLEOS_PUBLICOS = "empleos_publicos"
     ALTA_DIRECCION_PUBLICA = "alta_direccion_publica"
+    UN_CAREERS = "un_careers"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -51,6 +53,7 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.VACANTES,
         AtsKind.EMPLEOS_PUBLICOS,
         AtsKind.ALTA_DIRECCION_PUBLICA,
+        AtsKind.UN_CAREERS,
     }
 )
 
@@ -91,6 +94,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("recruitee.com", AtsKind.RECRUITEE),
     ("breezy.hr", AtsKind.BREEZY),
     ("careers-page.com", AtsKind.MANATAL),
+    ("csod.com", AtsKind.CORNERSTONE),
     ("torre.ai", AtsKind.TORRE),
     ("torre.co", AtsKind.TORRE),
     ("jobtome.com", AtsKind.JOBTOME),
@@ -102,6 +106,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     # Servicio Civil's ADP concursos (and its mirror); adp.cl is an unrelated payroll firm.
     ("adp.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
+    ("careers.un.org", AtsKind.UN_CAREERS),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
@@ -165,6 +170,12 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "oracle/taleo host",
     ),
     (re.compile(r"[a-z0-9_-]+\.bamboohr\.com", re.I), AtsKind.BAMBOOHR, "bamboohr host"),
+    (
+        # Cornerstone OnDemand: careersite hosts and CSP/frame-src on corporate SPAs.
+        re.compile(r"[a-z0-9_-]+\.csod\.com", re.I),
+        AtsKind.CORNERSTONE,
+        "cornerstone csod host",
+    ),
 )
 
 
