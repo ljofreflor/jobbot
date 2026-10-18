@@ -192,18 +192,30 @@ def apply_writes(page: PageLike, writes: list[FieldWrite]) -> list[FieldWrite]:
     return done
 
 
+_CHOSEN_JS = (
+    "(node, value) => {"
+    " node.value = value;"
+    " node.dispatchEvent(new Event('change', { bubbles: true }));"
+    " if (window.jQuery) { window.jQuery(node).trigger('chosen:updated'); }"
+    " }"
+)
+
+
+def set_chosen_select(page: PageLike, selector: str, value: str, *, missing: str) -> None:
+    """Set a Chosen-hidden select. Visibility is irrelevant: the node gets value and change."""
+    element = page.query_selector(selector)
+    if element is None:
+        raise ProfileEditError(missing)
+    element.evaluate(_CHOSEN_JS, value)
+
+
 def set_country(page: PageLike, value: str) -> None:
     """Set the Chosen-hidden residence select without waiting for it to be visible."""
-    element = page.query_selector(COUNTRY_SELECTOR)
-    if element is None:
-        raise ProfileEditError("campo no encontrado: ¿Dónde vives? (¿cambió el portal?)")
-    element.evaluate(
-        "(node, value) => {"
-        " node.value = value;"
-        " node.dispatchEvent(new Event('change', { bubbles: true }));"
-        " if (window.jQuery) { window.jQuery(node).trigger('chosen:updated'); }"
-        " }",
+    set_chosen_select(
+        page,
+        COUNTRY_SELECTOR,
         value,
+        missing="campo no encontrado: ¿Dónde vives? (¿cambió el portal?)",
     )
 
 

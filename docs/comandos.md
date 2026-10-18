@@ -184,6 +184,10 @@ Sin `QUERY`, corre las `search_queries` del perfil (o las deriva). `--max-querie
 
 `getonboard prepare`, `getonboard show-profile`, `getonboard open-profile`,
 `getonboard open-cvs`, `getonboard sync`, `getonboard search [QUERY]`.
+`getonboard sync --section skills,seniority,english` proyecta como máximo 10 skills
+(avisa el recorte; sin nivel queda `needs_human`), seniority e inglés, sin inventar.
+`getonboard upload-cv --apply` compara el perfil antes y después: si no cambió, el
+recibo dice «sin sobrescritura»; si un campo pasó a inglés, imprime el diff y ofrece restaurar.
 Sin `QUERY`, usa las búsquedas del perfil; `--max-queries N` limita cuántas.
 
 ### Torre

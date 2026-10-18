@@ -5283,15 +5283,18 @@ def getonboard_upload_cv(
         typer.Option("--cv", help="PDF to upload (default: output/base/cv.pdf)"),
     ] = None,
 ) -> None:
-    """Validate the local CV PDF, upload it, then warn that the portal may rewrite the profile."""
+    """Validate the local CV PDF, upload it, and report whether the portal rewrote the profile."""
     from jobbot.adapters.getonboard.cv_upload import (
         PROFILE_REWRITE_WARNING,
         GobCvUploadError,
+        profile_rewrite_guard,
         resolve_base_cv,
         upload_cv,
         validate_cv_for_upload,
+        wait_for_cv_parse,
         write_upload_receipt,
     )
+    from jobbot.adapters.getonboard.profile_edit import GOB_EDIT_URL, read_current
 
     config = load_config()
     path = cv.expanduser().resolve() if cv else resolve_base_cv(config.output_dir)
@@ -5317,22 +5320,36 @@ def getonboard_upload_cv(
         raise typer.Exit(SUCCESS)
     try:
         with _getonboard_session(config, cdp) as browser:
+            page = browser.page
+            page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+            before = read_current(page)
             result = upload_cv(
-                browser.page,
+                page,
                 path,
                 label=label,
                 make_default=make_default,
                 check=check,
             )
+            if not wait_for_cv_parse(page):
+                err_console.print("la lectura del CV no terminó")
+                console.print(PROFILE_REWRITE_WARNING)
+                raise typer.Exit(GENERIC_FAILURE)
+            page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+            after = read_current(page)
     except GobCvUploadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
-    write_upload_receipt(config.output_dir, check, result)
+    guard = profile_rewrite_guard(before, after)
+    write_upload_receipt(config.output_dir, check, result, overwrite=guard.receipt)
     console.print(
         f"[green]Uploaded[/green] {result.path.name} as {result.label!r} "
         f"(default={result.is_default}) → {result.resumes_url}"
     )
-    console.print(PROFILE_REWRITE_WARNING)
+    if guard.overwritten:
+        for line in guard.lines:
+            console.print(line, markup=False)
+    else:
+        console.print(guard.receipt, markup=False)
 
 
 @getonboard_app.command("open-cvs")
@@ -5367,11 +5384,30 @@ def getonboard_sync(
             help="Open profile + CV editors (default: dry-run checklist only)",
         ),
     ] = False,
+    section: Annotated[
+        str | None,
+        typer.Option("--section", help="skills, seniority, english (comma-separated)"),
+    ] = None,
 ) -> None:
-    """Maintain permanent GoB profile: regenerate texts; optionally open editors."""
+    """Maintain permanent GoB profile; --section plans skills, seniority and English."""
     from jobbot.adapters.getonboard.client import GetOnBoardProfileClient
+    from jobbot.adapters.getonboard.profile_fields import parse_sections, render_section_plan
+    from jobbot.jobs.eligibility import default_answers_path, load_application_answers
 
-    client = GetOnBoardProfileClient.from_config(load_config())
+    config = load_config()
+    if section:
+        try:
+            sections = parse_sections(section)
+            candidate = load_profile(config.profile_path)
+            answers = load_application_answers(default_answers_path(config.root))
+        except (ProfileLoadError, ValueError) as exc:
+            err_console.print(str(exc))
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        for line in render_section_plan(candidate, answers, sections):
+            console.print(line, markup=False)
+        return
+
+    client = GetOnBoardProfileClient.from_config(config)
     path, result = client.prepare_package()
     console.print(f"[green]Wrote[/green] {path}  (mode={result.mode})")
     if not apply_changes:
