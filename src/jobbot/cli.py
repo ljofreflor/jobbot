@@ -2934,14 +2934,17 @@ def jobs_add(
     ] = None,
     url: Annotated[
         str | None,
-        typer.Option("--url", help="Posting URL. A Workday URL alone downloads it (CXS)"),
+        typer.Option(
+            "--url",
+            help="Posting URL. A Workday URL downloads itself; a PDF URL reads its text layer",
+        ),
     ] = None,
     stdin: Annotated[
         bool,
         typer.Option("--stdin", help="Read JD from stdin"),
     ] = False,
 ) -> None:
-    """Add a job posting from a text file or stdin (manual fallback)."""
+    """Add a job posting from a text file, stdin, or a public PDF URL."""
     from jobbot.portals.detect import AtsKind, detect_ats
 
     session, config = _session()
@@ -2958,6 +2961,18 @@ def jobs_add(
         text = typer.get_text_stream("stdin").read()
     elif url and detect_ats(url) == AtsKind.WORKDAY:
         _add_workday_url(session, config, url)
+        return
+    elif url:
+        from jobbot.jobs.pdf_posting import NotAPdf
+
+        try:
+            _add_pdf_url(session, config, url)
+        except NotAPdf:
+            err_console.print(
+                "Provide --file or --stdin (a Workday --url downloads by itself; "
+                "a PDF URL reads its text layer)"
+            )
+            raise typer.Exit(GENERIC_FAILURE) from None
         return
     else:
         err_console.print(
@@ -2984,6 +2999,26 @@ def jobs_add(
     console.print(f"[green]Added[/green] {job.id}  {job.company}  {job.title}")
     console.print(f"Wrote {path}")
     _learn_company_knowledge(config, job)
+
+
+def _add_pdf_url(session: Session, config: JobbotConfig, url: str) -> None:
+    """Store one bases PDF. A missing text layer or a closed contest is not stored."""
+    from jobbot.jobs.pdf_posting import PdfAddError, PdfFetchError, job_from_public
+
+    try:
+        draft = job_from_public(url)
+    except PdfAddError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        code = GENERIC_FAILURE if isinstance(exc, PdfFetchError) else VALIDATION_FAILURE
+        raise _QuietExit(code) from exc
+    stored = JobRepository(session).upsert_external(draft.job)
+    path = write_job_json(stored, config.output_dir)
+    console.print(f"[green]Added[/green] {stored.id}  {stored.company}  {stored.title}")
+    if draft.unverified:
+        console.print("vigencia no verificable (#207)", markup=False)
+    else:
+        console.print(f"Closes: {_closing_line(stored)}", markup=False)
+    console.print(f"Wrote {path}")
 
 
 def _add_workday_url(session: Session, config: JobbotConfig, url: str) -> None:
@@ -3017,6 +3052,29 @@ def _add_workday_url(session: Session, config: JobbotConfig, url: str) -> None:
     console.print(f"Closes: {_closing_line(stored)}", markup=False)
     console.print(f"Wrote {path}")
     _learn_company_knowledge(config, stored)
+
+
+def _discover_pdf_index(page_url: str | None, *, match: str) -> None:
+    """List same-host PDF links. This source never writes."""
+    from jobbot.jobs.pdf_index import fetch_page, matching_pdfs
+    from jobbot.jobs.pdf_posting import PdfAddError
+
+    if not page_url or not page_url.strip():
+        err_console.print("[red]pdf-index needs --url[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    if not match.strip():
+        err_console.print("[red]--match needs a value[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        html = fetch_page(page_url)
+    except PdfAddError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(GENERIC_FAILURE) from exc
+    links = matching_pdfs(html, page_url, match=match)
+    for link in links:
+        console.print(link, markup=False, highlight=False)
+    console.print(f"{len(links)} pdf", markup=False)
+    console.print("Nothing written.", markup=False)
 
 
 def _closing_line(job: JobPosting, *, evidence: bool = True) -> str:
@@ -3122,7 +3180,10 @@ def jobs_search(
 def jobs_discover(
     source: Annotated[
         str,
-        typer.Option("--source", help="Public source to read: workday, un-careers, buk"),
+        typer.Option(
+            "--source",
+            help="Public source to read: workday, un-careers, buk, pdf-index",
+        ),
     ],
     site: Annotated[
         list[str] | None,
@@ -3172,8 +3233,16 @@ def jobs_discover(
         bool,
         typer.Option("--dry-run", help="Preview: writes nothing (no DB, job JSON, companies.yaml)"),
     ] = False,
+    page_url: Annotated[
+        str | None,
+        typer.Option("--url", help="Page whose PDF links pdf-index lists"),
+    ] = None,
+    name_match: Annotated[
+        str,
+        typer.Option("--match", help="pdf-index keeps PDF filenames containing this text"),
+    ] = "concurso",
 ) -> None:
-    """Discover postings through a source's public API; --dry-run previews without writing."""
+    """Discover postings through a public source; --dry-run previews without writing."""
     from jobbot.companies.registry import load_companies
     from jobbot.jobs.discover import (
         JobFilters,
@@ -3190,6 +3259,9 @@ def jobs_discover(
     if limit < 1 or limit > 200:
         err_console.print("[red]--limit must be between 1 and 200[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
+    if source == "pdf-index":
+        _discover_pdf_index(page_url, match=name_match)
+        return
     levels = tuple(part.strip() for raw in level or [] for part in raw.split(","))
     if any(not part for part in levels) or (location is not None and not location.strip()):
         err_console.print("[red]--level and --location need a value[/red]")

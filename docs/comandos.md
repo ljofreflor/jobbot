@@ -70,11 +70,12 @@ jobbot cv propagate --apply         # confirma destino por destino
 | Comando | Qué hace |
 |---------|----------|
 | `get URL` | Aviso puntual: conoce el portal, descarga el aviso, arma CV y paquete. Descarga en vivo Get on Board, Indeed y Workday (vía CXS); `--fixture` lee HTML guardado. |
-| `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. |
+| `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. Una URL de PDF lee la capa de texto (sin OCR) y guarda el cierre en hora de Santiago. |
 | `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
 | `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs discover --source buk --site URL` | Pide solo `robots.txt`. Si prohíbe `/`, no recorre el portal y sugiere `jobs add --file`. |
+| `jobs discover --source pdf-index --url PAGINA --dry-run` | Lista los PDF del mismo host cuyo nombre contiene `--match` (por defecto `concurso`). No descarga los PDF y no escribe. |
 | `jobs add --file listado.html --url https://acme.buk.cl/trabaja-con-nosotros` | Ingiere las tarjetas `jobs__card` de un HTML guardado. Sin tarjetas, sale 5. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
