@@ -463,12 +463,22 @@
       });
       window.addEventListener("hashchange", showHashed);
       if (!showHashed() && steps[0]) show(steps[0]);
-      var observer = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) show(entry.target);
+      var narrow = window.matchMedia("(max-width: 960px)");
+      var observer = null;
+      function watch() {
+        if (observer) observer.disconnect();
+        observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) show(entry.target);
+          });
+        }, {
+          rootMargin: narrow.matches ? "-62% 0px -28% 0px" : "-45% 0px -45% 0px",
+          threshold: 0
         });
-      }, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
-      steps.forEach(function (step) { observer.observe(step); });
+        steps.forEach(function (step) { observer.observe(step); });
+      }
+      watch();
+      if (narrow.addEventListener) narrow.addEventListener("change", watch);
     })();
     (function () {
       var nav = document.querySelector(".jb-cmdnav");
