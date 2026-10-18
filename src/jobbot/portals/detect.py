@@ -40,6 +40,7 @@ class AtsKind(StrEnum):
     PAGEUP = "pageup"
     BNE = "bne"
     CHILETRABAJOS = "chiletrabajos"
+    READY = "ready"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -265,6 +266,10 @@ def detect_ats(url: str) -> AtsKind:
     host = (urlparse(raw).hostname or "").lower()
     if not host:
         return AtsKind.UNKNOWN
+    # Firebase apps are not all Ready. Only the product's own career hosts.
+    label = host.split(".")[0]
+    if host.endswith(".web.app") and label.startswith("ready-ats-"):
+        return AtsKind.READY
     for needle, kind in _HOST_RULES:
         if host == needle or host.endswith("." + needle) or needle in host:
             return kind

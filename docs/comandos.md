@@ -69,7 +69,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 
 | Comando | Qué hace |
 |---------|----------|
-| `get URL` | Aviso puntual: conoce el portal, descarga el aviso, arma CV y paquete. Descarga en vivo Get on Board, Indeed y Workday (vía CXS); `--fixture` lee HTML guardado. |
+| `get URL` | Aviso puntual: conoce el portal, descarga el aviso, arma CV y paquete. Descarga en vivo Get on Board, Indeed, Workday (vía CXS) y Ready ATS (`ready-ats-*.web.app`, JSON). `--fixture` lee HTML guardado o, en Ready, el JSON de careers. |
 | `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. Una URL de PDF lee la capa de texto (sin OCR) y guarda el cierre en hora de Santiago. |
 | `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
