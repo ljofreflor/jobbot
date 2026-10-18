@@ -155,6 +155,10 @@ def _load_builtin() -> None:
 
         register_source("avature", AvatureDiscover)
         register_source("unops", UnopsDiscover)
+    if "impactpool" not in _FACTORIES:
+        from jobbot.adapters.impactpool.discover import ImpactpoolDiscover
+
+        register_source("impactpool", ImpactpoolDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

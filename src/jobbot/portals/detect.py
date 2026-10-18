@@ -36,6 +36,7 @@ class AtsKind(StrEnum):
     BUK = "buk"
     LUMESSE = "lumesse"
     UN_CAREERS = "un_careers"
+    IMPACTPOOL = "impactpool"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -57,6 +58,7 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.EMPLEOS_PUBLICOS,
         AtsKind.ALTA_DIRECCION_PUBLICA,
         AtsKind.UN_CAREERS,
+        AtsKind.IMPACTPOOL,
     }
 )
 
@@ -84,6 +86,12 @@ LUMESSE_ROBOTS_REASON = (
 CORNERSTONE_TOKEN_REASON = (
     "discovery: blocked (requires session token). La búsqueda pública de csod.com "
     "exige el token de invitado de la página (revisado 2026-10-08). Usa jobs add --file."
+)
+
+# Terms forbid copying the board without permission. robots.txt does not allow it.
+IMPACTPOOL_TERMS_REASON = (
+    "discovery: blocked (terms). Impactpool terms: no scraping without permission "
+    "(revisado 2026-10-08). Usa jobs add --file."
 )
 
 # Aggregators that republish other employers' openings from their own ATS tenant
@@ -137,6 +145,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("adp.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("careers.un.org", AtsKind.UN_CAREERS),
+    ("impactpool.org", AtsKind.IMPACTPOOL),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
 ]
