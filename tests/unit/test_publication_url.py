@@ -5,10 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
 from jobbot.adapters.linkedin.package import build_linkedin_publication_items
+from jobbot.cv.renderer import CvStyle, render_cv_ats, render_cv_tex
 from jobbot.models.candidate import Candidate, PersonalInfo
 from jobbot.models.skill import Publication
-from jobbot.cv.renderer import CvStyle, render_cv_ats, render_cv_tex
 from jobbot.profile.loader import ProfileLoadError, load_profile
 
 
