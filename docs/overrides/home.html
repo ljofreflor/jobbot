@@ -217,6 +217,9 @@
   <section class="jb-scrolly" id="jb-scrolly" aria-labelledby="jb-scrolly-title">
     <div class="jb-scrolly__pin">
       <div class="jb-scrolly__stage" aria-hidden="true">
+        <p class="jb-scrolly__dots" id="jb-scrolly-dots" aria-hidden="true">
+          <i class="is-current"></i><i></i><i></i><i></i><i></i><i></i>
+        </p>
         <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker">
           {% if en %}1 · apply{% else %}1 · postular{% endif %}
         </p>
@@ -330,9 +333,15 @@
       var cmd = document.getElementById("jb-scrolly-cmd");
       var out = document.getElementById("jb-scrolly-out");
       var kicker = document.getElementById("jb-scrolly-kicker");
+      var dots = root.querySelectorAll(".jb-scrolly__dots i");
       function show(step) {
+        var index = Array.prototype.indexOf.call(steps, step);
         steps.forEach(function (node) {
           node.classList.toggle("is-active", node === step);
+        });
+        dots.forEach(function (dot, i) {
+          dot.classList.toggle("is-current", i === index);
+          dot.classList.toggle("is-done", i < index);
         });
         var echo = step.querySelector(".jb-scrolly__echo code");
         var note = step.querySelector(".jb-scrolly__echo-out");
