@@ -436,13 +436,33 @@
           more.textContent = moreSrc.textContent;
         }
       }
+      function showHashed() {
+        var id = (location.hash || "").replace(/^#/, "");
+        if (!id) return false;
+        for (var i = 0; i < steps.length; i++) {
+          if (steps[i].id === id) {
+            show(steps[i]);
+            return true;
+          }
+        }
+        return false;
+      }
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         steps.forEach(function (node) { node.classList.add("is-active"); });
         if (bar) bar.style.width = "100%";
         if (count && steps.length) count.textContent = steps.length + " / " + steps.length;
         return;
       }
-      if (steps[0]) show(steps[0]);
+      dots.forEach(function (dot) {
+        dot.addEventListener("click", function () {
+          var id = (dot.getAttribute("href") || "").replace(/^#/, "");
+          for (var i = 0; i < steps.length; i++) {
+            if (steps[i].id === id) show(steps[i]);
+          }
+        });
+      });
+      window.addEventListener("hashchange", showHashed);
+      if (!showHashed() && steps[0]) show(steps[0]);
       var observer = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting) show(entry.target);
