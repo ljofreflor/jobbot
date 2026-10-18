@@ -441,6 +441,10 @@
       }, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
       steps.forEach(function (step) { observer.observe(step); });
     })();
+  </script>
+  {{ page.content }}
+  {# Catalog nav lives in page.content, so this runs after it is parsed. #}
+  <script>
     (function () {
       var nav = document.querySelector(".jb-cmdnav");
       if (!nav || !("IntersectionObserver" in window)) return;
@@ -471,5 +475,4 @@
       targets.forEach(function (item) { groupObserver.observe(item.heading); });
     })();
   </script>
-  {{ page.content }}
 {% endblock %}
