@@ -183,7 +183,7 @@ evidencia, y foco en Chile / Latam en búsquedas y roundups.
 
 Cada comando público de `src/jobbot/cli.py`, en una línea. Las banderas están en la
 [referencia](comandos.md). `jobbot <comando> --help` imprime el resto. Nada de esta
-lista postula solo ni inventa un hecho.
+lista postula solo ni inventa un hecho. Los que llevan la marca **relato** son los siete pasos de arriba.
 
 <nav class="jb-cmdnav" aria-label="Grupos de comandos">
   <a href="#cmd-maquina">Máquina local</a>
@@ -229,25 +229,25 @@ lista postula solo ni inventa un hecho.
 
 | Comando | Qué hace |
 |---------|----------|
-| `jobbot cv build` | Arma el CV desde el perfil. `--job` lo ordena para un aviso; `--full` no descarta roles. `--target cv` o `ats`. |
-| `jobbot cv advise` | Pocas mejoras de presentación. `--apply` confirma una por una. |
+| <span class="jb-in-story"><code>jobbot cv build</code> <span class="jb-in-story__tag">relato</span></span> | Arma el CV desde el perfil. `--job` lo ordena para un aviso; `--full` no descarta roles. `--target cv` o `ats`. |
+| <span class="jb-in-story"><code>jobbot cv advise</code> <span class="jb-in-story__tag">relato</span></span> | Pocas mejoras de presentación. `--apply` confirma una por una. |
 | `jobbot cv tune-for Jxxxx` | El mismo advise, acotado a un aviso o a un enlace. |
 | `jobbot cv propagate` | Plan de perfiles permanentes. `--apply` confirma destino por destino. |
-| `jobbot cv sync` | Presencia: permanentes y empresas activas. `--apply` espera tu confirmación. |
+| <span class="jb-in-story"><code>jobbot cv sync</code> <span class="jb-in-story__tag">relato</span></span> | Presencia: permanentes y empresas activas. `--apply` espera tu confirmación. |
 | `jobbot cv status` | Alias de `jobbot status`. |
 
 ### Vacantes {#cmd-vacantes}
 
 | Comando | Qué hace |
 |---------|----------|
-| `jobbot get URL` | Descarga un aviso puntual (Get on Board, Indeed, Workday), arma CV y paquete. No envía. |
+| <span class="jb-in-story"><code>jobbot get URL</code> <span class="jb-in-story__tag">relato</span></span> | Descarga un aviso puntual (Get on Board, Indeed, Workday), arma CV y paquete. No envía. |
 | `jobbot jobs add` | Guarda una vacante desde un archivo o stdin. |
 | `jobbot jobs search CONSULTA` | Busca en Indeed y guarda en local. |
 | `jobbot jobs discover` | Descubre por API pública: `--source workday` o `--source un-careers`. `--dry-run` no escribe. |
 | `jobbot jobs queries` | Imprime búsquedas web para hosts ATS. No busca. |
 | `jobbot jobs show Jxxxx` | Muestra un aviso guardado, con su cierre si lo publica. |
-| `jobbot jobs match Jxxxx` | Puntúa contra el perfil. Ayuda a decidir; no decide. |
-| `jobbot jobs conditions Jxxxx` | Condiciones del aviso: cumple, pregunta o impedimento. Offline. |
+| <span class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Puntúa contra el perfil. Ayuda a decidir; no decide. |
+| <span class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Condiciones del aviso: cumple, pregunta o impedimento. Offline. |
 | `jobbot jobs check-open` | Vuelve a mirar si el aviso sigue abierto. Solo lectura del estado. |
 | `jobbot jobs shortlist` | Ordena por score y marca vencidos o por cerrar. |
 | `jobbot jobs backfill-dates` | Fecha avisos ya guardados con el id de la URL. Offline. |
@@ -261,7 +261,7 @@ lista postula solo ni inventa un hecho.
 | `jobbot application prepare Jxxxx` | Arma el paquete. No inventa respuestas. |
 | `jobbot application show Jxxxx` | Ruta y estado del paquete. |
 | `jobbot application open Jxxxx` | Abre la URL del aviso o del ATS. No postula. |
-| `jobbot application apply Jxxxx` | Plan de prellenado. `--apply` abre; el envío es tuyo. `--all` recorre la cola, con pausa entre avisos. |
+| <span class="jb-in-story"><code>jobbot application apply Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Plan de prellenado. `--apply` abre; el envío es tuyo. `--all` recorre la cola, con pausa entre avisos. |
 | `jobbot application check-answer Jxxxx` | Revisa una respuesta libre contra perfil y aviso. La motivación queda para ti. |
 | `jobbot applications list` | Lista las postulaciones registradas. Alias: `applications status`. |
 

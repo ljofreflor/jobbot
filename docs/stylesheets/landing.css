@@ -958,6 +958,27 @@ body:has(.jb-hero) .md-tabs {
   overflow-wrap: anywhere;
 }
 
+.jb-in-story {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+}
+
+.jb-in-story__tag {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(0, 88, 248, 0.12);
+  color: var(--jb-cobalt);
+  font-family: var(--jb-font-body);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
 @media (max-width: 720px) {
   .jb-section--cmds table,
   .jb-section--cmds thead,
