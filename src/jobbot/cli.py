@@ -2435,9 +2435,7 @@ def _run_company_fill(
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
     if intent.mode == "login":
-        console.print(
-            f"[green]Opened login[/green] {intent.url} — type the password yourself."
-        )
+        console.print(f"[green]Opened login[/green] {intent.url} — type the password yourself.")
         return
 
     console.print(
@@ -2602,6 +2600,7 @@ def _propagate_getonboard(
     from jobbot.adapters.getonboard.draft import load_permanent_profile
     from jobbot.adapters.getonboard.profile_edit import (
         GOB_EDIT_URL,
+        ProfileEditError,
         apply_writes,
         desired_from_fields,
         plan_writes,
@@ -2628,7 +2627,11 @@ def _propagate_getonboard(
         page = browser.page
         page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
         page.wait_for_timeout(1500)
-        writes = plan_writes(read_current(page), desired)
+        try:
+            writes = plan_writes(read_current(page), desired, page=page)
+        except ProfileEditError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(GENERIC_FAILURE) from exc
         if not writes:
             console.print("getonboard: el portal ya tiene estos textos.")
         else:
@@ -2640,7 +2643,11 @@ def _propagate_getonboard(
             ):
                 console.print("getonboard: skipped profile fields.")
             else:
-                done = apply_writes(page, writes)
+                try:
+                    done = apply_writes(page, writes)
+                except ProfileEditError as exc:
+                    err_console.print(f"[red]{exc}[/red]")
+                    raise typer.Exit(GENERIC_FAILURE) from exc
                 console.print(f"[green]Wrote[/green] {len(done)} field(s) on Get on Board.")
     _propagate_getonboard_cv(config, cdp=cdp, yes=yes)
 
@@ -2653,6 +2660,7 @@ def _propagate_getonboard_cv(
 ) -> None:
     """Upload output/base/cv.pdf after validating it; mark default when confirmed."""
     from jobbot.adapters.getonboard.cv_upload import (
+        PROFILE_REWRITE_WARNING,
         resolve_base_cv,
         upload_cv,
         validate_cv_for_upload,
@@ -2685,6 +2693,7 @@ def _propagate_getonboard_cv(
         f"[green]Uploaded[/green] {result.path.name} as {result.label!r} "
         f"(default={result.is_default}) → {result.resumes_url}"
     )
+    console.print(PROFILE_REWRITE_WARNING)
 
 
 def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, yes: bool) -> None:
@@ -4917,8 +4926,9 @@ def getonboard_upload_cv(
         typer.Option("--cv", help="PDF to upload (default: output/base/cv.pdf)"),
     ] = None,
 ) -> None:
-    """Validate the local CV PDF, then upload it to Get on Board Tus CVs."""
+    """Validate the local CV PDF, upload it, then warn that the portal may rewrite the profile."""
     from jobbot.adapters.getonboard.cv_upload import (
+        PROFILE_REWRITE_WARNING,
         GobCvUploadError,
         resolve_base_cv,
         upload_cv,
@@ -4965,6 +4975,7 @@ def getonboard_upload_cv(
         f"[green]Uploaded[/green] {result.path.name} as {result.label!r} "
         f"(default={result.is_default}) → {result.resumes_url}"
     )
+    console.print(PROFILE_REWRITE_WARNING)
 
 
 @getonboard_app.command("open-cvs")
@@ -5266,7 +5277,14 @@ def empleospublicos_search(
         else "Empleos Públicos (leads)"
     )
     for column in (
-        "ID", "Institución", "Cargo", "Región", "Cierre", "Renta bruta", "Grado", "Match"
+        "ID",
+        "Institución",
+        "Cargo",
+        "Región",
+        "Cierre",
+        "Renta bruta",
+        "Grado",
+        "Match",
     ):
         table.add_column(column)
     stored: list[str] = []

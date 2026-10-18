@@ -26,6 +26,10 @@ LABEL_INPUT = "#resume_label"
 DEFAULT_CHECKBOX = "#resume_is_default"
 SUBMIT_BUTTON = 'input[type="submit"][value="Subir"]'
 RECEIPT_NAME = "cv_upload_receipt.yaml"
+PROFILE_REWRITE_WARNING = (
+    "Get on Board puede reescribir el perfil desde el PDF "
+    "(«Estamos leyendo tu último CV…»). Cuando termine, corre cv sync --apply de nuevo."
+)
 
 # Documented by Get on Board on the upload page / sync sheet.
 MAX_BYTES = 5 * 1024 * 1024
