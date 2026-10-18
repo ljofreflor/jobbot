@@ -80,6 +80,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source cornerstone --site TENANT` | No pide el token de invitado. `discovery: blocked (requires session token)`; sale 2 y sugiere `jobs add --file`. |
 | `jobs discover --source unops` | Alias de Avature en `careers.unops.org/careersmarketplace`. Pagina `SearchJobs` y no pide URLs con `qtvc`. `--dry-run` no escribe. |
 | `jobs discover --source impactpool` | No lee el tablero. Los términos prohíben copiar sin permiso (revisado 2026-10-08); sale 2 y sugiere `jobs add --file`. |
+| `jobs discover --source unicef` | Alias de PageUp en `jobs.unicef.org`. Lee el listado público, pagina con `a.more-link` y no pide rutas que `robots.txt` prohíbe. `--dry-run` no escribe. Un listado con reCAPTCHA sale 4. |
 | `jobs add --file listado.html --url https://acme.buk.cl/trabaja-con-nosotros` | Ingiere las tarjetas `jobs__card` de un HTML guardado. Sin tarjetas, sale 5. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
