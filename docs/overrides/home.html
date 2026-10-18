@@ -248,6 +248,11 @@
           {% if en %}Job stored. Nothing is sent.{% else %}Aviso guardado. Nada se envía.{% endif %}
         </p>
       </div>
+      <p class="jb-scrolly__pin-more">
+        <a id="jb-scrolly-more" href="{% if en %}#cmd-vacancies{% else %}#cmd-vacantes{% endif %}">
+          {% if en %}In the catalog{% else %}En el catálogo{% endif %}
+        </a>
+      </p>
     </div>
     <div class="jb-scrolly__steps">
       <h2 id="jb-scrolly-title">
@@ -387,6 +392,7 @@
       var bar = document.getElementById("jb-scrolly-bar");
       var count = document.getElementById("jb-scrolly-count");
       var stage = root.querySelector(".jb-scrolly__stage");
+      var more = document.getElementById("jb-scrolly-more");
       function show(step) {
         var index = Array.prototype.indexOf.call(steps, step);
         steps.forEach(function (node) {
@@ -415,6 +421,11 @@
         if (kicker && label) kicker.textContent = label.textContent;
         if (beat && title) beat.textContent = title.textContent;
         if (prose && blurb) prose.textContent = blurb.textContent;
+        var moreSrc = step.querySelector(".jb-scrolly__more a");
+        if (more && moreSrc) {
+          more.setAttribute("href", moreSrc.getAttribute("href"));
+          more.textContent = moreSrc.textContent;
+        }
       }
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         steps.forEach(function (node) { node.classList.add("is-active"); });
