@@ -94,10 +94,11 @@ docker pull ghcr.io/ljofreflor/jobbot:latest
 
 ## Crear la carpeta (común a A y B)
 
-`jobbot init [DIR]` escribe `.jobbot.toml`, `.local/` y un `.gitignore` **dentro de
-DIR** (default: el directorio actual). El `.gitignore` deja fuera `.local/` (estado
-privado) y `tmp/` (andamiaje temporal: dumps, probes, respuestas de prueba); si ya
-existe, solo agrega las líneas que faltan. Ejemplo recomendado:
+`jobbot init [DIR]` escribe `.jobbot.toml`, `AGENTS.md` (guía de operación para vos y
+para agentes), `.local/` y un `.gitignore` **dentro de DIR** (default: el directorio
+actual). El `.gitignore` deja fuera `.local/` (estado privado) y `tmp/` (andamiaje
+temporal: dumps, probes, respuestas de prueba); si ya existe, solo agrega las líneas
+que faltan. Ejemplo recomendado:
 
 ```bash
 mkdir -p ~/postulaciones && cd ~/postulaciones
@@ -110,6 +111,7 @@ jobbot init
 ```text
 ~/postulaciones/
   .jobbot.toml
+  AGENTS.md           # buenas prácticas y comandos clave (semilla empaquetada)
   .gitignore          # .local/ y tmp/
   tmp/                # andamiaje temporal (ignorado)
   .local/
