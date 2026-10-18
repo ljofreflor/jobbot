@@ -1,0 +1,19 @@
+{
+  "totalFound": 250,
+  "content": [
+    {
+      "id": "p0",
+      "name": "Role p0",
+      "location": {
+        "city": "Santiago",
+        "country": "cl",
+        "remote": false
+      },
+      "releasedDate": "2026-10-08T15:00:00.000Z",
+      "company": {
+        "name": "Acme"
+      },
+      "ref": "REF-p0"
+    }
+  ]
+}

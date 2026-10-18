@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 198 modules, 1137 public symbols.
+128 commands, 200 modules, 1143 public symbols.
 
 ## Commands
 
@@ -250,6 +250,11 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source pjud` reads the public contest grid. No login. · `pause`, `fetch_public`, `PjudDiscover`
 - `parse.py` — Read the embedded GeneXus grid. No network. · `GridPage`, `parse_grid`
+
+### `adapters/smartrecruiters`
+
+- `discover.py` — `jobs discover --source smartrecruiters` reads the public Posting API. · `pause`, `fetch_public`, `postings_url`, `SmartRecruitersDiscover`
+- `parse.py` — Map one SmartRecruiters posting. No network. · `company_identifier`, `parse_postings`
 
 ### `adapters/torre`
 
