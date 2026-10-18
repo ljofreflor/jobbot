@@ -1515,6 +1515,29 @@ a.jb-in-story__tag:hover {
   }
 }
 
+@media (max-width: 500px) {
+  .jb-scrolly__progress {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.35rem;
+  }
+
+  .jb-scrolly__dots {
+    display: contents;
+  }
+
+  .jb-scrolly__chapter:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .jb-scrolly__count {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
 @media (max-width: 960px) and (prefers-reduced-motion: reduce) {
   .jb-scrolly__step {
     min-height: 0;
