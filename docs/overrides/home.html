@@ -248,7 +248,8 @@
           </p>
           <p class="jb-scrolly__stage-cmd">
             <span class="jb-scrolly__prompt">$</span>
-            <span id="jb-scrolly-cmd">jobbot get 'https://…'</span>
+            <a id="jb-scrolly-cmd" class="jb-scrolly__stage-cmd-link" href="#cmd-get"
+               aria-label="{% if en %}In the catalog · get{% else %}En el catálogo · get{% endif %}">jobbot get 'https://…'</a>
           </p>
           <p class="jb-scrolly__stage-out" id="jb-scrolly-out">
             {% if en %}Job stored. Nothing is sent.{% else %}Aviso guardado. Nada se envía.{% endif %}
@@ -434,6 +435,10 @@
         if (more && moreSrc) {
           more.setAttribute("href", moreSrc.getAttribute("href"));
           more.textContent = moreSrc.textContent;
+        }
+        if (cmd && moreSrc) {
+          cmd.setAttribute("href", moreSrc.getAttribute("href"));
+          cmd.setAttribute("aria-label", moreSrc.textContent);
         }
       }
       function showHashed() {
