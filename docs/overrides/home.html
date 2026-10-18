@@ -262,7 +262,7 @@
         {% if en %}Apply, then standing presence. A write waits for you.{% else %}Postular, luego presencia. Si escribe, espera tu confirmación.{% endif %}
       </p>
       {% if en %}
-        <article class="jb-scrolly__step is-active">
+        <article class="jb-scrolly__step is-active" id="story-get">
           <p class="jb-scrolly__kicker">1 · apply</p>
           <h3>Find where they publish</h3>
           <p>A link or a sweep stores the posting on your machine. The portal receives nothing yet.</p>
@@ -270,7 +270,7 @@
           <p class="jb-scrolly__echo-out">Job stored. Nothing is sent.</p>
           <p class="jb-scrolly__more"><a href="#cmd-get">In the catalog · get</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-match">
           <p class="jb-scrolly__kicker">2 · apply</p>
           <h3>The match cites your facts</h3>
           <p>The score comes from <code>profile.yaml</code>. No evidence, no invented match.</p>
@@ -278,7 +278,7 @@
           <p class="jb-scrolly__echo-out">82% · evidence from profile.yaml</p>
           <p class="jb-scrolly__more"><a href="#cmd-match">In the catalog · match</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-build">
           <p class="jb-scrolly__kicker">3 · apply</p>
           <h3>The CV reorders. It does not fabricate.</h3>
           <p>The build writes the posting's PDF from facts already in the profile.</p>
@@ -286,7 +286,7 @@
           <p class="jb-scrolly__echo-out">output/jobs/J0002/ · facts reordered</p>
           <p class="jb-scrolly__more"><a href="#cmd-build">In the catalog · build</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-conditions">
           <p class="jb-scrolly__kicker">4 · apply</p>
           <h3>Conditions, before the form</h3>
           <p>Closed, language, residence, contract: read from the posting against your profile. A blank answer stays a question.</p>
@@ -294,7 +294,7 @@
           <p class="jb-scrolly__echo-out">✅ backed · ⚠️ asks you · ❌ blocked</p>
           <p class="jb-scrolly__more"><a href="#cmd-conditions">In the catalog · conditions</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-apply">
           <p class="jb-scrolly__kicker">5 · apply</p>
           <h3>You submit</h3>
           <p><code>--apply</code> opens the form. Jobbot never clicks Send.</p>
@@ -302,7 +302,7 @@
           <p class="jb-scrolly__echo-out">Form open · the click is yours</p>
           <p class="jb-scrolly__more"><a href="#cmd-apply">In the catalog · apply</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-advise">
           <p class="jb-scrolly__kicker">6 · presence</p>
           <h3>Presentation waits for a yes</h3>
           <p><code>advise</code> only restates what you already did. Each change waits for you.</p>
@@ -310,7 +310,7 @@
           <p class="jb-scrolly__echo-out">Presentation only · no new facts</p>
           <p class="jb-scrolly__more"><a href="#cmd-advise">In the catalog · advise</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-sync">
           <p class="jb-scrolly__kicker">7 · presence</p>
           <h3>Each portal, with evidence</h3>
           <p><code>sync</code> confirms one destination at a time. <code>status</code> shows what was recorded locally.</p>
@@ -319,7 +319,7 @@
           <p class="jb-scrolly__more"><a href="#cmd-sync">In the catalog · sync</a></p>
         </article>
       {% else %}
-        <article class="jb-scrolly__step is-active">
+        <article class="jb-scrolly__step is-active" id="story-get">
           <p class="jb-scrolly__kicker">1 · postular</p>
           <h3>Encuentra dónde publican</h3>
           <p>Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.</p>
@@ -327,7 +327,7 @@
           <p class="jb-scrolly__echo-out">Aviso guardado. Nada se envía.</p>
           <p class="jb-scrolly__more"><a href="#cmd-get">En el catálogo · get</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-match">
           <p class="jb-scrolly__kicker">2 · postular</p>
           <h3>El match cita tus hechos</h3>
           <p>El puntaje sale de <code>profile.yaml</code>. Sin evidencia no hay match inventado.</p>
@@ -335,7 +335,7 @@
           <p class="jb-scrolly__echo-out">82% · evidencia de profile.yaml</p>
           <p class="jb-scrolly__more"><a href="#cmd-match">En el catálogo · match</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-build">
           <p class="jb-scrolly__kicker">3 · postular</p>
           <h3>El CV reordena, no fabrica</h3>
           <p>El build arma el PDF del aviso con lo que ya está en el perfil.</p>
@@ -343,7 +343,7 @@
           <p class="jb-scrolly__echo-out">output/jobs/J0002/ · hechos reordenados</p>
           <p class="jb-scrolly__more"><a href="#cmd-build">En el catálogo · build</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-conditions">
           <p class="jb-scrolly__kicker">4 · postular</p>
           <h3>Las condiciones, antes del formulario</h3>
           <p>Cerrado, idioma, residencia, contrato: se leen del aviso contra tu perfil. Una respuesta en blanco sigue siendo una pregunta.</p>
@@ -351,7 +351,7 @@
           <p class="jb-scrolly__echo-out">✅ con evidencia · ⚠️ te pregunta · ❌ impedimento</p>
           <p class="jb-scrolly__more"><a href="#cmd-conditions">En el catálogo · conditions</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-apply">
           <p class="jb-scrolly__kicker">5 · postular</p>
           <h3>Tú envías</h3>
           <p><code>--apply</code> abre el formulario. Jobbot no pulsa Enviar.</p>
@@ -359,7 +359,7 @@
           <p class="jb-scrolly__echo-out">Formulario abierto · el clic es tuyo</p>
           <p class="jb-scrolly__more"><a href="#cmd-apply">En el catálogo · apply</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-advise">
           <p class="jb-scrolly__kicker">6 · presencia</p>
           <h3>La presentación espera un sí</h3>
           <p><code>advise</code> solo reordena cómo se dice lo que ya hiciste. Cada cambio espera tu confirmación.</p>
@@ -367,7 +367,7 @@
           <p class="jb-scrolly__echo-out">Solo presentación · sin hechos nuevos</p>
           <p class="jb-scrolly__more"><a href="#cmd-advise">En el catálogo · advise</a></p>
         </article>
-        <article class="jb-scrolly__step">
+        <article class="jb-scrolly__step" id="story-sync">
           <p class="jb-scrolly__kicker">7 · presencia</p>
           <h3>Cada portal, con evidencia</h3>
           <p><code>sync</code> confirma destino por destino. <code>status</code> muestra lo que quedó registrado en local.</p>

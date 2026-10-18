@@ -983,6 +983,12 @@ body:has(.jb-hero) .md-tabs {
   letter-spacing: 0.06em;
   line-height: 1.4;
   text-transform: uppercase;
+  text-decoration: none;
+}
+
+a.jb-in-story__tag:hover {
+  background: rgba(0, 88, 248, 0.22);
+  color: var(--jb-navy);
 }
 
 @media (max-width: 720px) {
@@ -1060,6 +1066,7 @@ body:has(.jb-hero) .md-tabs {
   flex-direction: column;
   justify-content: center;
   margin: 0;
+  scroll-margin-top: 4.5rem;
   opacity: 0.38;
   transition: opacity 0.2s ease;
 }
