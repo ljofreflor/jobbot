@@ -80,9 +80,9 @@ class VacantesDiscover:
             return _failed(query, robots)
         if status != 200:
             return _failed(query, f"robots.txt HTTP {status}")
+        if path_blocked(robots, "/es/vacantes/"):
+            return _blocked(query, "/es/vacantes/")
         if self.all_sitemap:
-            if path_blocked(robots, "/es/vacantes/"):
-                return _blocked(query, "/es/vacantes/")
             links = self._sitemap_links(query)
             if isinstance(links, SiteOutcome):
                 return links

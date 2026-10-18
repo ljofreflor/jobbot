@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from html import unescape
@@ -43,6 +44,12 @@ def link_from_url(url: str, *, identifier: str = "") -> ListingLink | None:
         identifier=identifier.strip(),
         hex_id=match.group("hex").lower(),
     )
+
+
+def hex_ids(urls: Iterable[str]) -> set[str]:
+    """The 8-hex suffix of stored vacancy URLs: a sitemap loc carries no UUID."""
+    links = (link_from_url(url) for url in urls)
+    return {link.hex_id for link in links if link is not None}
 
 
 def listing_links(html: str) -> list[ListingLink]:
