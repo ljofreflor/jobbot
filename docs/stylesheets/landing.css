@@ -1384,10 +1384,45 @@ a.jb-in-story__tag:hover {
   }
 
   .jb-scrolly__pin {
-    position: static;
+    position: sticky;
+    top: 3.1rem;
+    z-index: 3;
     grid-column: 1;
     grid-row: 1;
-    margin-bottom: 1rem;
+    margin: 0 0 0.85rem;
+    padding: 0 0 0.45rem;
+    background: var(--jb-paper);
+  }
+
+  .jb-scrolly__terminal {
+    min-height: 0;
+    padding: 0.75rem 0.85rem 0.9rem;
+  }
+
+  .jb-scrolly__stage-prose {
+    display: none;
+  }
+
+  .jb-scrolly__stage-title {
+    font-size: 0.98rem;
+  }
+
+  .jb-scrolly__stage-cmd {
+    font-size: 0.84rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .jb-scrolly__stage-out {
+    font-size: 0.76rem;
+    padding: 0.4rem 0.55rem;
+  }
+
+  .jb-scrolly__pin-more {
+    margin-top: 0.55rem;
+  }
+
+  .jb-scrolly__more {
+    display: none;
   }
 
   .jb-scrolly__steps {
@@ -1396,15 +1431,10 @@ a.jb-in-story__tag:hover {
   }
 
   .jb-scrolly__step {
-    min-height: 0;
-    opacity: 1;
-    padding: 1.25rem 0;
+    min-height: 58vh;
+    scroll-margin-top: 14rem;
+    padding: 0.5rem 0;
     justify-content: flex-start;
-  }
-
-  .jb-scrolly__echo,
-  .jb-scrolly__echo-out {
-    display: block;
   }
 
   .jb-hero__title {
@@ -1413,6 +1443,20 @@ a.jb-in-story__tag:hover {
 
   .jb-benefits {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) and (prefers-reduced-motion: reduce) {
+  .jb-scrolly__step {
+    min-height: 0;
+    opacity: 1;
+    padding: 1.25rem 0;
+  }
+
+  .jb-scrolly__echo,
+  .jb-scrolly__echo-out,
+  .jb-scrolly__more {
+    display: block;
   }
 }
 
