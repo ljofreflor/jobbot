@@ -1441,6 +1441,19 @@ a.jb-in-story__tag:hover {
     grid-row: 2;
   }
 
+  .jb-scrolly__step .jb-scrolly__kicker,
+  .jb-scrolly__step h3 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .jb-scrolly__step {
     min-height: 58vh;
     scroll-margin-top: 14rem;
@@ -1498,6 +1511,21 @@ a.jb-in-story__tag:hover {
     min-height: 0;
     opacity: 1;
     padding: 1.25rem 0;
+  }
+
+  .jb-scrolly__step .jb-scrolly__kicker,
+  .jb-scrolly__step h3 {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0 0 0.35rem;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  .jb-scrolly__step h3 {
+    margin-bottom: 0.5rem;
   }
 
   .jb-scrolly__echo,
