@@ -227,6 +227,9 @@
         <p class="jb-scrolly__stage-title" id="jb-scrolly-beat">
           {% if en %}Find where they publish{% else %}Encuentra dónde publican{% endif %}
         </p>
+        <p class="jb-scrolly__stage-prose" id="jb-scrolly-prose">
+          {% if en %}A link or a sweep stores the posting on your machine. The portal receives nothing yet.{% else %}Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.{% endif %}
+        </p>
         <p class="jb-scrolly__stage-cmd">
           <span class="jb-scrolly__prompt">$</span>
           <span id="jb-scrolly-cmd">jobbot get 'https://…'</span>
@@ -355,6 +358,7 @@
       var out = document.getElementById("jb-scrolly-out");
       var kicker = document.getElementById("jb-scrolly-kicker");
       var beat = document.getElementById("jb-scrolly-beat");
+      var prose = document.getElementById("jb-scrolly-prose");
       var dots = root.querySelectorAll(".jb-scrolly__dots i");
       var bar = document.getElementById("jb-scrolly-bar");
       var stage = root.querySelector(".jb-scrolly__stage");
@@ -375,10 +379,14 @@
         var note = step.querySelector(".jb-scrolly__echo-out");
         var label = step.querySelector(".jb-scrolly__kicker");
         var title = step.querySelector("h3");
+        var blurb = step.querySelector(
+          "p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out)"
+        );
         if (cmd && echo) cmd.textContent = echo.textContent;
         if (out && note) out.textContent = note.textContent;
         if (kicker && label) kicker.textContent = label.textContent;
         if (beat && title) beat.textContent = title.textContent;
+        if (prose && blurb) prose.textContent = blurb.textContent;
       }
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         steps.forEach(function (node) { node.classList.add("is-active"); });
