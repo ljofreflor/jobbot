@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-124 commands, 179 modules, 1035 public symbols.
+126 commands, 179 modules, 1045 public symbols.
 
 ## Commands
 
@@ -105,6 +105,8 @@ writing it again — the promotion rule lives in
 - `jobbot portals profile seed` — Register the known career portals (UN, UNICEF, FAO, ADP, Devex, Impactpool, and the rest).
 - `jobbot portals profile sheet` — Fill sheet from the source of truth. Does not open a browser.
 - `jobbot portals profile status` — Coverage of tracked portals. Numbers and labels only; nothing is opened.
+- `jobbot profile answers set` — Set one application answer. Refuses a national id. Writes only with --yes.
+- `jobbot profile answers show` — Show which application-answer blocks are filled, without values.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
@@ -113,7 +115,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile show` — Show a summary of the local profile.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
-- `jobbot profile validate` — Validate data/profile.yaml.
+- `jobbot profile validate` — Validate data/profile.yaml and application_answers.yaml.
 - `jobbot recruiters discover` — Read public pages about hiring and store what they teach as candidates.
 - `jobbot recruiters export` — Write a shareable snapshot: active practices only, no people, no PII.
 - `jobbot recruiters list` — List known sources of hiring practice.
@@ -293,7 +295,7 @@ writing it again — the promotion rule lives in
 - `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`
 - `digest.py` — A shareable daily summary of new, still-open postings. Nothing is sent. · `DigestError`, `DigestEntry`, `resolve_timezone`, `parse_since`, `load_last_digest`, `save_last_digest`, `load_eligibility`, `select_entries`, `render_whatsapp`, `render_markdown`, `empty_line`, `public_url`, `refuse_pii`, `output_path`, `why_line`
 - `discover.py` — `jobs discover`: one command, one adapter per public source, a preview before storing. · `SiteStatus`, `SiteOutcome`, `SiteTarget`, `JobFilters`, `DiscoverAdapter`, `register_source`, `source_names`, `discover_adapter`, `registry_sites_for`, `Action`, `Decision`, `unique_jobs`, `decide`, `feed_summary`, `exit_code_for`
-- `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
+- `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `IdentityAnswers`, `SalaryAnswers`, `AvailabilityAnswers`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `read_answers_mapping`, `answer_key_refused`, `filled_blocks`, `format_answers_show`, `salary_migration_hint`, `assign_answer`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `PortalDisallowedError`, `InvalidPostingUrlError`, `PortalShapeChangedError`, `GetFromUrlResult`, `ingest_hard_link`, `fetch_workday_posting`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `countries_in_text`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
@@ -353,7 +355,7 @@ writing it again — the promotion rule lives in
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
 - `field_gap_issue.py` — Draft (and optionally open) GitHub issues for novel / unanswered portal fields. · `FieldGapIssueDraft`, `draft_field_gap_issue`, `gaps_from_form`, `create_field_gap_issue`
-- `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `answer_for_label`
+- `field_homologation.py` — Portal field labels → profile facts (#94). · `ProfileFact`, `resolve_fact`, `aliases_for`, `value_for_fact`, `project_answer`, `answer_for_label`
 - `fill_catalog.py` — Public career portals whose profile jobbot can project from the source of truth. · `FillPortal`, `fill_portal`, `catalog_state`
 - `form_learn.py` — What an application form asks for, read without submitting anything. · `FieldKind`, `FormField`, `FormKnowledge`, `PageLike`, `learn_form_html`, `learn_form_page`, `default_form_knowledge_path`, `load_form_knowledge`, `save_form_knowledge`, `upsert_form`
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`

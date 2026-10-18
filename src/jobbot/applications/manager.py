@@ -18,12 +18,28 @@ from jobbot.models.job import JobPosting
 
 ANSWERS_TEMPLATE = """\
 # Fill only what you know. Leave blank rather than inventing.
+# A national id (RUN) is not a field: it stays needs_human on the portal.
 salary_expectation:
 notice_period:
 work_authorization:
 english_level:
 relocation:
 remote_preference:
+identity:
+  birth_date:
+  nationality: []
+  gender_to_declare:
+  comuna:
+  region:
+salary:
+  amount:
+  currency:
+  period:
+  basis:
+availability:
+  from_date:
+job_types: []
+desired_titles: []
 """
 
 
