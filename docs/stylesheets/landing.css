@@ -1385,9 +1385,10 @@ a.jb-scrolly__loop:focus-visible {
   font-family: var(--jb-font-body);
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: #9bb4d8;
   white-space: nowrap;
+  text-align: right;
 }
 
 .jb-scrolly__dot {

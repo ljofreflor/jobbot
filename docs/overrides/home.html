@@ -236,7 +236,7 @@
               <a href="#story-advise" class="jb-scrolly__loop" aria-label="{% if en %}Jump to the Presence loop{% else %}Ir al bucle Presencia{% endif %}">{% if en %}presence{% else %}presencia{% endif %}</a>
             </span>
           </p>
-          <p class="jb-scrolly__count" id="jb-scrolly-count" aria-hidden="true">1 / 7</p>
+          <p class="jb-scrolly__count" id="jb-scrolly-count" aria-hidden="true">{% if en %}1 / 7 · Apply{% else %}1 / 7 · Postular{% endif %}</p>
         </nav>
         <p class="jb-scrolly__meter" aria-hidden="true"><span id="jb-scrolly-bar"></span></p>
         <div class="jb-scrolly__stage">
@@ -427,7 +427,11 @@
           bar.style.width = ((index + 1) / steps.length * 100) + "%";
         }
         if (count && steps.length) {
+          var loopLabel = pin
+            ? pin.getAttribute(index >= 5 ? "data-loop-presence" : "data-loop-apply")
+            : "";
           count.textContent = (index + 1) + " / " + steps.length;
+          if (loopLabel) count.textContent += " · " + loopLabel;
         }
         if (pin) pin.classList.toggle("is-presence", index >= 5);
         var echo = step.querySelector(".jb-scrolly__echo code");
