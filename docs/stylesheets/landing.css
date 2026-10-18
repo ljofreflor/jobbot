@@ -358,7 +358,8 @@ body:has(.jb-hero) .md-tabs {
 .jb-term__body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 1rem 1.1rem 1.15rem;
   background:
     linear-gradient(180deg, rgba(0, 88, 248, 0.06), transparent 35%),
@@ -378,6 +379,7 @@ body:has(.jb-hero) .md-tabs {
 
 .jb-term__line--cmd {
   color: #e8eef8;
+  overflow-wrap: anywhere;
 }
 
 .jb-term__line--label {
