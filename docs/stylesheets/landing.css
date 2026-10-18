@@ -1455,6 +1455,42 @@ a.jb-in-story__tag:hover {
   .jb-benefits {
     grid-template-columns: 1fr;
   }
+
+  .jb-scrolly__dots a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .jb-scrolly__dots a::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: rgba(200, 216, 248, 0.28);
+  }
+
+  .jb-scrolly__dots a.is-done::before {
+    background: rgba(0, 88, 248, 0.7);
+  }
+
+  .jb-scrolly__dots a.is-current::before {
+    background: #7eb0ff;
+    box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
+  }
+
+  .jb-scrolly__dots a:hover {
+    background: transparent;
+  }
+
+  .jb-scrolly__dots a:hover::before {
+    background: rgba(126, 176, 255, 0.7);
+  }
 }
 
 @media (max-width: 960px) and (prefers-reduced-motion: reduce) {
