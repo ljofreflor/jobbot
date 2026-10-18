@@ -126,7 +126,7 @@ def test_apply_learns_the_form_while_you_fill_it(
                 "source_job_id": "abc123",
                 "title": "Un cargo",
                 "company": "Acme",
-                "url": "https://cl.indeed.com/viewjob?jk=abc123",
+                "url": "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
                 "ats_url": "https://boards.greenhouse.io/acme/jobs/4001",
                 "description": "Una vacante.",
             }

@@ -36,6 +36,7 @@ class JobPosting(BaseModel):
     closes_text: str | None = None
     # Flags an ATS states about the apply flow (e.g. can_apply, resume_parsing).
     ats_signals: dict[str, bool] = Field(default_factory=dict)
+    invalid_reason: str | None = None
 
     def validate_url(self) -> None:
         if self.url:

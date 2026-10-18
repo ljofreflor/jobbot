@@ -41,6 +41,7 @@ class JobRow(Base):
     closes_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     closes_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     ats_signals_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    invalid_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ApplicationRow(Base):

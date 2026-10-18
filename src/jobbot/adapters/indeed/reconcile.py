@@ -11,9 +11,9 @@ from playwright.sync_api import Page
 from jobbot.adapters.indeed.package import build_indeed_sync_package
 from jobbot.adapters.indeed.resume_edit import (
     _click_guardar,
-    _click_visible_text,
     _experience_description,
     _parse_ym,
+    _select_education_month_year,
     _select_month_year,
     add_education,
     add_experience,
@@ -320,18 +320,7 @@ def _fill_education_form(page: Page, edu: Education) -> None:
 
 
 def _select_edu_dates(page: Page, which: str, month: int, year: int) -> None:
-    from jobbot.adapters.indeed.resume_edit import _MONTHS_ES
-
-    month_id = f"education-date-range-{which}-month"
-    year_id = f"education-date-range-{which}-year"
-    page.get_by_test_id(month_id).locator('[data-testid="select-button"]').click()
-    page.wait_for_timeout(400)
-    _click_visible_text(page, _MONTHS_ES[month])
-    page.get_by_test_id(year_id).locator('[data-testid="select-button"]').click()
-    page.wait_for_timeout(400)
-    if not _click_visible_text(page, str(year)):
-        msg = f"education year not found: {year}"
-        raise RuntimeError(msg)
+    _select_education_month_year(page, which, month, year)
 
 
 def _delete_current_form(page: Page) -> bool:

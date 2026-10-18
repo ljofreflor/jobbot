@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 import yaml
 
-from jobbot.exit_codes import SUCCESS
+from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS
 from jobbot.jobs.sources import JobSearchQuery
 from jobbot.models.job import JobPosting
 from tests.fixtures.profile import public_health_profile_dict
@@ -163,6 +163,61 @@ def test_getonboard_merges_results_across_queries(
     assert "Stored 1 jobs" in capsys.readouterr().out
 
 
+def test_one_failed_query_does_not_drop_the_rest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A portal error on one search must not abort the other searches."""
+    from jobbot.adapters.getonboard.jobs import GetOnBoardJobSource
+
+    raw = public_health_profile_dict()
+    raw["search_queries"] = ["abogada", "directora administrativa"]
+    _workspace(tmp_path, monkeypatch, raw)
+    kept = JobPosting(
+        id="gob-2",
+        source="getonboard",
+        source_job_id="dir-1",
+        url="https://www.getonbrd.com/jobs/dir-1",
+        title="Directora administrativa",
+        company="Servicio Neutro",
+        description="Dirección administrativa y licitaciones.",
+    )
+
+    def fake_search(self: object, query: JobSearchQuery) -> list[JobPosting]:
+        if query.query == "abogada":
+            raise RuntimeError("HTTP Error 400: Bad Request")
+        return [kept]
+
+    monkeypatch.setattr(GetOnBoardJobSource, "search_jobs", fake_search)
+
+    assert _run(["getonboard", "search"]) == SUCCESS
+
+    captured = capsys.readouterr()
+    assert "abogada" in captured.err
+    assert "Stored 1 jobs" in captured.out
+    assert "Directora administrativa" in captured.out
+
+
+def test_every_query_failing_still_fails_the_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.adapters.getonboard.jobs import GetOnBoardJobSource
+
+    raw = public_health_profile_dict()
+    raw["search_queries"] = ["abogada", "directora administrativa"]
+    _workspace(tmp_path, monkeypatch, raw)
+
+    def fake_search(self: object, query: JobSearchQuery) -> list[JobPosting]:
+        raise RuntimeError(f"down: {query.query}")
+
+    monkeypatch.setattr(GetOnBoardJobSource, "search_jobs", fake_search)
+
+    assert _run(["getonboard", "search"]) == GENERIC_FAILURE
+
+    err = capsys.readouterr().err
+    assert "abogada" in err
+    assert "directora administrativa" in err
+
+
 def test_torre_without_query_runs_the_saved_queries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -220,6 +275,25 @@ def test_shortlist_warns_when_every_job_scores_zero(
 
     out = capsys.readouterr().out
     assert "Matcher alert" in out
+
+
+def test_shortlist_prints_reasons_and_ranks_the_held_role_first(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Regression (#179): a teaching post ranked first and only a percentage was shown."""
+    from tests.fixtures.profile import surveillance_profile_dict
+
+    _workspace(tmp_path, monkeypatch, surveillance_profile_dict())
+    for name in ("docente_vinculacion_medio_es.txt", "surveillance_data_consultant_en.txt"):
+        assert _run(["jobs", "add", "--file", str(FIXTURES / name)]) == SUCCESS
+    capsys.readouterr()
+
+    assert _run(["jobs", "shortlist"]) == SUCCESS
+
+    out = capsys.readouterr().out
+    assert out.index("Measles Surveillance") < out.index("Docente")
+    assert "✓ role: held title Consultora" in out
+    assert "only the headline shares" in out
 
 
 def test_shortlist_is_quiet_when_something_fits(

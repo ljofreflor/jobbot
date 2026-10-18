@@ -60,6 +60,18 @@ def test_process_list_keeps_main_chrome_and_skips_helpers() -> None:
     assert processes[0].profile_dir == Path("/repo/browser-data/indeed")
 
 
+def test_process_list_keeps_user_data_dir_when_path_has_spaces() -> None:
+    spaced = "/repo/nombre apellido/.local/browser-data/linkedin-cdp"
+    ps = (
+        f"  35028 {CHROME} --remote-debugging-port=9222"
+        f" --user-data-dir={spaced} --remote-debugging-pipe"
+    )
+    processes = list_chrome_processes(lambda: ps)
+    assert len(processes) == 1
+    assert processes[0].profile_dir == Path(spaced)
+    assert processes[0].cdp_port == 9222
+
+
 def test_discovery_skips_silent_ports() -> None:
     fetch = FakeCdp({9223: ["https://www.linkedin.com/feed/"]})
     endpoints = discover_endpoints((9222, 9223), fetch=fetch, processes=[])
@@ -297,6 +309,52 @@ def test_discovery_marks_foreign_endpoint_without_its_contents(tmp_path: Path) -
     assert endpoints[0].foreign is True
     assert endpoints[0].page_urls == ()
     assert endpoints[0].profile_dir is None
+    assert fetch.requested == []
+
+
+def test_discovery_owns_workspace_profile_when_path_has_spaces(tmp_path: Path) -> None:
+    """#193: \\S+ truncated at the first space and misclassified the profile as foreign."""
+    own_root = tmp_path / "nombre apellido" / ".local" / "browser-data"
+    profile = own_root / "linkedin-cdp"
+    profile.mkdir(parents=True)
+    ps = (
+        f"  35028 {CHROME} --remote-debugging-port=9222"
+        f" --user-data-dir={profile} --remote-debugging-pipe"
+    )
+    processes = list_chrome_processes(lambda: ps)
+    fetch = FakeCdp({9222: ["https://www.linkedin.com/feed/"]})
+    endpoints = discover_endpoints(
+        (9222,),
+        fetch=fetch,
+        processes=processes,
+        own_root=own_root,
+    )
+    assert len(endpoints) == 1
+    assert endpoints[0].foreign is False
+    assert endpoints[0].profile_dir == profile
+    assert fetch.requested  # own profile: tabs are read
+
+
+def test_discovery_marks_foreign_when_spaced_path_outside_own_root(tmp_path: Path) -> None:
+    own_root = tmp_path / "browser-data"
+    own_root.mkdir()
+    foreign = tmp_path / "other person" / "browser-data" / "linkedin-cdp"
+    foreign.mkdir(parents=True)
+    ps = (
+        f"  35028 {CHROME} --remote-debugging-port=9222"
+        f" --user-data-dir={foreign}"
+    )
+    processes = list_chrome_processes(lambda: ps)
+    fetch = FakeCdp({9222: ["https://www.linkedin.com/feed/"]})
+    endpoints = discover_endpoints(
+        (9222,),
+        fetch=fetch,
+        processes=processes,
+        own_root=own_root,
+    )
+    assert len(endpoints) == 1
+    assert endpoints[0].foreign is True
+    assert endpoints[0].page_urls == ()
     assert fetch.requested == []
 
 

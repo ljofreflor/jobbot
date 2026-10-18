@@ -18,6 +18,7 @@ _JOB_EXTRA_COLUMNS: dict[str, str] = {
     "closes_on": "DATE",
     "closes_text": "TEXT",
     "ats_signals_json": "TEXT",
+    "invalid_reason": "TEXT",
 }
 
 

@@ -58,7 +58,7 @@ def test_get_stores_and_prepares_without_opening_browser(
     code = run_cli(
         [
             "get",
-            "https://cl.indeed.com/viewjob?jk=abc123&from=email",
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=email",
             "--fixture",
             str(fixture),
         ],
@@ -90,7 +90,7 @@ def test_get_stores_a_canonical_job(
     code = run_cli(
         [
             "get",
-            "https://cl.indeed.com/viewjob?jk=abc123&from=email&tk=xyz",
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97&from=email&tk=xyz",
             "--fixture",
             str(fixture),
         ],
@@ -106,9 +106,9 @@ def test_get_stores_a_canonical_job(
     job = JobRepository(session).get("J0001")
     assert job is not None
     assert job.source == "indeed"
-    assert job.source_job_id == "abc123"
-    assert job.url == "https://cl.indeed.com/viewjob?jk=abc123"
-    assert job.ats_url == "https://cl.indeed.com/applystart?jk=abc123"
+    assert job.source_job_id == "8a5fab1a7c476a97"
+    assert job.url == "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97"
+    assert job.ats_url == "https://cl.indeed.com/applystart?jk=8a5fab1a7c476a97"
 
 
 def test_a_url_without_jk_is_rejected(
@@ -167,7 +167,7 @@ def test_an_external_ats_is_what_gets_stored(
         run_cli(
             [
                 "get",
-                "https://cl.indeed.com/viewjob?jk=abc123",
+                "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
                 "--fixture",
                 str(fixture),
             ],
@@ -196,7 +196,7 @@ def test_an_expired_posting_is_not_stored(
     code = run_cli(
         [
             "get",
-            "https://cl.indeed.com/viewjob?jk=abc123",
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
             "--fixture",
             str(fixture),
         ],
@@ -224,7 +224,7 @@ def test_application_apply_opens_indeed_apply_and_does_not_submit(
         run_cli(
             [
                 "get",
-                "https://cl.indeed.com/viewjob?jk=abc123",
+                "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
                 "--fixture",
                 str(fixture),
             ],
@@ -239,7 +239,7 @@ def test_application_apply_opens_indeed_apply_and_does_not_submit(
     )
 
     assert code == SUCCESS
-    assert opened == ["https://cl.indeed.com/applystart?jk=abc123"]
+    assert opened == ["https://cl.indeed.com/applystart?jk=8a5fab1a7c476a97"]
 
 
 def test_get_apply_opens_the_external_ats(
@@ -261,7 +261,7 @@ def test_get_apply_opens_the_external_ats(
     code = run_cli(
         [
             "get",
-            "https://cl.indeed.com/viewjob?jk=abc123",
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
             "--fixture",
             str(fixture),
             "--apply",
