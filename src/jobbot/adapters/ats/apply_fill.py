@@ -206,6 +206,7 @@ class ApplyFillResult:
     login_required: bool = False
     note: str = ""
     submitted: bool = False
+    opened: bool = True
 
 
 def profile_key_for(field_: FormField) -> str | None:
@@ -326,6 +327,36 @@ def fill_open_page(
     )
 
 
+def _page_is_idle(url: str) -> bool:
+    """A blank tab is not somebody's work. Anything else is left alone."""
+    text = (url or "").strip().casefold()
+    return text in {"", "about:blank", "chrome://newtab", "chrome://newtab/"}
+
+
+def acquire_fill_page(
+    context: Any,
+    browser: Any,
+    *,
+    focus: bool,
+) -> tuple[Any | None, str]:
+    """Pick where to fill without calling ``bring_to_front``.
+
+    An open page that is not blank means the operator is using Chrome: return
+    ``None`` and the reason ``busy``. A blank tab is reused. With no tab, a
+    background target is created. ``focus=True`` (``--foreground``) is the only
+    path that asks Playwright for a normal, frontmost tab.
+    """
+    pages = list(getattr(context, "pages", []) or [])
+    if not focus:
+        blank = next((page for page in pages if _page_is_idle(getattr(page, "url", ""))), None)
+        if blank is not None:
+            return blank, "reused"
+        if pages:
+            return None, "busy"
+        return new_background_page(context, browser=browser, focus=False), "background"
+    return context.new_page(), "foreground"
+
+
 def open_and_fill_over_cdp(
     cdp_url: str,
     url: str,
@@ -333,11 +364,13 @@ def open_and_fill_over_cdp(
     *,
     cv_path: Path | None = None,
     timeout_ms: int = 30_000,
+    focus: bool = False,
     playwright_factory: Callable[[], Any] | None = None,
 ) -> ApplyFillResult:
-    """Open ``url`` in a new background tab of your Chrome, fill what is known, then disconnect.
+    """Fill known fields in the attached Chrome, then disconnect.
 
-    The tab stays open for review; the browser is never closed nor raised.
+    The browser is never closed. Without ``focus``, a tab the operator already
+    has open is not replaced and ``bring_to_front`` is never called.
     """
     if playwright_factory is None:
         from playwright.sync_api import sync_playwright
@@ -352,7 +385,18 @@ def open_and_fill_over_cdp(
             msg = f"Could not attach to Chrome at {cdp_url}: {exc}"
             raise ApplyFillError(msg) from exc
         context = browser.contexts[0] if browser.contexts else browser.new_context()
-        page = new_background_page(context, browser=browser)
+        page, how = acquire_fill_page(context, browser, focus=focus)
+        logger.info("CDP fill page: %s", how)
+        if page is None:
+            return ApplyFillResult(
+                url=url,
+                readable=False,
+                opened=False,
+                note=(
+                    "Chrome already has a page open. JobBot did not open a tab "
+                    "or take focus. Use the prefill sheet, or pass --foreground."
+                ),
+            )
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
         except Exception as exc:  # noqa: BLE001

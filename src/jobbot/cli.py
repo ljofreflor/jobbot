@@ -3716,20 +3716,32 @@ def _ats_target_url(adapter: Any, job: JobPosting, ats_url: str) -> str:
 
 
 def _fill_ats_over_cdp(
-    cdp: str, url: str, candidate: Candidate, config: JobbotConfig, job_id: str
+    cdp: str,
+    url: str,
+    candidate: Candidate,
+    config: JobbotConfig,
+    job_id: str,
+    *,
+    foreground: bool = False,
 ) -> bool:
-    """Open the ATS in a background tab of your Chrome and fill known fields. False → fall back."""
+    """Fill known fields in your Chrome. False → fall back. Never raises the window."""
     from jobbot.adapters.ats import apply_fill
     from jobbot.adapters.ats.email_apply import resolve_cv_path
 
     cv_pdf = resolve_cv_path(config.output_dir, job_id)
     try:
-        result = apply_fill.open_and_fill_over_cdp(cdp, url, candidate, cv_path=cv_pdf)
+        result = apply_fill.open_and_fill_over_cdp(
+            cdp, url, candidate, cv_path=cv_pdf, focus=foreground
+        )
     except apply_fill.ApplyFillError as exc:
         err_console.print(f"[yellow]{exc}[/yellow]")
         err_console.print("[yellow]Falling back to your default browser + prefill sheet.[/yellow]")
         return False
-    console.print(background_notice(result.url, where=f"una pestaña nueva de Chrome ({cdp})"))
+    if result.opened:
+        where = f"Chrome ({cdp})"
+        if foreground:
+            where = f"primer plano en Chrome ({cdp})"
+        console.print(background_notice(result.url, where=where, focus=foreground))
     if result.login_required:
         console.print(
             "[yellow]The page asks you to sign in. JobBot typed nothing: sign in in that "
@@ -3782,6 +3794,13 @@ def application_apply(
         str | None,
         typer.Option("--cdp", help="Attach to your logged-in Chrome (see browser chrome-debug)"),
     ] = None,
+    foreground: Annotated[
+        bool,
+        typer.Option(
+            "--foreground",
+            help="With --cdp, allow a frontmost tab. Default keeps the OS focus where it is",
+        ),
+    ] = False,
     limit: Annotated[
         int | None,
         typer.Option("--limit", help="With --all, open at most N jobs"),
@@ -3802,6 +3821,7 @@ def application_apply(
             yes=yes,
             attach=attach,
             cdp=cdp,
+            foreground=foreground,
             limit=limit,
         )
         return
@@ -3814,6 +3834,7 @@ def application_apply(
         yes=yes,
         attach=attach,
         cdp=cdp,
+        foreground=foreground,
     )
 
 
@@ -3823,6 +3844,7 @@ def _application_apply_all(
     yes: bool,
     attach: bool,
     cdp: str | None,
+    foreground: bool,
     limit: int | None,
 ) -> None:
     """Dry-run lists the queue; --apply opens one job at a time with a pause between."""
@@ -3880,6 +3902,7 @@ def _application_apply_all(
                 yes=True,
                 attach=attach,
                 cdp=cdp,
+                foreground=foreground,
             )
             opened += 1
         except _QuietExit:
@@ -3911,6 +3934,7 @@ def _application_apply_one(
     yes: bool,
     attach: bool,
     cdp: str | None,
+    foreground: bool = False,
 ) -> None:
     """Assist apply for a single job id (same behaviour as before --all)."""
     from jobbot.adapters.ats.apply import (
@@ -4106,7 +4130,12 @@ def _application_apply_one(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
     )
     filled_in_cdp = bool(cdp) and _fill_ats_over_cdp(
-        str(cdp), _ats_target_url(adapter, job, plan.ats_url), candidate, config, job.id
+        str(cdp),
+        _ats_target_url(adapter, job, plan.ats_url),
+        candidate,
+        config,
+        job.id,
+        foreground=foreground,
     )
     if not filled_in_cdp:
         if adapter is not None and hasattr(adapter, "open"):
