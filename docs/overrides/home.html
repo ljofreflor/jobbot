@@ -493,11 +493,11 @@
       function place() {
         frame = 0;
         var line = 6.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
-        var chosen = targets[0];
+        var chosen = null;
         targets.forEach(function (item) {
           if (item.heading.getBoundingClientRect().top <= line + 4) chosen = item;
         });
-        mark(chosen.link);
+        mark(chosen ? chosen.link : null);
       }
       function schedule() {
         if (frame) return;
