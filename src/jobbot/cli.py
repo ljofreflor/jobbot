@@ -237,6 +237,12 @@ def run_cli(
         recorded_message = exc.message
         caught = exc.__cause__ if isinstance(exc.__cause__, BaseException) else None
     except Exception as exc:  # noqa: BLE001 — CLI boundary capture
+        if "click" in type(exc).__module__ and hasattr(exc, "show"):
+            exc.show()
+            exit_code = int(getattr(exc, "exit_code", VALIDATION_FAILURE))
+            if standalone_mode:
+                raise SystemExit(exit_code) from exc
+            return exit_code
         exit_code = GENERIC_FAILURE
         caught = exc
         err_console.print(f"[red]Unhandled error:[/red] {exc}")
@@ -283,11 +289,27 @@ def _session() -> tuple[Session, JobbotConfig]:
     return make_session_factory(engine)(), config
 
 
+def _print_version_and_exit(value: bool) -> None:
+    if value:
+        console.print(__version__)
+        raise typer.Exit(code=SUCCESS)
+
+
 @app.callback()
 def main(
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Enable debug logging"),
+    ] = False,
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            callback=_print_version_and_exit,
+            is_eager=True,
+            help="Show JobBot version and exit",
+        ),
     ] = False,
     workspace: Annotated[
         str | None,
