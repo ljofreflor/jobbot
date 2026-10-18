@@ -244,3 +244,12 @@ def test_application_open_goes_through_the_background_opener(
     assert code == SUCCESS
     assert opened == [url]
     assert "segundo plano" in capsys.readouterr().out
+
+
+def test_no_module_calls_bring_to_front(project_root: Path) -> None:
+    hits: list[str] = []
+    for path in (project_root / "src").rglob("*.py"):
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if "bring_to_front(" in line and not line.lstrip().startswith("#"):
+                hits.append(f"{path.relative_to(project_root)}:{number}")
+    assert hits == []

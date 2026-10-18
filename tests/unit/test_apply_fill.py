@@ -104,6 +104,10 @@ class FakePage:
         self.clicked: list[str] = []
         self.pressed: list[str] = []
         self.visited: list[str] = []
+        self.raised = 0
+
+    def bring_to_front(self) -> None:
+        self.raised += 1
 
     def content(self) -> str:
         return self.html
@@ -119,6 +123,7 @@ class FakePage:
 
     def goto(self, url: str, **_: Any) -> None:
         self.visited.append(url)
+        self.url = url
 
     def wait_for_load_state(self, *_a: Any, **_k: Any) -> None:
         return None
@@ -325,6 +330,7 @@ def test_cdp_opens_a_new_tab_fills_and_only_disconnects(
 ) -> None:
     page = FakePage(_greenhouse(project_root))
     context = _FakeContext(page)
+    context.pages = []
     browser = _FakeBrowser(context)
     playwright = _FakePlaywright(browser)
 
@@ -346,6 +352,75 @@ def test_cdp_opens_a_new_tab_fills_and_only_disconnects(
     assert browser.closed is False, "the user's Chrome is never closed"
     assert playwright.stopped is True
     assert page.clicked == []
+    assert page.raised == 0
+
+
+def test_cdp_leaves_an_open_page_alone(project_root: Path, tmp_path: Path) -> None:
+    page = FakePage(_greenhouse(project_root))
+    context = _FakeContext(page)
+    inbox = context.pages[0]
+    browser = _FakeBrowser(context)
+    playwright = _FakePlaywright(browser)
+
+    result = open_and_fill_over_cdp(
+        "http://127.0.0.1:9222",
+        ATS_URL,
+        _candidate(),
+        cv_path=_pdf(tmp_path),
+        playwright_factory=lambda: playwright,
+    )
+
+    assert browser.cdp.sent == []
+    assert context.new_pages == 0
+    assert page.visited == []
+    assert inbox.visited == []
+    assert page.raised == 0
+    assert result.opened is False
+    assert result.filled == ()
+    assert "did not open a tab" in result.note
+
+
+def test_cdp_reuses_a_blank_tab_without_raising(project_root: Path, tmp_path: Path) -> None:
+    page = FakePage(_greenhouse(project_root), url="about:blank")
+    context = _FakeContext(page)
+    context.pages = [page]
+    browser = _FakeBrowser(context)
+    playwright = _FakePlaywright(browser)
+
+    result = open_and_fill_over_cdp(
+        "http://127.0.0.1:9222",
+        ATS_URL,
+        _candidate(),
+        cv_path=_pdf(tmp_path),
+        playwright_factory=lambda: playwright,
+    )
+
+    assert browser.cdp.sent == []
+    assert context.new_pages == 0
+    assert page.visited == [ATS_URL]
+    assert page.raised == 0
+    assert result.filled and result.opened
+
+
+def test_cdp_foreground_asks_for_a_normal_tab(project_root: Path, tmp_path: Path) -> None:
+    page = FakePage(_greenhouse(project_root))
+    context = _FakeContext(page)
+    browser = _FakeBrowser(context)
+    playwright = _FakePlaywright(browser)
+
+    open_and_fill_over_cdp(
+        "http://127.0.0.1:9222",
+        ATS_URL,
+        _candidate(),
+        cv_path=_pdf(tmp_path),
+        focus=True,
+        playwright_factory=lambda: playwright,
+    )
+
+    assert browser.cdp.sent == []
+    assert context.new_pages == 1
+    assert page.visited == [ATS_URL]
+    assert page.raised == 0
 
 
 def test_cdp_connection_failure_raises_for_the_fallback() -> None:

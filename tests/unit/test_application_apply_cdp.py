@@ -94,11 +94,37 @@ def test_cdp_fills_in_your_chrome_instead_of_the_default_browser(
 
     assert code == SUCCESS
     assert opened == [], "with --cdp the default browser is not used"
-    assert calls == [{"cdp": CDP, "url": ATS_URL, "cv_path": cv}]
+    assert calls == [{"cdp": CDP, "url": ATS_URL, "cv_path": cv, "focus": False}]
     out = capsys.readouterr().out
     assert "First Name" in out and "Expected salary" in out
     assert cv.name in out
     assert "you submit" in out.casefold()
+
+
+def test_foreground_is_the_only_way_to_ask_for_a_front_tab(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stored, cv = _workspace(tmp_path, project_root, monkeypatch)
+    from jobbot.adapters.ats.apply_fill import ApplyFillResult
+    from jobbot.cli import run_cli
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_fill(cdp_url: str, url: str, candidate: Any, **kwargs: Any) -> ApplyFillResult:
+        calls.append({"cdp": cdp_url, "url": url, **kwargs})
+        return ApplyFillResult(url=url, readable=True, filled=("Email",))
+
+    monkeypatch.setattr("jobbot.adapters.ats.apply_fill.open_and_fill_over_cdp", fake_fill)
+
+    code = run_cli(
+        ["application", "apply", stored.id, "--apply", "--yes", "--cdp", CDP, "--foreground"],
+        standalone_mode=False,
+    )
+
+    assert code == SUCCESS
+    assert calls == [{"cdp": CDP, "url": ATS_URL, "cv_path": cv, "focus": True}]
 
 
 def test_cdp_failure_falls_back_to_the_default_browser(

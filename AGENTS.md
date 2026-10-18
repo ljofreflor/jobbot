@@ -425,7 +425,9 @@ de esa épica ([#269](https://github.com/ljofreflor/jobbot/issues/269)).
 - **Focus:** JobBot abre páginas en segundo plano; no roba el foco. Todo pasa por
   `jobbot.browser.background` (`open -g` en macOS, `webbrowser` con `autoraise=False` fuera,
   pestañas CDP con `Target.createTarget` `background: true`) e imprime dónde quedó la página.
-  `JOBBOT_BROWSER_FOCUS=1` vuelve al primer plano. Los tests nunca abren un navegador real.
+  Si Chrome ya tiene una página abierta, `application apply --cdp` no crea otra ni llama
+  `bring_to_front` (#297). `JOBBOT_BROWSER_FOCUS=1` o `--foreground` vuelve al primer plano.
+  Los tests nunca abren un navegador real.
 - Removals ignored by default.
 
 ## Regression tests (mandatory)
