@@ -1393,11 +1393,34 @@ a.jb-scrolly__loop:focus-visible {
 }
 
 .jb-scrolly__meter {
+  position: relative;
   height: 2px;
   margin: -0.35rem 0 0.85rem;
-  background: rgba(200, 216, 248, 0.22);
+  background: linear-gradient(
+    to right,
+    rgba(200, 216, 248, 0.22) 0,
+    rgba(200, 216, 248, 0.22) calc(100% * 5 / 7 - 1.5px),
+    transparent calc(100% * 5 / 7 - 1.5px),
+    transparent calc(100% * 5 / 7 + 1.5px),
+    rgba(200, 216, 248, 0.22) calc(100% * 5 / 7 + 1.5px),
+    rgba(200, 216, 248, 0.22) 100%
+  );
   border-radius: 1px;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* Chapter break after the five apply steps; presence is the last two. */
+.jb-scrolly__meter::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: calc(100% * 5 / 7);
+  width: 2px;
+  height: 8px;
+  margin-left: -1px;
+  background: rgba(232, 238, 248, 0.7);
+  border-radius: 1px;
+  pointer-events: none;
 }
 
 .jb-scrolly__meter span {
@@ -1406,6 +1429,7 @@ a.jb-scrolly__loop:focus-visible {
   width: calc(100% / 7);
   background: #7eb0ff;
   transition: width 0.2s ease;
+  border-radius: 1px;
 }
 
 .jb-scrolly__pin.is-presence .jb-scrolly__terminal {
