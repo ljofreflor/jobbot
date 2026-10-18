@@ -51,6 +51,18 @@ def test_chile_apply_button_stores_the_external_destination() -> None:
     assert "applystart" not in url
 
 
+def test_destination_keeps_an_escape_the_apply_button_carried() -> None:
+    extra = (
+        '<a href="https://cl.indeed.com/rc/clk?jk=8a5fab1a7c476a97'
+        "&amp;dest=https%3A%2F%2Fwww.bne.cl%2Foferta%2Fa%252Fb"
+        '%3Futm_source%3Dindeed">'
+        "Postular en el sitio de la empresa</a>"
+    )
+    job = card_to_job_posting(_card(), detail_html=_html(extra), placeholder_id="TMP")
+
+    assert job.ats_url == "https://www.bne.cl/oferta/a%2Fb"
+
+
 def test_applystart_landing_on_bne_skips_indeed_apply() -> None:
     job = card_to_job_posting(_card(), detail_html=_html(), placeholder_id="TMP")
     landed = remember_external_landing(
