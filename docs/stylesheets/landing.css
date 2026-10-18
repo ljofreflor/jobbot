@@ -1059,8 +1059,18 @@ body:has(.jb-hero) .md-tabs {
   line-height: 1.5;
 }
 
-.jb-scrolly__stage-kicker {
+.jb-scrolly__stage-title {
   margin: 0 0 0.85rem;
+  font-family: var(--jb-font-brand);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #f4f7fc;
+}
+
+.jb-scrolly__stage-kicker {
+  margin: 0 0 0.35rem;
   font-family: var(--jb-font-body);
   font-size: 0.68rem;
   font-weight: 700;

@@ -224,6 +224,9 @@
         <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker">
           {% if en %}1 · apply{% else %}1 · postular{% endif %}
         </p>
+        <p class="jb-scrolly__stage-title" id="jb-scrolly-beat">
+          {% if en %}Find where they publish{% else %}Encuentra dónde publican{% endif %}
+        </p>
         <p class="jb-scrolly__stage-cmd">
           <span class="jb-scrolly__prompt">$</span>
           <span id="jb-scrolly-cmd">jobbot get 'https://…'</span>
@@ -351,6 +354,7 @@
       var cmd = document.getElementById("jb-scrolly-cmd");
       var out = document.getElementById("jb-scrolly-out");
       var kicker = document.getElementById("jb-scrolly-kicker");
+      var beat = document.getElementById("jb-scrolly-beat");
       var dots = root.querySelectorAll(".jb-scrolly__dots i");
       var bar = document.getElementById("jb-scrolly-bar");
       var stage = root.querySelector(".jb-scrolly__stage");
@@ -370,9 +374,11 @@
         var echo = step.querySelector(".jb-scrolly__echo code");
         var note = step.querySelector(".jb-scrolly__echo-out");
         var label = step.querySelector(".jb-scrolly__kicker");
+        var title = step.querySelector("h3");
         if (cmd && echo) cmd.textContent = echo.textContent;
         if (out && note) out.textContent = note.textContent;
         if (kicker && label) kicker.textContent = label.textContent;
+        if (beat && title) beat.textContent = title.textContent;
       }
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         steps.forEach(function (node) { node.classList.add("is-active"); });
