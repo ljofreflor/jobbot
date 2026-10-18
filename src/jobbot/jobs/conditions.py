@@ -255,9 +255,7 @@ def _language_match_ok(folded: str, match: re.Match[str]) -> bool:
     tail = folded[match.end() :]
     if _LANG_GEO_AFTER.match(tail):
         return False
-    if match.group(1) == "latin" and re.match(r"^\s*america\b", tail):
-        return False
-    return True
+    return not (match.group(1) == "latin" and re.match(r"^\s*america\b", tail))
 
 
 def language_mentions(text: str) -> list[tuple[str, str | None]]:
