@@ -1021,7 +1021,7 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
 .jb-in-story__tag {
   display: inline-block;
   padding: 0.05rem 0.35rem;
-  border-radius: 999px;
+  border-radius: 0.25rem;
   background: rgba(0, 88, 248, 0.12);
   color: var(--jb-cobalt);
   font-family: var(--jb-font-body);
@@ -1033,9 +1033,18 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   text-decoration: none;
 }
 
+.jb-in-story__tag--presence {
+  background: rgba(0, 24, 56, 0.08);
+  color: var(--jb-navy);
+}
+
 a.jb-in-story__tag:hover {
   background: rgba(0, 88, 248, 0.22);
   color: var(--jb-navy);
+}
+
+a.jb-in-story__tag--presence:hover {
+  background: rgba(0, 88, 248, 0.14);
 }
 
 a.jb-in-story__tag:focus-visible {
