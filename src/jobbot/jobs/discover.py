@@ -172,6 +172,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.smartrecruiters.discover import SmartRecruitersDiscover
 
         register_source("smartrecruiters", SmartRecruitersDiscover)
+    if "greenhouse" not in _FACTORIES:
+        from jobbot.adapters.greenhouse.discover import GreenhouseDiscover
+
+        register_source("greenhouse", GreenhouseDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

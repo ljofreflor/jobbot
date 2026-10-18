@@ -3191,7 +3191,7 @@ def jobs_discover(
             help=(
                 "Public source to read: workday, un-careers, buk, pdf-index, "
                 "lumesse, cornerstone, avature, unops, impactpool, "
-                "pageup, unicef, pjud, smartrecruiters"
+                "pageup, unicef, pjud, smartrecruiters, greenhouse"
             ),
         ),
     ],
@@ -3215,6 +3215,10 @@ def jobs_discover(
     country: Annotated[
         str | None,
         typer.Option("--country", help="ISO 3166 country for SmartRecruiters"),
+    ] = None,
+    board_token: Annotated[
+        str | None,
+        typer.Option("--board", help="Greenhouse board token"),
     ] = None,
     limit: Annotated[
         int,
@@ -3318,6 +3322,15 @@ def jobs_discover(
         except ValueError as exc:
             err_console.print(f"[red]{exc}[/red]")
             raise typer.Exit(VALIDATION_FAILURE) from exc
+    if source == "greenhouse" and board_token is not None:
+        if not board_token.strip():
+            err_console.print("[red]--board needs a token[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        try:
+            targets = [adapter.site_target(board_token.strip())]
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
     for raw in site or []:
         try:
             target = adapter.site_target(raw)
@@ -3335,7 +3348,12 @@ def jobs_discover(
         )
         raise typer.Exit(VALIDATION_FAILURE)
 
-    if source == "pjud" and query is None:
+    if source == "greenhouse":
+        from jobbot.adapters.greenhouse.discover import GreenhouseDiscover
+
+        if isinstance(adapter, GreenhouseDiscover) and not dry_run:
+            adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for("greenhouse")
+    if source in {"pjud", "greenhouse"} and query is None:
         queries = [""]
     else:
         queries = _search_queries(config, query, max_queries)

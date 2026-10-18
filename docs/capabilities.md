@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 200 modules, 1143 public symbols.
+128 commands, 202 modules, 1152 public symbols.
 
 ## Commands
 
@@ -211,6 +211,11 @@ writing it again — the promotion rule lives in
 
 - `compose.py` — Prepare a Gmail draft with the CV attached. HITL: the user presses Send. · `GmailComposeError`, `GmailAuthRequired`, `is_auth_url`, `attachment_chip_selector`, `prepare_gmail_draft`, `verify_attachment_upload`, `discard_compose`, `GmailComposeAdapter`
 - `selectors.py` — Gmail web selectors. SEND_BUTTON is here for assertions only — never clicked.
+
+### `adapters/greenhouse`
+
+- `discover.py` — `jobs discover --source greenhouse` reads the public Job Board API. · `pause`, `fetch_public`, `jobs_url`, `detail_url`, `GreenhouseDiscover`
+- `parse.py` — Map one Greenhouse job. No network. · `board_token`, `public_job_url`, `parse_board`, `job_from_item`
 
 ### `adapters/impactpool`
 
