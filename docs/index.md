@@ -46,21 +46,31 @@ que no existe. [Manifiesto completo](manifesto.md).
 
 <section class="jb-section" markdown="1">
 
-## El ciclo, en tu agente
+## Dos bucles, una fuente de verdad
 
-En Cursor, VS Code, Claude Code u otro agente: pegas un link o describes lo que
-buscas. Jobbot — CLI local — lee, hace match, arma el CV y deja el formulario
-listo. El envío lo haces tú.
+El canal puede ser la terminal o un agente (Cursor, VS Code, Claude Code…).
+El producto es el CLI local. Dos bucles; un solo SoT: `data/profile.yaml`.
+
+**1 · Postular a una vacante** — match → CV → plan; **vos enviás**.
 
 ```bash
-# mismos pasos vía CLI — lo que el agente ejecuta en tu máquina
 jobbot linkedin sweep "machine learning"
 jobbot jobs match J0002
 jobbot cv build --job J0002
 jobbot application apply J0002        # plan; tú envías
 ```
 
-[Instalación y quickstart](instalacion.md) · [Referencia de comandos](comandos.md)
+**2 · Presencia permanente** — mejorar cómo se presenta lo que ya hiciste y
+dejar el CV al día en portales activos (HITL; nunca inventa hechos).
+
+```bash
+jobbot cv advise --apply              # presentación; confirmás una por una
+jobbot cv sync --apply                # permanentes + companies active
+jobbot status                         # evidencia local de qué quedó al día
+```
+
+[Instalación y quickstart](instalacion.md) · [Referencia de comandos](comandos.md) ·
+[Manifiesto](manifesto.md)
 
 **Serie en el blog:** [tutoriales paso a paso](blog/posts/2026-10-18-tutoriales-serie-indice.md)
 (install, loop de cargo, presencia, lenguaje natural en cualquier chat + terminal local).
@@ -121,12 +131,12 @@ jobbot profile suggest-from-market   # sugerencias; confirmas gaps
 ## Sincronizar a los portales
 
 Adapters de Indeed, LinkedIn y Get on Board: login, inspect, pull, diff y sync
-(dry-run por defecto). Un comando propaga el CV base a los perfiles permanentes.
+(dry-run por defecto). La presencia permanente es `cv sync` (HITL por destino).
 
 ```bash
 jobbot indeed sync --section headline   # plan; --apply escribe
 jobbot linkedin sync --section publications --apply
-jobbot cv propagate                     # plan HITL; --apply confirma
+jobbot cv sync --apply                  # presencia; confirmás por destino
 ```
 
 </section>

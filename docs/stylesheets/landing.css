@@ -125,10 +125,17 @@ body:has(.jb-hero) .md-tabs {
   margin: 0.25rem 0 0;
   font-family: var(--jb-font-body);
   font-weight: 600;
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--jb-cobalt);
+  max-width: 28ch;
+}
+
+.jb-hero__lede code {
+  font-family: var(--jb-font-mono);
+  font-size: 0.9em;
+  color: var(--jb-cobalt-deep);
 }
 
 .jb-hero__title {
