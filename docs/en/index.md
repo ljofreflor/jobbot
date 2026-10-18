@@ -46,21 +46,34 @@ Full voice (Spanish): [Manifiesto](../manifesto.md).
 
 <section class="jb-section" markdown="1">
 
-## A full loop, in your agent
+## Two loops, one source of truth
 
-In Cursor, VS Code, Claude Code, or any agent: paste a link or say what you want.
-Jobbot — local CLI — reads, matches, builds the CV and leaves the form ready.
-You press submit.
+The channel may be the terminal or an agent (Cursor, VS Code, Claude Code…).
+The product is the local CLI. Two loops; one SoT: `data/profile.yaml`.
+
+**1 · Apply to a vacancy** — match → CV → plan; **you submit**.
 
 ```bash
-# same steps as CLI — what the agent runs on your machine
 jobbot linkedin sweep "machine learning"
 jobbot jobs match J0002
 jobbot cv build --job J0002
 jobbot application apply J0002        # plan only; you submit
 ```
 
-[Install & quickstart](../instalacion.md) · [Command reference](../comandos.md)
+**2 · Standing presence** — improve how you present facts you already have, and
+keep the CV current on active portals (HITL; never invents).
+
+```bash
+jobbot cv advise --apply              # presentation; confirm one by one
+jobbot cv sync --apply                # permanent + active company portals
+jobbot status                         # local evidence of what is up to date
+```
+
+[Install & quickstart](../instalacion.md) · [Command reference](../comandos.md) ·
+[Manifesto](../manifesto.md)
+
+**Blog series:** [step-by-step tutorials](../blog/posts/2026-10-18-tutoriales-serie-indice.md)
+(install, vacancy loop, presence, natural language in any chat + local terminal).
 
 </section>
 
@@ -118,12 +131,12 @@ jobbot profile suggest-from-market   # suggestions; you confirm gaps
 ## Sync to the portals
 
 Indeed, LinkedIn, and Get on Board adapters: login, inspect, pull, diff, and sync
-(dry-run by default). One command propagates the base CV to permanent profiles.
+(dry-run by default). Standing presence is `cv sync` (HITL per destination).
 
 ```bash
 jobbot indeed sync --section headline   # plan; --apply writes
 jobbot linkedin sync --section publications --apply
-jobbot cv propagate                     # HITL plan; --apply confirms
+jobbot cv sync --apply                  # presence; confirm per destination
 ```
 
 </section>
@@ -172,7 +185,8 @@ Product rules, not slogans.
 
 <ul class="jb-principles">
   <li><strong>Never submits for you</strong> Human-in-the-loop: it prepares the package and opens the form. Sending is yours.</li>
-  <li><strong>Never invents facts about you</strong> <code>data/profile.yaml</code> is the only source of professional truth.</li>
+  <li><strong>Never invents facts about you</strong> <code>data/profile.yaml</code> is the only source of truth. Advise, tune, and sync reorder or ask — they do not fabricate experience.</li>
+  <li><strong>Never syncs portals silently</strong> <code>cv sync --apply</code> confirms destination by destination. Without local evidence, <code>status</code> does not invent that you are “up to date”.</li>
   <li><strong>Never leaves your disk</strong> Profile, SQLite, browser sessions and <code>output/</code> are gitignored.</li>
   <li><strong>No CAPTCHA bypass</strong> When a portal challenges you, it hands you the keyboard.</li>
 </ul>
