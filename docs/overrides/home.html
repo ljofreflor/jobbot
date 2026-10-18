@@ -236,14 +236,14 @@
           <p class="jb-scrolly__count" id="jb-scrolly-count" aria-hidden="true">1 / 7</p>
         </nav>
         <p class="jb-scrolly__meter" aria-hidden="true"><span id="jb-scrolly-bar"></span></p>
-        <div class="jb-scrolly__stage" aria-hidden="true">
-          <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker">
+        <div class="jb-scrolly__stage">
+          <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker" aria-hidden="true">
             {% if en %}1 · apply{% else %}1 · postular{% endif %}
           </p>
-          <p class="jb-scrolly__stage-title" id="jb-scrolly-beat">
+          <p class="jb-scrolly__stage-title" id="jb-scrolly-beat" aria-hidden="true">
             {% if en %}Find where they publish{% else %}Encuentra dónde publican{% endif %}
           </p>
-          <p class="jb-scrolly__stage-prose" id="jb-scrolly-prose">
+          <p class="jb-scrolly__stage-prose" id="jb-scrolly-prose" aria-hidden="true">
             {% if en %}A link or a sweep stores the posting on your machine. The portal receives nothing yet.{% else %}Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.{% endif %}
           </p>
           <p class="jb-scrolly__stage-cmd">
@@ -251,7 +251,7 @@
             <a id="jb-scrolly-cmd" class="jb-scrolly__stage-cmd-link" href="#cmd-get"
                aria-label="{% if en %}In the catalog · get{% else %}En el catálogo · get{% endif %}">jobbot get 'https://…'</a>
           </p>
-          <p class="jb-scrolly__stage-out" id="jb-scrolly-out">
+          <p class="jb-scrolly__stage-out" id="jb-scrolly-out" aria-hidden="true">
             {% if en %}Job stored. Nothing is sent.{% else %}Aviso guardado. Nada se envía.{% endif %}
           </p>
         </div>
