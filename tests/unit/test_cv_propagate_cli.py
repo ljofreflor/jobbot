@@ -65,7 +65,8 @@ class FakeIndeed:
             ],
         )
 
-    def apply_sync_plan(self, plan: SyncPlan) -> SyncResult:
+    def apply_sync_plan(self, plan: SyncPlan, *, section: str = "all") -> SyncResult:
+        del section
         self.calls.append(f"apply_sync_plan:{len(plan.actionable)}")
         return SyncResult(target="indeed", verified=True, message="Indeed synced (fake).")
 

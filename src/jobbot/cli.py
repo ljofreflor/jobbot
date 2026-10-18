@@ -2698,6 +2698,7 @@ def _propagate_getonboard_cv(
 
 def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, yes: bool) -> None:
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
     adapter = IndeedAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
@@ -2711,7 +2712,11 @@ def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, ye
     ):
         console.print("indeed: skipped.")
         return
-    console.print(adapter.apply_sync_plan(plan).message)
+    try:
+        console.print(adapter.apply_sync_plan(plan, section=section).message)
+    except IndeedUiChanged as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
 
 
 def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> None:
@@ -4321,7 +4326,11 @@ def indeed_status(
     from jobbot.browser.cdp import resolve_cdp_url
 
     ok = IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).session_valid()
-    console.print("Indeed session: " + ("valid" if ok else "not authenticated"))
+    if ok:
+        console.print("Indeed session: valid")
+        return
+    console.print("Indeed session: not authenticated")
+    raise typer.Exit(AUTH_REQUIRED)
 
 
 @indeed_app.command("inspect")
@@ -4349,11 +4358,18 @@ def indeed_prepare() -> None:
 def indeed_pull(
     cdp: Annotated[str | None, typer.Option("--cdp")] = None,
 ) -> None:
-    """Pull Indeed profile snapshot (read)."""
+    """Pull Indeed profile snapshot (read). Refuses when the structured editor is gone."""
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
-    path = IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).pull_and_save()
+    try:
+        path = IndeedAdapter.from_config(
+            load_config(), cdp_url=resolve_cdp_url(cdp)
+        ).pull_and_save()
+    except IndeedUiChanged as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
     console.print(f"[green]Wrote[/green] {path}")
 
 
@@ -4363,8 +4379,12 @@ def indeed_diff(
 ) -> None:
     """Diff local profile vs Indeed snapshot."""
     from jobbot.adapters.diff_engine import render_profile_diff
+    from jobbot.adapters.indeed.resume_edit import DOCUMENT_ONLY_MESSAGE, load_editor_state
 
     config = load_config()
+    if load_editor_state(config.output_dir) == "document_only":
+        console.print(DOCUMENT_ONLY_MESSAGE)
+        raise typer.Exit(UI_CHANGED)
     candidate = load_profile(config.profile_path)
     console.print(render_profile_diff(candidate, config.output_dir, "indeed", section=section))
 
@@ -4400,6 +4420,7 @@ def indeed_sync(
 ) -> None:
     """Dry-run (default) or apply Indeed profile sync from profile.yaml."""
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
     adapter = IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp))
@@ -4417,7 +4438,11 @@ def indeed_sync(
         ):
             console.print("Aborted.")
             raise typer.Exit(SUCCESS)
-        result = adapter.apply_reconcile()
+        try:
+            result = adapter.apply_reconcile()
+        except IndeedUiChanged as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(UI_CHANGED) from exc
         console.print(result.message)
         return
 
@@ -4440,7 +4465,11 @@ def indeed_sync(
     ):
         console.print("Aborted.")
         raise typer.Exit(SUCCESS)
-    result = adapter.apply_sync_plan(plan)
+    try:
+        result = adapter.apply_sync_plan(plan, section=section)
+    except IndeedUiChanged as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
     console.print(result.message)
 
 
