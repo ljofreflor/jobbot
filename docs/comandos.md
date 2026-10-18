@@ -171,7 +171,9 @@ espera de ese `appname`.
 ### Indeed
 
 `indeed login`, `indeed status`, `indeed inspect`, `indeed prepare`, `indeed pull`,
-`indeed diff`, `indeed sync` (dry-run por defecto; `--apply` escribe).
+`indeed diff`, `indeed sync` (dry-run por defecto; `--section preferences` planifica
+cargos y sueldo; `--apply` escribe), `indeed upload-cv` (no sube si el hash ya está
+en el recibo; niega un PDF de glyphs de íconos).
 
 ### LinkedIn
 
