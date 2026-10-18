@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 184 modules, 1079 public symbols.
+128 commands, 186 modules, 1085 public symbols.
 
 ## Commands
 
@@ -176,6 +176,11 @@ writing it again — the promotion rule lives in
 - `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `supported_kinds`, `adapter_for_kind`, `adapter_for_job`
 - `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
 - `workday.py` — Workday ATS adapter stub — open + known-field map only (HITL submit). · `WorkdayAdapter`
+
+### `adapters/buk`
+
+- `discover.py` — `jobs discover --source buk` reads robots.txt and then stops. · `fetch_robots`, `disallows_all`, `BukDiscover`
+- `listings.py` — Saved Buk list HTML into postings. The live site stays unread. · `BukShapeError`, `tenant_from_url`, `jobs_from_list_html`
 
 ### `adapters/empleospublicos`
 
