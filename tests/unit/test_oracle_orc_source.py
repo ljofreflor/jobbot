@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,6 +19,7 @@ from jobbot.portals.detect import AtsKind
 
 FIXTURES = Path("tests/fixtures/oracle_orc")
 END = datetime(2026, 10, 21, 3, 59, tzinfo=UTC)
+NOW = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
 JOB_URL = (
     "https://acme.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/es/sites/CX_1/job/123"
 )
@@ -272,6 +274,91 @@ def test_a_403_does_not_drop_the_other_site(
     assert len(stored) == 1
     saved = json.loads(stored[0].read_text(encoding="utf-8"))
     assert saved["source_job_id"] == "beta.fa.em2.oraclecloud.com/CX_2:1"
+
+
+def test_a_detail_that_fails_keeps_the_list_row_and_the_other_site(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    payload = {
+        "version": 1,
+        "companies": [
+            _site("acme.fa.em2.oraclecloud.com", "CX_1", "Acme", "acme"),
+            _site("beta.fa.em2.oraclecloud.com", "CX_2", "Beta", "beta"),
+        ],
+    }
+    (tmp_path / "data" / "companies.yaml").write_text(
+        yaml.safe_dump(payload, allow_unicode=True),
+        encoding="utf-8",
+    )
+    page = (project_root / FIXTURES / "requisitions_page_offset0.json").read_text(encoding="utf-8")
+    detail = (project_root / FIXTURES / "requisition_detail.json").read_text(encoding="utf-8")
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        if "JobRequisitionDetails" not in url:
+            return 200, page, url
+        if "acme.fa.em2.oraclecloud.com" in url:
+            raise urllib.error.HTTPError(url, 403, "Forbidden", {}, None)  # type: ignore[arg-type]
+        return 200, detail, url
+
+    _install(monkeypatch, fetch)
+    monkeypatch.setattr("jobbot.jobs.closing.utc_now", lambda: NOW)
+    code = run_cli(
+        ["jobs", "discover", "--source", "oracle_orc", "--query", "health"],
+        standalone_mode=False,
+    )
+    assert code == 0
+    saved = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (tmp_path / "output" / "jobs").glob("*/job.json")
+    ]
+    assert {item["source_job_id"] for item in saved} == {
+        "acme.fa.em2.oraclecloud.com/CX_1:1",
+        "beta.fa.em2.oraclecloud.com/CX_2:1",
+    }
+
+
+def test_a_stored_requisition_keeps_its_closing_date_on_a_second_run(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    page = (project_root / FIXTURES / "requisitions_page_offset0.json").read_text(encoding="utf-8")
+    detail = (project_root / FIXTURES / "requisition_detail.json").read_text(encoding="utf-8")
+    calls: list[str] = []
+
+    def fetch(url: str) -> tuple[int, str, str]:
+        calls.append(url)
+        if "JobRequisitionDetails" in url:
+            return 200, detail, url
+        return 200, page, url
+
+    _install(monkeypatch, fetch)
+    monkeypatch.setattr("jobbot.jobs.closing.utc_now", lambda: NOW)
+    argv = [
+        "jobs",
+        "discover",
+        "--source",
+        "oracle_orc",
+        "--site",
+        "acme.fa.em2.oraclecloud.com/CX_1",
+        "--query",
+        "health",
+    ]
+    assert run_cli(argv, standalone_mode=False) == 0
+    stored = list((tmp_path / "output" / "jobs").glob("*/job.json"))
+    assert len(stored) == 1
+    first = json.loads(stored[0].read_text(encoding="utf-8"))
+    assert datetime.fromisoformat(first["closes_at"]) == END
+    calls.clear()
+    assert run_cli(argv, standalone_mode=False) == 0
+    assert [url for url in calls if "JobRequisitionDetails" in url] == []
+    again = json.loads(stored[0].read_text(encoding="utf-8"))
+    assert datetime.fromisoformat(again["closes_at"]) == END
+    assert again["description"] == first["description"]
 
 
 def test_a_site_without_a_number_exits_2(
