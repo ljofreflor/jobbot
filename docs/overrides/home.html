@@ -216,7 +216,9 @@
 {% block content %}
   <section class="jb-scrolly" id="jb-scrolly" aria-labelledby="jb-scrolly-title">
     <p class="jb-scrolly__live" id="jb-scrolly-live" aria-live="polite"></p>
-    <div class="jb-scrolly__pin">
+    <div class="jb-scrolly__pin"
+         data-loop-apply="{% if en %}Apply{% else %}Postular{% endif %}"
+         data-loop-presence="{% if en %}Presence{% else %}Presencia{% endif %}">
       <div class="jb-scrolly__terminal">
         <nav class="jb-scrolly__progress" aria-label="{% if en %}Story steps{% else %}Pasos del relato{% endif %}">
           <p class="jb-scrolly__dots" id="jb-scrolly-dots">
@@ -460,7 +462,11 @@
         if (live && steps.length) {
           var index = Array.prototype.indexOf.call(steps, step);
           var title = step.querySelector("h3");
-          var line = (index + 1) + " / " + steps.length;
+          var loopName = pin
+            ? pin.getAttribute(index >= 5 ? "data-loop-presence" : "data-loop-apply")
+            : "";
+          var line = loopName ? loopName + ". " : "";
+          line += (index + 1) + " / " + steps.length;
           if (title && title.textContent) line += ". " + title.textContent;
           if (live.textContent !== line) live.textContent = line;
         }
