@@ -95,6 +95,51 @@ def test_companies_discover_records_a_blocked_buk_portal(
     assert "prohibe agentes genericos" in text or "prohíbe agentes genéricos" in text
 
 
+def test_discover_probes_the_buk_tenant_even_with_a_corporate_domain(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: path guesses on the domain must not crowd out the tenant host."""
+    _workspace(tmp_path, project_root, monkeypatch)
+    seeds = tmp_path / "seeds.yaml"
+    seeds.write_text(
+        "companies:\n  - name: Acme\n    id: acme\n    domain: acme.cl\n",
+        encoding="utf-8",
+    )
+    robots = (project_root / FIXTURES / "robots.txt").read_text(encoding="utf-8")
+
+    class FakeFetcher:
+        def __init__(self, delay: float = 0.0) -> None:
+            self.delay = delay
+
+        def fetch(self, url: str) -> FetchResult:
+            if url == "https://acme.buk.cl/robots.txt":
+                return FetchResult(url=url, status=200, html=robots)
+            return FetchResult(url=url, status=404)
+
+    monkeypatch.setattr("jobbot.companies.oneshot.UrllibFetcher", FakeFetcher)
+    out = tmp_path / "candidates.yaml"
+    code = run_cli(
+        ["companies", "discover", str(seeds), "--out", str(out)],
+        standalone_mode=False,
+    )
+    assert code == 0
+    text = out.read_text(encoding="utf-8")
+    assert "ats: buk" in text
+    assert LIST_URL in text
+
+
+def test_card_classes_alone_do_not_identify_buk() -> None:
+    """A corporate page using the same BEM classes is not a Buk instance."""
+    from jobbot.portals.detect import detect_ats_in_html
+
+    cards = '<div class="jobs__card"><h3 class="job__card-name">Analista</h3></div>'
+    assert detect_ats_in_html(cards)[0] is AtsKind.UNKNOWN
+    embedded = f'<a href="https://acme.buk.cl/trabaja-con-nosotros">Vacantes</a>{cards}'
+    assert detect_ats_in_html(embedded)[0] is AtsKind.BUK
+
+
 def test_saved_list_creates_three_postings(
     tmp_path: Path,
     project_root: Path,
@@ -123,6 +168,27 @@ def test_saved_list_creates_three_postings(
         "Apoyo en terreno",
         "Registro de sala",
     }
+
+
+def test_saved_list_registers_the_tenant_as_a_career_site(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ingesting a list must leave a Buk site `jobs discover --source buk` can read."""
+    from jobbot.companies.registry import default_companies_path, load_companies
+    from jobbot.jobs.discover import registry_sites_for
+
+    _workspace(tmp_path, project_root, monkeypatch)
+    listing = project_root / FIXTURES / "listado.html"
+    code = run_cli(
+        ["jobs", "add", "--file", str(listing), "--url", LIST_URL],
+        standalone_mode=False,
+    )
+    assert code == 0
+    registry = load_companies(default_companies_path(tmp_path))
+    targets = registry_sites_for(registry, AtsKind.BUK.value)
+    assert [target.url for target in targets] == ["https://acme.buk.cl"]
 
 
 def test_list_without_cards_exits_ui_changed(
