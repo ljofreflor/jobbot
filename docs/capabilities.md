@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-126 commands, 179 modules, 1045 public symbols.
+126 commands, 180 modules, 1061 public symbols.
 
 ## Commands
 
@@ -51,8 +51,8 @@ writing it again — the promotion rule lives in
 - `jobbot getonboard prepare` — Maintain permanent GoB profile: cumulative refine by default (not cold replace).
 - `jobbot getonboard search` — Search Get on Board (Spanish/LATAM) and store jobs locally.
 - `jobbot getonboard show-profile` — Show paths / char counts for the permanent GoB profile maintainer.
-- `jobbot getonboard sync` — Maintain permanent GoB profile: regenerate texts; optionally open editors.
-- `jobbot getonboard upload-cv` — Validate the local CV PDF, upload it, then warn that the portal may rewrite the profile.
+- `jobbot getonboard sync` — Maintain permanent GoB profile; --section plans skills, seniority and English.
+- `jobbot getonboard upload-cv` — Validate the local CV PDF, upload it, and report whether the portal rewrote the profile.
 - `jobbot indeed diff` — Diff local profile vs Indeed snapshot.
 - `jobbot indeed inspect` — Inspect Indeed page roles/labels for selector development.
 - `jobbot indeed login` — Open Indeed login (HITL). Prefer email/magic link; optional --continue-url.
@@ -183,11 +183,12 @@ writing it again — the promotion rule lives in
 ### `adapters/getonboard`
 
 - `client.py` — Get on Board profile HITL client — permanent profile maintainer. · `GetOnBoardProfileClient`
-- `cv_upload.py` — Upload the local CV PDF to Get on Board 'Tus CVs', after validating it. · `GobCvUploadError`, `CvUploadCheck`, `CvUploadResult`, `CvUploadReceipt`, `upload_receipt_path`, `write_upload_receipt`, `load_upload_receipt`, `PageLike`, `validate_cv_for_upload`, `resolve_base_cv`, `upload_cv`, `list_resume_labels`
+- `cv_upload.py` — Upload the local CV PDF to Get on Board 'Tus CVs', after validating it. · `GobCvUploadError`, `CvUploadCheck`, `CvUploadResult`, `CvUploadReceipt`, `upload_receipt_path`, `write_upload_receipt`, `load_upload_receipt`, `PageLike`, `validate_cv_for_upload`, `resolve_base_cv`, `upload_cv`, `RewriteGuard`, `profile_rewrite_guard`, `wait_for_cv_parse`, `list_resume_labels`
 - `draft.py` — Permanent Get on Board profile fields from Candidate (facts only; Spanish). · `PermanentProfileFields`, `build_permanent_profile_fields`, `draft_getonboard_fields`, `omission_line`, `render_permanent_profile_markdown`, `render_getonboard_markdown`, `permanent_profile_dir`, `permanent_profile_yaml_path`, `permanent_profile_md_path`, `save_permanent_profile`, `fields_from_seed_text`, `load_permanent_profile`, `recent_roles`, `role_label`, `role_head`
 - `jobs.py` — Get on Board job source (LATAM/ES) via public search API + hard-link pages. · `GetOnBoardJobSource`, `search_jobs_api`, `slug_from_url`, `fetch_job_html`, `parse_job_html`, `job_from_hard_link`, `job_from_api_item`, `remember_portal`, `remember_portal_from_url`
 - `package.py` — Get on Board profile + CV sync package from Candidate (facts only). · `GetOnBoardSyncPackage`, `build_getonboard_sync_package`, `render_getonboard_sync_markdown`
-- `profile_edit.py` — Write the permanent Get on Board profile through its own edit form. · `GobField`, `ProfileEditError`, `FieldWrite`, `ElementLike`, `KeyboardLike`, `PageLike`, `missing_field_message`, `ensure_present`, `read_current`, `plan_writes`, `apply_writes`, `set_country`, `desired_from_fields`
+- `profile_edit.py` — Write the permanent Get on Board profile through its own edit form. · `GobField`, `ProfileEditError`, `FieldWrite`, `ElementLike`, `KeyboardLike`, `PageLike`, `missing_field_message`, `ensure_present`, `read_current`, `plan_writes`, `apply_writes`, `set_chosen_select`, `set_country`, `desired_from_fields`
+- `profile_fields.py` — Skills, seniority and English on the Get on Board profile, from the local profile. · `SkillRow`, `SkillPlan`, `parse_sections`, `skill_level_map`, `plan_skills`, `options_for`, `project_english`, `project_seniority`, `english_level`, `experience_years`, `render_section_plan`, `set_skills_select`
 
 ### `adapters/gmail`
 

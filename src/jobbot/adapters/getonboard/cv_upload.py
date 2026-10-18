@@ -84,6 +84,7 @@ class CvUploadReceipt:
     is_default: bool
     listed: bool
     uploaded_at: datetime | None = None
+    overwrite: str = "sin sobrescritura"
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -93,6 +94,7 @@ class CvUploadReceipt:
             "is_default": self.is_default,
             "listed": self.listed,
             "uploaded_at": (self.uploaded_at.isoformat() if self.uploaded_at is not None else None),
+            "overwrite": self.overwrite,
         }
 
 
@@ -106,6 +108,7 @@ def write_upload_receipt(
     result: CvUploadResult,
     *,
     uploaded_at: datetime | None = None,
+    overwrite: str = "sin sobrescritura",
 ) -> Path:
     """Persist hash/label after a successful portal upload so ``status`` can compare."""
     when = uploaded_at or datetime.now(UTC)
@@ -116,6 +119,7 @@ def write_upload_receipt(
         is_default=result.is_default,
         listed=result.listed,
         uploaded_at=when,
+        overwrite=overwrite,
     )
     path = upload_receipt_path(output_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -150,6 +154,7 @@ def load_upload_receipt(output_dir: Path) -> CvUploadReceipt | None:
         is_default=bool(raw.get("is_default")),
         listed=bool(raw.get("listed", True)),
         uploaded_at=when,
+        overwrite=str(raw.get("overwrite") or "sin sobrescritura"),
     )
 
 
@@ -271,6 +276,49 @@ def _item_actions(html: str, label: str) -> str:
             return chunk
     start = folded.find(needle)
     return "" if start < 0 else folded[start : start + 200]
+
+
+NO_OVERWRITE = "sin sobrescritura"
+_PARSE_MARKER = "estamos leyendo tu último cv"
+
+
+@dataclass(frozen=True)
+class RewriteGuard:
+    """What changed on the profile after the portal read the uploaded CV."""
+
+    overwritten: bool
+    lines: tuple[str, ...]
+    receipt: str
+
+
+def profile_rewrite_guard(before: dict[str, str], after: dict[str, str]) -> RewriteGuard:
+    """Diff per field. An English replacement of a non-English field is named."""
+    from jobbot.adapters.getonboard.profile_edit import FIELDS
+    from jobbot.jobs.language import detect_language
+
+    labels = {field.key: field.label for field in FIELDS}
+    lines: list[str] = []
+    for key, old in before.items():
+        new = after.get(key, "")
+        if new.strip() == old.strip():
+            continue
+        label = labels.get(key, key)
+        lines.append(f"{label}: {old} → {new}")
+        if detect_language(new) == "en" and detect_language(old) != "en":
+            lines.append(f"{label} quedó en inglés")
+    if not lines:
+        return RewriteGuard(False, (), NO_OVERWRITE)
+    lines.append("Restaurar desde el perfil: jobbot getonboard sync --apply")
+    return RewriteGuard(True, tuple(lines), "sobrescritura")
+
+
+def wait_for_cv_parse(page: PageLike, *, attempts: int = 5) -> bool:
+    """True once the portal stops saying it is reading the CV. False on timeout."""
+    for _ in range(attempts):
+        if _PARSE_MARKER not in page.content().casefold():
+            return True
+        page.wait_for_timeout(200)
+    return False
 
 
 def list_resume_labels(page: PageLike) -> list[str]:
