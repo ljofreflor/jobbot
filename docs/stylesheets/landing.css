@@ -1155,7 +1155,7 @@ a.jb-in-story__tag:hover {
   border-bottom-color: var(--jb-cobalt);
 }
 
-.jb-scrolly__stage {
+.jb-scrolly__terminal {
   min-height: 14rem;
   padding: 1.15rem 1.2rem 1.3rem;
   border-radius: 0.65rem;
@@ -1164,6 +1164,10 @@ a.jb-in-story__tag:hover {
   border: 1px solid rgba(0, 24, 56, 0.55);
   box-shadow: 0 18px 40px rgba(0, 24, 56, 0.18);
   font-family: var(--jb-font-mono);
+}
+
+.jb-scrolly__stage {
+  margin: 0;
 }
 
 .jb-scrolly__progress {
@@ -1207,28 +1211,38 @@ a.jb-in-story__tag:hover {
   white-space: nowrap;
 }
 
-.jb-scrolly__dots i {
+.jb-scrolly__dots a {
   display: block;
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
   background: rgba(200, 216, 248, 0.28);
+  text-decoration: none;
 }
 
-.jb-scrolly__dots i.is-done {
+.jb-scrolly__dots a:hover {
+  background: rgba(126, 176, 255, 0.7);
+}
+
+.jb-scrolly__dots a:focus-visible {
+  outline: 2px solid #7eb0ff;
+  outline-offset: 3px;
+}
+
+.jb-scrolly__dots a.is-done {
   background: rgba(0, 88, 248, 0.7);
 }
 
-.jb-scrolly__dots i.is-current {
+.jb-scrolly__dots a.is-current {
   background: #7eb0ff;
   box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
 }
 
-.jb-scrolly__stage:not(.is-presence) .jb-scrolly__chapter:first-child b {
+.jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child b {
   color: #7eb0ff;
 }
 
-.jb-scrolly__stage.is-presence .jb-scrolly__chapter:last-child b {
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child b {
   color: #7eb0ff;
 }
 
@@ -1248,7 +1262,7 @@ a.jb-in-story__tag:hover {
   transition: width 0.2s ease;
 }
 
-.jb-scrolly__stage.is-presence {
+.jb-scrolly__pin.is-presence .jb-scrolly__terminal {
   box-shadow: 0 18px 40px rgba(0, 88, 248, 0.28);
 }
 
