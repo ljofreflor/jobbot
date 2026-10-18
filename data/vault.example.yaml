@@ -1,0 +1,15 @@
+# JobBot vault template — copy to `.vault.yaml` next to profile.yaml
+# (`jobbot secrets init` does this with mode 0600). Never commit the real file.
+#
+# Hidden is not encryption. The OS user is the trust boundary.
+# Do not sync `.vault.yaml` to Drive/Dropbox.
+#
+# JobBot never invents these values. CAPTCHA, 2FA, terms and submit stay human.
+# `fill_login: false` means nothing is typed into a browser from this file.
+
+version: 1
+fill_login: false
+entries:
+  # indeed:
+  #   username: you@example.com
+  #   password: "replace-me"

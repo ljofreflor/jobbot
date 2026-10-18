@@ -80,9 +80,20 @@ class JobRepository:
             return None
         return _from_row(row)
 
-    def list_all(self) -> list[JobPosting]:
+    def list_all(self, *, include_invalid: bool = False) -> list[JobPosting]:
         rows = self._session.scalars(select(JobRow).order_by(JobRow.id)).all()
-        return [_from_row(r) for r in rows]
+        jobs = [_from_row(r) for r in rows]
+        if include_invalid:
+            return jobs
+        return [job for job in jobs if not job.invalid_reason]
+
+    def mark_invalid(self, job_id: str, reason: str) -> None:
+        row = self._session.get(JobRow, job_id)
+        if row is None:
+            msg = f"Job not found: {job_id}"
+            raise KeyError(msg)
+        row.invalid_reason = reason
+        self._session.commit()
 
     def update_match_score(self, job_id: str, score: float) -> None:
         row = self._session.get(JobRow, job_id)
@@ -133,6 +144,7 @@ def _to_row_fields(job: JobPosting) -> dict[str, object]:
         else job.discovered_at,
         "note": job.note,
         "match_score": job.match_score,
+        "invalid_reason": job.invalid_reason,
     }
 
 
@@ -166,4 +178,5 @@ def _from_row(row: JobRow) -> JobPosting:
         discovered_at=row.discovered_at,
         note=row.note,
         match_score=row.match_score,
+        invalid_reason=getattr(row, "invalid_reason", None),
     )

@@ -38,7 +38,7 @@ class FakeIndeedJobSource:
                     "source_job_id": "abc123",
                     "title": "Senior Data Scientist",
                     "company": "Empresa Retail",
-                    "url": "https://cl.indeed.com/viewjob?jk=abc123",
+                    "url": "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
                     "ats_url": "https://empresa-retail.cl/trabaja-con-nosotros",
                 }
             )

@@ -11,6 +11,7 @@
 | `companies-cl.example.yaml` | yes | Seed company list for `companies discover` (public identity only) |
 | `companies.yaml` | **no** | Learned company portals reflect your own search; share via `companies export` |
 | `*.sqlite` | **no** | Jobs, applications, ops failures |
+| `.vault.yaml` | **no** | Opt-in portal passwords (`jobbot secrets`; mode 0600). Template: `vault.example.yaml` |
 
 ## Private LaTeX CV
 

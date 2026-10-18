@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
@@ -17,11 +18,20 @@ _OPENAI = re.compile(r"\bsk-[A-Za-z0-9]{10,}\b")
 _CDP_WS = re.compile(r"(?i)(ws://|wss://|http://|https://)[^\s\"']+/devtools/[^\s\"']+")
 
 
-def redact_text(text: str, *, max_len: int = 8000) -> str:
+def redact_text(
+    text: str,
+    *,
+    max_len: int = 8000,
+    extra_secrets: Sequence[str] = (),
+) -> str:
     """Strip secrets and contact PII, then truncate."""
     if not text:
         return ""
-    out = _SECRET_KV.sub(r"\1=<redacted>", text)
+    out = text
+    for secret in extra_secrets:
+        if secret:
+            out = out.replace(secret, "<redacted>")
+    out = _SECRET_KV.sub(r"\1=<redacted>", out)
     out = _BEARER.sub("Bearer <redacted>", out)
     out = _OPENAI.sub("sk-<redacted>", out)
     out = _CDP_WS.sub(r"\1<host>/devtools/<redacted>", out)
@@ -42,7 +52,11 @@ def host_only_url(url: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
 
-def redact_context(context: dict[str, Any] | None) -> dict[str, Any]:
+def redact_context(
+    context: dict[str, Any] | None,
+    *,
+    extra_secrets: Sequence[str] = (),
+) -> dict[str, Any]:
     """Copy context with URLs host-only and string values redacted."""
     if not context:
         return {}
@@ -54,9 +68,9 @@ def redact_context(context: dict[str, Any] | None) -> dict[str, Any]:
         elif isinstance(value, str) and ("url" in lk or lk.endswith("_uri")):
             out[key] = host_only_url(value)
         elif isinstance(value, str):
-            out[key] = redact_text(value, max_len=500)
+            out[key] = redact_text(value, max_len=500, extra_secrets=extra_secrets)
         elif isinstance(value, dict):
-            out[key] = redact_context(value)
+            out[key] = redact_context(value, extra_secrets=extra_secrets)
         else:
             out[key] = value
     return out

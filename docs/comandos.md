@@ -14,8 +14,10 @@ Para las opciones completas, `jobbot <grupo> <comando> --help`.
 
 | Comando | Qué hace |
 |---------|----------|
-| `init [DIR]` | Crea un workspace frío: `.jobbot.toml` y `.local/` **dentro de DIR** (default: el directorio actual). No usa `$HOME`, `JOBBOT_ROOT` ni el repo del paquete para ubicar `.local/`. `--force` sobrescribe semillas. |
+| `init [DIR]` | Crea un workspace frío: `.jobbot.toml`, `AGENTS.md`, `.local/` y `.gitignore` **dentro de DIR** (default: el directorio actual). No usa `$HOME`, `JOBBOT_ROOT` ni el repo del paquete para ubicar `.local/`. `--force` sobrescribe semillas. |
 | `update` | Reinstala el ejecutable en el `PATH` desde GitHub (`uv tool`). `JOBBOT_REF` / `--ref` eligen rama, tag o SHA. En Docker: actualiza la imagen en el host. |
+| `update --check` | Compara el commit instalado con el último de `main` (`git ls-remote`) sin instalar. Sale con `0` si estás al día, `10` si hay un commit nuevo y `1` si no pudo saberlo. |
+| `update --schedule daily\|off\|status` | Agenda (o quita o muestra) un `jobbot update` diario: LaunchAgent en macOS y crontab en Linux. Si ya estás al día no reinstala; respeta `JOBBOT_AUTO_UPDATE=0` / `[update] auto = false`; no hace nada en Docker. Detalle en [Instalación](instalacion.md#actualizacion-diaria-automatica). |
 | `version` | Muestra la versión de JobBot. |
 
 ```bash
@@ -25,6 +27,9 @@ jobbot init
 # jobbot init ~/postulaciones
 jobbot update
 JOBBOT_REF=v0.1.0 jobbot update
+jobbot update --check                # exit 10 si hay un commit nuevo en main
+jobbot update --schedule daily       # actualización diaria (launchd / crontab)
+jobbot update --schedule status
 ```
 
 ## Perfil
@@ -45,12 +50,13 @@ JOBBOT_REF=v0.1.0 jobbot update
 
 | Comando | Qué hace |
 |---------|----------|
-| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. |
+| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. Con `--job`, `--full` conserva todos los roles y logros y ordena primero, dentro de cada rol, los que el aviso nombra. |
 | `cv propagate` | Reconstruye el CV base y lo propaga a los perfiles permanentes (HITL, dry-run por defecto). |
 
 ```bash
 jobbot cv build --target ats
 jobbot cv build --job J0001
+jobbot cv build --job J0001 --full  # CV largo: nada se descarta
 jobbot cv propagate                 # solo plan
 jobbot cv propagate --apply         # confirma destino por destino
 ```
@@ -140,6 +146,19 @@ Escribe en `output/` y nunca toca el registro de empresas del workspace.
 | `ops loop` | Corre un paso de mantención en loop; persiste `Fxxxx` al fallar y sigue. |
 
 No hay telemetría: las fallas se guardan en tu base local y se quedan ahí.
+
+## Contraseñas (opt-in)
+
+| Comando | Qué hace |
+|---------|----------|
+| `secrets init` | Crea `data/.vault.yaml` (o `.local/.vault.yaml`) con modo 0600. Vacío; no inventa. |
+| `secrets list` | Sitios guardados. Nunca imprime el valor. |
+| `secrets set SITIO` | Pide la contraseña dos veces (`getpass`). `--password-stdin` para scripts; nunca argv. |
+| `secrets delete SITIO` | Borra esa entrada. |
+| `secrets allow-fill` | Bandera de consentimiento para un fill futuro. CAPTCHA/2FA/enviar siguen tuyos. |
+| `secrets deny-fill` | Apaga `fill_login`. |
+
+Oculto ≠ cifrado. No sincronices el archivo a Drive/Dropbox. Ver issue #157.
 
 ## Misceláneos
 

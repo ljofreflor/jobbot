@@ -23,6 +23,7 @@ class AtsKind(StrEnum):
     RECRUITEE = "recruitee"
     BREEZY = "breezy"
     MANATAL = "manatal"
+    CORNERSTONE = "cornerstone"
     TORRE = "torre"
     JOBTOME = "jobtome"
     REMOSHIFT = "remoshift"
@@ -84,6 +85,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("recruitee.com", AtsKind.RECRUITEE),
     ("breezy.hr", AtsKind.BREEZY),
     ("careers-page.com", AtsKind.MANATAL),
+    ("csod.com", AtsKind.CORNERSTONE),
     ("torre.ai", AtsKind.TORRE),
     ("torre.co", AtsKind.TORRE),
     ("jobtome.com", AtsKind.JOBTOME),
@@ -155,6 +157,12 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "oracle/taleo host",
     ),
     (re.compile(r"[a-z0-9_-]+\.bamboohr\.com", re.I), AtsKind.BAMBOOHR, "bamboohr host"),
+    (
+        # Cornerstone OnDemand: careersite hosts and CSP/frame-src on corporate SPAs.
+        re.compile(r"[a-z0-9_-]+\.csod\.com", re.I),
+        AtsKind.CORNERSTONE,
+        "cornerstone csod host",
+    ),
 )
 
 

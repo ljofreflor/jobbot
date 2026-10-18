@@ -66,6 +66,11 @@ data/**/*.pdf
 *.xdv
 
 # ── Runtime / secrets / sessions ────────────────────────────────────────────
+# Opt-in password vault (next to profile.yaml). Hidden ≠ encrypted; mode 0600.
+data/.vault.yaml
+data/.vault.yml
+**/.vault.yaml
+**/.vault.yml
 browser-data/
 output/
 .env

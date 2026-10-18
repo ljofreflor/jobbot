@@ -44,6 +44,16 @@ already answers** (and attach the built CV). It never invents a password, never 
 terms alone, never solves CAPTCHA/2FA, and never clicks the final create/submit without
 HITL confirmation. Irreversible steps stay human. Own accounts only.
 
+**Local vault (opt-in, trusting users).** Some candidates keep portal passwords in
+`data/.vault.yaml` (or `.local/.vault.yaml` after `jobbot init`) — hidden, `chmod 0600`,
+gitignored, blocked by `pii_guard`. Hidden is **not** encryption: the OS user is the
+trust boundary; disk encryption covers the disk; do not sync the file to Drive/Dropbox.
+`jobbot secrets init` creates an empty vault; `secrets set` stores a value the human
+types (`getpass` / `--password-stdin`, never argv). JobBot never invents an entry,
+never prints one, never logs one (ops redaction strips vault values). `fill_login`
+defaults false: CAPTCHA, 2FA, terms and submit stay human even when a password is
+stored. Typing into a login form is a later opt-in ([#157](https://github.com/ljofreflor/jobbot/issues/157)).
+
 **Oneshot ≠ presence.** `companies discover` only seeds *candidate* career URLs. It does
 not create accounts or upload CVs. Presence is `cv sync` / propagate + assisted signup
 against portals that were reviewed and `promote`d.
@@ -97,8 +107,6 @@ jobbot profile suggest-from-market --job J0001
 
 Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
 (`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
-Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn recruiter posts**
-    90|(`linkedin sweep`), or a **hard link** (`jobbot get URL` — live download is Get on Board
 or Indeed; `--fixture` also ingests Indeed viewjob or career-page HTML). From a phone,
 `jobbot capture URL` keeps the share as a **candidate** (hard-link inbox, company portal
 candidate, or unrecognized list) with no fetch; `--park` queues the share URL under
@@ -107,7 +115,6 @@ candidate, or unrecognized list) with no fetch; `--park` queues the share URL un
 without a fetcher (or Indeed URL shapes we do not yet parse) are refused and recorded
 as ops failures with class+message — tracking stripped from the stored command — so
 `ops failure work` can open the issue→branch→PR lane. Manual `jobs add --file` is a fallback.
-   100|`profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 `profile.yaml` is never silently rewritten for an offer. Derived artifacts go under `output/jobs/Jxxxx/`.
 Baseline may be updated only via **confirmed** market feedback (`profile suggest-from-market --promote`): rephrase/presentation and user-confirmed skills — never invented facts; never delete existing facts.
 
@@ -152,8 +159,12 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  - JD skills come from the posting's own structure: list items, lead-ins (`Manejo de …`,
  `Experiencia en …`) and typography that marks a tool (`SEO`, `WordPress`, `C++`).
  - Requirement evidence comes from the profile's own wording, tolerating gender and plural
- (`geofísico`/`geofísica`). Role fit compares the job title against the titles actually held —
- there is no table of role families.
+ (`geofísico`/`geofísica`). A strong match comes from **one claim** (its whole phrase, or two
+ words of the same skill, title or degree); words spread across claims are only partial. A
+ degree requirement (`Título de X`, `degree in X`) is met only by a degree in X. An acronym
+ counts when the profile writes it, even inside `XYZ-SMART` or `(PI)`. Role fit compares the job
+ title against the titles actually held — there is no table of role families, and the headline
+ is not a title held (at most partial, keeping the cap of a role never held).
  - Market feedback reads its terms from the stored JDs; a confirmed skill lands in a neutral
  group; an imported CV keeps the skill groups its own sections used.
  - A post is discovered for saying it is hiring or how to apply, not for its field. Board
@@ -165,10 +176,14 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  - The matcher also reads the posting against the profile: a declared skill, specialty or
  degree the posting names, or an achievement it echoes, is strong evidence. That side can
  only add, never lower a score. Page chrome (dates, clock times, salaries, currency codes,
- `Label: value`, shouted headings, ATS field labels) is never a requirement. When every
- scored job lands at 0%, commands print a matcher alert instead of a silent empty list.
+ `Label: value`, shouted headings, ATS field labels and the value on the line after them,
+ deliverable tables, links, handles, "Acerca de"/benefits sections, capitals in prose with no
+ lead-in) is never a requirement. When every scored job lands near 0% (under 5%), commands
+ print a matcher alert instead of a silent list. `jobs shortlist` prints 2–3 reasons per row.
  - Equivalence tables (`jobs/normalization.py`) are allowed **because an unknown term falls
- through unchanged**: they add recall for names of the same thing, never a gate.
+ through unchanged**: they add recall for names of the same thing, never a gate. That includes
+ the Spanish/English endings (`-ción`/`-tion`, `-ía`/`-y`) and the short table of words with no
+ shared root (`vigilancia`/`surveillance`).
 - **PDF CV import:** `profile import-pdf` reads the text layer only (no OCR, no models). A PDF has
  no structure, so the parser locates each role by its date (a range, a range whose months share
  one year — `julio – agosto 2026` — or a single right-aligned year) and then picks company and
@@ -221,6 +236,23 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
  es un **oneshot** que escribe candidatos en `output/discovery/` y nunca toca `data/companies.yaml`;
  HTTP 200 no es evidencia y un sitio que nos rechaza (403/conexión cortada) se reporta como
  desconocido, no como ausencia. Compartir siempre vía `companies export` (solo activos, sin PII).
+- **Reglas de portales decididas ([#269](https://github.com/ljofreflor/jobbot/issues/269); el
+  código todavía no las aplica todas):**
+  - **Promoción:** un sitio pasa solo a `active` cuando su ATS tiene evidencia técnica (regla de
+    host, redirección o marcador HTML embebido), y la salida del comando lo informa. Con ATS
+    `unknown`, la promoción sigue siendo manual (`companies promote`). El uso local por sí solo no
+    promueve ([#52](https://github.com/ljofreflor/jobbot/issues/52)). Un sitio `rejected`, uno
+    `stale` por contradicción, una bolsa de empleo o el tenant de un agregador nunca se promueven
+    solos.
+  - **Compartir ([#106](https://github.com/ljofreflor/jobbot/issues/106)):** sin opt-in no sale
+    nada de la máquina. La persona da el opt-in una vez por workspace, puede revocarlo y tiene una
+    cola de salida que puede revisar y vaciar; con opt-in activo los aportes fluyen sin
+    confirmación por aporte.
+  - **Un solo modelo:** el catálogo de fuentes ([#265](https://github.com/ljofreflor/jobbot/issues/265))
+    se fusiona en el registro de `companies`; no se crea un registro paralelo de empleador↔canal.
+  - **Registros viejos:** cuando mejora un detector, los sitios ya guardados se revisan con
+    `companies recheck` ([#270](https://github.com/ljofreflor/jobbot/issues/270)): la nueva
+    evidencia entra como observación y nunca pisa la anterior.
 - **Recon por dentro ([#45](https://github.com/ljofreflor/jobbot/issues/45)):** el oneshot mira
   **desde fuera**; la verdad de componentes (ATS, campos de registro, dónde se sube el CV) se
   aprende **entrando**. `companies recon NOMBRE` captura el HTML de la página (fixture o CDP
@@ -326,7 +358,9 @@ Matching and packages stay portal-agnostic. New sites implement:
 - `ApplicationPortalAdapter` — prefill/attach from Candidate + package ([`src/jobbot/adapters/base.py`](src/jobbot/adapters/base.py); registry in [`src/jobbot/adapters/ats/registry.py`](src/jobbot/adapters/ats/registry.py))
 - Portal registry — `data/portals.yaml` via `jobbot portals list|add|detect`; auto-learned from sweep URLs
 
-Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: Indeed assisted apply → GetOnBoard → Greenhouse/Lever/Ashby → Workday.
+Inject only known fields; HITL for salary/visa/English/CAPTCHA. Prioridad actual de verticales:
+Workday de punta a punta ([#214](https://github.com/ljofreflor/jobbot/issues/214)), en el orden
+de esa épica ([#269](https://github.com/ljofreflor/jobbot/issues/269)).
 
 ## Domain direction
 
@@ -361,7 +395,8 @@ Inject only known fields; HITL for salary/visa/English/CAPTCHA. Adapter order: I
   `jobbot browser login` is the first pass over permanent sites plus company portals that are
   `active` or `candidate` and may need an account ([#56](https://github.com/ljofreflor/jobbot/issues/56)):
   dry-run by default; `--apply` opens the next gap and stops. The password, CAPTCHA and 2FA stay
-  human. A company tab is `unknown`, never `ready`. Visiting a candidate does not promote it.
+  human unless the local vault has `fill_login` (not shipped yet; [#157](https://github.com/ljofreflor/jobbot/issues/157)).
+  A company tab is `unknown`, never `ready`. Visiting a candidate does not promote it.
 - **Focus:** JobBot abre páginas en segundo plano; no roba el foco. Todo pasa por
   `jobbot.browser.background` (`open -g` en macOS, `webbrowser` con `autoraise=False` fuera,
   pestañas CDP con `Target.createTarget` `background: true`) e imprime dónde quedó la página.
@@ -406,8 +441,9 @@ with a test attached, the same waste wearing a convincing costume.
 
 **What to call instead of re-deriving.**
 
-- Read [docs/capabilities.md](docs/capabilities.md) before searching the tree: 99 modules and
-  491 public symbols make a blind `grep` more expensive than the index.
+- Leer [docs/capabilities.md](docs/capabilities.md) antes de buscar en el árbol: con más de cien
+  módulos, un `grep` a ciegas cuesta más que el índice. Las cifras viven en el índice, que se
+  regenera solo; no se copian aquí.
 - Read [docs/library-audit.md](docs/library-audit.md) before hand-rolling something generic.
 - Run `uv run jobbot …` instead of reasoning out an answer the CLI already prints, and read
   the command's output instead of pasting whole files into context.
@@ -428,7 +464,8 @@ an issue already holds acceptance tests wastes everyone's time.
    / assisted signup → [#44](https://github.com/ljofreflor/jobbot/issues/44)
    / portal recon inside → [#45](https://github.com/ljofreflor/jobbot/issues/45)).
 3. If the work is genuinely new, open or update an issue first (HITL), then plan against that
-   number.
+   number. Antes de `gh issue create`, buscar el título (`gh issue list --state all --search
+   "in:title …"`); una creación que falló no se reintenta sin volver a buscar.
 4. Cite issue numbers in the plan and in PR bodies.
 5. **Assign every GitHub issue to Cursor.** On `gh issue create` and on
    `jobbot ops failure issue`, pass `--assignee cursoragent` (or
@@ -530,6 +567,7 @@ uv run jobbot profile import-pdf /path/to/cv.pdf # PDF con capa de texto; sin OC
 uv run jobbot cv build
 uv run jobbot cv build --job J0001            # moderncv (tu diseño) por defecto
 uv run jobbot cv build --job J0001 --style plain
+uv run jobbot cv build --job J0001 --full     # todos los roles y logros; los del aviso primero en cada rol
 uv run jobbot cv sync                      # plan: permanentes + companies active (#43)
 uv run jobbot cv sync --apply              # HITL: permanentes + fill/signup sheet por destino
 uv run jobbot cv propagate                 # alias permanente-only de sync (sin filas companies)
@@ -603,6 +641,9 @@ uv run jobbot application apply --all --apply --cdp http://127.0.0.1:9222
 uv run jobbot browser sessions # preflight: ready | needs_login | unknown | profile_busy
 uv run jobbot browser login            # permanentes + active + candidate; sin credenciales (#56)
 uv run jobbot browser login --apply    # abre el siguiente portal sin sesión probada; tú entras
+uv run jobbot secrets init             # vault local 0600 (opt-in; no inventa) (#157)
+uv run jobbot secrets set indeed       # getpass; never argv
+uv run jobbot secrets list             # sitios, sin valores
 uv run jobbot browser chrome-debug --site gmail --port 9223
 uv run jobbot application apply J0001 --apply --cdp http://127.0.0.1:9223
 uv run jobbot profile suggest-from-market
