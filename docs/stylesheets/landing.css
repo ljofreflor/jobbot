@@ -5502,6 +5502,19 @@ html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
   opacity: 1;
 }
 
+/* Presence: a jump to a Vacantes or Postulaciones heading restores the
+   softened Postular chapter cut. The Presence cut stays full; hovering
+   that heading already restores this cut. */
+html.jb-pin-presence:has(
+    #cmd-vacantes:target,
+    #cmd-vacancies:target,
+    #cmd-postulaciones:target,
+    #cmd-applications:target
+  )
+  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
