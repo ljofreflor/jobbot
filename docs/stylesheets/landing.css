@@ -1429,8 +1429,17 @@ a.jb-scrolly__loop:focus-visible {
 }
 
 .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__loop {
-  color: #e8eef8;
-  background: rgba(0, 88, 248, 0.4);
+  color: #001838;
+  background: rgba(197, 212, 238, 0.55);
+}
+
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-done {
+  background: rgba(197, 212, 238, 0.75);
+}
+
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-current {
+  background: #c5d4ee;
+  box-shadow: 0 0 0 3px rgba(197, 212, 238, 0.4);
 }
 
 /* Soften the other loop so the active chapter cluster leads the eye. */
@@ -1722,6 +1731,15 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   .jb-scrolly__dot.is-current::before {
     background: #7eb0ff;
     box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
+  }
+
+  .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-done::before {
+    background: rgba(197, 212, 238, 0.75);
+  }
+
+  .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-current::before {
+    background: #c5d4ee;
+    box-shadow: 0 0 0 3px rgba(197, 212, 238, 0.4);
   }
 
   .jb-scrolly__dot:hover {
