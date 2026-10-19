@@ -179,7 +179,7 @@ espera de ese `appname`.
 | `application prepare JOB_ID` | Arma el paquete de postulación (no inventa respuestas). |
 | `application show JOB_ID` | Ruta y estado del paquete. |
 | `application open JOB_ID` | Abre la URL de la vacante o del ATS en el navegador (no postula). |
-| `application apply JOB_ID` | Plan de prellenado. Indeed que sale a otro portal no usa Indeed Apply. Con `--cdp`, un adjunto que no vuelve no abre otro navegador; sin `--cdp`, abre el navegador por defecto. `--apply` abre; el envío lo haces tú. |
+| `application apply JOB_ID` | Plan de prellenado. Indeed que sale a otro portal no usa Indeed Apply. Con `--cdp` la sesión se consulta en ese host (`[::1]` sigue siendo `[::1]`); un adjunto que no vuelve no abre otro navegador. Sin `--cdp` un perfil ajeno no se lee y se abre el navegador por defecto. `--apply` abre; el envío lo haces tú. |
 | `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso. Sale 0 si todo está respaldado y 2 si una afirmación no lo está. Una carta o una pregunta de motivación sale 4: si las afirmaciones están respaldadas lo dice, y la motivación la confirma la persona. |
 | `jobs describe JOB_ID --file aviso.txt` | Reemplaza la descripción de un aviso ya guardado. Conserva el id, la URL, la nota y la postulación. |
 | `applications list` | Lista las postulaciones registradas (alias: `applications status`). |
@@ -310,7 +310,7 @@ el nombre para que la lista esté completa.
 | `portals profile status` / `sheet` / `mark-updated` / `import` / `seed` / `push` | Cobertura, hoja de llenado y seguimiento. `push` no tipea en el portal. |
 | `companies recon NOMBRE` | Aprende ATS y preguntas desde HTML. |
 | `companies signup NOMBRE` | Alta asistida. Crear la cuenta queda en tus manos. |
-| `browser sessions` | Estado de sesión por evidencia. No se adjunta solo. |
+| `browser sessions` | Estado de sesión por evidencia. Sin `--cdp` no lee un perfil ajeno. No se adjunta solo. |
 | `browser login` | Portales sin sesión probada. `--apply` abre el siguiente. |
 | `ops failure show` / `triage` / `issue` / `work` | Una falla local. `issue` y `work --apply` son HITL; no hay commit ni push automáticos. |
 | `ops symptom note` / `list` / `show` / `plan` / `triage` / `issue` | Síntomas locales, redactados al guardar. |

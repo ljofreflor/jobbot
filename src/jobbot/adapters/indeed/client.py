@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
@@ -387,13 +388,17 @@ class IndeedAdapter:
         )
 
 
+# A greeting marks a signed-in Indeed page. The name after the comma is never kept.
+_GREETING = re.compile(r"\b(?:hola|hi|hello),\s+\S+", re.IGNORECASE)
+
+
 def indeed_session_authenticated(
     *,
     url: str,
     html: str,
     cookie_names: Sequence[str],
 ) -> bool:
-    """True only with an account menu or a confirmed session cookie.
+    """True only with an account menu, a greeting, or a confirmed session cookie.
 
     The visitor cookie ``CTK`` is present on a logged-out browser and is not
     a session. ``SOCK`` and ``SHOE`` were observed on a signed-in profile.
@@ -403,7 +408,9 @@ def indeed_session_authenticated(
     names = {name.casefold() for name in cookie_names}
     if "sock" in names or "shoe" in names:
         return True
-    lowered = html.casefold()
+    if _GREETING.search(html or ""):
+        return True
+    lowered = (html or "").casefold()
     return any(marker in lowered for marker in ("account-menu", "cerrar sesión", "sign out"))
 
 

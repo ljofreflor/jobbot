@@ -4264,6 +4264,9 @@ def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | No
     if account_need(ats_kind) is not AccountNeed.NEEDED:
         return
     site = session_site(ats_kind)
+    if cdp and site is not None:
+        _warn_from_named_cdp(ats_kind, site, cdp)
+        return
     states: list[browser_sessions.SessionState] = []
     if site is not None:
         ports = list(browser_sessions.DEFAULT_PORTS)
@@ -4274,6 +4277,27 @@ def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | No
     warning = login_warning(ats_kind, states)
     if warning:
         console.print(f"[bold yellow]{warning}[/bold yellow]")
+
+
+def _warn_from_named_cdp(ats_kind: AtsKind, site: str, cdp: str) -> None:
+    """Session on the exact ``--cdp`` host. A silent port is not a missing login."""
+    from jobbot.applications.login_gate import _MUST_SIGN_IN, _PORTAL_NAMES
+    from jobbot.browser.cdp import cdp_endpoint
+    from jobbot.browser.sessions import CdpSessionStatus, probe_cdp_session
+
+    report = probe_cdp_session(cdp, site)
+    portal = _PORTAL_NAMES.get(ats_kind, ats_kind.value)
+    where = cdp_endpoint(report.url)
+    console.print(f"{portal}: {report.status.value} ({where})")
+    if report.status is CdpSessionStatus.SIGNED_IN:
+        return
+    if report.status is CdpSessionStatus.UNREACHABLE:
+        console.print(
+            f"[bold yellow]{portal}: {where} did not answer. "
+            "That is not a missing session.[/bold yellow]"
+        )
+        return
+    console.print(f"[bold yellow]No iniciaste sesión en {portal}: {_MUST_SIGN_IN}.[/bold yellow]")
 
 
 def _ats_target_url(adapter: Any, job: JobPosting, ats_url: str) -> str:

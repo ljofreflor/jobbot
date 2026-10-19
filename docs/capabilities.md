@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 214 modules, 1210 public symbols.
+129 commands, 214 modules, 1214 public symbols.
 
 ## Commands
 
@@ -322,7 +322,7 @@ writing it again — the promotion rule lives in
 - `login_plan.py` — Login tour: which portals still need a human sign-in (issue #56). · `LoginBucket`, `LoginRow`, `LoginPlan`, `plan_logins`
 - `manual.py` — Human-in-the-loop pauses for CAPTCHA / consent (no bypass). · `wait_for_manual_clear`
 - `session.py` — Persistent Playwright browser session. · `BrowserTimeouts`, `launch_persistent_kwargs`, `BrowserSession`
-- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `judge_account`, `free_debug_port`
+- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `CdpSessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `CdpSessionReport`, `cdp_base_url`, `probe_cdp_session`, `judge_account`, `free_debug_port`
 
 ### `companies`
 
