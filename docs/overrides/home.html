@@ -611,7 +611,11 @@
         dot.addEventListener("click", onJump);
       });
       loops.forEach(function (loop) {
-        loop.addEventListener("click", onJump);
+        /* Pointer-only chips (tabindex -1): after click, land on the step's dot. */
+        loop.addEventListener("click", function (event) {
+          keepProgressFocus = true;
+          onJump(event);
+        });
       });
       ledeCmds.forEach(function (link) {
         link.addEventListener("click", onJump);
