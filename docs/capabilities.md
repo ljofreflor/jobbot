@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-140 commands, 233 modules, 1316 public symbols.
+140 commands, 234 modules, 1319 public symbols.
 
 ## Commands
 
@@ -242,6 +242,10 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source greenhouse` reads the public Job Board API. · `pause`, `fetch_public`, `jobs_url`, `detail_url`, `GreenhouseDiscover`
 - `parse.py` — Map one Greenhouse job. No network. · `board_token`, `public_job_url`, `parse_board`, `job_from_item`
+
+### `adapters/hiringroom`
+
+- `parse.py` — Saved HiringRoom vacancy. The listing's second page has no known endpoint. · `HiringRoomParseError`, `listing_links`, `parse_vacancy`
 
 ### `adapters/impactpool`
 
