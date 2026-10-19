@@ -355,7 +355,15 @@ def probe_cdp_session(
     report names the state and the host; it does not repeat a greeting or a cookie.
     """
     getter = fetch if fetch is not None else fetch_local_json
-    base = cdp_base_url(url)
+    try:
+        base = cdp_base_url(url)
+    except ValueError:
+        logger.debug("named CDP endpoint is not a local host: %s", url)
+        return CdpSessionReport(
+            status=CdpSessionStatus.UNREACHABLE,
+            evidence="endpoint is not a local host",
+            url=url.strip(),
+        )
     try:
         getter(f"{base}/json/version")
         pages = getter(f"{base}/json/list")
@@ -636,7 +644,7 @@ def _page_is_signed_in(
     if spec.site == "indeed":
         from jobbot.adapters.indeed.client import indeed_session_authenticated
 
-        return indeed_session_authenticated(url=url, html=text, cookie_names=cookie_names)
+        return indeed_session_authenticated(url=url, html="", cookie_names=cookie_names, title=text)
     folded = url.casefold()
     if any(marker in folded for marker in spec.auth):
         return False
