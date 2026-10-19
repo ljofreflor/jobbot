@@ -1446,6 +1446,18 @@ html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story
   opacity: 1;
 }
 
+/* Other-loop catalog row restores when its story step is :target
+   (lede, pin dot, or the row's own tag — hash is #story-*, not #cmd-*). */
+html:not(.jb-pin-presence):has(#story-advise:target) .jb-section--cmds tr:has(#cmd-advise),
+html:not(.jb-pin-presence):has(#story-sync:target) .jb-section--cmds tr:has(#cmd-sync),
+html.jb-pin-presence:has(#story-get:target) .jb-section--cmds tr:has(#cmd-get),
+html.jb-pin-presence:has(#story-match:target) .jb-section--cmds tr:has(#cmd-match),
+html.jb-pin-presence:has(#story-build:target) .jb-section--cmds tr:has(#cmd-build),
+html.jb-pin-presence:has(#story-conditions:target) .jb-section--cmds tr:has(#cmd-conditions),
+html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds tr:has(#cmd-apply) {
+  opacity: 1;
+}
+
 @media (max-width: 960px) {
   body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]),
   body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) thead,
