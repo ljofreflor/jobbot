@@ -1509,7 +1509,8 @@ a.jb-scrolly__loop:focus-visible {
 }
 
 .jb-scrolly__pin.is-presence .jb-scrolly__terminal {
-  box-shadow: 0 18px 40px rgba(0, 88, 248, 0.28);
+  border-color: rgba(197, 212, 238, 0.4);
+  box-shadow: 0 18px 40px rgba(0, 24, 56, 0.34);
 }
 
 .jb-scrolly__lede {
