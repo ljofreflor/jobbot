@@ -1987,6 +1987,45 @@ body:has(
   opacity: 1;
 }
 
+/* Reverse of item 200: hovering the softened chapter cut restores that loop's inactive steps. */
+body:has(
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
+  )
+  #story-advise.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
+  )
+  #story-sync.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
+  )
+  #story-get.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
+  )
+  #story-match.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
+  )
+  #story-build.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
+  )
+  #story-conditions.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
+  )
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Same inset cue as a catalog story row for the pin's current step. */
 .jb-scrolly__step[aria-current="step"] {
   box-shadow: inset 3px 0 0 var(--jb-cobalt);
