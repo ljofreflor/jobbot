@@ -201,14 +201,14 @@ def edu_label(edu: Education, language: Language = "es") -> str:
 
 
 def edu_when(edu: Education, *, language: Language = "es", years_only: bool = False) -> str:
-    """Dates a degree shows. In progress is named; a finished one without an end is not current."""
+    """Dates a degree shows. An open one is named; a finished one without an end is not current."""
     status = edu.resolved_status()
     if status == "completed" and not edu.end_date:
         if years_only:
             parsed = _parse_ym(edu.start_date)
             return str(parsed[0]) if parsed else ""
         return edu.start_date or ""
-    if status == "in_progress":
+    if status in {"in_progress", "candidate"}:
         if years_only:
             parsed = _parse_ym(edu.start_date)
             start = str(parsed[0]) if parsed else ""
