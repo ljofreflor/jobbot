@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from urllib.parse import urlparse
+
+from bs4 import BeautifulSoup, Tag
 
 from jobbot.adapters.ats.apply import describe_prefill, open_ats_in_browser
 from jobbot.adapters.base import ApplicationPackage, ApplyMethod, PrefillResult
@@ -82,3 +85,48 @@ def _applystart(job: JobPosting) -> str | None:
 def _is_indeed_url(url: str) -> bool:
     host = (urlparse(url).hostname or "").casefold()
     return host == "indeed.com" or host.endswith(".indeed.com")
+
+
+_CV_TOKEN = re.compile(r"\bcv\b|resume|curr[ií]cul", re.IGNORECASE)
+
+
+def page_asks_for_cv(html: str) -> bool:
+    """True when this step has a file input labeled as the CV. A letter upload does not count."""
+    soup = BeautifulSoup(html or "", "html.parser")
+    for node in soup.find_all("input"):
+        if not isinstance(node, Tag):
+            continue
+        kind = node.get("type")
+        if not isinstance(kind, str) or kind.casefold() != "file":
+            continue
+        if _CV_TOKEN.search(_input_blob(soup, node)):
+            return True
+    return False
+
+
+def _input_blob(soup: BeautifulSoup, node: Tag) -> str:
+    parts = [node.get(attr) or "" for attr in ("name", "id", "aria-label", "accept")]
+    control_id = node.get("id")
+    if isinstance(control_id, str) and control_id:
+        label = soup.find("label", attrs={"for": control_id})
+        if isinstance(label, Tag):
+            parts.append(label.get_text(" ", strip=True))
+    parent = node.find_parent("label")
+    if isinstance(parent, Tag):
+        parts.append(parent.get_text(" ", strip=True))
+    return " ".join(part for part in parts if isinstance(part, str))
+
+
+def tailored_cv_path(output_dir: Path, job_id: str) -> Path | None:
+    """The packaged PDF, else the job build. A base CV is not this posting's CV."""
+    packaged = output_dir / "jobs" / job_id / "application" / "cv.pdf"
+    built = output_dir / "jobs" / job_id / "cv.pdf"
+    for path in (packaged, built):
+        if path.is_file():
+            return path
+    return None
+
+
+def missing_tailored_cv(job_id: str) -> str:
+    """What to run when neither job PDF exists. Does not point at the base CV."""
+    return f"Build the CV first: output/jobs/{job_id}/cv.pdf"
