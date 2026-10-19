@@ -236,7 +236,7 @@ Nothing in this list submits alone or invents a fact. Rows marked **apply** (cob
 | <span id="cmd-sync" class="jb-in-story"><code>jobbot cv sync</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-sync" aria-label="Step 7, presence, sync">presence</a></span> | Standing presence: permanent profiles and active companies. `--apply` waits for you. |
 | `jobbot cv status` | Alias of `jobbot status`. |
 
-### Vacancies {#cmd-vacancies}
+### Vacancies {#cmd-vacancies .is-pin-step}
 
 | Command | What it does |
 |---------|----------------|

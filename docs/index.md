@@ -236,7 +236,7 @@ lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o 
 | <span id="cmd-sync" class="jb-in-story"><code>jobbot cv sync</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-sync" aria-label="Paso 7, presencia, sync">presencia</a></span> | Presencia: permanentes y empresas activas. `--apply` espera tu confirmación. |
 | `jobbot cv status` | Alias de `jobbot status`. |
 
-### Vacantes {#cmd-vacantes}
+### Vacantes {#cmd-vacantes .is-pin-step}
 
 | Comando | Qué hace |
 |---------|----------|
