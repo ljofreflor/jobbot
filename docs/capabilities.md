@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 215 modules, 1216 public symbols.
+129 commands, 216 modules, 1220 public symbols.
 
 ## Commands
 
@@ -350,6 +350,7 @@ writing it again — the promotion rule lives in
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
+- `text_layer.py` — The text an ATS reads from a CV. Icons and stuffed terms are findings, not facts. · `TextLayerIssue`, `check_text_layer`, `issues_in_text`, `issues_for_outputs`
 - `tune.py` — Bounded baseline tune from one job posting (#54). · `resolve_tune_ref`, `char_delta_label`, `prompt_advice_decision`, `backup_profile`
 
 ### `db`
