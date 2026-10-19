@@ -2460,6 +2460,25 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Postular: hovering a Postular catalog row restores the softened Presence pin chapter.
+   Same-loop rows already restore their own chapter; this is the other loop. */
+html:not(.jb-pin-presence):has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-scrolly__pin:not(.is-presence)
+  .jb-scrolly__chapter:last-child {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
