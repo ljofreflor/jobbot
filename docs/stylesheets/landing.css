@@ -1639,6 +1639,27 @@ body:has(#cmd-sync:target) #story-sync.jb-scrolly__step:not(.is-active) {
   opacity: 1;
 }
 
+/* Inactive step restores when its lede command is hovered or focused. */
+body:has(a.jb-scrolly__lede-cmd[href="#story-get"]:hover, a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible)
+  #story-get.jb-scrolly__step:not(.is-active),
+body:has(a.jb-scrolly__lede-cmd[href="#story-match"]:hover, a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible)
+  #story-match.jb-scrolly__step:not(.is-active),
+body:has(a.jb-scrolly__lede-cmd[href="#story-build"]:hover, a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible)
+  #story-build.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible
+  )
+  #story-conditions.jb-scrolly__step:not(.is-active),
+body:has(a.jb-scrolly__lede-cmd[href="#story-apply"]:hover, a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible)
+  #story-apply.jb-scrolly__step:not(.is-active),
+body:has(a.jb-scrolly__lede-cmd[href="#story-advise"]:hover, a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible)
+  #story-advise.jb-scrolly__step:not(.is-active),
+body:has(a.jb-scrolly__lede-cmd[href="#story-sync"]:hover, a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible)
+  #story-sync.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Same inset cue as a catalog story row for the pin's current step. */
 .jb-scrolly__step[aria-current="step"] {
   box-shadow: inset 3px 0 0 var(--jb-cobalt);
