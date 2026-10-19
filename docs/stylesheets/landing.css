@@ -936,6 +936,17 @@ body:has(.jb-hero) .md-tabs {
   box-shadow: inset 0 -2px 0 var(--jb-cobalt);
 }
 
+/* Pin's current story step → its catalog group (scroll .is-current still wins). */
+.jb-cmdnav a.jb-cmdnav__story.is-pin-step:not(.is-current) {
+  background: rgba(0, 88, 248, 0.1);
+  box-shadow: inset 0 -2px 0 var(--jb-cobalt);
+}
+
+.jb-cmdnav a.jb-cmdnav__story.is-pin-step.is-pin-presence:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+  box-shadow: inset 0 -2px 0 var(--jb-navy);
+}
+
 .jb-section--cmds h3 {
   margin: 1.6rem 0 0.55rem;
   scroll-margin-top: 6.5rem;
