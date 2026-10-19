@@ -1775,6 +1775,21 @@ def profile_import_folder(
     raise typer.Exit(SUCCESS)
 
 
+@profile_app.command("rejection")
+def profile_rejection(
+    text: Annotated[str, typer.Option("--text", help="Why the suggestion does not fit")],
+) -> None:
+    """Classify a rejection. A preference or a condition does not edit the profile."""
+    from jobbot.profile.rejection import may_edit_profile, rejection_kind
+
+    kind = rejection_kind(text)
+    if may_edit_profile(kind):
+        console.print(f"{kind}: not written")
+    else:
+        console.print(f"{kind}: profile unchanged")
+    raise typer.Exit(SUCCESS)
+
+
 @profile_app.command("promote-generated")
 def profile_promote_generated(
     yes: Annotated[bool, typer.Option("--yes", "-y")] = False,
