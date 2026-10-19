@@ -1769,6 +1769,8 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   .jb-scrolly__count {
     grid-column: 2;
     grid-row: 2;
+    align-self: start;
+    padding-top: 0.35rem; /* match presence chapter hairline + padding */
   }
 }
 
