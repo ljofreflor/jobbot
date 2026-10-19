@@ -1170,6 +1170,14 @@ a.jb-in-story__tag--presence:focus-visible {
     font-size: 0.68rem;
   }
 
+  /* Same 1.5rem touch floor as catalog story tags. */
+  a.jb-scrolly__lede-cmd {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    padding: 0.15rem 0.2rem;
+  }
+
   .jb-scrolly__progress,
   .jb-scrolly__dots {
     flex-wrap: wrap;
