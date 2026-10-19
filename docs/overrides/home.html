@@ -240,7 +240,10 @@
           </p>
           <p class="jb-scrolly__count" id="jb-scrolly-count" aria-hidden="true">{% if en %}1 / 7 · Apply{% else %}1 / 7 · Postular{% endif %}</p>
         </nav>
-        <p class="jb-scrolly__meter" aria-hidden="true"><span id="jb-scrolly-bar"></span></p>
+        <p class="jb-scrolly__meter" id="jb-scrolly-meter" role="progressbar"
+           aria-valuemin="1" aria-valuemax="7" aria-valuenow="1"
+           aria-valuetext="{% if en %}1 / 7 · Apply{% else %}1 / 7 · Postular{% endif %}"
+           aria-label="{% if en %}Story progress{% else %}Progreso del relato{% endif %}"><span id="jb-scrolly-bar"></span></p>
         <div class="jb-scrolly__stage">
           <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker" aria-hidden="true">
             {% if en %}1 · apply{% else %}1 · postular{% endif %}
@@ -408,6 +411,7 @@
       var storyTags = [];
       var currentStep = steps[0] || null;
       var bar = document.getElementById("jb-scrolly-bar");
+      var meter = document.getElementById("jb-scrolly-meter");
       var count = document.getElementById("jb-scrolly-count");
       var pin = root.querySelector(".jb-scrolly__pin");
       var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -479,6 +483,13 @@
             : "";
           count.textContent = (index + 1) + " / " + steps.length;
           if (loopLabel) count.textContent += " · " + loopLabel;
+        }
+        if (meter && steps.length) {
+          meter.setAttribute("aria-valuemax", String(steps.length));
+          meter.setAttribute("aria-valuenow", String(index + 1));
+          if (count && count.textContent) {
+            meter.setAttribute("aria-valuetext", count.textContent);
+          }
         }
         if (pin) pin.classList.toggle("is-presence", index >= 5);
         var echo = step.querySelector(".jb-scrolly__echo code");
