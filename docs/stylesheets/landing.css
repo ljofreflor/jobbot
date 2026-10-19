@@ -903,6 +903,9 @@ body:has(.jb-hero) .md-tabs {
 }
 
 .jb-cmdnav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   color: var(--jb-cobalt);
   font-size: 0.88rem;
   font-weight: 600;
@@ -1234,9 +1237,6 @@ a.jb-in-story__tag--presence[aria-current="step"] {
 
   .jb-cmdnav a {
     flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.5rem;
   }
 }
 
