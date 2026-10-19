@@ -180,7 +180,7 @@ and Chile / Latam focus in searches and roundups.
 
 Every public command in `src/jobbot/cli.py`, one line each. Flags are in the
 [reference](../comandos.md) (Spanish). `jobbot <command> --help` prints the rest.
-Nothing in this list submits alone or invents a fact. Rows marked **apply** or **presence** are the seven steps above; the mark returns to that step in the loop. In the bar, **CV**, **Vacancies**, and **Applications** are underlined: that is where those seven live.
+Nothing in this list submits alone or invents a fact. Rows marked **apply** (cobalt) or **presence** (navy) are the seven steps above; the mark returns to that step in the loop. In the bar, **CV**, **Vacancies**, and **Applications** are underlined: that is where those seven live.
 
 <nav class="jb-cmdnav" aria-label="Command groups">
   <a href="#cmd-machine">On your machine</a>
