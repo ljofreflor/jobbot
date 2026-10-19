@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-135 commands, 227 modules, 1288 public symbols.
+135 commands, 228 modules, 1291 public symbols.
 
 ## Commands
 
@@ -319,6 +319,7 @@ writing it again — the promotion rule lives in
 - `interview.py` — Interview questions from the package that was sent (#203). · `InterviewCard`, `sent_selection_path`, `load_sent_selection`, `cards_for`, `format_cards`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
+- `preflight.py` — Warn before an assisted apply when the stored match is below a threshold. · `MatchThresholdError`, `threshold_percent`, `below_threshold`
 
 ### `browser`
 

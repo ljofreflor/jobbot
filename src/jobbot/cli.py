@@ -4723,6 +4723,13 @@ def application_apply(
         int | None,
         typer.Option("--limit", help="With --all, open at most N jobs"),
     ] = None,
+    min_match: Annotated[
+        float,
+        typer.Option(
+            "--min-match",
+            help="Warn before --apply below this match. 0.7 means 70%. Default 70.",
+        ),
+    ] = 70,
 ) -> None:
     """Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
 
@@ -4733,6 +4740,13 @@ def application_apply(
     if all_jobs and job_id:
         err_console.print("[red]Pass a job id or --all, not both.[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
+    from jobbot.applications.preflight import MatchThresholdError, threshold_percent
+
+    try:
+        minimum = threshold_percent(min_match)
+    except MatchThresholdError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
     if all_jobs:
         _application_apply_all(
             apply_changes=apply_changes,
@@ -4755,7 +4769,31 @@ def application_apply(
         cdp=cdp,
         cdp_timeout=cdp_timeout,
         foreground=foreground,
+        min_match=minimum,
     )
+
+
+def _confirm_low_match(candidate: Candidate, job: JobPosting, *, minimum: float, yes: bool) -> None:
+    """Print the gap list and stop unless the person confirms. --yes still warns."""
+    from jobbot.applications.preflight import below_threshold
+    from jobbot.cv.gap import GapStatus, gap_report
+
+    if not below_threshold(job.match_score, minimum):
+        return
+    score = job.match_score or 0
+    console.print(f"match {score:.0f}% is below {minimum:.0f}%")
+    missing = [
+        term.term
+        for term in gap_report(candidate, job).terms
+        if term.kind == "hard" and term.status is GapStatus.GAP
+    ]
+    if missing:
+        console.print("gaps: " + ", ".join(missing))
+    if yes:
+        return
+    if not typer.confirm("The match is below the threshold. Continue?", default=False):
+        console.print("Aborted.")
+        raise _QuietExit(USER_CANCEL)
 
 
 def _application_apply_all(
@@ -4858,6 +4896,7 @@ def _application_apply_one(
     cdp: str | None,
     cdp_timeout: float = 15,
     foreground: bool = False,
+    min_match: float = 70,
 ) -> None:
     """Assist apply for a single job id (same behaviour as before --all)."""
     from jobbot.adapters.ats.apply import (
@@ -4881,6 +4920,9 @@ def _application_apply_one(
     except ProfileLoadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    if apply_changes:
+        _confirm_low_match(candidate, job, minimum=min_match, yes=yes)
 
     plan = build_apply_plan(candidate, job)
     adapter = adapter_for_job(job)
