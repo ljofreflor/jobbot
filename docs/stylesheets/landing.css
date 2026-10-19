@@ -1633,6 +1633,14 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   font-weight: 700;
 }
 
+.jb-scrolly__pin.is-presence .jb-scrolly__prompt {
+  color: #c5d4ee;
+}
+
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter + .jb-scrolly__chapter {
+  border-left-color: rgba(197, 212, 238, 0.55);
+}
+
 .jb-scrolly__stage-out {
   margin: 0;
   padding: 0.55rem 0.7rem;
@@ -1852,6 +1860,10 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
     border-left: 0;
     border-top: 1px solid rgba(200, 216, 248, 0.35);
     padding-top: 0.35rem;
+  }
+
+  .jb-scrolly__pin.is-presence .jb-scrolly__chapter + .jb-scrolly__chapter {
+    border-top-color: rgba(197, 212, 238, 0.55);
   }
 
   .jb-scrolly__count {
