@@ -13,8 +13,14 @@ languages:
   english:
 # true / false: a contractor or service contract instead of an employment contract.
 accepts_contractor:
-# false, or within_country / international. true still means the candidate accepts relocating.
+# false, within_country, or international. true means international.
 relocation:
+# has: true/false. class: the class printed on the license, when you know it.
+driving_license:
+  has:
+  class:
+# none / domestic / international.
+travel:
 # remote / hybrid / onsite (blank: no preference).
 remote_preference:
 # e.g. "two weeks", "immediate".

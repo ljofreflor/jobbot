@@ -24,6 +24,10 @@ notice_period:
 work_authorization:
 english_level:
 relocation:
+driving_license:
+  has:
+  class:
+travel:
 remote_preference:
 identity:
   birth_date:
