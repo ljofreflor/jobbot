@@ -4293,7 +4293,7 @@ def _warn_from_named_cdp(ats_kind: AtsKind, site: str, cdp: str) -> None:
         return
     if report.status is CdpSessionStatus.UNREACHABLE:
         console.print(
-            f"[bold yellow]{portal}: {where} did not answer. "
+            f"[bold yellow]{portal}: {report.evidence} ({where}). "
             "That is not a missing session.[/bold yellow]"
         )
         return

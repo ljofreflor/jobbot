@@ -388,8 +388,19 @@ class IndeedAdapter:
         )
 
 
-# A greeting marks a signed-in Indeed page. The name after the comma is never kept.
-_GREETING = re.compile(r"\b(?:hola|hi|hello),\s+\S+", re.IGNORECASE)
+# A signed-in tab is titled ``Hola, Name | Indeed``: the greeting opens the title and only
+# the brand follows the name, which is never kept. Read over page markup instead, any
+# greeting in the copy would pass; a job tab also names the employer and the place.
+_GREETING = re.compile(r"^(?:hola|hi|hello),\s+\S", re.IGNORECASE)
+_BRAND = re.compile(r"indeed(?:\.com)?", re.IGNORECASE)
+_TITLE_PARTS = re.compile(r"[|\u2013\u2014]|\s-\s")
+
+
+def _is_greeting_title(title: str) -> bool:
+    parts = [part.strip() for part in _TITLE_PARTS.split(title.strip())]
+    if not _GREETING.match(parts[0]):
+        return False
+    return all(_BRAND.fullmatch(part) for part in parts[1:])
 
 
 def indeed_session_authenticated(
@@ -397,8 +408,9 @@ def indeed_session_authenticated(
     url: str,
     html: str,
     cookie_names: Sequence[str],
+    title: str = "",
 ) -> bool:
-    """True only with an account menu, a greeting, or a confirmed session cookie.
+    """True only with an account menu, a greeting title, or a confirmed session cookie.
 
     The visitor cookie ``CTK`` is present on a logged-out browser and is not
     a session. ``SOCK`` and ``SHOE`` were observed on a signed-in profile.
@@ -408,7 +420,7 @@ def indeed_session_authenticated(
     names = {name.casefold() for name in cookie_names}
     if "sock" in names or "shoe" in names:
         return True
-    if _GREETING.search(html or ""):
+    if _is_greeting_title(title):
         return True
     lowered = (html or "").casefold()
     return any(marker in lowered for marker in ("account-menu", "cerrar sesión", "sign out"))
@@ -420,6 +432,10 @@ def _session_authenticated(page: object) -> bool:
         html = str(page.content())  # type: ignore[attr-defined]
     except Exception:  # noqa: BLE001
         html = ""
+    try:
+        title = str(page.title())  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        title = ""
     names: list[str] = []
     try:
         context = page.context  # type: ignore[attr-defined]
@@ -427,7 +443,7 @@ def _session_authenticated(page: object) -> bool:
         names = [str(cookie.get("name", "")) for cookie in cookies if isinstance(cookie, dict)]
     except Exception:  # noqa: BLE001
         names = []
-    return indeed_session_authenticated(url=url, html=html, cookie_names=names)
+    return indeed_session_authenticated(url=url, html=html, cookie_names=names, title=title)
 
 
 def _is_auth_url(url: str) -> bool:
