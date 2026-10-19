@@ -1484,6 +1484,10 @@ a.jb-scrolly__loop:focus-visible {
   border-radius: 1px;
 }
 
+.jb-scrolly__pin.is-presence .jb-scrolly__meter span {
+  background: #c5d4ee;
+}
+
 .jb-scrolly__pin.is-presence .jb-scrolly__terminal {
   box-shadow: 0 18px 40px rgba(0, 88, 248, 0.28);
 }
