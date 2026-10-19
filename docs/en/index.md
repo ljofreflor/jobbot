@@ -229,25 +229,25 @@ Nothing in this list submits alone or invents a fact. Rows marked **apply** (cob
 
 | Command | What it does |
 |---------|----------------|
-| <span id="cmd-build" class="jb-in-story"><code>jobbot cv build</code> <a class="jb-in-story__tag" href="#story-build" aria-label="Step 3, apply, build">apply</a></span> | Builds the CV from the profile. `--job` orders it for one posting; `--full` keeps every role. `--target cv` or `ats`. |
-| <span id="cmd-advise" class="jb-in-story"><code>jobbot cv advise</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-advise" aria-label="Step 6, presence, advise">presence</a></span> | A few presentation edits. `--apply` confirms them one by one. |
+| <span id="cmd-build" class="jb-in-story"><code>jobbot cv build</code> <a class="jb-in-story__tag" href="#story-build" aria-controls="story-build" aria-label="Step 3, apply, build">apply</a></span> | Builds the CV from the profile. `--job` orders it for one posting; `--full` keeps every role. `--target cv` or `ats`. |
+| <span id="cmd-advise" class="jb-in-story"><code>jobbot cv advise</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-advise" aria-controls="story-advise" aria-label="Step 6, presence, advise">presence</a></span> | A few presentation edits. `--apply` confirms them one by one. |
 | `jobbot cv tune-for Jxxxx` | The same advise, scoped to one posting or one link. |
 | `jobbot cv propagate` | Plan for permanent profiles. `--apply` confirms each destination. |
-| <span id="cmd-sync" class="jb-in-story"><code>jobbot cv sync</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-sync" aria-label="Step 7, presence, sync">presence</a></span> | Standing presence: permanent profiles and active companies. `--apply` waits for you. |
+| <span id="cmd-sync" class="jb-in-story"><code>jobbot cv sync</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-sync" aria-controls="story-sync" aria-label="Step 7, presence, sync">presence</a></span> | Standing presence: permanent profiles and active companies. `--apply` waits for you. |
 | `jobbot cv status` | Alias of `jobbot status`. |
 
 ### Vacancies {#cmd-vacancies .is-pin-step}
 
 | Command | What it does |
 |---------|----------------|
-| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <a class="jb-in-story__tag" href="#story-get" aria-current="step" aria-label="Step 1, apply, get">apply</a></span> | Downloads one posting (Get on Board, Indeed, Workday), builds the CV and the package. It does not send. |
+| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <a class="jb-in-story__tag" href="#story-get" aria-controls="story-get" aria-current="step" aria-label="Step 1, apply, get">apply</a></span> | Downloads one posting (Get on Board, Indeed, Workday), builds the CV and the package. It does not send. |
 | `jobbot jobs add` | Stores a vacancy from a file or stdin. |
 | `jobbot jobs search QUERY` | Searches Indeed and stores results locally. |
 | `jobbot jobs discover` | Discovers via a public API: `--source workday` or `--source un-careers`. `--dry-run` writes nothing. |
 | `jobbot jobs queries` | Prints web-search queries for ATS hosts. It does not search. |
 | `jobbot jobs show Jxxxx` | Shows a stored posting, including its close date when the posting publishes one. |
-| <span id="cmd-match" class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <a class="jb-in-story__tag" href="#story-match" aria-label="Step 2, apply, match">apply</a></span> | Scores it against the profile. It helps you decide; it does not decide. |
-| <span id="cmd-conditions" class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <a class="jb-in-story__tag" href="#story-conditions" aria-label="Step 4, apply, conditions">apply</a></span> | Posting conditions: met, a question, or a blocker. Offline. |
+| <span id="cmd-match" class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <a class="jb-in-story__tag" href="#story-match" aria-controls="story-match" aria-label="Step 2, apply, match">apply</a></span> | Scores it against the profile. It helps you decide; it does not decide. |
+| <span id="cmd-conditions" class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <a class="jb-in-story__tag" href="#story-conditions" aria-controls="story-conditions" aria-label="Step 4, apply, conditions">apply</a></span> | Posting conditions: met, a question, or a blocker. Offline. |
 | `jobbot jobs check-open` | Checks again whether a stored posting is still open. Read-only. |
 | `jobbot jobs shortlist` | Sorts by score and marks expired or closing-soon rows. |
 | `jobbot jobs backfill-dates` | Dates already stored postings from the URL id. Offline. |
@@ -261,7 +261,7 @@ Nothing in this list submits alone or invents a fact. Rows marked **apply** (cob
 | `jobbot application prepare Jxxxx` | Builds the package. It does not invent answers. |
 | `jobbot application show Jxxxx` | Path and status of the package. |
 | `jobbot application open Jxxxx` | Opens the posting or ATS URL. It does not apply. |
-| <span id="cmd-apply" class="jb-in-story"><code>jobbot application apply Jxxxx</code> <a class="jb-in-story__tag" href="#story-apply" aria-label="Step 5, apply, apply">apply</a></span> | Prefill plan. `--apply` opens the form; you submit. `--all` walks the queue, pausing between jobs. |
+| <span id="cmd-apply" class="jb-in-story"><code>jobbot application apply Jxxxx</code> <a class="jb-in-story__tag" href="#story-apply" aria-controls="story-apply" aria-label="Step 5, apply, apply">apply</a></span> | Prefill plan. `--apply` opens the form; you submit. `--all` walks the queue, pausing between jobs. |
 | `jobbot application check-answer Jxxxx` | Checks a free-text answer against the profile and the posting. Motivation stays yours. |
 | `jobbot applications list` | Lists recorded applications. Alias: `applications status`. |
 
