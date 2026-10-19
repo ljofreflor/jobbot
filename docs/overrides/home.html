@@ -252,7 +252,7 @@
           <p class="jb-scrolly__stage-cmd">
             <span class="jb-scrolly__prompt">$</span>
             <a id="jb-scrolly-cmd" class="jb-scrolly__stage-cmd-link" href="#cmd-get"
-               aria-label="{% if en %}In the catalog · get{% else %}En el catálogo · get{% endif %}">jobbot get 'https://…'</a>
+               aria-label="{% if en %}In the catalog · Apply · get{% else %}En el catálogo · Postular · get{% endif %}">jobbot get 'https://…'</a>
           </p>
           <p class="jb-scrolly__stage-out" id="jb-scrolly-out" aria-hidden="true">
             {% if en %}Job stored. Nothing is sent.{% else %}Aviso guardado. Nada se envía.{% endif %}
@@ -488,7 +488,19 @@
         var moreSrc = step.querySelector(".jb-scrolly__more a");
         if (cmd && moreSrc) {
           cmd.setAttribute("href", moreSrc.getAttribute("href"));
-          cmd.setAttribute("aria-label", moreSrc.textContent);
+          var base = (moreSrc.textContent || "").trim();
+          var loopName = pin
+            ? pin.getAttribute(index >= 5 ? "data-loop-presence" : "data-loop-apply")
+            : "";
+          var sep = " · ";
+          var cut = base.lastIndexOf(sep);
+          if (loopName && cut !== -1) {
+            cmd.setAttribute("aria-label", base.slice(0, cut) + sep + loopName + base.slice(cut));
+          } else if (loopName && base) {
+            cmd.setAttribute("aria-label", base + sep + loopName);
+          } else {
+            cmd.setAttribute("aria-label", base);
+          }
         }
       }
       var held = null;
