@@ -343,8 +343,8 @@ def parse_job_text(
     """Best-effort parse of a pasted JD into a JobPosting."""
     trusted = for_scoring(text)
     lines = [ln.strip() for ln in trusted.strip().splitlines() if ln.strip()]
-    title = _field(lines, "title", "role", "cargo", "puesto") or (lines[0] if lines else "Untitled")
-    company = _field(lines, "company", "empresa", "organization") or "Unknown"
+    title = _field(lines, "title", "role", "cargo", "puesto") or _fallback_title(lines)
+    company = _field(lines, "company", "empresa", "organization") or _company_from_about(lines)
     location = _field(lines, "location", "ubicacion", "ubicación", "city")
     seniority = _infer_seniority(trusted)
     remote_type = _infer_remote(trusted)
@@ -372,6 +372,46 @@ def parse_job_text(
 
 def job_to_dict(job: JobPosting) -> dict[str, Any]:
     return job.model_dump(mode="json")
+
+
+_TITLE_CHROME = frozenset(
+    {
+        "volver",
+        "volver a resultados",
+        "postular",
+        "postula",
+        "postula aqui",
+        "apply",
+        "apply now",
+        "inicio",
+        "menu",
+        "home",
+    }
+)
+_ABOUT_NOT_COMPANY = frozenset({"nosotros", "la empresa", "la compania", "el equipo"})
+_ABOUT_RE = re.compile(r"(?i)^acerca\s+de\s+(.+)$")
+
+
+def _fallback_title(lines: list[str]) -> str:
+    """First line that is not a button or an 'Acerca de' employer line."""
+    for line in lines:
+        folded = fold_text(line)
+        if folded in _TITLE_CHROME or folded.startswith("acerca de"):
+            continue
+        return line
+    return "Untitled"
+
+
+def _company_from_about(lines: list[str]) -> str:
+    """'Acerca de Servicio Neutro' names the employer. 'Acerca de nosotros' does not."""
+    for line in lines:
+        match = _ABOUT_RE.match(line.strip())
+        if match is None:
+            continue
+        name = match.group(1).strip(" .:")
+        if name and fold_text(name) not in _ABOUT_NOT_COMPANY:
+            return name
+    return "Unknown"
 
 
 def _field(lines: list[str], *keys: str) -> str | None:

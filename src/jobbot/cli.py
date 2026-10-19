@@ -4368,6 +4368,22 @@ def jobs_backfill_dates() -> None:
             console.print(f"  {job.id}  {age_label(job.posted_at):>9}  {job.title[:50]}")
 
 
+@jobs_app.command("reparse")
+def jobs_reparse(
+    job_id: Annotated[str, typer.Argument(help="Stored job id, kept as-is")],
+) -> None:
+    """Re-read a stored posting's text and keep its id (offline)."""
+    from jobbot.jobs.backfill import reparse_stored
+
+    session, _ = _session()
+    try:
+        job = reparse_stored(JobRepository(session), job_id)
+    except KeyError as exc:
+        err_console.print(f"[red]Unknown job {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+    console.print(f"[green]Reparsed[/green] {job.id}: {job.title} — {job.company}")
+
+
 @jobs_app.command("note")
 def jobs_note(
     job_id: Annotated[str, typer.Argument()],
