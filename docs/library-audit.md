@@ -25,6 +25,7 @@ that one is generated from the code, this one records decisions.
 | PDF text extraction (`profile/importer_pdf.py`) | nothing: PDFs could not be imported | `pypdf` | Pure-python, offline, no models; it also tells us when a PDF has no text layer, which is the signal we need to refuse a scan instead of importing an empty profile. The CV layout rules (sections, bullets, date lines) stay ours: no library knows them |
 | Canonical career URLs (`companies/urls.py` `public_url`) | hand-rolled `urlparse` | `httpx.URL` (already a dependency) | IDNA, default ports, dot-segments and percent-decoding are solved; `www.`, query/fragment drops and LinkedIn tracking parameters stay ours |
 | Cities the curated list never named (`jobs/geo.py`) | nothing: Quito stayed undetectable | snapshot `resources/cities_100k.json` (GeoNames, CC-BY 4.0) | `geonamescache` is 33 MB, mostly alternate names. The wheel ships primary names of cities at or above 100k inhabitants. A hit needs a location frame (`en`, `in`, `ubicación:`); a name in several countries is used only when one has 8× the population of the next, or when the text names one of those countries. Anything closer stays undetectable |
+| Generic secrets (`ops/pii_guard.py`) | no secret scan | `detect-secrets` AWS-key and private-key plugins | Keyword and entropy plugins stay off, so the word "password" is not a secret. Chilean RUT, phone, email and home path stay ours. The package pulls `requests`; the guard never opens a connection |
 
 ## Kept ours, on purpose
 
@@ -52,6 +53,5 @@ that one is generated from the code, this one records decisions.
 
 | Area | Library | Note | Issue |
 | --- | --- | --- | --- |
-| Secret detection (`ops/pii_guard.py`) | `detect-secrets` | Keep the Chilean RUT and phone rules ours | [#9](https://github.com/ljofreflor/jobbot/issues/9) |
 | Legacy CV import (`profile/importer_latex.py`) | `TexSoup`, `pylatexenc.latexwalker` | 700 lines of hand parsing; highest potential saving, highest regression risk | [#10](https://github.com/ljofreflor/jobbot/issues/10) |
 | Config (`config.py`) | `pydantic-settings` | Growing `[search]` section would come for free | [#11](https://github.com/ljofreflor/jobbot/issues/11) |

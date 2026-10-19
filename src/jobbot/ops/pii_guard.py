@@ -8,6 +8,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
+from detect_secrets.core.scan import scan_line
+from detect_secrets.settings import transient_settings
+
 # Paths that must never be tracked, even with `git add -f`.
 _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"^data/profile\.yaml$", "real candidate source of truth"),
@@ -120,6 +123,13 @@ _CL_PHONE_RE = re.compile(r"\+\s?56[\s\-.,]*9[\s\-.,]*\d{4}[\s\-.,]*\d{4}")
 _RUT_RE = re.compile(r"\b\d{1,2}\.\d{3}\.\d{3}\s*-\s*[\dkK]\b")
 _HOME_PATH_RE = re.compile(r"/Users/[A-Za-z0-9._\-]+/")
 _IMPORT_HEADER_RE = re.compile(r"#\s*Source:\s*/", re.I)
+# Keyword and entropy plugins stay off: the word "password" in docs is not a secret.
+_SECRET_PLUGINS: dict[str, list[dict[str, str]]] = {
+    "plugins_used": [
+        {"name": "AWSKeyDetector"},
+        {"name": "PrivateKeyDetector"},
+    ]
+}
 
 
 @dataclass(frozen=True)
@@ -161,7 +171,23 @@ def scan_text(text: str, path: str) -> list[Finding]:
         findings.append(Finding(path, "absolute home path", match.group(0)))
     if _IMPORT_HEADER_RE.search(text):
         findings.append(Finding(path, "import-latex header with local source path", ""))
+    findings.extend(_secret_findings(text, path))
     return findings
+
+
+def _secret_findings(text: str, path: str) -> list[Finding]:
+    """Generic secrets via detect-secrets. The value is never stored in the finding."""
+    found: list[Finding] = []
+    seen: set[str] = set()
+    with transient_settings(_SECRET_PLUGINS):
+        for line in text.splitlines():
+            for secret in scan_line(line):
+                kind = str(secret.type)
+                if kind in seen:
+                    continue
+                seen.add(kind)
+                found.append(Finding(path, "secret", kind))
+    return found
 
 
 def redact(text: str) -> str:
