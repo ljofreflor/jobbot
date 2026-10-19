@@ -1318,7 +1318,8 @@ html.jb-pin-presence a.jb-in-story__tag:not(.jb-in-story__tag--presence):focus-v
   justify-content: center;
   margin: 0;
   scroll-margin-top: 4.5rem;
-  opacity: 0.38;
+  /* Same soft floor as inactive loop chrome (pin chapters, lede, splits). */
+  opacity: 0.42;
   transition: opacity 0.2s ease;
 }
 
