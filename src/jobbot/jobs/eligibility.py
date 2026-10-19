@@ -806,6 +806,13 @@ def _modality(c: Condition, candidate: Candidate, answers: ApplicationAnswers) -
     return Verdict(c, VerdictStatus.NOTE, f"modality: {modality}{where}")
 
 
+def _unmet(c: Condition, reason: str) -> Verdict:
+    """Only a condition the posting marks as mandatory blocks; a desirable one is a note."""
+    if c.mandatory is False:
+        return Verdict(c, VerdictStatus.NOTE, f"desirable: {reason}")
+    return Verdict(c, VerdictStatus.DEALBREAKER, reason)
+
+
 def _driving_license(c: Condition, answers: ApplicationAnswers) -> Verdict:
     license_answers = answers.driving_license
     if license_answers is None or license_answers.has is None:
@@ -818,10 +825,8 @@ def _driving_license(c: Condition, answers: ApplicationAnswers) -> Verdict:
     if license_answers.has:
         held = f" class {license_answers.license_class}" if license_answers.license_class else ""
         return Verdict(c, VerdictStatus.MEETS, f"you hold a driving license{held}")
-    return Verdict(
-        c,
-        VerdictStatus.DEALBREAKER,
-        f"the posting asks for a driving license and you do not have one ({ANSWERS_FILE})",
+    return _unmet(
+        c, f"the posting asks for a driving license and you do not have one ({ANSWERS_FILE})"
     )
 
 
@@ -835,15 +840,12 @@ def _travel(c: Condition, answers: ApplicationAnswers) -> Verdict:
             f"Can you travel ({needed})? Set travel in {ANSWERS_FILE}.",
         )
     if answers.travel == "none":
-        return Verdict(
-            c,
-            VerdictStatus.DEALBREAKER,
-            f"the posting asks for {needed} travel and you do not travel ({ANSWERS_FILE})",
+        return _unmet(
+            c, f"the posting asks for {needed} travel and you do not travel ({ANSWERS_FILE})"
         )
     if answers.travel == "domestic" and needed == "international":
-        return Verdict(
+        return _unmet(
             c,
-            VerdictStatus.DEALBREAKER,
             f"the posting asks for international travel; you travel inside the country "
             f"({ANSWERS_FILE})",
         )

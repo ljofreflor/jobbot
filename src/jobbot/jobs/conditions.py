@@ -170,7 +170,17 @@ _TRAVEL = re.compile(
     r"disponibilidad para viajar|viajes a regiones|willing(?:ness)? to travel|"
     r"travel required|must be willing to travel"
 )
-_TRAVEL_INTERNATIONAL = re.compile(r"internacional|international")
+_TRAVEL_INTERNATIONAL = re.compile(
+    r"internacional|international|al extranjero|en el extranjero|abroad|overseas|"
+    r"fuera del pais|outside the country"
+)
+# A line that denies the ask states no condition: 'no travel required'.
+_NOT_REQUIRED = re.compile(
+    r"\bno (?:se )?(?:requiere[n]?|requerid[oa]s?|necesita[n]?|necesari[oa]s?|exige[n]?|"
+    r"pide[n]?|hace falta)\b|\bsin necesidad de\b|\bno es necesari[oa]\b|"
+    r"\bnot required\b|\bnot necessary\b|\bno need (?:to|for)\b|"
+    r"\bno (?:travel|driving|driver'?s)\b"
+)
 _YEARS = re.compile(r"(\d{1,2})\s*\+?\s*(?:anos|years?|yrs)\b")
 _YEARS_RANGE = re.compile(
     r"(\d{1,2})\s*(?:to|–|-|—|a|hasta)\s*(\d{1,2})\s*(?:anos|years?|yrs)\b"
@@ -485,10 +495,10 @@ def _line_conditions(
     modality = _modality_value(folded)
     if modality is not None and residency is None:
         out.append(Condition(kind=ConditionKind.MODALITY, source=line, modality=modality))
-    driving = _driving(line, folded)
+    driving = _driving(line, folded, flag)
     if driving is not None:
         out.append(driving)
-    travel = _travel(line, folded)
+    travel = _travel(line, folded, flag)
     if travel is not None:
         out.append(travel)
     if _AVAILABILITY.search(folded):
@@ -508,23 +518,30 @@ def _line_conditions(
     return out
 
 
-def _driving(line: str, folded: str) -> Condition | None:
-    if _DRIVING.search(folded) is None:
+def _driving(line: str, folded: str, flag: bool | None) -> Condition | None:
+    if _DRIVING.search(folded) is None or _NOT_REQUIRED.search(folded):
         return None
+    own = _flag(folded)
     found = _LICENSE_CLASS.search(folded)
     return Condition(
         kind=ConditionKind.DRIVING_LICENSE,
         source=line,
-        mandatory=True,
+        mandatory=own if own is not None else flag,
         detail=found.group(1).upper() if found else "",
     )
 
 
-def _travel(line: str, folded: str) -> Condition | None:
-    if _TRAVEL.search(folded) is None:
+def _travel(line: str, folded: str, flag: bool | None) -> Condition | None:
+    if _TRAVEL.search(folded) is None or _NOT_REQUIRED.search(folded):
         return None
+    own = _flag(folded)
     scope = "international" if _TRAVEL_INTERNATIONAL.search(folded) else "domestic"
-    return Condition(kind=ConditionKind.TRAVEL, source=line, mandatory=True, detail=scope)
+    return Condition(
+        kind=ConditionKind.TRAVEL,
+        source=line,
+        mandatory=own if own is not None else flag,
+        detail=scope,
+    )
 
 
 def _heading_flag(line: str, folded: str) -> tuple[bool, bool | None]:
@@ -677,12 +694,22 @@ def _with_place(condition: Condition, job: JobPosting) -> Condition:
     )
 
 
+_DETAIL_KINDS = frozenset(
+    {
+        ConditionKind.REQUIREMENT,
+        ConditionKind.SENIORITY,
+        ConditionKind.DRIVING_LICENSE,
+        ConditionKind.TRAVEL,
+    }
+)
+
+
 def _dedupe(conditions: list[Condition]) -> list[Condition]:
     seen: set[tuple[object, ...]] = set()
     out: list[Condition] = []
     for c in conditions:
         key = (c.kind, c.countries, c.anywhere, c.language, c.contract, c.modality, c.when,
-               c.detail if c.kind in {ConditionKind.REQUIREMENT, ConditionKind.SENIORITY} else None,
+               c.detail if c.kind in _DETAIL_KINDS else None,
                c.source if c.kind is ConditionKind.INSTRUCTION else None)  # fmt: skip
         if key in seen:
             continue
