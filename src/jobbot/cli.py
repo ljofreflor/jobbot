@@ -5614,6 +5614,25 @@ def applications_list() -> None:
     console.print(table)
 
 
+@applications_app.command("followup")
+def applications_followup(
+    company: Annotated[str, typer.Option("--company", help="Employer already on the posting.")],
+    title: Annotated[str, typer.Option("--title", help="Role already on the posting.")],
+    sent: Annotated[
+        int, typer.Option("--sent", help="Follow-ups already written. Two is the cap.")
+    ],
+) -> None:
+    """Print a silence follow-up draft. Never sends, and two is the cap."""
+    from jobbot.applications.followup import followup_draft
+
+    try:
+        draft = followup_draft(company, title, sent=sent)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print("cap reached" if draft is None else draft)
+
+
 @applications_app.command("status")
 def applications_status() -> None:
     """Alias for applications list."""

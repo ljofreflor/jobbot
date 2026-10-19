@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-147 commands, 246 modules, 1355 public symbols.
+148 commands, 247 modules, 1356 public symbols.
 
 ## Commands
 
@@ -24,6 +24,7 @@ writing it again — the promotion rule lives in
 - `jobbot application status` — Show or set one job's pipeline status. A new job is saved.
 - `jobbot application tracker` — List stored jobs by pipeline status. Order is the job id.
 - `jobbot applications feedback` — Classify a pasted employer message and record it on the application.
+- `jobbot applications followup` — Print a silence follow-up draft. Never sends, and two is the cap.
 - `jobbot applications list` — List tracked applications.
 - `jobbot applications report` — Funnel per stored posting: responses, interviews and rejections.
 - `jobbot applications status` — Alias for applications list.
@@ -344,6 +345,7 @@ writing it again — the promotion rule lives in
 - `checklist.py` — Each stored requirement is backed by the profile, or left for the person. · `requirement_checklist`, `render_requirement_checklist`
 - `cover_letter.py` — A short cover letter that only restates profile facts and names the role. · `CoverLetterError`, `fact_blob`, `unsupported_tokens`, `draft_cover_letter`, `choose_draft`, `record_manifest`
 - `feedback.py` — Pasted employer messages become application events. No inbox, no invented motive. · `FeedbackKind`, `FeedbackError`, `FeedbackReading`, `FunnelRow`, `classify`, `read_feedback`, `store_feedback`, `funnel`, `report_lines`, `interview_reminders`
+- `followup.py` — A silence follow-up is a draft. It is never sent, and two is the cap. · `followup_draft`
 - `interview.py` — Interview questions from the package that was sent (#203). · `InterviewCard`, `sent_selection_path`, `load_sent_selection`, `cards_for`, `format_cards`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
