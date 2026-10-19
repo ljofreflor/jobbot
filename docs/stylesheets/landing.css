@@ -972,6 +972,26 @@ body:has(.jb-hero) .jb-cmdnav a:not(.jb-cmdnav__story):not(.is-current):focus-vi
   opacity: 1;
 }
 
+/* Softened cmdnav link restores when its group heading is :target (items 149–150). */
+body:has(#cmd-maquina:target) .jb-cmdnav a[href="#cmd-maquina"],
+body:has(#cmd-perfil:target) .jb-cmdnav a[href="#cmd-perfil"],
+body:has(#cmd-portales:target) .jb-cmdnav a[href="#cmd-portales"],
+body:has(#cmd-navegador:target) .jb-cmdnav a[href="#cmd-navegador"],
+body:has(#cmd-empresas:target) .jb-cmdnav a[href="#cmd-empresas"],
+body:has(#cmd-operacion:target) .jb-cmdnav a[href="#cmd-operacion"],
+body:has(#cmd-machine:target) .jb-cmdnav a[href="#cmd-machine"],
+body:has(#cmd-profile:target) .jb-cmdnav a[href="#cmd-profile"],
+body:has(#cmd-portals:target) .jb-cmdnav a[href="#cmd-portals"],
+body:has(#cmd-browser:target) .jb-cmdnav a[href="#cmd-browser"],
+body:has(#cmd-companies:target) .jb-cmdnav a[href="#cmd-companies"],
+body:has(#cmd-ops:target) .jb-cmdnav a[href="#cmd-ops"],
+html.jb-pin-presence:has(#cmd-vacantes:target) .jb-cmdnav a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(#cmd-postulaciones:target) .jb-cmdnav a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(#cmd-vacancies:target) .jb-cmdnav a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(#cmd-applications:target) .jb-cmdnav a[href="#cmd-applications"] {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
