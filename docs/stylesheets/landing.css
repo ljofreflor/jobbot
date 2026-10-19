@@ -1337,14 +1337,15 @@ html.jb-pin-presence a.jb-in-story__tag:not(.jb-in-story__tag--presence):focus-v
   box-shadow: inset 3px 0 0 var(--jb-navy);
 }
 
-.jb-scrolly__step:focus {
+/* Keyboard (and intentional focus) only — mouse click on lede/split/tags should not leave a ring. */
+.jb-scrolly__step:focus-visible {
   outline: 2px solid var(--jb-cobalt);
   outline-offset: 4px;
   border-radius: 0.25rem;
 }
 
-#story-advise:focus,
-#story-sync:focus {
+#story-advise:focus-visible,
+#story-sync:focus-visible {
   outline-color: var(--jb-navy);
 }
 
