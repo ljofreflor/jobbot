@@ -1602,7 +1602,14 @@ a.jb-scrolly__loop:focus-visible {
   max-width: 38rem;
   color: var(--jb-navy-soft);
   font-size: 1.02rem;
-  line-height: 1.5;
+  line-height: 1.55;
+}
+
+/* Break after apply so presence sits on its own line like the chapter split. */
+.jb-scrolly__lede br {
+  display: block;
+  content: "";
+  margin-top: 0.35rem;
 }
 
 a.jb-scrolly__lede-cmd {
