@@ -5328,6 +5328,7 @@ def indeed_sync(
 ) -> None:
     """Dry-run or apply Indeed sync; --section preferences plans titles and salary."""
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.owner import IndeedOwnerMismatch
     from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
@@ -5354,6 +5355,9 @@ def indeed_sync(
         except IndeedUiChanged as exc:
             console.print(f"[red]{exc}[/red]")
             raise typer.Exit(UI_CHANGED) from exc
+        except IndeedOwnerMismatch as exc:
+            err_console.print(str(exc))
+            raise typer.Exit(VALIDATION_FAILURE) from exc
         console.print(result.message)
         return
 
@@ -5381,6 +5385,9 @@ def indeed_sync(
     except IndeedUiChanged as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(UI_CHANGED) from exc
+    except IndeedOwnerMismatch as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
     console.print(result.message)
 
 

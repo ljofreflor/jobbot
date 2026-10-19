@@ -195,7 +195,8 @@ espera de ese `appname`.
 
 `indeed login`, `indeed status`, `indeed inspect`, `indeed prepare`, `indeed pull`,
 `indeed diff`, `indeed sync` (dry-run por defecto; `--section preferences` planifica
-cargos y sueldo; `--apply` escribe), `indeed upload-cv` (no sube si el hash ya está
+cargos y sueldo; `--apply` escribe solo si el CV abierto nombra al dueño del workspace;
+`127.0.0.1` y `::1` son destinos distintos; sin nombre visible no escribe y no imprime la otra cuenta), `indeed upload-cv` (no sube si el hash ya está
 en el recibo; niega un PDF de glyphs de íconos).
 
 ### LinkedIn

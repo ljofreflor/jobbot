@@ -242,7 +242,7 @@ class _RecordingPage:
         return STRUCTURED_HTML
 
     def inner_text(self, _selector: str) -> str:
-        return ""
+        return "Ana Ejemplo"
 
     def get_by_test_id(self, testid: str) -> _Loc:
         return _Loc(self, testid)
