@@ -403,6 +403,20 @@ def test_trabajando_offer_id_only_for_its_posting_paths() -> None:
     assert trabajando_offer_id("https://www.otro.test/trabajo/123-x") is None
 
 
+def test_an_id_only_trabajando_url_needs_the_slug() -> None:
+    from jobbot.jobs.open_signals import trabajando_needs_slug
+
+    assert trabajando_needs_slug("https://www.trabajando.cl/trabajo/6135043")
+    assert trabajando_needs_slug("https://www.trabajando.cl/trabajo/6135043/")
+    assert trabajando_needs_slug("https://www.trabajando.cl/trabajo-empleo/oferta/1234567")
+    assert not trabajando_needs_slug(TRABAJANDO_URL)
+    assert not trabajando_needs_slug(
+        "https://www.trabajando.cl/trabajo-empleo/oferta/1234567-cargo-ficticio"
+    )
+    assert not trabajando_needs_slug("https://www.otro.test/trabajo/123")
+    assert not trabajando_needs_slug("https://acme.trabajando.cl/ofertas/cargo-ficticio")
+
+
 # --- Chiletrabajos (detail page) -------------------------------------------------
 
 

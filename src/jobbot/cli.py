@@ -3127,6 +3127,14 @@ def jobs_add(
     from jobbot.portals.detect import AtsKind, detect_ats
 
     session, config = _session()
+    if url:
+        from jobbot.jobs.open_signals import trabajando_needs_slug
+
+        if trabajando_needs_slug(url):
+            err_console.print(
+                "trabajando.cl needs the slug in the URL, not the id alone. Not stored."
+            )
+            raise _QuietExit(VALIDATION_FAILURE)
     if file is not None and url and detect_ats(url) == AtsKind.BUK:
         _add_buk_list(session, config, file.read_text(encoding="utf-8"), url)
         return

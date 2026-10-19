@@ -21,6 +21,9 @@ from jobbot.jobs.closing import ClosingState, closing_state
 
 TRABAJANDO_API = "https://www.trabajando.cl/api/ofertas/{offer_id}"
 _TRABAJANDO_PATH = re.compile(r"^/trabajo/(\d+)(?:-|/|$)")
+_TRABAJANDO_POSTING = re.compile(
+    r"^/(?:trabajo|trabajo-empleo/oferta)/(\d+)(?:-([^/?#]+))?/?$"
+)
 _CHILETRABAJOS_EXPIRY = re.compile(r"^(\d{4}-\d{2}-\d{2})\b")
 
 
@@ -52,6 +55,16 @@ def trabajando_offer_id(url: str) -> str | None:
         return None
     found = _TRABAJANDO_PATH.match(urlparse(url).path)
     return found.group(1) if found else None
+
+
+def trabajando_needs_slug(url: str) -> bool:
+    """An id-only trabajando.cl posting is not the canonical URL."""
+    if not _on_host(url, "trabajando.cl"):
+        return False
+    found = _TRABAJANDO_POSTING.match(urlparse(url).path)
+    if found is None:
+        return False
+    return not (found.group(2) or "").strip("-")
 
 
 def read_trabajando(payload: Any, *, now: datetime) -> Signal:
