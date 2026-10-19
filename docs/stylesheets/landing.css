@@ -1322,6 +1322,23 @@ a.jb-in-story__tag:focus-visible {
   border-radius: 0.15rem;
 }
 
+/* Presence catalog jumps match the navy presence rows they open. */
+#story-advise .jb-scrolly__more a,
+#story-sync .jb-scrolly__more a {
+  color: var(--jb-navy);
+  border-bottom-color: rgba(0, 24, 56, 0.35);
+}
+
+#story-advise .jb-scrolly__more a:hover,
+#story-sync .jb-scrolly__more a:hover {
+  border-bottom-color: var(--jb-navy);
+}
+
+#story-advise .jb-scrolly__more a:focus-visible,
+#story-sync .jb-scrolly__more a:focus-visible {
+  outline-color: var(--jb-navy);
+}
+
 .jb-scrolly__terminal {
   min-height: 14rem;
   padding: 1.15rem 1.2rem 1.3rem;
