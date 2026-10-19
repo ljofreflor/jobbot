@@ -92,9 +92,15 @@ class IndeedAdapter:
         )
 
     def _require_owner(self, browser: BrowserSession, owner_name: str) -> None:
-        """Stop before typing when the open resume is not this workspace."""
+        """Stop before typing when the open resume is not this workspace.
+
+        The name is client-rendered, so a body read before the sections appear is
+        an empty shell; a PDF/Preferences shell keeps its own missing-editor exit.
+        """
         from jobbot.adapters.indeed.owner import IndeedOwnerMismatch, refuse_indeed_write
 
+        wait_for_resume_render(browser.page)
+        ensure_structured_editor(browser.page)
         refusal = refuse_indeed_write(browser.page.inner_text("body"), owner_name)
         if refusal:
             raise IndeedOwnerMismatch(refusal)

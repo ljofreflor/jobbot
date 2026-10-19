@@ -21,7 +21,8 @@ class IndeedOwnerMismatch(Exception):
 def cv_name_verdict(page_text: str, owner_name: str) -> str:
     """``match``, ``mismatch``, or ``missing`` when the page shows no name."""
     owner = " ".join(fold_text(owner_name).split())
-    if owner and owner in fold_text(page_text):
+    # Whole words only: folded 'ana ejemplo' sits inside 'mariana ejemplo'.
+    if owner and re.search(rf"\b{re.escape(owner)}\b", fold_text(page_text)):
         return "match"
     if _NAME_LINE.search(page_text or ""):
         return "mismatch"

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from jobbot.adapters.indeed.client import IndeedAdapter
 from jobbot.adapters.indeed.owner import (
     IndeedOwnerMismatch,
@@ -11,9 +13,20 @@ from jobbot.adapters.indeed.owner import (
     refuse_indeed_write,
     write_allowed,
 )
+from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
 from jobbot.browser.cdp import cdp_endpoint
 from jobbot.config import JobbotConfig, PathsConfig
 from jobbot.models.sync import SyncOperation, SyncOpType, SyncPlan
+
+
+def _adapter(tmp_path: Path, project_root: Path) -> IndeedAdapter:
+    profile = tmp_path / "data" / "profile.yaml"
+    profile.parent.mkdir(parents=True, exist_ok=True)
+    profile.write_text(
+        (project_root / "data/profile.example.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    return IndeedAdapter(JobbotConfig(root=tmp_path, paths=PathsConfig(output=Path("output"))))
 
 
 def test_other_name_is_a_mismatch_and_the_message_hides_it() -> None:
@@ -37,6 +50,14 @@ def test_a_blank_resume_is_missing_and_is_not_written() -> None:
 def test_the_owner_name_may_continue() -> None:
     assert cv_name_verdict("Ana Ejemplo\nHeadline", "Ana Ejemplo") == "match"
     assert refuse_indeed_write("Ana Ejemplo\nHeadline", "Ana Ejemplo") is None
+    # An extra surname on the owner's own resume is still the owner.
+    assert cv_name_verdict("Ana Ejemplo Rojas\nHeadline", "Ana Ejemplo") == "match"
+
+
+def test_a_name_that_merely_contains_the_owner_name_is_a_mismatch() -> None:
+    """Folded 'ana ejemplo' sits inside 'mariana ejemplo': whole words only."""
+    assert cv_name_verdict("Mariana Ejemplo\nResume", "Ana Ejemplo") == "mismatch"
+    assert refuse_indeed_write("Mariana Ejemplo\nResume", "Ana Ejemplo") is not None
 
 
 def test_ipv4_and_ipv6_on_the_same_port_are_different_destinations() -> None:
@@ -51,13 +72,7 @@ def test_ipv4_and_ipv6_on_the_same_port_are_different_destinations() -> None:
 def test_apply_types_nothing_when_the_resume_names_someone_else(
     tmp_path: Path, project_root: Path
 ) -> None:
-    profile = tmp_path / "data" / "profile.yaml"
-    profile.parent.mkdir(parents=True)
-    profile.write_text(
-        (project_root / "data/profile.example.yaml").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    adapter = IndeedAdapter(JobbotConfig(root=tmp_path, paths=PathsConfig(output=Path("output"))))
+    adapter = _adapter(tmp_path, project_root)
 
     class _Page:
         url = "https://profile.indeed.com/resume"
@@ -65,6 +80,12 @@ def test_apply_types_nothing_when_the_resume_names_someone_else(
 
         def goto(self, url: str, **_: object) -> None:
             self.url = url
+
+        def wait_for_selector(self, _selector: str, timeout: float | None = None) -> None:
+            return None
+
+        def content(self) -> str:
+            return '<div data-testid="skills-section"></div>'
 
         def inner_text(self, _selector: str) -> str:
             return "Marta Soto"
@@ -99,3 +120,39 @@ def test_apply_types_nothing_when_the_resume_names_someone_else(
     else:
         raise AssertionError("expected the write to stop")
     assert page.fills == []
+
+
+class _Browser:
+    def __init__(self, page: object) -> None:
+        self.page = page
+
+
+class _HydratingPage:
+    """The resume is client-rendered: the body read before it renders is an empty shell."""
+
+    def __init__(self, url: str = "https://profile.indeed.com/resume") -> None:
+        self.url = url
+        self.rendered = False
+
+    def wait_for_selector(self, _selector: str, timeout: float | None = None) -> None:
+        self.rendered = True
+
+    def content(self) -> str:
+        return '<div data-testid="skills-section"></div>' if self.rendered else "<html></html>"
+
+    def inner_text(self, _selector: str) -> str:
+        return "Ana Ejemplo\nHeadline" if self.rendered else ""
+
+
+def test_the_owner_check_waits_for_the_resume_to_render(tmp_path: Path, project_root: Path) -> None:
+    adapter = _adapter(tmp_path, project_root)
+    page = _HydratingPage()
+    adapter._require_owner(_Browser(page), "Ana Ejemplo")  # type: ignore[arg-type]
+    assert page.rendered
+
+
+def test_a_pdf_shell_keeps_its_missing_editor_exit(tmp_path: Path, project_root: Path) -> None:
+    adapter = _adapter(tmp_path, project_root)
+    page = _HydratingPage("https://profile.indeed.com/document/view")
+    with pytest.raises(IndeedUiChanged):
+        adapter._require_owner(_Browser(page), "Ana Ejemplo")  # type: ignore[arg-type]

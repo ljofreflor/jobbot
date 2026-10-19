@@ -2957,6 +2957,7 @@ def _propagate_getonboard_cv(
 
 def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, yes: bool) -> None:
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.owner import IndeedOwnerMismatch
     from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
@@ -2976,6 +2977,9 @@ def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, ye
     except IndeedUiChanged as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(UI_CHANGED) from exc
+    except IndeedOwnerMismatch as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
 
 
 def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> None:

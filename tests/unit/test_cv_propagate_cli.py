@@ -442,6 +442,35 @@ def test_busy_profile_stops_that_destination_before_the_adapter_is_built(
     assert "linkedin" in _REGISTRY
 
 
+def test_indeed_owner_mismatch_is_a_refusal_not_a_crash(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A resume that is not this workspace stops the write with the validation exit."""
+    from jobbot.adapters.indeed.owner import IndeedOwnerMismatch
+
+    _workspace(tmp_path, project_root, monkeypatch)
+    save_snapshot(
+        ExternalProfile(source="indeed", headline="Old headline"),
+        _config(tmp_path, project_root).output_dir,
+    )
+    _install_fakes(monkeypatch)
+    _answers(monkeypatch, {"Propagate to": True, "Apply these": True})
+
+    def refuse(_self: FakeIndeed, _plan: SyncPlan, *, section: str = "all") -> SyncResult:
+        raise IndeedOwnerMismatch("Indeed resume name does not match this workspace.")
+
+    monkeypatch.setattr(FakeIndeed, "apply_sync_plan", refuse)
+
+    code = _run(["cv", "propagate", "--apply", "--section", "headline", "--targets", "indeed"])
+    assert code == VALIDATION_FAILURE
+    captured = capsys.readouterr()
+    assert "does not match this workspace" in captured.out + captured.err
+    assert "Unhandled error" not in captured.out + captured.err
+
+
 def test_unknown_target_fails_validation(
     tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
