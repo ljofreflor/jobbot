@@ -1511,6 +1511,7 @@ a.jb-scrolly__split-link--presence[aria-current="true"] {
 a.jb-scrolly__loop {
   display: inline-flex;
   align-items: center;
+  min-height: 1.5rem;
   font-family: var(--jb-font-body);
   font-size: 0.62rem;
   font-weight: 700;
@@ -2058,7 +2059,6 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   }
 
   a.jb-scrolly__loop {
-    min-height: 1.5rem;
     padding: 0.2rem 0.45rem;
   }
 }
