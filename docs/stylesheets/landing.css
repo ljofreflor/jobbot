@@ -1429,6 +1429,9 @@ a.jb-scrolly__split-link--presence[aria-current="true"] {
 }
 
 .jb-scrolly__more a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   color: var(--jb-cobalt);
   font-size: 0.88rem;
   font-weight: 700;
@@ -2126,13 +2129,6 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   .jb-scrolly__echo-out,
   .jb-scrolly__more {
     display: block;
-  }
-
-  /* Re-shown catalog jumps need the same 1.5rem touch floor as other story links. */
-  .jb-scrolly__more a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.5rem;
   }
 
   .jb-scrolly__step.is-active > p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more) {
