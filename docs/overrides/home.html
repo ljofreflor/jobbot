@@ -257,6 +257,7 @@
           <p class="jb-scrolly__stage-cmd">
             <span class="jb-scrolly__prompt">$</span>
             <a id="jb-scrolly-cmd" class="jb-scrolly__stage-cmd-link" href="#cmd-get"
+               aria-controls="cmd-get"
                aria-label="{% if en %}In the catalog · Apply · get{% else %}En el catálogo · Postular · get{% endif %}">jobbot get 'https://…'</a>
           </p>
           <p class="jb-scrolly__stage-out" id="jb-scrolly-out" aria-hidden="true">
@@ -280,7 +281,7 @@
           <p>A link or a sweep stores the posting on your machine. The portal receives nothing yet.</p>
           <p class="jb-scrolly__echo"><code>jobbot get 'https://…'</code></p>
           <p class="jb-scrolly__echo-out">Job stored. Nothing is sent.</p>
-          <p class="jb-scrolly__more"><a href="#cmd-get" aria-label="In the catalog · Apply · get">In the catalog · get</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-get" aria-controls="cmd-get" aria-label="In the catalog · Apply · get">In the catalog · get</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-match">
           <p class="jb-scrolly__kicker">2 · apply</p>
@@ -288,7 +289,7 @@
           <p>The score comes from <code>profile.yaml</code>. No evidence, no invented match.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs match J0002</code></p>
           <p class="jb-scrolly__echo-out">82% · evidence from profile.yaml</p>
-          <p class="jb-scrolly__more"><a href="#cmd-match" aria-label="In the catalog · Apply · match">In the catalog · match</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-match" aria-controls="cmd-match" aria-label="In the catalog · Apply · match">In the catalog · match</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-build">
           <p class="jb-scrolly__kicker">3 · apply</p>
@@ -296,7 +297,7 @@
           <p>The build writes the posting's PDF from facts already in the profile.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv build --job J0002</code></p>
           <p class="jb-scrolly__echo-out">output/jobs/J0002/ · facts reordered</p>
-          <p class="jb-scrolly__more"><a href="#cmd-build" aria-label="In the catalog · Apply · build">In the catalog · build</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-build" aria-controls="cmd-build" aria-label="In the catalog · Apply · build">In the catalog · build</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-conditions">
           <p class="jb-scrolly__kicker">4 · apply</p>
@@ -304,7 +305,7 @@
           <p>Closed, language, residence, contract: read from the posting against your profile. A blank answer stays a question.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
           <p class="jb-scrolly__echo-out">✅ backed · ⚠️ asks you · ❌ blocked</p>
-          <p class="jb-scrolly__more"><a href="#cmd-conditions" aria-label="In the catalog · Apply · conditions">In the catalog · conditions</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-conditions" aria-controls="cmd-conditions" aria-label="In the catalog · Apply · conditions">In the catalog · conditions</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-apply">
           <p class="jb-scrolly__kicker">5 · apply</p>
@@ -312,7 +313,7 @@
           <p><code>--apply</code> opens the form. Jobbot never clicks Send.</p>
           <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
           <p class="jb-scrolly__echo-out">Form open · the click is yours</p>
-          <p class="jb-scrolly__more"><a href="#cmd-apply" aria-label="In the catalog · Apply · apply">In the catalog · apply</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-apply" aria-controls="cmd-apply" aria-label="In the catalog · Apply · apply">In the catalog · apply</a></p>
         </article>
         <p class="jb-scrolly__split jb-scrolly__split--presence"><a class="jb-scrolly__split-link jb-scrolly__split-link--presence" href="#story-advise" aria-controls="story-advise" aria-label="Jump to the Presence loop">Presence</a></p>
         <article class="jb-scrolly__step" id="story-advise">
@@ -321,7 +322,7 @@
           <p><code>advise</code> only restates what you already did. Each change waits for you.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
           <p class="jb-scrolly__echo-out">Presentation only · no new facts</p>
-          <p class="jb-scrolly__more"><a href="#cmd-advise" aria-label="In the catalog · Presence · advise">In the catalog · advise</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-advise" aria-controls="cmd-advise" aria-label="In the catalog · Presence · advise">In the catalog · advise</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-sync">
           <p class="jb-scrolly__kicker">7 · presence</p>
@@ -329,7 +330,7 @@
           <p><code>sync</code> confirms one destination at a time. <code>status</code> shows what was recorded locally.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
           <p class="jb-scrolly__echo-out">status · local evidence, not an invented “up to date”</p>
-          <p class="jb-scrolly__more"><a href="#cmd-sync" aria-label="In the catalog · Presence · sync">In the catalog · sync</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-sync" aria-controls="cmd-sync" aria-label="In the catalog · Presence · sync">In the catalog · sync</a></p>
         </article>
       {% else %}
         <p class="jb-scrolly__split jb-scrolly__split--start"><a class="jb-scrolly__split-link" href="#story-get" aria-current="true" aria-controls="story-get" aria-label="Ir al bucle Postular">Postular</a></p>
@@ -339,7 +340,7 @@
           <p>Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.</p>
           <p class="jb-scrolly__echo"><code>jobbot get 'https://…'</code></p>
           <p class="jb-scrolly__echo-out">Aviso guardado. Nada se envía.</p>
-          <p class="jb-scrolly__more"><a href="#cmd-get" aria-label="En el catálogo · Postular · get">En el catálogo · get</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-get" aria-controls="cmd-get" aria-label="En el catálogo · Postular · get">En el catálogo · get</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-match">
           <p class="jb-scrolly__kicker">2 · postular</p>
@@ -347,7 +348,7 @@
           <p>El puntaje sale de <code>profile.yaml</code>. Sin evidencia no hay match inventado.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs match J0002</code></p>
           <p class="jb-scrolly__echo-out">82% · evidencia de profile.yaml</p>
-          <p class="jb-scrolly__more"><a href="#cmd-match" aria-label="En el catálogo · Postular · match">En el catálogo · match</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-match" aria-controls="cmd-match" aria-label="En el catálogo · Postular · match">En el catálogo · match</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-build">
           <p class="jb-scrolly__kicker">3 · postular</p>
@@ -355,7 +356,7 @@
           <p>El build arma el PDF del aviso con lo que ya está en el perfil.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv build --job J0002</code></p>
           <p class="jb-scrolly__echo-out">output/jobs/J0002/ · hechos reordenados</p>
-          <p class="jb-scrolly__more"><a href="#cmd-build" aria-label="En el catálogo · Postular · build">En el catálogo · build</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-build" aria-controls="cmd-build" aria-label="En el catálogo · Postular · build">En el catálogo · build</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-conditions">
           <p class="jb-scrolly__kicker">4 · postular</p>
@@ -363,7 +364,7 @@
           <p>Cerrado, idioma, residencia, contrato: se leen del aviso contra tu perfil. Una respuesta en blanco sigue siendo una pregunta.</p>
           <p class="jb-scrolly__echo"><code>jobbot jobs conditions J0002</code></p>
           <p class="jb-scrolly__echo-out">✅ con evidencia · ⚠️ te pregunta · ❌ impedimento</p>
-          <p class="jb-scrolly__more"><a href="#cmd-conditions" aria-label="En el catálogo · Postular · conditions">En el catálogo · conditions</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-conditions" aria-controls="cmd-conditions" aria-label="En el catálogo · Postular · conditions">En el catálogo · conditions</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-apply">
           <p class="jb-scrolly__kicker">5 · postular</p>
@@ -371,7 +372,7 @@
           <p><code>--apply</code> abre el formulario. Jobbot no pulsa Enviar.</p>
           <p class="jb-scrolly__echo"><code>jobbot application apply J0002 --apply</code></p>
           <p class="jb-scrolly__echo-out">Formulario abierto · el clic es tuyo</p>
-          <p class="jb-scrolly__more"><a href="#cmd-apply" aria-label="En el catálogo · Postular · apply">En el catálogo · apply</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-apply" aria-controls="cmd-apply" aria-label="En el catálogo · Postular · apply">En el catálogo · apply</a></p>
         </article>
         <p class="jb-scrolly__split jb-scrolly__split--presence"><a class="jb-scrolly__split-link jb-scrolly__split-link--presence" href="#story-advise" aria-controls="story-advise" aria-label="Ir al bucle Presencia">Presencia</a></p>
         <article class="jb-scrolly__step" id="story-advise">
@@ -380,7 +381,7 @@
           <p><code>advise</code> solo reordena cómo se dice lo que ya hiciste. Cada cambio espera tu confirmación.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv advise --apply</code></p>
           <p class="jb-scrolly__echo-out">Solo presentación · sin hechos nuevos</p>
-          <p class="jb-scrolly__more"><a href="#cmd-advise" aria-label="En el catálogo · Presencia · advise">En el catálogo · advise</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-advise" aria-controls="cmd-advise" aria-label="En el catálogo · Presencia · advise">En el catálogo · advise</a></p>
         </article>
         <article class="jb-scrolly__step" id="story-sync">
           <p class="jb-scrolly__kicker">7 · presencia</p>
@@ -388,7 +389,7 @@
           <p><code>sync</code> confirma destino por destino. <code>status</code> muestra lo que quedó registrado en local.</p>
           <p class="jb-scrolly__echo"><code>jobbot cv sync --apply</code></p>
           <p class="jb-scrolly__echo-out">status · evidencia local, no un “al día” inventado</p>
-          <p class="jb-scrolly__more"><a href="#cmd-sync" aria-label="En el catálogo · Presencia · sync">En el catálogo · sync</a></p>
+          <p class="jb-scrolly__more"><a href="#cmd-sync" aria-controls="cmd-sync" aria-label="En el catálogo · Presencia · sync">En el catálogo · sync</a></p>
         </article>
       {% endif %}
     </div>
@@ -506,7 +507,11 @@
         if (prose && blurb) prose.textContent = blurb.textContent;
         var moreSrc = step.querySelector(".jb-scrolly__more a");
         if (cmd && moreSrc) {
-          cmd.setAttribute("href", moreSrc.getAttribute("href"));
+          var moreHref = moreSrc.getAttribute("href") || "";
+          cmd.setAttribute("href", moreHref);
+          if (moreHref.indexOf("#") === 0 && moreHref.length > 1) {
+            cmd.setAttribute("aria-controls", moreHref.slice(1));
+          }
           var labeled = (moreSrc.getAttribute("aria-label") || "").trim();
           if (labeled) {
             cmd.setAttribute("aria-label", labeled);
