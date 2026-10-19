@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-141 commands, 234 modules, 1320 public symbols.
+141 commands, 235 modules, 1322 public symbols.
 
 ## Commands
 
@@ -330,6 +330,7 @@ writing it again — the promotion rule lives in
 
 - `answer_check.py` — Check a free-text application answer against the profile and the posting. · `QuestionKind`, `Verdict`, `Evidence`, `SentenceTrace`, `AnswerCheck`, `classify_question`, `check_answer`, `render_answer_check`
 - `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
+- `checklist.py` — Each stored requirement is backed by the profile, or left for the person. · `requirement_checklist`, `render_requirement_checklist`
 - `cover_letter.py` — A short cover letter that only restates profile facts and names the role. · `CoverLetterError`, `fact_blob`, `unsupported_tokens`, `draft_cover_letter`, `choose_draft`, `record_manifest`
 - `feedback.py` — Pasted employer messages become application events. No inbox, no invented motive. · `FeedbackKind`, `FeedbackError`, `FeedbackReading`, `FunnelRow`, `classify`, `read_feedback`, `store_feedback`, `funnel`, `report_lines`, `interview_reminders`
 - `interview.py` — Interview questions from the package that was sent (#203). · `InterviewCard`, `sent_selection_path`, `load_sent_selection`, `cards_for`, `format_cards`
