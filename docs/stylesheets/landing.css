@@ -1638,6 +1638,8 @@ a.jb-scrolly__loop:focus-visible {
 .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child,
 .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child {
   opacity: 0.42;
+  /* Same ease as lede loop names, split cuts, and inactive lede commands. */
+  transition: opacity 0.2s ease;
 }
 
 .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
@@ -2196,6 +2198,7 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child,
   .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child {
     opacity: 1;
+    transition: none;
   }
 
   a.jb-scrolly__lede-loop:not([aria-current="true"]),
