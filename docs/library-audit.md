@@ -47,6 +47,7 @@ that one is generated from the code, this one records decisions.
 | Curated country markers (`_COUNTRY_MARKERS`) | `geonamescache` as a runtime dependency | Currencies, demonyms and the cities already decided (Santiago → CL) stay in the list. The package is 33 MB; the long tail is the snapshot above, and a close population race is still "undetectable" |
 | Skill aliases (`jobs/normalization.py`) | `rapidfuzz` | `sklearn` / `scikit-learn` and `ml` / `machine learning` are already exact aliases, and an unknown term falls through unchanged. A fuzzy `extractOne` would merge skills that only look alike. The internship that scored 100% for a senior profile was a missing level cap, not a fuzzy-match gap |
 | SQLite migrations (`db/engine.py`) | `alembic` | New nullable columns are added from the ORM on every table, so the hand list is gone. Alembic's revision directory pays off when a migration must rename, drop, or backfill; this local database has not needed that |
+| `[search]` values (`config.py`) | `pydantic-settings` | `pydantic` is already a dependency and checks the two fields. `pydantic-settings` would also read the environment, which would sit above the file and beside the CLI flag. A bad value names the field and does not print the path |
 | Landing scrollytelling (`docs/overrides/home.html`) | `scrollama`, GSAP ScrollTrigger, CSS `animation-timeline` | Six beats that swap one terminal line. Scrollama (MIT, IntersectionObserver, last release 3.2.0 in 2022) only names the step; we already write that observer in a few lines and avoid a vendored script. GSAP ScrollTrigger is a motion runtime we do not need for opacity and a text swap. CSS scroll-driven animations are not Baseline (no Firefox release as of 2026) and cannot choose which command to show. Sticky graphic + `IntersectionObserver`, with the step text in the HTML so the story works if the script does not run |
 
 ## Tracked as issues (behaviour changes or weight)
@@ -54,4 +55,3 @@ that one is generated from the code, this one records decisions.
 | Area | Library | Note | Issue |
 | --- | --- | --- | --- |
 | Legacy CV import (`profile/importer_latex.py`) | `TexSoup`, `pylatexenc.latexwalker` | 700 lines of hand parsing; highest potential saving, highest regression risk | [#10](https://github.com/ljofreflor/jobbot/issues/10) |
-| Config (`config.py`) | `pydantic-settings` | Growing `[search]` section would come for free | [#11](https://github.com/ljofreflor/jobbot/issues/11) |
