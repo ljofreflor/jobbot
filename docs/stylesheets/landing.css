@@ -1789,6 +1789,20 @@ a.jb-scrolly__lede-loop:not([aria-current="true"]):focus-visible {
   opacity: 1;
 }
 
+/* Commands of the other loop — same 0.42 as the inactive loop name (pin drives). */
+.jb-scrolly__pin:not(.is-presence) ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd--presence,
+.jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+
+.jb-scrolly__pin:not(.is-presence) ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd--presence:hover,
+.jb-scrolly__pin:not(.is-presence) ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd--presence:focus-visible,
+.jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+.jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible {
+  opacity: 1;
+}
+
 a.jb-scrolly__lede-cmd {
   display: inline-flex;
   align-items: center;
@@ -2185,7 +2199,9 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   }
 
   a.jb-scrolly__lede-loop:not([aria-current="true"]),
-  a.jb-scrolly__split-link:not([aria-current="true"]) {
+  a.jb-scrolly__split-link:not([aria-current="true"]),
+  .jb-scrolly__pin:not(.is-presence) ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd--presence,
+  .jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
     opacity: 1;
     transition: none;
   }
