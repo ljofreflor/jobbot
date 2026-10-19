@@ -224,8 +224,8 @@
              aria-label="{% if en %}Story steps: apply and presence. Tab lands on the current step; arrow keys move between steps; Page Up/Down jump loops{% else %}Pasos del relato: postular y presencia. Tab cae en el paso actual; las flechas mueven entre pasos; Av Pág/Re Pág saltan de bucle{% endif %}"
              aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End PageUp PageDown">
           <p class="jb-scrolly__dots" id="jb-scrolly-dots">
-            <span class="jb-scrolly__chapter" role="group" aria-label="{% if en %}Apply{% else %}Postular{% endif %}">
-              <a href="#story-get" class="jb-scrolly__loop" tabindex="-1" aria-current="true" aria-controls="story-get" aria-label="{% if en %}Jump to the Apply loop{% else %}Ir al bucle Postular{% endif %}">{% if en %}apply{% else %}postular{% endif %}</a>
+            <span class="jb-scrolly__chapter" role="group" aria-current="true" aria-label="{% if en %}Apply{% else %}Postular{% endif %}">
+              <a href="#story-get" class="jb-scrolly__loop" tabindex="-1" aria-controls="story-get" aria-label="{% if en %}Jump to the Apply loop{% else %}Ir al bucle Postular{% endif %}">{% if en %}apply{% else %}postular{% endif %}</a>
               <a href="#story-get" class="jb-scrolly__dot is-current" aria-current="step" aria-controls="story-get" tabindex="0" aria-label="{% if en %}Step 1, apply, get{% else %}Paso 1, postular, get{% endif %}"></a>
               <a href="#story-match" class="jb-scrolly__dot" aria-controls="story-match" tabindex="-1" aria-label="{% if en %}Step 2, apply, match{% else %}Paso 2, postular, match{% endif %}"></a>
               <a href="#story-build" class="jb-scrolly__dot" aria-controls="story-build" tabindex="-1" aria-label="{% if en %}Step 3, apply, build{% else %}Paso 3, postular, build{% endif %}"></a>
@@ -426,6 +426,16 @@
           else loop.removeAttribute("aria-current");
         });
       }
+      /* Pin chips are pointer-only; aria-current lives on the chapter group. */
+      var chapters = root.querySelectorAll(".jb-scrolly__chapter");
+      function markChapterCurrent(index) {
+        chapters.forEach(function (chapter, i) {
+          var presence = i >= 1;
+          var on = presence ? index >= 5 : index < 5;
+          if (on) chapter.setAttribute("aria-current", "true");
+          else chapter.removeAttribute("aria-current");
+        });
+      }
       function markStoryTags(step) {
         if (!step) return;
         storyTags.forEach(function (link) {
@@ -468,7 +478,7 @@
           /* Roving tabindex: one tab stop; arrows move between dots. */
           dot.setAttribute("tabindex", i === index ? "0" : "-1");
         });
-        markLoopCurrent(loops, index);
+        markChapterCurrent(index);
         markLoopCurrent(ledeLoops, index);
         markLoopCurrent(splitLinks, index);
         ledeCmds.forEach(function (link) {
