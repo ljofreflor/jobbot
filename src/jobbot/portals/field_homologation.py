@@ -14,6 +14,7 @@ from enum import StrEnum
 
 from jobbot.jobs.eligibility import ApplicationAnswers
 from jobbot.models.candidate import Candidate
+from jobbot.models.experience import Experience
 
 
 class ProfileFact(StrEnum):
@@ -39,6 +40,9 @@ class ProfileFact(StrEnum):
     SALARY_NET = "salary_net"
     SALARY_GROSS = "salary_gross"
     AVAILABILITY_DATE = "availability_date"
+    EMPLOYER = "employer"
+    UNIT = "unit"
+    WORK_MODE = "work_mode"
 
 
 # One fact → many accepted portal labels. Unknown labels stay unmapped (HITL).
@@ -138,6 +142,9 @@ _HOMOLOGATION: dict[ProfileFact, tuple[str, ...]] = {
         "fecha de disponibilidad",
         "disponibilidad",
     ),
+    ProfileFact.EMPLOYER: ("employer", "company", "empleador"),
+    ProfileFact.UNIT: ("department", "área", "area", "unidad"),
+    ProfileFact.WORK_MODE: ("work arrangement", "work mode", "modalidad"),
 }
 
 _NATIONAL_ID_LABELS = frozenset(
@@ -208,6 +215,12 @@ def value_for_fact(candidate: Candidate, fact: ProfileFact) -> tuple[str, str]:
         return _pair(personal.location_line(), "personal.city + country")
     if fact is ProfileFact.HEADLINE:
         return _pair(personal.headline, "personal.headline")
+    if fact is ProfileFact.EMPLOYER:
+        return _from_role(candidate, "company")
+    if fact is ProfileFact.UNIT:
+        return _from_role(candidate, "unit")
+    if fact is ProfileFact.WORK_MODE:
+        return _from_role(candidate, "work_mode")
     if fact is ProfileFact.LINKEDIN:
         return _pair(personal.linkedin, "personal.linkedin")
     if fact is ProfileFact.GITHUB:
@@ -278,6 +291,24 @@ def answer_for_label(candidate: Candidate, label: str) -> tuple[str, str]:
     if fact is None:
         return ("", "you decide: not a fact in the profile")
     return value_for_fact(candidate, fact)
+
+
+def _from_role(candidate: Candidate, field: str) -> tuple[str, str]:
+    """Employer, unit, or work mode from the current role (latest start if several)."""
+    role = _portal_role(candidate)
+    if role is None:
+        return ("", "you decide: not a fact in the profile")
+    value = getattr(role, field)
+    return _pair(value, f"experience.{role.id}.{field}")
+
+
+def _portal_role(candidate: Candidate) -> Experience | None:
+    roles = list(candidate.experience)
+    if not roles:
+        return None
+    current = [role for role in roles if role.current]
+    pool = current or roles
+    return max(pool, key=lambda role: role.start_date)
 
 
 def _pair(value: object, source: str) -> tuple[str, str]:

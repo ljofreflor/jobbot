@@ -37,8 +37,8 @@
 {% if experiences %}
 \section*{Experience}
 {% for exp, achievements in experiences %}
-{{ bold(exp.title) }} --- {{ exp.company | latex }}\\
-\textit{ {{ exp.format_date_range() | latex }} }{% if exp.location %} $\cdot$ {{ exp.location | latex }}{% endif %}
+{{ bold(exp.title) }} --- {{ exp_employer(exp) | latex }}\\
+\textit{ {{ exp.format_date_range() | latex }} }{% if exp_place(exp) %} $\cdot$ {{ exp_place(exp) | latex }}{% endif %}
 
 {% if exp.description %}
 {{ exp.description | latex_para }}
