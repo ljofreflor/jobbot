@@ -28,10 +28,10 @@ PROJECTS
 {% if project.tags %}{{ project.tags | join(', ') }}
 {% endif %}{% if not loop.last %}
 
-{% endif %}{% endfor %}{% endif %}{% if candidate.education +%}
+{% endif %}{% endfor %}{% endif %}{% if education +%}
 EDUCATION
-{% for edu in candidate.education %}
-{{ edu.degree }} — {{ edu.institution }}
+{% for edu in education %}
+{{ edu_label(edu) }} — {{ edu.institution }}
 {% if edu.start_date or edu.end_date %}{{ edu_dates(edu) }}
 {% endif %}{% if edu.details %}{{ edu.details | trim }}
 {% endif %}
