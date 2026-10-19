@@ -183,6 +183,20 @@ def _fetch_job(
                 f"`jobbot jobs add --file ficha.txt --url {portal.url}`."
             )
             raise UnsupportedPortalFetchError(msg) from exc
+    if portal.ats_kind == AtsKind.HIRINGROOM and html is not None:
+        from datetime import date
+
+        from jobbot.adapters.hiringroom.parse import HiringRoomParseError, parse_vacancy
+
+        try:
+            return parse_vacancy(html, url=portal.url, today=date.today())
+        except HiringRoomParseError as exc:
+            msg = (
+                f"JobBot cannot read a saved {portal.domain} page yet. Copy the "
+                "ficha text into a file and run "
+                f"`jobbot jobs add --file ficha.txt --url {portal.url}`."
+            )
+            raise UnsupportedPortalFetchError(msg) from exc
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)

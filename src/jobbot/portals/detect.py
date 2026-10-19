@@ -34,6 +34,7 @@ class AtsKind(StrEnum):
     EMPLEOS_PUBLICOS = "empleos_publicos"
     ALTA_DIRECCION_PUBLICA = "alta_direccion_publica"
     BUK = "buk"
+    HIRINGROOM = "hiringroom"
     LUMESSE = "lumesse"
     UN_CAREERS = "un_careers"
     IMPACTPOOL = "impactpool"
@@ -153,6 +154,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("vacantes.com", AtsKind.VACANTES),
     ("empleospublicos.cl", AtsKind.EMPLEOS_PUBLICOS),
     # Servicio Civil's ADP concursos (and its mirror); adp.cl is an unrelated payroll firm.
+    ("hiringroom.com", AtsKind.HIRINGROOM),
     ("buk.cl", AtsKind.BUK),
     ("buk.co", AtsKind.BUK),
     ("buk.pe", AtsKind.BUK),
@@ -188,6 +190,11 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "greenhouse board link",
     ),
     (re.compile(r"jobs\.lever\.co/[a-z0-9_-]+", re.I), AtsKind.LEVER, "lever board link"),
+    (
+        re.compile(r"HiringRoom-logo_footer\.png", re.I),
+        AtsKind.HIRINGROOM,
+        "hiringroom footer logo",
+    ),
     (
         re.compile(r"[a-z0-9_-]+\.wd\d+\.myworkdayjobs\.com", re.I),
         AtsKind.WORKDAY,
