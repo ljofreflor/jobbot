@@ -71,6 +71,36 @@ Requirements:
     assert "R" not in job.skills
 
 
+def test_spanish_requirement_headings_open_the_list() -> None:
+    text = """Cargo: Analista de operaciones
+Empresa: Servicio Neutro
+
+Perfil del cargo
+- Coordinar los equipos regionales
+- Cinco años en el mismo oficio
+
+Beneficios
+- Salud
+"""
+    job = parse_job_text(text, job_id="J0101")
+    assert job.requirements == [
+        "Coordinar los equipos regionales",
+        "Cinco años en el mismo oficio",
+    ]
+
+
+def test_a_question_heading_opens_requirements_for_any_trade() -> None:
+    text = """¿Qué buscamos?
+- Ventilación mecánica
+- Registro clínico
+
+Sobre nosotros
+- Una institución neutra
+"""
+    job = parse_job_text(text, job_id="J0102")
+    assert job.requirements == ["Ventilación mecánica", "Registro clínico"]
+
+
 def test_parse_job_text_extracts_core_fields() -> None:
     text = """Title: Senior Data Scientist
 Company: Sodimac
