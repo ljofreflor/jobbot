@@ -239,12 +239,12 @@
             </span>
           </p>
           <p class="jb-scrolly__count" id="jb-scrolly-count" aria-hidden="true">{% if en %}1 / 7 · Apply{% else %}1 / 7 · Postular{% endif %}</p>
+          <p class="jb-scrolly__meter" id="jb-scrolly-meter" role="progressbar"
+             aria-valuemin="1" aria-valuemax="7" aria-valuenow="1"
+             aria-valuetext="{% if en %}1 / 7 · Apply{% else %}1 / 7 · Postular{% endif %}"
+             aria-controls="story-get"
+             aria-label="{% if en %}Story progress{% else %}Progreso del relato{% endif %}"><span id="jb-scrolly-bar"></span></p>
         </nav>
-        <p class="jb-scrolly__meter" id="jb-scrolly-meter" role="progressbar"
-           aria-valuemin="1" aria-valuemax="7" aria-valuenow="1"
-           aria-valuetext="{% if en %}1 / 7 · Apply{% else %}1 / 7 · Postular{% endif %}"
-           aria-controls="story-get"
-           aria-label="{% if en %}Story progress{% else %}Progreso del relato{% endif %}"><span id="jb-scrolly-bar"></span></p>
         <div class="jb-scrolly__stage">
           <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker" aria-hidden="true">
             {% if en %}1 · apply{% else %}1 · postular{% endif %}
