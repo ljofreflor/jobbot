@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 214 modules, 1209 public symbols.
+129 commands, 214 modules, 1210 public symbols.
 
 ## Commands
 
@@ -168,7 +168,7 @@ writing it again — the promotion rule lives in
 ### `adapters/ats`
 
 - `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `split_personal_name`, `prefill_field_map`, `prefill_sheet_fields`, `describe_prefill`
-- `apply_fill.py` — Fill an external ATS form in your own Chrome (CDP) and stop before submit. · `ApplyFillError`, `FieldFill`, `ApplyFillPlan`, `ApplyFillResult`, `profile_key_for`, `plan_apply_fill`, `looks_like_login`, `has_captcha`, `fill_open_page`, `acquire_fill_page`, `open_and_fill_over_cdp`
+- `apply_fill.py` — Fill an external ATS form in your own Chrome (CDP) and stop before submit. · `ApplyFillError`, `ApplyFillAttachError`, `FieldFill`, `ApplyFillPlan`, `ApplyFillResult`, `profile_key_for`, `plan_apply_fill`, `looks_like_login`, `has_captcha`, `fill_open_page`, `acquire_fill_page`, `open_and_fill_over_cdp`
 - `ashby.py` — Ashby ATS adapter — open + known-field map only (HITL submit). · `AshbyAdapter`
 - `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`
 - `getonboard.py` — Get on Board adapter — open job page + known-field map (HITL submit). · `GetOnBoardAdapter`

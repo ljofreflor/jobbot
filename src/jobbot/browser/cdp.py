@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import shutil
-import threading
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -140,33 +139,25 @@ class CdpAttachInterrupted(Exception):
         self.where = where
 
 
+def _is_attach_timeout(exc: BaseException) -> bool:
+    """Playwright's timeout is its own ``Error`` subclass, not the builtin one."""
+    from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+
+    return isinstance(exc, PlaywrightTimeoutError | TimeoutError)
+
+
 def connect_cdp(chromium: Any, url: str, *, timeout_s: float = DEFAULT_CDP_ATTACH_S) -> Any:
-    """Attach even when ``connect_over_cdp`` never returns.
+    """Attach with one deadline, on the thread that started Playwright.
 
-    The call runs on a daemon thread. On timeout or Ctrl-C the caller continues;
-    the stuck attach is abandoned instead of opening a different browser.
+    The sync API is bound to that thread (its greenlets cannot switch threads),
+    so the deadline is the driver's own: a Chrome that never answers fails here
+    instead of opening a different browser.
     """
-    box: dict[str, object] = {}
-    done = threading.Event()
-
-    def run() -> None:
-        try:
-            box["browser"] = chromium.connect_over_cdp(url)
-        except BaseException as exc:  # noqa: BLE001 — keep Ctrl-C inside the thread
-            box["error"] = exc
-        finally:
-            done.set()
-
-    threading.Thread(target=run, name="jobbot-cdp-attach", daemon=True).start()
     try:
-        finished = done.wait(timeout_s)
+        return chromium.connect_over_cdp(url, timeout=timeout_s * 1000)
     except KeyboardInterrupt as exc:
         raise CdpAttachInterrupted(url) from exc
-    if not finished:
-        raise CdpAttachTimeout(url, timeout_s)
-    error = box.get("error")
-    if isinstance(error, KeyboardInterrupt):
-        raise CdpAttachInterrupted(url) from error
-    if isinstance(error, BaseException):
-        raise error
-    return box["browser"]
+    except Exception as exc:
+        if _is_attach_timeout(exc):
+            raise CdpAttachTimeout(url, timeout_s) from exc
+        raise

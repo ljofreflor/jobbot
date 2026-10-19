@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 
 import pytest
 import yaml
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S
+from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S, CdpAttachTimeout, connect_cdp
 from jobbot.cli import run_cli
 from jobbot.exit_codes import GENERIC_FAILURE
 
@@ -60,32 +62,32 @@ def _workspace(tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPat
 
 
 class _Hang:
-    def connect_over_cdp(self, url: str) -> None:
-        time.sleep(30)
+    """A Chrome that never answers: Playwright's driver enforces the deadline."""
+
+    def connect_over_cdp(self, url: str, *, timeout: float) -> None:
+        time.sleep(timeout / 1000)
+        raise PlaywrightTimeoutError(f"Timeout {timeout:g}ms exceeded.")
 
 
 class _Interrupt:
-    def connect_over_cdp(self, url: str) -> None:
+    def connect_over_cdp(self, url: str, *, timeout: float) -> None:
         raise KeyboardInterrupt
 
 
 class _Playwright:
-    def __init__(self, chromium: object, *, allow_stop: bool = False) -> None:
+    def __init__(self, chromium: object) -> None:
         self.chromium = chromium
-        self.allow_stop = allow_stop
 
     def stop(self) -> None:
-        if not self.allow_stop:
-            raise AssertionError("stop")
+        raise AssertionError("stop() can wait on the abandoned attach")
 
 
 class _Manager:
-    def __init__(self, chromium: object, *, allow_stop: bool = False) -> None:
+    def __init__(self, chromium: object) -> None:
         self._chromium = chromium
-        self._allow_stop = allow_stop
 
     def start(self) -> _Playwright:
-        return _Playwright(self._chromium, allow_stop=self._allow_stop)
+        return _Playwright(self._chromium)
 
 
 def _forbid_browser(monkeypatch: pytest.MonkeyPatch) -> list[str]:
@@ -102,6 +104,33 @@ def _forbid_browser(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
 def test_default_attach_budget_is_fifteen_seconds() -> None:
     assert DEFAULT_CDP_ATTACH_S == 15
+
+
+def test_attach_runs_on_the_thread_that_started_playwright() -> None:
+    """The sync API is bound to that thread: a worker thread never connects."""
+
+    class _Chromium:
+        def __init__(self) -> None:
+            self.thread: int | None = None
+            self.timeout: float | None = None
+
+        def connect_over_cdp(self, url: str, *, timeout: float) -> str:
+            self.thread = threading.get_ident()
+            self.timeout = timeout
+            return "browser"
+
+    chromium = _Chromium()
+
+    assert connect_cdp(chromium, CDP, timeout_s=3) == "browser"
+    assert chromium.thread == threading.get_ident()
+    assert chromium.timeout == 3000, "the deadline is the driver's own"
+
+
+def test_playwright_timeout_becomes_the_attach_timeout() -> None:
+    with pytest.raises(CdpAttachTimeout) as caught:
+        connect_cdp(_Hang(), CDP, timeout_s=0.01)
+
+    assert "127.0.0.1:9222" in str(caught.value)
 
 
 def test_hung_attach_exits_without_another_browser_or_orphan_package(
@@ -162,7 +191,7 @@ def test_interrupt_during_attach_records_and_opens_nothing(
     opened = _forbid_browser(monkeypatch)
     monkeypatch.setattr(
         "playwright.sync_api.sync_playwright",
-        lambda: _Manager(_Interrupt(), allow_stop=True),
+        lambda: _Manager(_Interrupt()),
     )
     code = run_cli(
         ["application", "apply", job_id, "--apply", "--yes", "--cdp", CDP, "--cdp-timeout", "2"],

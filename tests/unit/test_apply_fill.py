@@ -306,7 +306,7 @@ class _FakeChromium:
         self._browser = browser
         self.cdp: list[str] = []
 
-    def connect_over_cdp(self, url: str) -> _FakeBrowser:
+    def connect_over_cdp(self, url: str, *, timeout: float | None = None) -> _FakeBrowser:
         self.cdp.append(url)
         if self._browser is None:
             raise RuntimeError("connect ECONNREFUSED")

@@ -171,6 +171,10 @@ class ApplyFillError(RuntimeError):
     """The page could not be opened or read over CDP."""
 
 
+class ApplyFillAttachError(ApplyFillError):
+    """Chrome never attached, so nothing was opened over CDP."""
+
+
 @dataclass(frozen=True)
 class FieldFill:
     """One input the profile answers."""
@@ -380,20 +384,18 @@ def open_and_fill_over_cdp(
         playwright_factory = sync_playwright
     manager = playwright_factory()
     playwright = manager.start()
-    timed_out = False
+    abandoned = False
     try:
         try:
             from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout, connect_cdp
 
             browser = connect_cdp(playwright.chromium, cdp_url, timeout_s=attach_timeout_s)
-        except CdpAttachTimeout as exc:
-            timed_out = True
-            raise ApplyFillError(str(exc)) from exc
-        except CdpAttachInterrupted as exc:
-            raise ApplyFillError(str(exc)) from exc
+        except (CdpAttachTimeout, CdpAttachInterrupted) as exc:
+            abandoned = True
+            raise ApplyFillAttachError(str(exc)) from exc
         except Exception as exc:  # noqa: BLE001 — Playwright error types vary
             msg = f"Could not attach to Chrome at {cdp_url}: {exc}"
-            raise ApplyFillError(msg) from exc
+            raise ApplyFillAttachError(msg) from exc
         context = browser.contexts[0] if browser.contexts else browser.new_context()
         page, how = acquire_fill_page(context, browser, focus=focus)
         logger.info("CDP fill page: %s", how)
@@ -419,9 +421,10 @@ def open_and_fill_over_cdp(
             msg = f"Could not read the page at {url}: {exc}"
             raise ApplyFillError(msg) from exc
     finally:
-        # A stuck attach must not wait on stop(). After any finished attach,
-        # stopping the driver drops CDP; Chrome and the tab stay open.
-        if not timed_out:
+        # An abandoned attach (deadline or Ctrl-C) must not wait on stop().
+        # After any finished attach, stopping the driver drops CDP; Chrome and
+        # the tab stay open.
+        if not abandoned:
             playwright.stop()
 
 

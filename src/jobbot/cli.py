@@ -4294,7 +4294,7 @@ def _fill_ats_over_cdp(
     *,
     foreground: bool = False,
     attach_timeout_s: float = 15,
-) -> bool:
+) -> None:
     """Fill known fields in the requested Chrome. A failure does not open another browser."""
     from jobbot.adapters.ats import apply_fill
     from jobbot.adapters.ats.email_apply import resolve_cv_path
@@ -4309,9 +4309,14 @@ def _fill_ats_over_cdp(
             focus=foreground,
             attach_timeout_s=attach_timeout_s,
         )
-    except apply_fill.ApplyFillError as exc:
+    except apply_fill.ApplyFillAttachError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise _RecordedExit(GENERIC_FAILURE, error_class="CdpAttach", message=str(exc)) from exc
+    except apply_fill.ApplyFillError as exc:
+        # Chrome did attach: keep the package and the prefill sheet for the human.
+        err_console.print(f"[yellow]{exc}[/yellow]")
+        err_console.print("[yellow]No other browser was opened. Use the prefill sheet.[/yellow]")
+        return
     if result.opened:
         where = f"Chrome ({cdp})"
         if foreground:
@@ -4334,7 +4339,6 @@ def _fill_ats_over_cdp(
     for label in result.left_for_human:
         console.print(f"  • {label}")
     console.print("Tab left open. Review everything; you submit — JobBot never clicks it.")
-    return True
 
 
 @application_app.command("apply")
