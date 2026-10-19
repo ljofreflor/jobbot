@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 214 modules, 1209 public symbols.
+129 commands, 214 modules, 1210 public symbols.
 
 ## Commands
 
@@ -371,7 +371,7 @@ writing it again — the promotion rule lives in
 - `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`
 - `digest.py` — A shareable daily summary of new, still-open postings. Nothing is sent. · `DigestError`, `DigestEntry`, `resolve_timezone`, `parse_since`, `load_last_digest`, `save_last_digest`, `load_eligibility`, `select_entries`, `render_whatsapp`, `render_markdown`, `empty_line`, `public_url`, `refuse_pii`, `output_path`, `why_line`
 - `discover.py` — `jobs discover`: one command, one adapter per public source, a preview before storing. · `SiteStatus`, `SiteOutcome`, `SiteTarget`, `JobFilters`, `DiscoverAdapter`, `register_source`, `source_names`, `discover_adapter`, `registry_sites_for`, `Action`, `Decision`, `unique_jobs`, `decide`, `feed_summary`, `exit_code_for`
-- `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `IdentityAnswers`, `SalaryAnswers`, `AvailabilityAnswers`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `read_answers_mapping`, `answer_key_refused`, `filled_blocks`, `format_answers_show`, `salary_migration_hint`, `assign_answer`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
+- `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `IdentityAnswers`, `SalaryAnswers`, `DrivingLicenseAnswers`, `AvailabilityAnswers`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `read_answers_mapping`, `answer_key_refused`, `filled_blocks`, `format_answers_show`, `salary_migration_hint`, `assign_answer`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `PortalDisallowedError`, `InvalidPostingUrlError`, `PortalShapeChangedError`, `GetFromUrlResult`, `ingest_hard_link`, `fetch_workday_posting`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `countries_in_text`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
