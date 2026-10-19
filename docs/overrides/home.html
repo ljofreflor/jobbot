@@ -608,7 +608,11 @@
         jumpTo(id);
       }
       dots.forEach(function (dot) {
-        dot.addEventListener("click", onJump);
+        /* Same as arrows / loop chips: stay on the progress landmark after click. */
+        dot.addEventListener("click", function (event) {
+          keepProgressFocus = true;
+          onJump(event);
+        });
       });
       loops.forEach(function (loop) {
         /* Pointer-only chips (tabindex -1): after click, land on the step's dot. */
