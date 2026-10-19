@@ -1272,6 +1272,12 @@ a.jb-in-story__tag:focus-visible {
   color: var(--jb-cobalt);
 }
 
+/* Presence list kickers match the navy split and pin stage kicker. */
+#story-advise .jb-scrolly__kicker,
+#story-sync .jb-scrolly__kicker {
+  color: var(--jb-navy);
+}
+
 .jb-scrolly__step h3 {
   margin: 0 0 0.5rem;
   font-family: var(--jb-font-brand);
@@ -1695,6 +1701,11 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   .jb-scrolly__step.is-active > p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more) {
     box-shadow: inset 3px 0 0 var(--jb-cobalt);
     padding-left: 0.7rem;
+  }
+
+  #story-advise.is-active > p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more),
+  #story-sync.is-active > p:not(.jb-scrolly__kicker):not(.jb-scrolly__echo):not(.jb-scrolly__echo-out):not(.jb-scrolly__more) {
+    box-shadow: inset 3px 0 0 var(--jb-navy);
   }
 
   .jb-hero__title {
