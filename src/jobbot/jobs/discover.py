@@ -192,6 +192,10 @@ def _load_builtin() -> None:
         from jobbot.adapters.vacantes.discover import VacantesDiscover
 
         register_source("vacantes", VacantesDiscover)
+    if "laborum" not in _FACTORIES:
+        from jobbot.adapters.laborum.discover import LaborumDiscover
+
+        register_source("laborum", LaborumDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:
