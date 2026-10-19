@@ -4350,6 +4350,17 @@ def _stop_if_filled(session: Session, job: JobPosting) -> None:
     evidence = _filled_vacancy(job)
     if evidence is None:
         return
+    from datetime import UTC, datetime
+
+    from jobbot.jobs.open_signals import OpenStatus
+    from jobbot.jobs.repository import JobRepository
+
+    JobRepository(session).record_open_check(
+        job.id,
+        status=OpenStatus.CLOSED.value,
+        evidence=evidence,
+        checked_at=datetime.now(UTC),
+    )
     url = job.ats_url or job.url or job.id
     err_console.print(f"[red]Vacancy is filled[/red] ({evidence}). Not opening {url}.")
     err_console.print("No portal receipt — status stays unknown, not applied.")
