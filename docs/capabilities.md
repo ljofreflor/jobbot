@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-137 commands, 229 modules, 1295 public symbols.
+138 commands, 230 modules, 1301 public symbols.
 
 ## Commands
 
@@ -16,6 +16,7 @@ writing it again — the promotion rule lives in
 - `jobbot advisor status` — One line per sandbox: fingerprint, counts, proposal, retention. No profile PII.
 - `jobbot application apply` — Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
 - `jobbot application check-answer` — Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
+- `jobbot application cover-letter` — Write a cover letter that only restates profile facts. Nothing is sent.
 - `jobbot application interview` — Preguntas de entrevista desde lo enviado, sin inventar un logro.
 - `jobbot application open` — Open the job URL (or ATS URL) in the default browser (does not apply).
 - `jobbot application prepare` — Prepare application package for a job (does not invent answers).
@@ -317,6 +318,7 @@ writing it again — the promotion rule lives in
 
 - `answer_check.py` — Check a free-text application answer against the profile and the posting. · `QuestionKind`, `Verdict`, `Evidence`, `SentenceTrace`, `AnswerCheck`, `classify_question`, `check_answer`, `render_answer_check`
 - `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
+- `cover_letter.py` — A short cover letter that only restates profile facts and names the role. · `CoverLetterError`, `fact_blob`, `unsupported_tokens`, `draft_cover_letter`, `choose_draft`, `record_manifest`
 - `feedback.py` — Pasted employer messages become application events. No inbox, no invented motive. · `FeedbackKind`, `FeedbackError`, `FeedbackReading`, `FunnelRow`, `classify`, `read_feedback`, `store_feedback`, `funnel`, `report_lines`, `interview_reminders`
 - `interview.py` — Interview questions from the package that was sent (#203). · `InterviewCard`, `sent_selection_path`, `load_sent_selection`, `cards_for`, `format_cards`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
