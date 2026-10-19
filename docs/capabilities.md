@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-139 commands, 231 modules, 1306 public symbols.
+140 commands, 232 modules, 1312 public symbols.
 
 ## Commands
 
@@ -87,6 +87,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs shortlist` — Rank stored jobs by match score; flag a close and a finished posting.
 - `jobbot jobs show` — Show a stored job posting.
 - `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot. Mismatches are warnings; exit 0.
+- `jobbot linkedin import` — Merge a stored LinkedIn snapshot into profile.yaml. Dry-run writes nothing.
 - `jobbot linkedin inspect` — Inspect LinkedIn page for selector development.
 - `jobbot linkedin jobs` — Save LinkedIn job cards from a search page; --dry-run writes nothing.
 - `jobbot linkedin login` — Open LinkedIn login with persistent browser profile.
@@ -258,6 +259,7 @@ writing it again — the promotion rule lives in
 ### `adapters/linkedin`
 
 - `client.py` — LinkedIn adapter — read-only audit + publications sync (HITL). · `LinkedInAdapter`
+- `importer.py` — Merge a stored LinkedIn snapshot into an existing profile. · `LinkedInImportError`, `ImportChange`, `ImportPlan`, `import_plan`, `render_change`, `apply_import`
 - `job_search.py` — LinkedIn job-search cards, read from saved HTML. Sends nothing. · `jobs_from_search_html`
 - `package.py` — LinkedIn publications sync package from Candidate (facts only). · `LinkedInPublicationItem`, `doi_url`, `build_linkedin_publication_items`, `publications_missing_from_remote`
 - `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`

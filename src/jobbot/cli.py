@@ -5767,6 +5767,80 @@ def linkedin_diff(
     console.print(render_profile_diff(candidate, config.output_dir, "linkedin", section=section))
 
 
+@linkedin_app.command("import")
+def linkedin_import(
+    section: Annotated[
+        str | None,
+        typer.Option("--section", help="headline, experience, education, or skills"),
+    ] = None,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Write confirmed sections into profile.yaml"),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Confirm every section")] = False,
+) -> None:
+    """Merge a stored LinkedIn snapshot into profile.yaml. Dry-run writes nothing."""
+    from jobbot.adapters.diff_engine import load_snapshot
+    from jobbot.adapters.linkedin.importer import (
+        LinkedInImportError,
+        apply_import,
+        import_plan,
+        render_change,
+    )
+    from jobbot.cv.tune import backup_profile
+
+    config = load_config()
+    if not config.profile_path.is_file():
+        err_console.print(
+            "[red]No profile.yaml. The snapshot has no name, so import cannot create one.[/red]"
+        )
+        raise _QuietExit(VALIDATION_FAILURE)
+    external = load_snapshot(config.output_dir, "linkedin")
+    if external is None:
+        err_console.print("[red]No linkedin snapshot found. Run: jobbot linkedin pull[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    try:
+        plan = import_plan(candidate, external, section=section)
+    except LinkedInImportError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    for warning in plan.warnings:
+        err_console.print(f"[yellow]{warning}[/yellow]")
+    for change in plan.changes:
+        console.print(render_change(change))
+    if not plan.changes:
+        console.print("Nothing to write.")
+        return
+    if not apply_changes:
+        console.print("Dry-run only. Nothing written.")
+        return
+    raw = yaml.safe_load(config.profile_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        err_console.print("[red]profile.yaml is not a mapping[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    chosen: set[str] = set()
+    for name in ("headline", "experience", "education", "skills"):
+        if not any(change.section == name for change in plan.changes):
+            continue
+        if yes or typer.confirm(f"Write LinkedIn {name} into profile.yaml?", default=False):
+            chosen.add(name)
+    if not chosen:
+        console.print("Nothing written.")
+        return
+    backup = backup_profile(config.profile_path)
+    merged = apply_import(raw, plan, sections=chosen)
+    config.profile_path.write_text(
+        yaml.safe_dump(merged, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    console.print(f"Wrote profile.yaml. Backup: {backup.name}")
+
+
 @linkedin_app.command("sync")
 def linkedin_sync(
     section: Annotated[
