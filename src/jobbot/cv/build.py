@@ -12,7 +12,7 @@ from pathlib import Path
 from jobbot.config import CvConfig, JobbotConfig
 from jobbot.cv.application_log import ApplicationLogOptions, build_application_log
 from jobbot.cv.ats import build_ats_text
-from jobbot.cv.renderer import CvStyle, cv_language, render_cv_ats, render_cv_tex
+from jobbot.cv.renderer import CvStyle, as_cv_language, cv_language, render_cv_ats, render_cv_tex
 from jobbot.cv.selection import (
     select_for_base_cv,
     select_for_job,
@@ -60,6 +60,8 @@ def build_cv(
     application_log: ApplicationLogOptions | None = None,
     credit: bool = False,
     full: bool = False,
+    language: str | None = None,
+    configured_language: str | None = None,
 ) -> list[Path]:
     """Build CV artifacts under output/base/ or output/jobs/<id>/.
 
@@ -97,7 +99,14 @@ def build_cv(
     if target == BuildTarget.ATS:
         ats_path = out_dir / "cv_ats.txt"
         ats_path.write_text(
-            build_ats_text(candidate, templates_dir, selection, credit=credit),
+            build_ats_text(
+                candidate,
+                templates_dir,
+                selection,
+                credit=credit,
+                language=language,
+                configured=configured_language,
+            ),
             encoding="utf-8",
         )
         logger.info("Wrote ATS CV: %s", ats_path)
@@ -125,7 +134,14 @@ def build_cv(
     # Written before XeLaTeX: a TeX failure must not leave the ATS text of an older profile.
     ats_path = out_dir / "cv_ats.txt"
     ats_path.write_text(
-        render_cv_ats(candidate, templates_dir, selection, credit=credit),
+        render_cv_ats(
+            candidate,
+            templates_dir,
+            selection,
+            credit=credit,
+            language=as_cv_language(language),
+            configured=as_cv_language(configured_language),
+        ),
         encoding="utf-8",
     )
     logger.info("Wrote ATS CV: %s", ats_path)

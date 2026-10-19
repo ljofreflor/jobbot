@@ -16,7 +16,7 @@ from jobbot.cv.selection import SelectionResult, filter_experiences, select_for_
 from jobbot.jobs.language import Language, detect_language
 from jobbot.models.candidate import Candidate
 from jobbot.models.education import Education
-from jobbot.models.experience import format_metric
+from jobbot.models.experience import Experience, format_metric
 from jobbot.models.targets import ProfileTarget
 
 
@@ -43,14 +43,33 @@ def cv_language(style: CvStyle) -> Language:
     return _LANGUAGE_BY_STYLE[style]
 
 
-def _profile_language(candidate: Candidate) -> Language:
-    """Language of the work-mode word on the ATS line. Headings stay as they are."""
-    blob = " ".join(
-        part
-        for part in (candidate.summary, candidate.personal.headline, candidate.personal.name)
-        if part
+def as_cv_language(value: str | None) -> Language | None:
+    """Keep only es or en. Anything else is 'not set'."""
+    if value == "es":
+        return "es"
+    if value == "en":
+        return "en"
+    return None
+
+
+def resolve_ats_language(
+    candidate: Candidate,
+    *,
+    explicit: Language | None = None,
+    configured: Language | None = None,
+) -> Language:
+    """`--lang`, then `[cv] language`, then the profile's own words, then English."""
+    if explicit in ("es", "en"):
+        return explicit
+    if configured in ("es", "en"):
+        return configured
+    blob = "\n".join(
+        [
+            candidate.summary or "",
+            *(ach.text for exp in candidate.experience for ach in exp.achievements),
+        ]
     )
-    return detect_language(blob) or "es"
+    return detect_language(blob) or "en"
 
 
 def split_name(full_name: str) -> tuple[str, str]:
@@ -190,8 +209,14 @@ _GROUP_LABELS: dict[Language, dict[str, str]] = {
 }
 
 
-def _group_label(name: str, language: Language = "en") -> str:
-    return _GROUP_LABELS.get(language, {}).get(name) or name.replace("_", " ").title()
+def _group_label(name: str, language: Language = "en", *, ats: bool = False) -> str:
+    mapped = _GROUP_LABELS.get(language, {}).get(name)
+    if mapped:
+        return mapped
+    plain = name.replace("_", " ")
+    if ats and language == "es" and plain:
+        return plain[0].upper() + plain[1:]
+    return plain.title()
 
 
 def shown_education(candidate: Candidate) -> list[Education]:
@@ -235,6 +260,32 @@ def edu_when(edu: Education, *, language: Language = "es", years_only: bool = Fa
     if edu.start_date and edu.end_date:
         return f"{edu.start_date} – {edu.end_date}"
     return edu.end_date or edu.start_date or ""
+
+
+_ATS_LABELS: dict[Language, dict[str, str]] = {
+    "en": {
+        "email": "Email:",
+        "phone": "Phone:",
+        "summary": "SUMMARY",
+        "specialties": "SPECIALTIES",
+        "experience": "EXPERIENCE",
+        "projects": "PROJECTS",
+        "education": "EDUCATION",
+        "skills": "SKILLS",
+        "publications": "PUBLICATIONS",
+    },
+    "es": {
+        "email": "Correo:",
+        "phone": "Teléfono:",
+        "summary": "RESUMEN",
+        "specialties": "ESPECIALIDADES",
+        "experience": "EXPERIENCIA",
+        "projects": "PROYECTOS",
+        "education": "FORMACIÓN",
+        "skills": "HABILIDADES",
+        "publications": "PUBLICACIONES",
+    },
+}
 
 
 def _edu_dates(edu: Education) -> str:
@@ -334,12 +385,25 @@ def render_cv_ats(
     selection: SelectionResult | None = None,
     *,
     credit: bool = False,
+    language: Language | None = None,
+    configured: Language | None = None,
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
     template = env.get_template("cv_ats.txt.j2")
     experiences = filter_experiences(candidate, selection)
-    language = _profile_language(candidate)
+    resolved = resolve_ats_language(candidate, explicit=language, configured=configured)
+
+    def exp_dates(exp: Experience) -> str:
+        if resolved == "es":
+            return es_date_range(exp.start_date, None if exp.current else exp.end_date)
+        return exp.format_date_range()
+
+    def edu_dates(edu: Education) -> str:
+        if resolved == "es":
+            return es_year_range(edu.start_date, edu.end_date)
+        return _edu_dates(edu)
+
     return template.render(
         candidate=candidate,
         personal=candidate.personal,
@@ -349,10 +413,12 @@ def render_cv_ats(
         projects=candidate.projects,
         education=shown_education(candidate),
         metrics_line=_metrics_line,
-        edu_dates=_edu_dates,
-        edu_label=lambda edu: edu_label(edu, "en"),
-        group_label=_group_label,
-        ats_role=lambda exp: exp.ats_role_line(language),
+        edu_dates=edu_dates,
+        edu_label=lambda edu: edu_label(edu, resolved),
+        group_label=lambda name: _group_label(name, resolved, ats=True),
+        ats_role=lambda exp: exp.ats_role_line(resolved),
+        exp_dates=exp_dates,
+        labels=_ATS_LABELS[resolved],
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.ATS,
     )

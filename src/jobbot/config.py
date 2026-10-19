@@ -52,6 +52,7 @@ class CvConfig:
 
     jobbot_signature: bool = False
     jobbot_project_url: str | None = None
+    language: str | None = None
 
 
 @dataclass(frozen=True)
@@ -200,9 +201,11 @@ def _load_cv(raw: dict[str, object]) -> CvConfig:
     section = raw.get("cv")
     cv_raw: dict[str, object] = section if isinstance(section, dict) else {}
     url = cv_raw.get("jobbot_project_url")
+    language = cv_raw.get("language")
     return CvConfig(
         jobbot_signature=cv_raw.get("jobbot_signature") is True,
         jobbot_project_url=url if isinstance(url, str) and url.strip() else None,
+        language=language if language in ("es", "en") else None,
     )
 
 
