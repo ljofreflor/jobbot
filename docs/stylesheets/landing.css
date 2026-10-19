@@ -2083,6 +2083,33 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Postular: the CV group stays full, but advise/sync rows inside it are softened.
+   Hovering the bar, heading, or table restores those rows (mirror of item 216). */
+html:not(.jb-pin-presence):has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-advise),
+html:not(.jb-pin-presence):has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-sync) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
