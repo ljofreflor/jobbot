@@ -117,6 +117,39 @@ def test_no_echo_falls_back_to_recency() -> None:
     assert not selection.used_posting_terms
 
 
+def test_recency_prefers_the_current_role_over_a_later_started_contract() -> None:
+    data = _profile().model_dump(mode="json")
+    held = _role("role-held", "2020-01", "ach-held", "Jefatura de la unidad vigente", [])
+    held["end_date"] = None
+    held["current"] = True
+    data["experience"].append(held)
+    candidate = Candidate.model_validate(data)
+    job = _posting("J0107", "convocatoria abierta " * 30)
+
+    selection = select_for_job(candidate, job)
+
+    assert selection.experience_ids[0] == "role-held"
+    assert selection.selected_achievements[0].id == "ach-held"
+
+
+def test_echo_ties_prefer_the_role_that_ended_last() -> None:
+    data = _profile().model_dump(mode="json")
+    late = _role("role-late", "2017-01", "ach-late", A_TEXT, [])
+    late["end_date"] = "2026-01"
+    data["experience"].append(late)
+    candidate = Candidate.model_validate(data)
+    job = _posting("J0108", f"Se pide {A_TEXT}.")
+
+    selection = select_for_job(candidate, job)
+
+    echoed = [
+        row.id
+        for row in selection.selected_achievements
+        if any(reason.startswith("posting echoes:") for reason in row.reason)
+    ]
+    assert echoed[0] == "ach-late"
+
+
 def test_a_match_echo_is_reused_when_the_posting_has_no_terms() -> None:
     candidate = _profile()
     job = _posting("J0106", "convocatoria abierta " * 30)

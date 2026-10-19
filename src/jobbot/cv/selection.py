@@ -194,10 +194,15 @@ def _select_full(
     )
 
 
+def _recency_key(exp: Experience) -> tuple[bool, str, str]:
+    """What the candidate does now, then what they did last."""
+    return (exp.current, exp.end_date or "", exp.start_date or "")
+
+
 def _by_recency(candidate: Candidate) -> list[Experience]:
     """Most recent role first. A tie keeps profile order."""
     indexed = list(enumerate(candidate.experience))
-    indexed.sort(key=lambda pair: (pair[1].start_date or "", -pair[0]), reverse=True)
+    indexed.sort(key=lambda pair: (_recency_key(pair[1]), -pair[0]), reverse=True)
     return [exp for _, exp in indexed]
 
 
@@ -230,10 +235,10 @@ def _echoed_achievements(
             shown = detail.split(":", 1)[-1].strip()
             count = len([part for part in shown.split(",") if part.strip()])
             found[ach_id] = (count, f"posting echoes: {shown}")
-    ranked: list[tuple[int, str, int, Experience, Achievement, str]] = []
+    ranked: list[tuple[int, tuple[bool, str, str], int, Experience, Achievement, str]] = []
     for ach_id, (hit_count, reason) in found.items():
         exp, ach, position = owners[ach_id]
-        ranked.append((hit_count, exp.start_date or "", -position, exp, ach, reason))
+        ranked.append((hit_count, _recency_key(exp), -position, exp, ach, reason))
     ranked.sort(key=lambda row: (row[0], row[1], row[2]), reverse=True)
     return [(exp, ach, reason) for _, _, _, exp, ach, reason in ranked]
 
