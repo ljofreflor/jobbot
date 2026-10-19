@@ -243,6 +243,7 @@
         <p class="jb-scrolly__meter" id="jb-scrolly-meter" role="progressbar"
            aria-valuemin="1" aria-valuemax="7" aria-valuenow="1"
            aria-valuetext="{% if en %}1 / 7 · Apply{% else %}1 / 7 · Postular{% endif %}"
+           aria-controls="story-get"
            aria-label="{% if en %}Story progress{% else %}Progreso del relato{% endif %}"><span id="jb-scrolly-bar"></span></p>
         <div class="jb-scrolly__stage">
           <p class="jb-scrolly__stage-kicker" id="jb-scrolly-kicker" aria-hidden="true">
@@ -493,6 +494,7 @@
           if (count && count.textContent) {
             meter.setAttribute("aria-valuetext", count.textContent);
           }
+          if (step && step.id) meter.setAttribute("aria-controls", step.id);
         }
         if (pin) pin.classList.toggle("is-presence", index >= 5);
         var echo = step.querySelector(".jb-scrolly__echo code");
