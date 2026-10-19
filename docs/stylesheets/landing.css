@@ -1158,6 +1158,135 @@ html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-applicati
   opacity: 1;
 }
 
+/* Presence: hovering an inactive apply-only step restores that group's bar + heading + table
+   (same chrome a #story-* jump already restores). */
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes
+  + table,
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies
+  + table,
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications
+  + table {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
