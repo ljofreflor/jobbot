@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-141 commands, 236 modules, 1326 public symbols.
+141 commands, 237 modules, 1329 public symbols.
 
 ## Commands
 
@@ -501,6 +501,7 @@ writing it again — the promotion rule lives in
 - `importer_pdf.py` — Import a CV exported to PDF (Word-style layout) into a Candidate profile dict. · `PdfImportError`, `extract_pdf_text`, `import_pdf_cv`, `parse_cv_text`
 - `loader.py` — Load Candidate from profile.yaml. · `ProfileLoadError`, `load_profile`, `load_profile_raw`
 - `market.py` — Market-language suggestions for baseline CV (no invention; no deletions). · `MarketGapQuestion`, `MarketSuggestion`, `suggest_from_market`, `render_suggestion_markdown`, `apply_confirmed_skills`, `merge_confirmed_skills_into_raw`
+- `overlay.py` — English texts keyed by the profile's own ids. Nothing here is written back. · `base_texts`, `read_overlay`, `overlay_problems`
 - `pdf_glyphs.py` — Recover the ligature glyphs a PDF's /ToUnicode map forgets. · `repair_missing_ligatures`
 - `query_check.py` — Measure saved searches against title results before anything is stored. · `QueryCell`, `QueryWarning`, `QueryCheck`, `significant_stems`, `title_covers`, `dominant_words`, `measure_queries`, `format_cell`, `sources_or_reject`, `search_source_titles`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
