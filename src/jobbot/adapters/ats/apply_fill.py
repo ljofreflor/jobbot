@@ -20,6 +20,7 @@ from typing import Any
 
 from jobbot.adapters.ats.apply import prefill_field_map
 from jobbot.browser.background import new_background_page
+from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S
 from jobbot.models.candidate import Candidate
 from jobbot.portals.form_learn import FieldKind, FormField, FormKnowledge, learn_form_html
 
@@ -366,6 +367,7 @@ def open_and_fill_over_cdp(
     timeout_ms: int = 30_000,
     focus: bool = False,
     playwright_factory: Callable[[], Any] | None = None,
+    attach_timeout_s: float = DEFAULT_CDP_ATTACH_S,
 ) -> ApplyFillResult:
     """Fill known fields in the attached Chrome, then disconnect.
 
@@ -378,9 +380,17 @@ def open_and_fill_over_cdp(
         playwright_factory = sync_playwright
     manager = playwright_factory()
     playwright = manager.start()
+    timed_out = False
     try:
         try:
-            browser = playwright.chromium.connect_over_cdp(cdp_url)
+            from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout, connect_cdp
+
+            browser = connect_cdp(playwright.chromium, cdp_url, timeout_s=attach_timeout_s)
+        except CdpAttachTimeout as exc:
+            timed_out = True
+            raise ApplyFillError(str(exc)) from exc
+        except CdpAttachInterrupted as exc:
+            raise ApplyFillError(str(exc)) from exc
         except Exception as exc:  # noqa: BLE001 — Playwright error types vary
             msg = f"Could not attach to Chrome at {cdp_url}: {exc}"
             raise ApplyFillError(msg) from exc
@@ -409,8 +419,10 @@ def open_and_fill_over_cdp(
             msg = f"Could not read the page at {url}: {exc}"
             raise ApplyFillError(msg) from exc
     finally:
-        # Stopping the driver drops the CDP connection; Chrome and the tab stay open.
-        playwright.stop()
+        # A stuck attach must not wait on stop(). After any finished attach,
+        # stopping the driver drops CDP; Chrome and the tab stay open.
+        if not timed_out:
+            playwright.stop()
 
 
 def _execute(frame: Any, plan: ApplyFillPlan, *, url: str, captcha: bool) -> ApplyFillResult:

@@ -14,6 +14,7 @@ from typing import Any, Self
 from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
 
 from jobbot.browser.background import new_background_page
+from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S
 from jobbot.browser.sessions import ensure_profile_free
 
 logger = logging.getLogger("jobbot.browser.session")
@@ -58,6 +59,7 @@ class BrowserSession:
         cdp_url: str | None = None,
         timeouts: BrowserTimeouts | None = None,
         debug_root: Path | None = None,
+        cdp_attach_s: float = DEFAULT_CDP_ATTACH_S,
     ) -> None:
         self.profile_dir = profile_dir
         self.headless = headless
@@ -66,6 +68,7 @@ class BrowserSession:
         # automated Chromium. Not a CAPTCHA bypass; still HITL for challenges.
         self.channel = channel
         self.cdp_url = cdp_url
+        self.cdp_attach_s = cdp_attach_s
         self.timeouts = timeouts or BrowserTimeouts()
         self.debug_root = debug_root or Path("output/debug")
         self._playwright: Playwright | None = None
@@ -108,7 +111,16 @@ class BrowserSession:
     def _attach_cdp(self, cdp_url: str) -> None:
         assert self._playwright is not None
         logger.info("Attaching to Chrome via CDP: %s", cdp_url)
-        self._browser = self._playwright.chromium.connect_over_cdp(cdp_url)
+        from jobbot.browser.cdp import CdpAttachTimeout, connect_cdp
+
+        try:
+            self._browser = connect_cdp(
+                self._playwright.chromium, cdp_url, timeout_s=self.cdp_attach_s
+            )
+        except CdpAttachTimeout:
+            # stop() can wait on the same stuck attach. Leave the driver and return.
+            self._playwright = None
+            raise
         self._owns_context = False
         if self._browser.contexts:
             self._context = self._browser.contexts[0]

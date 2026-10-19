@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import os
 import shutil
+import threading
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
 
 DEFAULT_CDP_URL = "http://127.0.0.1:9222"
 DEFAULT_CDP_PORT = 9222
+DEFAULT_CDP_ATTACH_S = 15.0
 
 
 def resolve_cdp_url(
@@ -96,3 +100,73 @@ def chrome_debug_argv(
 
 def cdp_http_url(port: int = DEFAULT_CDP_PORT) -> str:
     return f"http://127.0.0.1:{port}"
+
+
+def cdp_endpoint(url: str) -> str:
+    """Host and port for messages. Never a page title, name, or account."""
+    parts = urlsplit(url)
+    host = parts.hostname or url
+    if ":" in host:
+        host = f"[{host}]"
+    if parts.port:
+        return f"{host}:{parts.port}"
+    return host
+
+
+class CdpAttachTimeout(TimeoutError):
+    """``connect_over_cdp`` did not return within the deadline."""
+
+    def __init__(self, url: str, timeout_s: float) -> None:
+        where = cdp_endpoint(url)
+        super().__init__(
+            f"Could not attach to Chrome at {where} within {timeout_s:g}s. "
+            "Close frozen tabs or relaunch with jobbot browser chrome-debug."
+        )
+        self.url = url
+        self.where = where
+
+
+class CdpAttachInterrupted(Exception):
+    """The person stopped the process while Chrome was still attaching."""
+
+    def __init__(self, url: str) -> None:
+        where = cdp_endpoint(url)
+        super().__init__(
+            f"CDP attach at {where} was interrupted. "
+            "No other browser was opened. "
+            "Close frozen tabs or relaunch with jobbot browser chrome-debug."
+        )
+        self.url = url
+        self.where = where
+
+
+def connect_cdp(chromium: Any, url: str, *, timeout_s: float = DEFAULT_CDP_ATTACH_S) -> Any:
+    """Attach even when ``connect_over_cdp`` never returns.
+
+    The call runs on a daemon thread. On timeout or Ctrl-C the caller continues;
+    the stuck attach is abandoned instead of opening a different browser.
+    """
+    box: dict[str, object] = {}
+    done = threading.Event()
+
+    def run() -> None:
+        try:
+            box["browser"] = chromium.connect_over_cdp(url)
+        except BaseException as exc:  # noqa: BLE001 — keep Ctrl-C inside the thread
+            box["error"] = exc
+        finally:
+            done.set()
+
+    threading.Thread(target=run, name="jobbot-cdp-attach", daemon=True).start()
+    try:
+        finished = done.wait(timeout_s)
+    except KeyboardInterrupt as exc:
+        raise CdpAttachInterrupted(url) from exc
+    if not finished:
+        raise CdpAttachTimeout(url, timeout_s)
+    error = box.get("error")
+    if isinstance(error, KeyboardInterrupt):
+        raise CdpAttachInterrupted(url) from error
+    if isinstance(error, BaseException):
+        raise error
+    return box["browser"]

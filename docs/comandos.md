@@ -71,7 +71,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 |---------|----------|
 | `get URL` | Aviso puntual: conoce el portal, descarga el aviso, arma CV y paquete. Descarga en vivo Get on Board, Indeed, Workday (vía CXS) y Ready ATS (`ready-ats-*.web.app`, JSON). `--fixture` lee HTML guardado o, en Ready, el JSON de careers. |
 | `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. Una URL de PDF lee la capa de texto (sin OCR) y guarda el cierre en hora de Santiago. |
-| `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
+| `jobs search QUERY` | Busca en Indeed y guarda las vacantes. `--location`, `--limit`, `--remote`, `--cdp`. Si `--cdp` no engancha dentro de `--cdp-timeout` (15 s), sale con error y no dice "No jobs found". |
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
 | `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs discover --source buk --site URL` | Pide solo `robots.txt`. Si prohíbe `/`, no recorre el portal y sugiere `jobs add --file`. |
@@ -179,7 +179,7 @@ espera de ese `appname`.
 | `application prepare JOB_ID` | Arma el paquete de postulación (no inventa respuestas). |
 | `application show JOB_ID` | Ruta y estado del paquete. |
 | `application open JOB_ID` | Abre la URL de la vacante o del ATS en el navegador (no postula). |
-| `application apply JOB_ID` | Plan de prellenado. Si Indeed sale a otro portal, el plan usa esa URL y no Indeed Apply. Una verificación en la página de entrada sale 4, sin otra ruta. `--apply` abre; el envío lo haces tú. |
+| `application apply JOB_ID` | Plan de prellenado. Indeed que sale a otro portal no usa Indeed Apply. Con `--cdp`, un adjunto que no vuelve no abre otro navegador; sin `--cdp`, abre el navegador por defecto. `--apply` abre; el envío lo haces tú. |
 | `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso. Sale 0 si todo está respaldado y 2 si una afirmación no lo está. Una carta o una pregunta de motivación sale 4: si las afirmaciones están respaldadas lo dice, y la motivación la confirma la persona. |
 | `jobs describe JOB_ID --file aviso.txt` | Reemplaza la descripción de un aviso ya guardado. Conserva el id, la URL, la nota y la postulación. |
 | `applications list` | Lista las postulaciones registradas (alias: `applications status`). |

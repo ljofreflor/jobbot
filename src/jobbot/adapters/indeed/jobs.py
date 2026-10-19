@@ -46,14 +46,16 @@ class IndeedJobSource:
         config: JobbotConfig | None = None,
         *,
         cdp_url: str | None = None,
+        cdp_attach_s: float | None = None,
     ) -> None:
         self.config = config or load_config()
         self.base = selectors.indeed_jobs_base(self._country())
         self.profile_dir = self.config.browser_profile_dir("indeed")
         self.debug_root = self.config.output_dir / "debug"
-        from jobbot.browser.cdp import resolve_cdp_url
+        from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S, resolve_cdp_url
 
         self.cdp_url = resolve_cdp_url(cdp_url)
+        self.cdp_attach_s = DEFAULT_CDP_ATTACH_S if cdp_attach_s is None else cdp_attach_s
 
     def _country(self) -> str:
         # Loaded from .jobbot.toml [indeed].country when present
@@ -73,6 +75,7 @@ class IndeedJobSource:
             slow_mo=100,
             debug_root=self.debug_root,
             cdp_url=self.cdp_url,
+            cdp_attach_s=self.cdp_attach_s,
         )
 
     def search_jobs(self, query: JobSearchQuery) -> list[JobPosting]:
