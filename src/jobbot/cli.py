@@ -1967,6 +1967,10 @@ def cv_build(
             help="With --job: keep every role and achievement, most related first per role",
         ),
     ] = False,
+    strict: Annotated[
+        bool,
+        typer.Option("--strict", help="Exit 2 when the text layer has a finding"),
+    ] = False,
 ) -> None:
     """Build CV from profile.yaml (base or job-specific)."""
     if full and not job_id:
@@ -2029,6 +2033,13 @@ def cv_build(
 
     for path in outputs:
         console.print(f"[green]Wrote[/green] {path}")
+    from jobbot.cv.text_layer import issues_for_outputs
+
+    layer = issues_for_outputs(outputs, candidate, job)
+    for finding in layer:
+        err_console.print(f"text layer: {finding.kind}: {finding.detail}")
+    if strict and layer:
+        raise typer.Exit(VALIDATION_FAILURE)
 
 
 @cv_app.command("advise")

@@ -39,6 +39,8 @@ class SelectionResult:
     job_id: str | None = None
     # Achievements render in selection order (by relevance) instead of profile order.
     full: bool = False
+    # Terms the posting names that the profile does not. Never copied onto the CV.
+    gaps: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -53,6 +55,8 @@ class SelectionResult:
             payload["job_id"] = self.job_id
         if self.full:
             payload["full"] = True
+        if self.gaps:
+            payload["gaps"] = self.gaps
         return payload
 
 
@@ -140,6 +144,7 @@ def select_for_job(
         skill_names=skill_names,
         include_publications=True,
         job_id=job.id,
+        gaps=_gaps(candidate, job),
     )
 
 
@@ -166,6 +171,7 @@ def _select_full(
         include_publications=True,
         job_id=job.id,
         full=True,
+        gaps=_gaps(candidate, job),
     )
 
 
@@ -222,6 +228,31 @@ def filter_experiences(
             achs.sort(key=lambda a: rank[a.id])
         result.append((exp, achs))
     return result
+
+
+def _gaps(candidate: Candidate, job: JobPosting) -> list[str]:
+    """Posting skills the profile never states. They stay off the CV."""
+    haystack = fold_text(
+        "\n".join(
+            [
+                candidate.summary or "",
+                *candidate.specialties,
+                *candidate.skills.all_skills(),
+                *(exp.title for exp in candidate.experience),
+                *(exp.description or "" for exp in candidate.experience),
+                *(ach.text for exp in candidate.experience for ach in exp.achievements),
+                *(edu.degree for edu in candidate.education),
+            ]
+        )
+    )
+    gaps: list[str] = []
+    for skill in job.skills:
+        needle = fold_text(skill)
+        if len(needle) < 3:
+            continue
+        if re.search(rf"(?<!\w){re.escape(needle)}(?!\w)", haystack) is None:
+            gaps.append(skill)
+    return gaps
 
 
 def _job_tokens(job: JobPosting) -> set[str]:
