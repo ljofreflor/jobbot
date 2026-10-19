@@ -38,6 +38,8 @@ class AtsKind(StrEnum):
     UN_CAREERS = "un_careers"
     IMPACTPOOL = "impactpool"
     PAGEUP = "pageup"
+    TALEO = "taleo"
+    PEOPLESOFT = "peoplesoft"
     BNE = "bne"
     CHILETRABAJOS = "chiletrabajos"
     TRABAJANDO = "trabajando"
@@ -133,7 +135,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("successfactors.eu", AtsKind.SUCCESSFACTORS),
     ("sapsf.com", AtsKind.SUCCESSFACTORS),
     ("sapsf.eu", AtsKind.SUCCESSFACTORS),
-    ("taleo.net", AtsKind.ORACLE),
+    ("taleo.net", AtsKind.TALEO),
     ("oraclecloud.com", AtsKind.ORACLE),
     ("teamtailor.com", AtsKind.TEAMTAILOR),
     ("workable.com", AtsKind.WORKABLE),
@@ -227,9 +229,19 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "successfactors host",
     ),
     (
-        re.compile(r"[a-z0-9_-]+\.(?:taleo\.net|fa\.oraclecloud\.com)", re.I),
+        re.compile(r"[a-z0-9_-]+\.taleo\.net|/careersection/", re.I),
+        AtsKind.TALEO,
+        "taleo careersection",
+    ),
+    (
+        re.compile(r"[a-z0-9_-]+\.fa\.oraclecloud\.com", re.I),
         AtsKind.ORACLE,
-        "oracle/taleo host",
+        "oracle recruiting host",
+    ),
+    (
+        re.compile(r"/psc/.+/hrms/", re.I),
+        AtsKind.PEOPLESOFT,
+        "peoplesoft hrms path",
     ),
     (re.compile(r"[a-z0-9_-]+\.bamboohr\.com", re.I), AtsKind.BAMBOOHR, "bamboohr host"),
     (
@@ -287,7 +299,7 @@ def detect_ats(url: str) -> AtsKind:
     for needle, kind in _HOST_RULES:
         if host == needle or host.endswith("." + needle) or needle in host:
             return kind
-    return AtsKind.UNKNOWN
+    return _kind_from_path(urlparse(raw).path)
 
 
 # Subdomains a board shares across employers. A company tenant is any other label.
@@ -333,6 +345,19 @@ def aggregator_board(url: str) -> AtsKind | None:
         if board is not None:
             return board
     return None
+
+
+_CAREERSECTION = re.compile(r"/careersection/", re.I)
+_PEOPLESOFT_PATH = re.compile(r"/psc/.+/hrms/", re.I)
+
+
+def _kind_from_path(path: str) -> AtsKind:
+    """Taleo and PeopleSoft on an employer's own host, recognised by the path."""
+    if _CAREERSECTION.search(path):
+        return AtsKind.TALEO
+    if _PEOPLESOFT_PATH.search(path):
+        return AtsKind.PEOPLESOFT
+    return AtsKind.UNKNOWN
 
 
 def html_marker_kinds() -> tuple[AtsKind, ...]:
