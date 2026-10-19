@@ -54,7 +54,7 @@ jobbot update --schedule status
 
 | Comando | Qué hace |
 |---------|----------|
-| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. Con `--job`, `--full` conserva todos los roles y logros. Un término del aviso que el perfil no tiene queda en `selection.json` como brecha y no se escribe en el CV. `--strict` sale 2 si la capa de texto tiene un ícono, una viñeta rara o un término metido. |
+| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. Con `--job`, `--full` conserva todos los roles y logros. Sin términos extraídos, elige por el eco del aviso y avisa para revisar `selection.json`. Un término del aviso que el perfil no tiene queda como brecha y no se escribe en el CV. `--strict` sale 2 si la capa de texto tiene un ícono, una viñeta rara o un término metido. |
 | `cv propagate` | Reconstruye el CV base y lo propaga a los perfiles permanentes (HITL, dry-run por defecto). |
 
 ```bash

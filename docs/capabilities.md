@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 216 modules, 1223 public symbols.
+129 commands, 216 modules, 1225 public symbols.
 
 ## Commands
 
@@ -391,7 +391,7 @@ writing it again — the promotion rule lives in
 
 ### `matching`
 
-- `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`, `requirement_evidence`
+- `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`, `requirement_evidence`, `posting_word_index`, `achievement_echo_hits`
 - `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `blind_matcher_warning`, `match_reasons`, `format_match_report`
 
 ### `models`
