@@ -2706,6 +2706,22 @@ body:has(
   opacity: 1;
 }
 
+/* Reverse of item 194: hovering the softened lede loop name restores that loop's catalog rows. */
+html:not(.jb-pin-presence):has(
+    a.jb-scrolly__lede-loop--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__lede-loop--presence:not([aria-current="true"]):focus-visible
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag--presence),
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence):not([aria-current="true"]):focus-visible
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
+  opacity: 1;
+}
+
 a.jb-scrolly__lede-cmd {
   display: inline-flex;
   align-items: center;
