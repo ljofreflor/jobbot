@@ -181,6 +181,7 @@ espera de ese `appname`.
 | Comando | Qué hace |
 |---------|----------|
 | `application prepare JOB_ID` | Arma el paquete de postulación (no inventa respuestas). |
+| `application interview JOB_ID` | Preguntas desde el aviso archivado y la evidencia de `selection.json`. Un requisito sin eco es un puente, no un logro nuevo. |
 | `application show JOB_ID` | Ruta y estado del paquete. |
 | `application open JOB_ID` | Abre la URL de la vacante o del ATS en el navegador (no postula). |
 | `application apply JOB_ID` | Plan de prellenado. Indeed que sale a otro portal no usa Indeed Apply. Con `--cdp` la sesión se consulta en ese host (`[::1]` sigue siendo `[::1]`); un adjunto que no vuelve no abre otro navegador. Sin `--cdp` un perfil ajeno no se lee y se abre el navegador por defecto. `--apply` abre; el envío lo haces tú. |

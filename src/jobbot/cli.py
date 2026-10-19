@@ -4327,6 +4327,34 @@ def application_prepare(job_id: Annotated[str, typer.Argument()]) -> None:
         console.print(f"Get on Board Spanish drafts: {gob}")
 
 
+@application_app.command("interview")
+def application_interview(job_id: Annotated[str, typer.Argument()]) -> None:
+    """Preguntas de entrevista desde lo enviado, sin inventar un logro."""
+    from jobbot.applications.interview import (
+        cards_for,
+        format_cards,
+        load_sent_selection,
+        sent_selection_path,
+    )
+
+    session, config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    path = sent_selection_path(config.output_dir, job.id)
+    if path is None:
+        err_console.print(f"[red]No selection.json for {job.id}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    cards = cards_for(job, candidate, load_sent_selection(path))
+    console.print(format_cards(cards))
+
+
 @application_app.command("open")
 def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
     """Open the job URL (or ATS URL) in the default browser (does not apply)."""
