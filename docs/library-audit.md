@@ -23,7 +23,7 @@ that one is generated from the code, this one records decisions.
 | Country names (`jobs/geo.py`) | hand-written `_COUNTRY_ALIASES` | `babel.Locale(...).territories` | Country names in Spanish and English are CLDR data; the list stops drifting |
 | Language names (`jobs/conditions.py`) | a hand-written list of languages | `babel.Locale(...).languages` | "Inglés", "English" and "portugués" resolve to ISO 639-1 from CLDR; only two-letter codes and names of four letters or more are read, so short words never pass for a language |
 | PDF text extraction (`profile/importer_pdf.py`) | nothing: PDFs could not be imported | `pypdf` | Pure-python, offline, no models; it also tells us when a PDF has no text layer, which is the signal we need to refuse a scan instead of importing an empty profile. The CV layout rules (sections, bullets, date lines) stay ours: no library knows them |
-| Architecture diagrams (`docs/images/`) | hand-drawn ASCII in the README | `diagrams` (docs group only) + Graphviz | README needs a committed PNG; `make architecture` regenerates from `scripts/render_architecture.py`. Not a runtime dependency — Graphviz stays a system tool like XeLaTeX |
+| Canonical career URLs (`companies/urls.py` `public_url`) | hand-rolled `urlparse` | `httpx.URL` (already a dependency) | IDNA, default ports, dot-segments and percent-decoding are solved; `www.`, query/fragment drops and LinkedIn tracking parameters stay ours |
 
 ## Kept ours, on purpose
 
@@ -55,4 +55,3 @@ that one is generated from the code, this one records decisions.
 | Secret detection (`ops/pii_guard.py`) | `detect-secrets` | Keep the Chilean RUT and phone rules ours | [#9](https://github.com/ljofreflor/jobbot/issues/9) |
 | Legacy CV import (`profile/importer_latex.py`) | `TexSoup`, `pylatexenc.latexwalker` | 700 lines of hand parsing; highest potential saving, highest regression risk | [#10](https://github.com/ljofreflor/jobbot/issues/10) |
 | Config (`config.py`) | `pydantic-settings` | Growing `[search]` section would come for free | [#11](https://github.com/ljofreflor/jobbot/issues/11) |
-| Canonical URLs (`companies/urls.py`) | `w3lib`, `url-normalize` | IDNA and percent-encoding edge cases in the dedup key | [#12](https://github.com/ljofreflor/jobbot/issues/12) |
