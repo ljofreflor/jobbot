@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-131 commands, 218 modules, 1240 public symbols.
+131 commands, 218 modules, 1242 public symbols.
 
 ## Commands
 
@@ -349,7 +349,7 @@ writing it again — the promotion rule lives in
 - `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_url`, `escape_latex_multiline`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
-- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `render_cv_tex`, `render_cv_ats`
+- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `as_cv_language`, `resolve_ats_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `render_cv_tex`, `render_cv_ats`
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`

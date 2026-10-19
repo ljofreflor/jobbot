@@ -2029,6 +2029,10 @@ def cv_build(
         bool,
         typer.Option("--strict", help="Exit 2 when the text layer has a finding"),
     ] = False,
+    lang: Annotated[
+        str | None,
+        typer.Option("--lang", help="ATS headings: es or en"),
+    ] = None,
 ) -> None:
     """Build CV from profile.yaml (base or job-specific)."""
     if full and not job_id:
@@ -2036,6 +2040,8 @@ def cv_build(
             "--full only applies with --job; the base CV already keeps every fact.",
             param_hint="--full",
         )
+    if lang is not None and lang not in ("es", "en"):
+        raise typer.BadParameter("--lang must be es or en", param_hint="--lang")
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
@@ -2084,6 +2090,8 @@ def cv_build(
             application_log=application_log_options(config.cv),
             credit=config.cv.jobbot_signature,
             full=full,
+            language=lang,
+            configured_language=config.cv.language,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         err_console.print(f"[red]{exc}[/red]")

@@ -66,7 +66,7 @@ jobbot cv propagate                 # solo plan
 jobbot cv propagate --apply         # confirma destino por destino
 ```
 
-Una experiencia puede separar `unit` del empleador y anotar `work_mode` (`remote`, `onsite`, `hybrid`). Sin esos campos el CV sale igual que antes.
+Una experiencia puede separar `unit` del empleador y anotar `work_mode` (`remote`, `onsite`, `hybrid`). Sin esos campos el CV sale igual que antes. `cv build --target ats --lang es` pone los encabezados y las fechas en español; sin `--lang` manda `[cv] language` y, si no está, el idioma del resumen y los logros. Un texto ambiguo queda en inglés.
 
 ## Vacantes
 

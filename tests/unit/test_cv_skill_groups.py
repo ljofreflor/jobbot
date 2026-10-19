@@ -44,14 +44,15 @@ def test_moderncv_labels_known_groups_in_spanish(project_root: Path) -> None:
 
 
 def test_unknown_group_keys_fall_through_title_cased(project_root: Path) -> None:
-    """The label table only adds translations: any other key prints as before."""
+    """Translations are a table. A missing key stays readable, not a raw slug."""
     data = nurse_profile_dict()
     data["skills"] = {"cuidados_criticos": ["Ventilación mecánica"]}
     candidate = Candidate.model_validate(data)
     templates = project_root / "templates"
 
     assert _moderncv_labels(render_cv_tex(candidate, templates)) == ["Cuidados Criticos"]
-    assert "Cuidados Criticos: Ventilación mecánica" in render_cv_ats(candidate, templates)
+    # Spanish ATS capitalizes the first word only (#145).
+    assert "Cuidados criticos: Ventilación mecánica" in render_cv_ats(candidate, templates)
 
 
 def test_english_outputs_keep_english_labels(project_root: Path) -> None:
