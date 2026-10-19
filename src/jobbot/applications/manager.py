@@ -11,9 +11,11 @@ import yaml
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from jobbot.applications.checklist import render_requirement_checklist
 from jobbot.db.models import ApplicationEventRow, ApplicationRow
 from jobbot.jobs.ids import next_application_id
 from jobbot.models.application import Application, ApplicationEvent, ApplicationStatus
+from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 
 ANSWERS_TEMPLATE = """\
@@ -208,13 +210,20 @@ def prepare_application_package(
             encoding="utf-8",
         )
 
+    if isinstance(candidate, Candidate) and job.requirements:
+        checklist = app_dir / "requirements.md"
+        if not checklist.is_file():
+            checklist.write_text(
+                render_requirement_checklist(candidate, job),
+                encoding="utf-8",
+            )
+
     if candidate is not None and _is_getonboard(job):
         from jobbot.adapters.getonboard.draft import (
             draft_getonboard_fields,
             load_permanent_profile,
             render_getonboard_markdown,
         )
-        from jobbot.models.candidate import Candidate
 
         if isinstance(candidate, Candidate):
             permanent = load_permanent_profile(output_dir)
