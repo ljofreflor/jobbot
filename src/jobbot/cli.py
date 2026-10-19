@@ -660,6 +660,33 @@ def _ingest_with_progress(
         )
 
 
+@app.command("postulate")
+def postulate_cmd(
+    fixture: Annotated[
+        str | None,
+        typer.Option("--fixture", help="Post text to classify. This command does not fetch."),
+    ] = None,
+) -> None:
+    """Classify a post as email, portal, or unknown. Does not write portals.yaml."""
+    from pathlib import Path
+
+    from jobbot.portals.postulate import known_portal_domains, plan_postulate, render_plan
+
+    if not fixture:
+        err_console.print("postulate needs --fixture; the post was not read.")
+        raise _QuietExit(VALIDATION_FAILURE)
+    path = Path(fixture)
+    if not path.is_file():
+        err_console.print("postulate needs --fixture; the post was not read.")
+        raise _QuietExit(VALIDATION_FAILURE)
+    config = load_config()
+    text = path.read_text(encoding="utf-8")
+    plan = plan_postulate(text, known_domains=known_portal_domains(config))
+    for line in render_plan(plan):
+        console.print(line)
+    raise typer.Exit(SUCCESS)
+
+
 @app.command("get")
 def get_hard_link(
     url: Annotated[
