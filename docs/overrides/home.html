@@ -400,6 +400,7 @@
       var prose = document.getElementById("jb-scrolly-prose");
       var dots = root.querySelectorAll(".jb-scrolly__dot");
       var loops = root.querySelectorAll(".jb-scrolly__loop");
+      var ledeCmds = root.querySelectorAll("a.jb-scrolly__lede-cmd");
       var bar = document.getElementById("jb-scrolly-bar");
       var count = document.getElementById("jb-scrolly-count");
       var pin = root.querySelector(".jb-scrolly__pin");
@@ -422,6 +423,11 @@
           var on = presence ? index >= 5 : index < 5;
           if (on) loop.setAttribute("aria-current", "true");
           else loop.removeAttribute("aria-current");
+        });
+        ledeCmds.forEach(function (link) {
+          var href = link.getAttribute("href") || "";
+          if (href === "#" + step.id) link.setAttribute("aria-current", "step");
+          else link.removeAttribute("aria-current");
         });
         if (bar && steps.length) {
           bar.style.width = ((index + 1) / steps.length * 100) + "%";
@@ -515,7 +521,7 @@
       loops.forEach(function (loop) {
         loop.addEventListener("click", onJump);
       });
-      root.querySelectorAll("a.jb-scrolly__lede-cmd").forEach(function (link) {
+      ledeCmds.forEach(function (link) {
         link.addEventListener("click", onJump);
       });
       function bindCatalogStoryTags() {
