@@ -1567,10 +1567,7 @@ a.jb-scrolly__loop:hover {
   background: rgba(0, 88, 248, 0.22);
 }
 
-a.jb-scrolly__loop:focus-visible {
-  outline: 2px solid #7eb0ff;
-  outline-offset: 3px;
-}
+/* No :focus-visible: chips are pointer-only (aria-hidden, mousedown → dot). */
 
 .jb-scrolly__count {
   margin: 0;
@@ -1649,8 +1646,7 @@ a.jb-scrolly__loop:focus-visible {
   background: rgba(197, 212, 238, 0.75);
 }
 
-.jb-scrolly__chapter:last-child .jb-scrolly__dot:focus-visible,
-.jb-scrolly__chapter:last-child .jb-scrolly__loop:focus-visible {
+.jb-scrolly__chapter:last-child .jb-scrolly__dot:focus-visible {
   outline-color: #c5d4ee;
 }
 
