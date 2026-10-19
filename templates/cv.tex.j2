@@ -64,10 +64,10 @@
 {% endfor %}
 {% endif %}
 
-{% if candidate.education %}
+{% if education %}
 \section*{Education}
-{% for edu in candidate.education %}
-{{ bold(edu.degree) }} --- {{ edu.institution | latex }}\\
+{% for edu in education %}
+{{ bold(edu_label(edu)) }} --- {{ edu.institution | latex }}\\
 {% if edu.start_date or edu.end_date %}
 \textit{ {{ edu_dates(edu) | latex }} }
 {% endif %}

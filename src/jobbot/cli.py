@@ -1338,6 +1338,8 @@ def profile_validate(
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
     console.print("[bold green]PROFILE VALID[/bold green]")
+    for issue in result.warnings:
+        err_console.print(f"[yellow]{issue.path}: {issue.message}[/yellow]")
     hint = salary_migration_hint(answers)
     if hint:
         console.print(hint, markup=False)
@@ -1445,6 +1447,8 @@ def profile_show() -> None:
     table.add_row("Email", str(personal.email) if personal.email else "—")
     table.add_row("Experiences", str(len(candidate.experience)))
     table.add_row("Skills", str(candidate.skills.count()))
+    for edu in candidate.education:
+        table.add_row("Education", f"{edu.degree} ({edu.resolved_status()})")
     console.print(table)
     if candidate.summary:
         console.print(Panel(candidate.summary.strip(), title="Summary"))

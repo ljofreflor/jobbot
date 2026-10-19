@@ -184,10 +184,51 @@ def _group_label(name: str, language: Language = "en") -> str:
     return _GROUP_LABELS.get(language, {}).get(name) or name.replace("_", " ").title()
 
 
-def _edu_dates(edu: Education) -> str:
+def shown_education(candidate: Candidate) -> list[Education]:
+    """Degrees that belong on the CV. An abandoned one stays in the profile only."""
+    return [edu for edu in candidate.education if edu.resolved_status() != "abandoned"]
+
+
+def edu_label(edu: Education, language: Language = "es") -> str:
+    """How the degree reads. A candidacy is marked, never rewritten into a finished title."""
+    if edu.resolved_status() != "candidate":
+        return edu.degree
+    if language == "es":
+        if edu.degree.rstrip().endswith("(c)"):
+            return edu.degree
+        return f"{edu.degree} (c)"
+    return f"{edu.degree} — Candidate"
+
+
+def edu_when(edu: Education, *, language: Language = "es", years_only: bool = False) -> str:
+    """Dates a degree shows. In progress is named; a finished one without an end is not current."""
+    status = edu.resolved_status()
+    if status == "completed" and not edu.end_date:
+        if years_only:
+            parsed = _parse_ym(edu.start_date)
+            return str(parsed[0]) if parsed else ""
+        return edu.start_date or ""
+    if status == "in_progress":
+        if years_only:
+            parsed = _parse_ym(edu.start_date)
+            start = str(parsed[0]) if parsed else ""
+        else:
+            start = edu.start_date or ""
+        word = "en curso" if language == "es" else "in progress"
+        line = f"{start} – {word}" if start else word
+        if edu.expected_end:
+            extra = "egreso esperado" if language == "es" else "expected"
+            line += f" ({extra} {edu.expected_end[:4]})"
+        return line
+    if years_only:
+        return es_year_range(edu.start_date, edu.end_date)
     if edu.start_date and edu.end_date:
         return f"{edu.start_date} – {edu.end_date}"
     return edu.end_date or edu.start_date or ""
+
+
+def _edu_dates(edu: Education) -> str:
+    return edu_when(edu, language="en")
 
 
 def _metrics_line(metrics: Mapping[str, int | float | str]) -> str:
@@ -252,18 +293,20 @@ def render_cv_tex(
         skills=candidate.skills.as_dict(),
         publications=candidate.publications if selection.include_publications else [],
         projects=candidate.projects,
+        education=shown_education(candidate),
         href=_href_latex,
         application_log=application_log,
         contact_line=_contact_line_latex(candidate),
         specialties_line=_specialties_line_latex(candidate),
         metrics_line=_metrics_line_latex,
-        edu_dates=_edu_dates,
+        edu_dates=lambda edu: edu_when(edu, language=cv_language(style)),
+        edu_label=lambda edu: edu_label(edu, cv_language(style)),
         group_label=lambda name: _group_label(name, cv_language(style)),
         bold=_bold_latex,
         name_first=name_first,
         name_last=name_last,
         exp_dates=lambda exp: es_date_range(exp.start_date, exp.end_date),
-        edu_years=lambda edu: es_year_range(edu.start_date, edu.end_date),
+        edu_years=lambda edu: edu_when(edu, language="es", years_only=True),
         linkedin_handle=social_handle(candidate.personal.linkedin),
         github_handle=social_handle(candidate.personal.github),
         repo_url=REPO_URL,
@@ -291,8 +334,10 @@ def render_cv_ats(
         skills=candidate.skills.as_dict(),
         publications=candidate.publications if selection.include_publications else [],
         projects=candidate.projects,
+        education=shown_education(candidate),
         metrics_line=_metrics_line,
         edu_dates=_edu_dates,
+        edu_label=lambda edu: edu_label(edu, "en"),
         group_label=_group_label,
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.ATS,

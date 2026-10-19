@@ -105,10 +105,10 @@
 {% endfor %}
 {% endif %}
 
-{% if candidate.education %}
+{% if education %}
 \section{Formación Académica}
-{% for edu in candidate.education %}
-\cventry{ {{- edu_years(edu) | latex -}} }{\textbf{ {{- edu.degree | latex -}} }}{ {{- edu.institution | latex -}} }{}{}{ {%- if edu.details -%}{{ edu.details | latex }}{%- endif -%} }
+{% for edu in education %}
+\cventry{ {{- edu_years(edu) | latex -}} }{\textbf{ {{- edu_label(edu) | latex -}} }}{ {{- edu.institution | latex -}} }{}{}{ {%- if edu.details -%}{{ edu.details | latex }}{%- endif -%} }
 {% endfor %}
 {% endif %}
 
