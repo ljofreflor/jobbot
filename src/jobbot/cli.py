@@ -575,6 +575,10 @@ def _print_cv_status(*, as_json: bool) -> None:
         "Active company portals need page evidence; a yes is never a receipt. "
         "Per-job apply stages: jobbot applications list[/dim]"
     )
+    from jobbot.applications.feedback import interview_reminders
+
+    for line in interview_reminders(config.root):
+        console.print(line)
 
 
 def _ingest_with_progress(
@@ -5117,6 +5121,74 @@ def applications_list() -> None:
 def applications_status() -> None:
     """Alias for applications list."""
     applications_list()
+
+
+@applications_app.command("feedback")
+def applications_feedback(
+    file: Annotated[
+        str | None,
+        typer.Option("--file", help="Pasted employer message. Otherwise stdin."),
+    ] = None,
+    job: Annotated[
+        str | None,
+        typer.Option("--job", help="Force the posting id when the message names it."),
+    ] = None,
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write the event. Default is dry-run."),
+    ] = False,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", help="Confirm a rejection that would replace an offer."),
+    ] = False,
+) -> None:
+    """Classify a pasted employer message and record it on the application."""
+    from jobbot.applications.feedback import FeedbackError, read_feedback, store_feedback
+
+    body = _pasted_message(file)
+    session, config = _session()
+    try:
+        reading = read_feedback(
+            body,
+            JobRepository(session).list_all(),
+            ApplicationRepository(session).list_all(),
+            job_id=job,
+        )
+    except FeedbackError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    for line in reading.lines():
+        console.print(line)
+    if not apply:
+        console.print("[dim]dry-run: nothing written[/dim]")
+        return
+    if reading.needs_confirm and not yes:
+        err_console.print("[yellow]Sin --yes el estado offer no cambia.[/yellow]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    store_feedback(session, config.root, reading, body)
+
+
+@applications_app.command("report")
+def applications_report() -> None:
+    """Funnel per stored posting: responses, interviews and rejections."""
+    from jobbot.applications.feedback import funnel, report_lines
+
+    session, _ = _session()
+    for line in report_lines(funnel(session)):
+        console.print(line)
+
+
+def _pasted_message(file: str | None) -> str:
+    if file:
+        path = Path(file)
+        if not path.is_file():
+            err_console.print(f"[red]File not found: {file}[/red]")
+            raise _QuietExit(VALIDATION_FAILURE)
+        return path.read_text(encoding="utf-8")
+    if sys.stdin.isatty():
+        err_console.print("[red]Paste a message via --file or stdin.[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    return sys.stdin.read()
 
 
 # ── indeed / linkedin (Vertical B) ───────────────────────────────────────────

@@ -188,6 +188,8 @@ espera de ese `appname`.
 | `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso. Sale 0 si todo está respaldado y 2 si una afirmación no lo está. Una carta o una pregunta de motivación sale 4: si las afirmaciones están respaldadas lo dice, y la motivación la confirma la persona. |
 | `jobs describe JOB_ID --file aviso.txt` | Reemplaza la descripción de un aviso ya guardado. Conserva el id, la URL, la nota y la postulación. |
 | `applications list` | Lista las postulaciones registradas (alias: `applications status`). |
+| `applications feedback --file MSG` | Clasifica un mensaje pegado del empleador (dry-run). `--apply` registra el evento; un rechazo no pisa una `offer` sin `--yes`. El texto queda en `.local/`, con el contacto redactado. |
+| `applications report` | Embudo por aviso guardado: respuestas, entrevistas y rechazos. |
 
 ## Portales
 

@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-131 commands, 223 modules, 1265 public symbols.
+133 commands, 224 modules, 1275 public symbols.
 
 ## Commands
 
@@ -20,7 +20,9 @@ writing it again — the promotion rule lives in
 - `jobbot application open` — Open the job URL (or ATS URL) in the default browser (does not apply).
 - `jobbot application prepare` — Prepare application package for a job (does not invent answers).
 - `jobbot application show` — Show application package path and status for a job.
+- `jobbot applications feedback` — Classify a pasted employer message and record it on the application.
 - `jobbot applications list` — List tracked applications.
+- `jobbot applications report` — Funnel per stored posting: responses, interviews and rejections.
 - `jobbot applications status` — Alias for applications list.
 - `jobbot browser chrome-debug` — Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
 - `jobbot browser login` — List permanent, active and candidate portals that still need you to sign in.
@@ -311,6 +313,7 @@ writing it again — the promotion rule lives in
 
 - `answer_check.py` — Check a free-text application answer against the profile and the posting. · `QuestionKind`, `Verdict`, `Evidence`, `SentenceTrace`, `AnswerCheck`, `classify_question`, `check_answer`, `render_answer_check`
 - `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
+- `feedback.py` — Pasted employer messages become application events. No inbox, no invented motive. · `FeedbackKind`, `FeedbackError`, `FeedbackReading`, `FunnelRow`, `classify`, `read_feedback`, `store_feedback`, `funnel`, `report_lines`, `interview_reminders`
 - `interview.py` — Interview questions from the package that was sent (#203). · `InterviewCard`, `sent_selection_path`, `load_sent_selection`, `cards_for`, `format_cards`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
