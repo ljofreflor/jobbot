@@ -5041,6 +5041,16 @@ html:not(.jb-pin-presence):has(#cmd-advise:target, #cmd-sync:target)
   opacity: 1;
 }
 
+/* Postular: a jump to the advise or sync catalog row restores the other
+   softened Presence steps. The matching step already restores from that
+   hash; hovering that row already restores the other. */
+html:not(.jb-pin-presence):has(#cmd-advise:target, #cmd-sync:target)
+  #story-advise.jb-scrolly__step:not(.is-active),
+html:not(.jb-pin-presence):has(#cmd-advise:target, #cmd-sync:target)
+  #story-sync.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
