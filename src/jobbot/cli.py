@@ -5281,6 +5281,48 @@ def application_tracker(
         console.print(f"{job.id}  {label}  {job.company}  {job.title}{note}")
 
 
+@application_app.command("cover-letter")
+def application_cover_letter(
+    job_id: Annotated[str, typer.Argument()],
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Record the path on the package manifest, if one exists"),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the manifest confirmation")] = False,
+) -> None:
+    """Write a cover letter that only restates profile facts. Nothing is sent."""
+    from jobbot.applications.cover_letter import draft_cover_letter, record_manifest
+
+    session, config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    letter = config.output_dir / "jobs" / job.id / "cover-letter.txt"
+    letter.parent.mkdir(parents=True, exist_ok=True)
+    letter.write_text(draft_cover_letter(candidate, job), encoding="utf-8")
+    console.print(str(letter))
+    manifest = config.output_dir / "jobs" / job.id / "application" / "manifest.json"
+    if not apply_changes:
+        return
+    if not manifest.is_file():
+        console.print("No application package. Manifest unchanged.")
+        return
+    if (
+        not yes
+        and not typer.confirm(f"Record {letter.name} on the package manifest?", default=False)
+    ):
+        console.print("Aborted.")
+        raise _QuietExit(USER_CANCEL)
+    record_manifest(manifest, letter)
+    console.print(f"Recorded {letter}")
+
+
 @applications_app.command("list")
 def applications_list() -> None:
     """List tracked applications."""
