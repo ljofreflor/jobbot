@@ -641,7 +641,11 @@
         });
       });
       loops.forEach(function (loop) {
-        /* Pointer-only chips (tabindex -1): after click, land on the step's dot. */
+        /* Pointer-only chips (aria-hidden): never take focus on press. */
+        loop.addEventListener("mousedown", function (event) {
+          if (event.button === 0) event.preventDefault();
+        });
+        /* After click, land on the step's dot (arrows stay available). */
         loop.addEventListener("click", function (event) {
           keepProgressFocus = true;
           onJump(event);
