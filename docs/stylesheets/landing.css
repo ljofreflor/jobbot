@@ -1711,10 +1711,23 @@ a.jb-scrolly__split-link:not([aria-current="true"]):focus-visible {
   opacity: 1;
 }
 
-/* Softened chapter cut restores when a step of that chapter is :target (like lede, 163). */
-body:has(#story-get:target, #story-match:target, #story-build:target, #story-conditions:target, #story-apply:target)
+/* Softened chapter cut restores when a step of that chapter is :target
+   (#story-* item 164; #cmd-* from «En el catálogo» / stage, like lede/pin 166–167). */
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target,
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
   a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence),
-body:has(#story-advise:target, #story-sync:target) a.jb-scrolly__split-link--presence {
+body:has(#story-advise:target, #story-sync:target, #cmd-advise:target, #cmd-sync:target)
+  a.jb-scrolly__split-link--presence {
   opacity: 1;
 }
 
