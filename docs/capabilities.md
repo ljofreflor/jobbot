@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-135 commands, 228 modules, 1291 public symbols.
+137 commands, 229 modules, 1295 public symbols.
 
 ## Commands
 
@@ -20,6 +20,8 @@ writing it again — the promotion rule lives in
 - `jobbot application open` — Open the job URL (or ATS URL) in the default browser (does not apply).
 - `jobbot application prepare` — Prepare application package for a job (does not invent answers).
 - `jobbot application show` — Show application package path and status for a job.
+- `jobbot application status` — Show or set one job's pipeline status. A new job is saved.
+- `jobbot application tracker` — List stored jobs by pipeline status. Order is the job id.
 - `jobbot applications feedback` — Classify a pasted employer message and record it on the application.
 - `jobbot applications list` — List tracked applications.
 - `jobbot applications report` — Funnel per stored posting: responses, interviews and rejections.
@@ -320,6 +322,7 @@ writing it again — the promotion rule lives in
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
 - `preflight.py` — Warn before an assisted apply when the stored match is below a threshold. · `MatchThresholdError`, `threshold_percent`, `below_threshold`
+- `tracker.py` — Local pipeline labels. A job with no application row is ``saved``. · `TrackerError`, `status_label`, `parse_status`, `known_status`
 
 ### `browser`
 

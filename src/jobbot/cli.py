@@ -5217,6 +5217,70 @@ def application_show(job_id: Annotated[str, typer.Argument()]) -> None:
         console.print("No application record yet. Run: jobbot application prepare " + job_id)
 
 
+@application_app.command("status")
+def application_status(
+    job_id: Annotated[str, typer.Argument()],
+    set_status: Annotated[
+        str | None,
+        typer.Option("--set", help="Move the pipeline. applied asks first."),
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the applied confirmation")] = False,
+) -> None:
+    """Show or set one job's pipeline status. A new job is saved."""
+    from jobbot.applications.tracker import TrackerError, parse_status, status_label
+
+    session, _config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    repo = ApplicationRepository(session)
+    if set_status is not None:
+        try:
+            target = parse_status(set_status)
+        except TrackerError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise _QuietExit(VALIDATION_FAILURE) from exc
+        if (
+            target is ApplicationStatus.APPLIED
+            and not yes
+            and not typer.confirm(f"Set {job.id} to applied?", default=False)
+        ):
+            console.print("Aborted.")
+            raise _QuietExit(USER_CANCEL)
+        repo.upsert_for_job(job.id, status=target)
+    current = repo.get_for_job(job.id)
+    label = status_label(current)
+    when = current.updated_at.isoformat() if current is not None else job.discovered_at.isoformat()
+    console.print(f"{job.id}  {label}  {when}")
+    if job.note:
+        console.print(f"note: {job.note}")
+
+
+@application_app.command("tracker")
+def application_tracker(
+    status: Annotated[
+        str | None,
+        typer.Option("--status", help="Only this pipeline label, including saved"),
+    ] = None,
+) -> None:
+    """List stored jobs by pipeline status. Order is the job id."""
+    from jobbot.applications.tracker import known_status, status_label
+
+    if status is not None and not known_status(status):
+        err_console.print(f"[red]unknown status {status!r}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    session, _config = _session()
+    apps = {app.job_id: app for app in ApplicationRepository(session).list_all()}
+    wanted = status.casefold() if status else None
+    for job in sorted(JobRepository(session).list_all(), key=lambda item: item.id):
+        label = status_label(apps.get(job.id))
+        if wanted is not None and label != wanted:
+            continue
+        note = f"  {job.note}" if job.note else ""
+        console.print(f"{job.id}  {label}  {job.company}  {job.title}{note}")
+
+
 @applications_app.command("list")
 def applications_list() -> None:
     """List tracked applications."""
