@@ -1970,6 +1970,16 @@ a.jb-scrolly__loop:hover {
   opacity: 1;
 }
 
+/* Softened pin chapter restores when a step of that chapter is :target (lede/split 163–164). */
+body:has(#story-advise:target, #story-sync:target)
+  .jb-scrolly__pin:not(.is-presence)
+  .jb-scrolly__chapter:last-child,
+body:has(#story-get:target, #story-match:target, #story-build:target, #story-conditions:target, #story-apply:target)
+  .jb-scrolly__pin.is-presence
+  .jb-scrolly__chapter:first-child {
+  opacity: 1;
+}
+
 .jb-scrolly__meter {
   position: relative;
   flex: 1 0 100%;
