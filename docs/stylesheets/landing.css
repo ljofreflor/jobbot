@@ -1621,6 +1621,12 @@ a.jb-scrolly__lede-cmd:focus-visible {
   border-radius: 0.15rem;
 }
 
+a.jb-scrolly__lede-cmd[aria-current="step"] {
+  background: rgba(0, 88, 248, 0.12);
+  border-bottom-color: var(--jb-cobalt);
+  border-radius: 0.2rem;
+}
+
 a.jb-scrolly__lede-cmd--presence {
   color: var(--jb-navy);
   border-bottom-color: rgba(0, 24, 56, 0.35);
@@ -1632,6 +1638,11 @@ a.jb-scrolly__lede-cmd--presence:hover {
 
 a.jb-scrolly__lede-cmd--presence:focus-visible {
   outline-color: var(--jb-navy);
+}
+
+a.jb-scrolly__lede-cmd--presence[aria-current="step"] {
+  background: rgba(0, 24, 56, 0.1);
+  border-bottom-color: var(--jb-navy);
 }
 
 .jb-scrolly__lede-cmd code {
