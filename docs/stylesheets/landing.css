@@ -4833,6 +4833,30 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Postular: hovering an inactive advise or sync step restores the other softened
+   Presence steps. The step under the pointer is already full; the Postular steps
+   already restore these steps. */
+html:not(.jb-pin-presence):has(
+    #story-advise.jb-scrolly__step:not(.is-active):hover,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-within,
+    #story-sync.jb-scrolly__step:not(.is-active):hover,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-within
+  )
+  #story-advise.jb-scrolly__step:not(.is-active),
+html:not(.jb-pin-presence):has(
+    #story-advise.jb-scrolly__step:not(.is-active):hover,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-within,
+    #story-sync.jb-scrolly__step:not(.is-active):hover,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-within
+  )
+  #story-sync.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
