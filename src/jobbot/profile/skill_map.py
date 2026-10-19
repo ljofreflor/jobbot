@@ -93,8 +93,15 @@ def format_unbacked(candidate: Candidate) -> list[str]:
     return lines
 
 
+# Glue inside a skill name ('gestión de redes'): no role shows a skill by saying 'de'.
+_CONNECTORS = frozenset(
+    {"de", "del", "la", "las", "los", "el", "y", "e", "en", "of", "the", "and", "in", "for"}
+)
+
+
 def _words(text: str) -> set[str]:
-    return {word for word in fold_text(text.replace("_", " ")).split() if len(word) >= 4}
+    """The words that carry the claim. A short name ('SQL', 'BI', 'R') is one of them."""
+    return {word for word in fold_text(text.replace("_", " ")).split() if word not in _CONNECTORS}
 
 
 def _same(left: str, right: str) -> bool:
