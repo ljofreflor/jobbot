@@ -2573,6 +2573,46 @@ def cv_update() -> None:
     raise typer.Exit(SUCCESS)
 
 
+@cv_app.command("translate")
+def cv_translate(
+    lang: Annotated[
+        str,
+        typer.Option("--lang", help="Check output/cv/<lang>.yaml against the profile (en)"),
+    ] = "en",
+) -> None:
+    """Check a derived translation keeps the source numbers, names, and skills."""
+    from jobbot.cv.translate_check import translation_problems
+    from jobbot.profile.loader import ProfileLoadError, load_profile
+    from jobbot.profile.overlay import read_overlay
+
+    if lang != "en":
+        err_console.print("--lang must be en")
+        raise _QuietExit(VALIDATION_FAILURE)
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    path = config.output_dir / "cv" / "en.yaml"
+    if not path.is_file():
+        console.print("no translation; the source text stays")
+        raise typer.Exit(SUCCESS)
+    try:
+        texts = read_overlay(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    problems = translation_problems(candidate, texts)
+    if problems:
+        err_console.print("[bold red]TRANSLATION INVALID[/bold red]")
+        for problem in problems:
+            err_console.print(problem)
+        raise _QuietExit(VALIDATION_FAILURE)
+    console.print("translation keeps the source")
+    raise typer.Exit(SUCCESS)
+
+
 @cv_app.command("propagate")
 def cv_propagate(
     targets: Annotated[

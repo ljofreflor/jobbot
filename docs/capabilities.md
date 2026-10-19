@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-142 commands, 239 modules, 1338 public symbols.
+143 commands, 240 modules, 1339 public symbols.
 
 ## Commands
 
@@ -52,6 +52,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
+- `jobbot cv translate` — Check a derived translation keeps the source numbers, names, and skills.
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
 - `jobbot cv update` — List active portals this workspace has not integrated. Does not write the profile.
 - `jobbot empleospublicos search` — Search open Empleos Públicos concursos (Servicio Civil open data) and store leads.
@@ -390,6 +391,7 @@ writing it again — the promotion rule lives in
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
 - `text_layer.py` — The text an ATS reads from a CV. Icons and stuffed terms are findings, not facts. · `TextLayerIssue`, `check_text_layer`, `issues_in_text`, `issues_for_outputs`
+- `translate_check.py` — A derived translation may rephrase. It may not change a figure, a name, or add a skill. · `translation_problems`
 - `tune.py` — Bounded baseline tune from one job posting (#54). · `resolve_tune_ref`, `char_delta_label`, `prompt_advice_decision`, `backup_profile`
 
 ### `db`
