@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-143 commands, 240 modules, 1339 public symbols.
+144 commands, 241 modules, 1344 public symbols.
 
 ## Commands
 
@@ -121,6 +121,7 @@ writing it again — the promotion rule lives in
 - `jobbot portals profile seed` — Register the known career portals (UN, UNICEF, FAO, ADP, Devex, Impactpool, and the rest).
 - `jobbot portals profile sheet` — Fill sheet from the source of truth. Does not open a browser.
 - `jobbot portals profile status` — Coverage of tracked portals. Numbers and labels only; nothing is opened.
+- `jobbot postulate` — Classify a post as email, portal, or unknown. Does not write portals.yaml.
 - `jobbot profile answers set` — Set one application answer. Refuses a national id. Writes only with --yes.
 - `jobbot profile answers show` — Show which application-answer blocks are filled, without values.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
@@ -486,6 +487,7 @@ writing it again — the promotion rule lives in
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
 - `message_apply.py` — Detect apply-by-LinkedIn-message (DM / InMail). Never send. · `asks_for_linkedin_message`
 - `platform_map.py` — Which platforms one profile reaches, grouped by how each one takes a candidate. · `Platform`, `Flavour`, `platform_label`, `source_kinds`, `platform_flavours`, `featured_platforms`, `LearningStep`, `feedback_loop`, `render_figure`, `inject_figure`, `write_page`, `main`
+- `postulate.py` — Classify a post's apply route. A contribution is a host this checkout does not already know. · `PortalContribution`, `PostulatePlan`, `known_portal_domains`, `plan_postulate`, `render_plan`
 - `profile_sheet.py` — Fill sheet for one portal, projected from the source of truth. · `render_fill_sheet`
 - `profile_state.py` — Per-portal profile state, drift and coverage. No browser, no network. · `ProfileStateError`, `AccountState`, `Priority`, `EvidenceKind`, `Drift`, `UpdateRecord`, `PortalProfileState`, `SectionView`, `PortalView`, `CoverageReport`, `default_state_path`, `default_alias_path`, `cv_hashes_from_output`, `section_payload`, `section_hash`, `projection_hash`, `load_states`, `save_states`, `load_aliases`, `evaluate_portal`, `coverage_report`, `mark_updated`, `ImportPreview`, `preview_import`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
