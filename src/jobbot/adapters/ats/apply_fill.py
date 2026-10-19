@@ -4,8 +4,9 @@ The plan is pure: which inputs of an observed form ``prefill_field_map`` already
 answers, and which file input takes the CV. A field is filled only when its
 autocomplete token, its label or its name says unambiguously what it is; any
 other question is handed back to the human. Nothing here clicks: no submit, no
-"next", no OAuth button, no terms checkbox. A password on the page means a login
-wall, and then nothing is typed at all.
+"next", no OAuth button, no terms checkbox. A visible password means a login
+wall, and then nothing is typed. A Workday apply step stays readable when the
+password sits in a hidden sign-in container.
 """
 
 from __future__ import annotations
@@ -18,11 +19,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from bs4 import BeautifulSoup, Tag
+
 from jobbot.adapters.ats.apply import prefill_field_map
 from jobbot.browser.background import new_background_page
 from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S
 from jobbot.models.candidate import Candidate
+from jobbot.portals.field_homologation import ProfileFact, resolve_fact
 from jobbot.portals.form_learn import FieldKind, FormField, FormKnowledge, learn_form_html
+from jobbot.portals.selectors import field_selector
 
 logger = logging.getLogger("jobbot.ats.apply_fill")
 
@@ -210,17 +215,44 @@ class ApplyFillResult:
     opened: bool = True
 
 
+_FACT_TO_PREFILL: dict[ProfileFact, str] = {
+    ProfileFact.FULL_NAME: "full_name",
+    ProfileFact.GIVEN_NAME: "first_name",
+    ProfileFact.FAMILY_NAME: "last_name",
+    ProfileFact.EMAIL: "email",
+    ProfileFact.PHONE: "phone",
+    ProfileFact.CITY: "city",
+    ProfileFact.COUNTRY: "country",
+    ProfileFact.LOCATION: "location",
+    ProfileFact.HEADLINE: "headline",
+    ProfileFact.LINKEDIN: "linkedin",
+}
+
+_WORKDAY_LOGIN = frozenset({"signInContent", "signInFormo"})
+_WORKDAY_APPLY = frozenset({"applyFlowPage", "myExperiencePage"})
+
+
 def profile_key_for(field_: FormField) -> str | None:
     """The ``prefill_field_map`` key this input asks for, or None when unclear."""
     if field_.kind is FieldKind.FILE or _forbidden(field_):
         return None
     key = _AUTOCOMPLETE_KEYS.get(field_.autocomplete.strip().casefold())
     if key is None:
+        key = _key_from_homologation(field_.label) or _key_from_homologation(field_.name)
+    if key is None:
         key = _key_from_text(field_.label) or _key_from_text(field_.name)
     if key is None:
         return None
     allowed = _KINDS_FOR_KEY.get(key, _TEXT_ONLY)
     return key if field_.kind in allowed else None
+
+
+def _key_from_homologation(text: str) -> str | None:
+    """Map a label through the homologation table. Unknown facts stay empty."""
+    fact = resolve_fact(text)
+    if fact is None:
+        return None
+    return _FACT_TO_PREFILL.get(fact)
 
 
 def plan_apply_fill(
@@ -251,7 +283,7 @@ def plan_apply_fill(
         if key == "full_name" and split_name:
             key = "first_name"
         value = answers.get(key or "", "")
-        selector = _selector(form_field.name)
+        selector = field_selector(form_field)
         if key is None or not value or selector is None or selector in used:
             left.append(form_field.label)
             continue
@@ -259,7 +291,7 @@ def plan_apply_fill(
         fills.append(FieldFill(label=form_field.label, key=key, selector=selector, value=value))
     attachable = _attachable_pdf(cv_path)
     cv_field = _cv_file_field(form.fields)
-    attach_selector = _selector(cv_field.name) if cv_field is not None else None
+    attach_selector = field_selector(cv_field) if cv_field is not None else None
     if attachable is None or attach_selector is None:
         attach_selector = None
         for form_field in form.fields:
@@ -276,7 +308,10 @@ def plan_apply_fill(
 
 
 def looks_like_login(url: str, html: str) -> bool:
-    """A password input or a sign-in route: a wall only the human may cross."""
+    """A visible password or a sign-in route: a wall only the human may cross."""
+    workday = _workday_login_verdict(html)
+    if workday is not None:
+        return workday
     if _PASSWORD_INPUT.search(html or ""):
         return True
     path = (url or "").casefold().split("?", 1)[0]
@@ -545,8 +580,58 @@ def _attachable_pdf(path: Path | None) -> Path | None:
     return path
 
 
-def _selector(name: str) -> str | None:
-    if not name:
+def _workday_login_verdict(html: str) -> bool | None:
+    """True when a Workday sign-in container is the visible page.
+
+    None when the HTML is not a Workday page with those containers, so other
+    portals keep the password heuristic. A visible apply step stays readable
+    even if a hidden sign-in block still contains a password input.
+    """
+    if "data-automation-id" not in (html or ""):
         return None
-    quoted = name.replace("\\", "\\\\").replace('"', '\\"')
-    return f'[name="{quoted}"], [id="{quoted}"]'
+    soup = BeautifulSoup(html, "html.parser")
+    login_visible = False
+    apply_visible = False
+    saw = False
+    for node in soup.select("[data-automation-id]"):
+        aid = str(node.get("data-automation-id") or "")
+        if aid not in _WORKDAY_LOGIN and aid not in _WORKDAY_APPLY:
+            continue
+        saw = True
+        if _node_hidden(node):
+            continue
+        if aid in _WORKDAY_LOGIN:
+            login_visible = True
+        if aid in _WORKDAY_APPLY:
+            apply_visible = True
+    if not saw:
+        return None
+    if apply_visible and not login_visible:
+        return False
+    if login_visible:
+        return True
+    return None
+
+
+def _node_hidden(node: Tag) -> bool:
+    current: Tag | None = node
+    while isinstance(current, Tag):
+        if current.has_attr("hidden"):
+            return True
+        if str(current.get("aria-hidden") or "").casefold() == "true":
+            return True
+        style = str(current.get("style") or "")
+        if re.search(r"display\s*:\s*none", style, re.IGNORECASE):
+            return True
+        raw_classes = current.get("class")
+        if isinstance(raw_classes, str):
+            classes = raw_classes.split()
+        elif isinstance(raw_classes, list):
+            classes = [str(item) for item in raw_classes]
+        else:
+            classes = []
+        if "hide" in classes or "hidden" in classes:
+            return True
+        parent = current.parent
+        current = parent if isinstance(parent, Tag) else None
+    return False

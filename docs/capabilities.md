@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-131 commands, 222 modules, 1264 public symbols.
+131 commands, 223 modules, 1265 public symbols.
 
 ## Commands
 
@@ -454,6 +454,7 @@ writing it again — the promotion rule lives in
 - `profile_state.py` — Per-portal profile state, drift and coverage. No browser, no network. · `ProfileStateError`, `AccountState`, `Priority`, `EvidenceKind`, `Drift`, `UpdateRecord`, `PortalProfileState`, `SectionView`, `PortalView`, `CoverageReport`, `default_state_path`, `default_alias_path`, `cv_hashes_from_output`, `section_payload`, `section_hash`, `projection_hash`, `load_states`, `save_states`, `load_aliases`, `evaluate_portal`, `coverage_report`, `mark_updated`, `ImportPreview`, `preview_import`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
+- `selectors.py` — CSS for a learned form field. Shared by apply and signup fill. · `field_selector`
 - `sso.py` — Identity providers offered on a login or signup page. · `SsoProvider`, `detect_sso_providers`, `provider_label`
 
 ### `portals/detectors`
