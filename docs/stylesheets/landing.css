@@ -1884,6 +1884,38 @@ body:has(
   opacity: 1;
 }
 
+/* Softened lede loop name restores when an inactive step of that loop is hovered or focused
+   (same name a #story-* jump already restores). */
+body:has(
+    #story-advise.jb-scrolly__step:not(.is-active):hover,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-within,
+    #story-sync.jb-scrolly__step:not(.is-active):hover,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-within
+  )
+  a.jb-scrolly__lede-loop--presence:not([aria-current="true"]),
+body:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-build.jb-scrolly__step:not(.is-active):hover,
+    #story-build.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-build.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within,
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Same inset cue as a catalog story row for the pin's current step. */
 .jb-scrolly__step[aria-current="step"] {
   box-shadow: inset 3px 0 0 var(--jb-cobalt);
