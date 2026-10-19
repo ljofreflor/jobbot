@@ -743,6 +743,29 @@
         }
         place();
         focusCommand();
+        nav.addEventListener("keydown", function (event) {
+          var key = event.key;
+          if (
+            key !== "ArrowRight" && key !== "ArrowLeft" &&
+            key !== "Home" && key !== "End"
+          ) return;
+          var items = Array.prototype.slice.call(links);
+          var current = items.indexOf(document.activeElement);
+          if (current < 0) return;
+          var next = current;
+          if (key === "ArrowRight") next = Math.min(items.length - 1, current + 1);
+          else if (key === "ArrowLeft") next = Math.max(0, current - 1);
+          else if (key === "Home") next = 0;
+          else if (key === "End") next = items.length - 1;
+          if (next === current || !items[next]) return;
+          event.preventDefault();
+          items[next].focus();
+          var linkBox = items[next].getBoundingClientRect();
+          var navBox = nav.getBoundingClientRect();
+          if (linkBox.left < navBox.left || linkBox.right > navBox.right) {
+            nav.scrollLeft += linkBox.left - navBox.left - 8;
+          }
+        });
         window.addEventListener("scroll", schedule, { passive: true });
         window.addEventListener("resize", schedule);
         window.addEventListener("hashchange", function () {
