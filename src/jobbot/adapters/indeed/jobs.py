@@ -36,6 +36,14 @@ class IndeedJobClosed(ValueError):
     """The posting is no longer accepting applications."""
 
 
+class IndeedChallengePending(Exception):
+    """A challenge is still on the page. That is not an empty search."""
+
+    def __init__(self, context: str) -> None:
+        self.context = context
+        super().__init__(context)
+
+
 class IndeedJobSource:
     """JobSourceAdapter for Indeed (cl.indeed.com by default)."""
 
@@ -93,13 +101,13 @@ class IndeedJobSource:
             browser.page.goto(self.base + "/", wait_until="domcontentloaded")
             browser.page.goto(url, wait_until="domcontentloaded")
             if not self._clear_challenge(browser, context="search results"):
-                return []
+                raise IndeedChallengePending("search results")
             html = browser.page.content()
             discards: list[tuple[str, str]] = []
             cards = parse_indeed_search_html(html, base_url=self.base, discards=discards)
             if not cards and _looks_like_challenge_html(html):
                 if not self._clear_challenge(browser, context="search results"):
-                    return []
+                    raise IndeedChallengePending("search results")
                 browser.page.goto(url, wait_until="domcontentloaded")
                 html = browser.page.content()
                 discards = []
@@ -133,7 +141,7 @@ class IndeedJobSource:
                             timeout=20_000,
                         )
                         if not self._clear_challenge(browser, context="job detail"):
-                            continue
+                            raise IndeedChallengePending("job detail")
                         detail_html = browser.page.content()
                         if detail_is_empty_or_search(detail_html):
                             logger.info(
@@ -141,6 +149,8 @@ class IndeedJobSource:
                                 card.get("source_job_id"),
                             )
                             continue
+                    except IndeedChallengePending:
+                        raise
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("detail fetch failed for %s: %s", card.get("url"), exc)
                 job = card_to_job_posting(card, detail_html=detail_html, placeholder_id="TMP")

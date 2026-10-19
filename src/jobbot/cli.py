@@ -3376,7 +3376,7 @@ def jobs_search(
     ] = 15,
 ) -> None:
     """Search Indeed and store job postings locally (small volumes)."""
-    from jobbot.adapters.indeed.jobs import IndeedJobSource
+    from jobbot.adapters.indeed.jobs import IndeedChallengePending, IndeedJobSource
     from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.jobs.sources import JobSearchQuery
 
@@ -3394,6 +3394,11 @@ def jobs_search(
     console.print(f"Searching Indeed ({source.base}) for [bold]{query}[/bold]…")
     try:
         found = source.search_jobs(q) if enrich else source.search_cards(q)
+    except IndeedChallengePending as exc:
+        err_console.print(
+            f"[red]Indeed challenge on {exc.context} was not cleared. Not an empty search.[/red]"
+        )
+        raise _QuietExit(MANUAL_CHALLENGE) from exc
     except Exception as exc:
         from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout
 
