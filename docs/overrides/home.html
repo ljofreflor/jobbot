@@ -416,7 +416,10 @@
       var meter = document.getElementById("jb-scrolly-meter");
       var count = document.getElementById("jb-scrolly-count");
       var pin = root.querySelector(".jb-scrolly__pin");
+      var progress = root.querySelector(".jb-scrolly__progress");
       var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      /* When true, keep focus on the progress dot (arrow keys / pin click) instead of the article. */
+      var keepProgressFocus = false;
       function markLoopCurrent(nodes, index) {
         nodes.forEach(function (loop) {
           var href = loop.getAttribute("href") || "";
@@ -470,13 +473,28 @@
           if (node === step) node.setAttribute("aria-current", "step");
           else node.removeAttribute("aria-current");
         });
+        /* Like cmdnav: while a dot holds focus, scroll-driven show keeps that tab stop. */
+        var focusedDot = null;
+        if (
+          !keepProgressFocus &&
+          progress &&
+          document.activeElement &&
+          progress.contains(document.activeElement) &&
+          document.activeElement.classList.contains("jb-scrolly__dot")
+        ) {
+          focusedDot = document.activeElement;
+        }
         dots.forEach(function (dot, i) {
           dot.classList.toggle("is-current", i === index);
           dot.classList.toggle("is-done", i < index);
           if (i === index) dot.setAttribute("aria-current", "step");
           else dot.removeAttribute("aria-current");
           /* Roving tabindex: one tab stop; arrows move between dots. */
-          dot.setAttribute("tabindex", i === index ? "0" : "-1");
+          if (focusedDot) {
+            dot.setAttribute("tabindex", dot === focusedDot ? "0" : "-1");
+          } else {
+            dot.setAttribute("tabindex", i === index ? "0" : "-1");
+          }
         });
         markChapterCurrent(index);
         markLoopCurrent(ledeLoops, index);
@@ -549,8 +567,6 @@
       var held = null;
       var holdTimer = 0;
       var live = document.getElementById("jb-scrolly-live");
-      /* When true, keep focus on the progress dot (arrow keys) instead of the article. */
-      var keepProgressFocus = false;
       function hold(step) {
         held = step;
         show(step);
@@ -640,7 +656,6 @@
       splitLinks.forEach(function (link) {
         link.addEventListener("click", onJump);
       });
-      var progress = root.querySelector(".jb-scrolly__progress");
       if (progress) {
         progress.addEventListener("keydown", function (event) {
           var key = event.key;
