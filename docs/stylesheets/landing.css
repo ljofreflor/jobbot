@@ -2132,6 +2132,13 @@ body:has(#story-sync:target) a.jb-scrolly__lede-cmd[href="#story-sync"] {
   opacity: 1;
 }
 
+/* Softened lede loop name restores when a step of that chapter is :target. */
+body:has(#story-get:target, #story-match:target, #story-build:target, #story-conditions:target, #story-apply:target)
+  a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence),
+body:has(#story-advise:target, #story-sync:target) a.jb-scrolly__lede-loop--presence {
+  opacity: 1;
+}
+
 a.jb-scrolly__lede-cmd {
   display: inline-flex;
   align-items: center;
