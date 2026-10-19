@@ -1086,7 +1086,9 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
 }
 
 .jb-in-story__tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   padding: 0.05rem 0.35rem;
   border-radius: 0.25rem;
   background: rgba(0, 88, 248, 0.12);
@@ -1201,9 +1203,6 @@ a.jb-in-story__tag--presence[aria-current="step"] {
   }
 
   a.jb-in-story__tag {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.5rem;
     padding: 0.2rem 0.55rem;
     font-size: 0.68rem;
   }
