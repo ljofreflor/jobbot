@@ -1627,6 +1627,18 @@ html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds tr:has(#cmd-appl
   opacity: 1;
 }
 
+/* Inactive step restores when its catalog row is :target («En el catálogo» / stage).
+   The hash is #cmd-*, so :target on the article does not fire (reverse of item 170). */
+body:has(#cmd-get:target) #story-get.jb-scrolly__step:not(.is-active),
+body:has(#cmd-match:target) #story-match.jb-scrolly__step:not(.is-active),
+body:has(#cmd-build:target) #story-build.jb-scrolly__step:not(.is-active),
+body:has(#cmd-conditions:target) #story-conditions.jb-scrolly__step:not(.is-active),
+body:has(#cmd-apply:target) #story-apply.jb-scrolly__step:not(.is-active),
+body:has(#cmd-advise:target) #story-advise.jb-scrolly__step:not(.is-active),
+body:has(#cmd-sync:target) #story-sync.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Same inset cue as a catalog story row for the pin's current step. */
 .jb-scrolly__step[aria-current="step"] {
   box-shadow: inset 3px 0 0 var(--jb-cobalt);
