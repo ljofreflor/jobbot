@@ -40,6 +40,10 @@ class AtsKind(StrEnum):
     PAGEUP = "pageup"
     BNE = "bne"
     CHILETRABAJOS = "chiletrabajos"
+    TRABAJANDO = "trabajando"
+    LABORUM = "laborum"
+    COMPUTRABAJO = "computrabajo"
+    BUMERAN = "bumeran"
     READY = "ready"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
@@ -65,6 +69,10 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.IMPACTPOOL,
         AtsKind.BNE,
         AtsKind.CHILETRABAJOS,
+        AtsKind.TRABAJANDO,
+        AtsKind.LABORUM,
+        AtsKind.COMPUTRABAJO,
+        AtsKind.BUMERAN,
     }
 )
 
@@ -154,6 +162,12 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("impactpool.org", AtsKind.IMPACTPOOL),
     ("bne.cl", AtsKind.BNE),
     ("chiletrabajos.cl", AtsKind.CHILETRABAJOS),
+    ("trabajando.cl", AtsKind.TRABAJANDO),
+    ("laborum.cl", AtsKind.LABORUM),
+    ("computrabajo.com", AtsKind.COMPUTRABAJO),
+    ("computrabajo.cl", AtsKind.COMPUTRABAJO),
+    ("bumeran.com", AtsKind.BUMERAN),
+    ("bumeran.cl", AtsKind.BUMERAN),
     ("pageuppeople.com", AtsKind.PAGEUP),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
@@ -274,6 +288,35 @@ def detect_ats(url: str) -> AtsKind:
         if host == needle or host.endswith("." + needle) or needle in host:
             return kind
     return AtsKind.UNKNOWN
+
+
+# Subdomains a board shares across employers. A company tenant is any other label.
+_SHARED_BOARD_LABELS = frozenset(
+    {"www", "www2", "m", "mobile", "empleo", "empleos", "jobs", "trabajo"}
+)
+
+
+def is_white_label_tenant(url: str) -> bool:
+    """True when the host is one employer's tenant on trabajando.cl, not the shared board."""
+    if detect_ats(url) is not AtsKind.TRABAJANDO:
+        return False
+    raw = url.strip()
+    if not re.match(r"^https?://", raw, re.I):
+        raw = "https://" + raw
+    host = (urlparse(raw).hostname or "").lower()
+    labels = host.split(".")
+    if len(labels) < 3 or labels[0] in _SHARED_BOARD_LABELS:
+        return False
+    return host.endswith(".trabajando.cl")
+
+
+def job_board_host_review(url: str) -> str:
+    """Mark a saved site whose host is a shared board. A company tenant is not one."""
+    if is_white_label_tenant(url):
+        return ""
+    if detect_ats(url) in JOB_BOARD_KINDS:
+        return "host de bolsa: revisar"
+    return ""
 
 
 def aggregator_board(url: str) -> AtsKind | None:
