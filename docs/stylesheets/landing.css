@@ -1185,7 +1185,8 @@ a.jb-in-story__tag--presence[aria-current="step"] {
 
   /* Same 1.5rem touch floor as catalog story tags. */
   a.jb-scrolly__lede-cmd,
-  a.jb-scrolly__lede-loop {
+  a.jb-scrolly__lede-loop,
+  a.jb-scrolly__split-link {
     display: inline-flex;
     align-items: center;
     min-height: 1.5rem;
@@ -1307,6 +1308,45 @@ a.jb-in-story__tag--presence[aria-current="step"] {
 .jb-scrolly__split--presence {
   border-top-color: rgba(0, 24, 56, 0.28);
   color: var(--jb-navy);
+}
+
+/* Same jump as pin chips and lede loop names (first step of the chapter). */
+a.jb-scrolly__split-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 88, 248, 0.35);
+  border-radius: 0.15rem;
+}
+
+a.jb-scrolly__split-link:hover {
+  border-bottom-color: var(--jb-cobalt);
+}
+
+a.jb-scrolly__split-link:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 2px;
+}
+
+a.jb-scrolly__split-link[aria-current="true"] {
+  background: rgba(0, 88, 248, 0.12);
+  border-bottom-color: var(--jb-cobalt);
+}
+
+a.jb-scrolly__split-link--presence {
+  border-bottom-color: rgba(0, 24, 56, 0.35);
+}
+
+a.jb-scrolly__split-link--presence:hover {
+  border-bottom-color: var(--jb-navy);
+}
+
+a.jb-scrolly__split-link--presence:focus-visible {
+  outline-color: var(--jb-navy);
+}
+
+a.jb-scrolly__split-link--presence[aria-current="true"] {
+  background: rgba(0, 24, 56, 0.1);
+  border-bottom-color: var(--jb-navy);
 }
 
 .jb-scrolly__kicker {
