@@ -252,7 +252,7 @@ desafíos que aparezcan. No hay resolución automática de CAPTCHAs.
 | `portals add` | Agrega o actualiza un portal en el registro de portales. |
 | `companies detect URL` | Clasifica una URL (aviso / portal / ATS / redirección). No escribe nada. |
 | `companies learn URL` | Registra una relación empresa↔portal como conocimiento *candidate*. Una bolsa compartida (trabajando.cl, laborum, computrabajo, bumeran, chiletrabajos, empleos públicos) no se guarda; un subdominio de empresa en trabajando.cl sí, con ese ATS. |
-| `companies list` | Lista empresas y sus plataformas de carreras. Un sitio cuyo host es una bolsa queda marcado «host de bolsa: revisar» y sugiere `companies reject`. |
+| `companies list` | Lista empresas y sus plataformas de carreras. Un sitio cuyo host es una bolsa queda marcado «host de bolsa: revisar» e imprime el `companies reject EMPRESA --site URL` que lo descarta. |
 | `companies show EMPRESA` | Una empresa con todos sus portales, observaciones y contradicciones. |
 | `companies promote EMPRESA` | Candidate → active. Es la única forma de volverlo verdad. |
 | `companies reject EMPRESA --site URL` | Marca un portal descubierto como incorrecto. |

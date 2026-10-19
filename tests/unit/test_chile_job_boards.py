@@ -9,6 +9,7 @@ import pytest
 from jobbot.companies.discovery import classify_url
 from jobbot.companies.learn import learn_from_job, learn_from_url
 from jobbot.companies.models import CareerSiteType, DiscoverySource
+from jobbot.companies.recheck import REVIEW_NOTE, apply_recheck, plan_recheck
 from jobbot.companies.registry import CompanyRegistry, default_companies_path, load_companies
 from jobbot.config import JobbotConfig
 from jobbot.exit_codes import SUCCESS
@@ -103,7 +104,29 @@ def test_companies_list_marks_a_board_host(
     assert run_cli(["companies", "list"], standalone_mode=False) == SUCCESS
     out = capsys.readouterr().out
     assert "host de bolsa: revisar" in out
-    assert "jobbot companies reject consultora-ficticia" in out
+    assert (
+        "jobbot companies reject consultora-ficticia "
+        "--site https://www.trabajando.cl/trabajo-empleo/oferta/1234567-cargo-ficticio"
+    ) in out
+
+
+def test_recheck_keeps_a_tenant_as_the_companys_ats() -> None:
+    registry = CompanyRegistry()
+    registry.observe(
+        company="Acme",
+        url="https://acme.trabajando.cl",
+        source=DiscoverySource.USER_OBSERVATION,
+        site_type=CareerSiteType.ATS_INSTANCE,
+        ats=AtsKind.TRABAJANDO,
+        evidence="stored earlier",
+    )
+
+    apply_recheck(registry, plan_recheck(registry))
+    site = registry.companies[0].career_sites[0]
+
+    assert site.site_type is CareerSiteType.ATS_INSTANCE
+    assert REVIEW_NOTE not in (site.notes or "")
+    assert all(obs.site_type is not CareerSiteType.JOB_BOARD for obs in site.observations)
 
 
 def test_jobs_add_does_not_replace_a_white_label_with_the_board(

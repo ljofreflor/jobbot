@@ -7045,7 +7045,7 @@ def companies_list(
     table.add_column("Status")
     table.add_column("Conf.")
     rows = 0
-    review_ids: list[str] = []
+    review_hints: list[str] = []
     for record in registry.companies:
         for site in record.career_sites:
             if wanted is not None and site.status.value not in wanted:
@@ -7061,15 +7061,17 @@ def companies_list(
                 site.status.value,
                 str(site.confidence),
             )
-            if review and record.id not in review_ids:
-                review_ids.append(record.id)
+            if review:
+                hint = f"jobbot companies reject {record.id} --site {site.url}"
+                if hint not in review_hints:
+                    review_hints.append(hint)
             rows += 1
     if rows == 0:
         console.print(f"No career sites with status {status!r}.")
         return
     console.print(table)
-    for company_id in review_ids:
-        console.print(f"jobbot companies reject {company_id}")
+    for hint in review_hints:
+        console.print(hint, markup=False, highlight=False, soft_wrap=True)
 
 
 @companies_app.command("show")

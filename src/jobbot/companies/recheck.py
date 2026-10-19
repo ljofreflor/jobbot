@@ -20,7 +20,7 @@ from jobbot.companies.models import (
 )
 from jobbot.companies.registry import CompanyRegistry
 from jobbot.companies.urls import canonical_key
-from jobbot.portals.detect import JOB_BOARD_KINDS, AtsKind
+from jobbot.portals.detect import JOB_BOARD_KINDS, AtsKind, is_white_label_tenant
 
 REVIEW_NOTE = "review: job board"
 
@@ -98,7 +98,7 @@ def apply_recheck(registry: CompanyRegistry, changes: list[RecheckChange]) -> in
             if (
                 site is not None
                 and site.status == KnowledgeStatus.CANDIDATE
-                and site.ats not in JOB_BOARD_KINDS
+                and (site.ats not in JOB_BOARD_KINDS or is_white_label_tenant(site.url))
                 and site.ats != AtsKind.UNKNOWN
                 and registry.promote(record.id, url=site.url)
             ):
@@ -113,7 +113,9 @@ def _proposals(record: CompanyRecord, site: CareerSite) -> list[RecheckChange]:
     root = career_root_url(current.url, current.ats)
     if canonical_key(root) != site.key:
         return _posting_proposals(record, site, root)
-    if current.site_type == CareerSiteType.JOB_BOARD or current.ats in JOB_BOARD_KINDS:
+    # A company tenant (acme.trabajando.cl) runs on a board's software; it is still its site.
+    board = current.site_type == CareerSiteType.JOB_BOARD or current.ats in JOB_BOARD_KINDS
+    if board and not is_white_label_tenant(current.url):
         return _board_proposals(record, site, current.ats, current.evidence)
     return _ats_proposals(record, site, current.ats, current.site_type, current.evidence)
 
