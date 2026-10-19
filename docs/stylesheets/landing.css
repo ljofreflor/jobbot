@@ -2125,6 +2125,20 @@ body:has(
   opacity: 1;
 }
 
+/* Softened chapter cut restores when the matching pin chapter is hovered/focused. */
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:focus-within
+  )
+  a.jb-scrolly__split-link--presence:not([aria-current="true"]),
+body:has(
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:focus-within
+  )
+  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Softened pin chapter restores when a step of that chapter is :target
    (#story-* from lede/tags, item 165; #cmd-* from «En el catálogo» / stage). */
 body:has(#story-advise:target, #story-sync:target, #cmd-advise:target, #cmd-sync:target)
