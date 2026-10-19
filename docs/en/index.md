@@ -183,7 +183,7 @@ and Chile / Latam focus in searches and roundups.
 
 Every public command in `src/jobbot/cli.py`, one line each. Flags are in the
 [reference](../comandos.md) (Spanish). `jobbot <command> --help` prints the rest.
-Nothing in this list submits alone or invents a fact. Rows marked **apply** (cobalt) or **presence** (navy) are the seven steps above; the mark returns to that step in the loop. In the bar, **CV**, **Vacancies**, and **Applications** are underlined: that is where those seven live. The other groups (and their tables) soften; the one you are reading returns to full.
+Nothing in this list submits alone or invents a fact. Rows marked **apply** (cobalt) or **presence** (navy) are the seven steps above; the mark returns to that step in the loop. In the bar, **CV**, **Vacancies**, and **Applications** are underlined: that is where those seven live. The other groups (and their tables) soften; the one you are reading returns to full. With the pin on Presence, Vacancies and Applications soften too, except the group you are reading.
 
 <nav class="jb-cmdnav" aria-label="Command groups. Tab lands on the current group; arrow keys move between groups" aria-keyshortcuts="ArrowLeft ArrowRight Home End">
   <a href="#cmd-machine" aria-controls="cmd-machine">On your machine</a>
