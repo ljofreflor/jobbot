@@ -1606,10 +1606,12 @@ html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story
   opacity: 1;
 }
 
-/* Inactive steps restore like lede/splits/pin chapters (item 134). */
+/* Inactive steps restore like lede/splits/pin chapters (item 134);
+   :target matches catalog story rows (item 149) on a #story-* jump. */
 .jb-scrolly__step:not(.is-active):hover,
 .jb-scrolly__step:not(.is-active):focus-visible,
-.jb-scrolly__step:not(.is-active):focus-within {
+.jb-scrolly__step:not(.is-active):focus-within,
+.jb-scrolly__step:not(.is-active):target {
   opacity: 1;
 }
 
