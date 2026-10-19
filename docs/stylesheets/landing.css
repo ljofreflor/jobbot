@@ -2083,6 +2083,22 @@ body:has(
   opacity: 1;
 }
 
+/* Reverse of item 196: hovering the softened chapter cut restores that loop's catalog rows. */
+html:not(.jb-pin-presence):has(
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag--presence),
+html.jb-pin-presence:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
+  opacity: 1;
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
