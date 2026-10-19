@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-140 commands, 234 modules, 1319 public symbols.
+141 commands, 234 modules, 1320 public symbols.
 
 ## Commands
 
@@ -83,6 +83,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
 - `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
+- `jobbot jobs reparse` — Re-read a stored posting's text and keep its id (offline).
 - `jobbot jobs search` — Search Indeed and store job postings locally (small volumes).
 - `jobbot jobs shortlist` — Rank stored jobs by match score; flag a close and a finished posting.
 - `jobbot jobs show` — Show a stored job posting.
@@ -394,7 +395,7 @@ writing it again — the promotion rule lives in
 - `admissibility.py` — Offline admissibility of a public contest against the local profile. · `AdmissibilityRule`, `AdmissibilityVerdict`, `contest_code`, `extract_rules`, `assess`, `shortlist_mark`
 - `ats_queries.py` — ATS host search-query templates — conditions of possibility for board discovery. · `AtsSearchQuery`, `build_ats_search_queries`, `format_queries_help`
 - `audit.py` — Offline audit of stored jobs (Indeed decoy keys and title/company dupes). · `AuditFinding`, `audit_indeed_jobs`
-- `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
+- `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`, `reparse_stored`
 - `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
 - `check_open.py` — Is a stored posting still open? Ask its source again, read-only — or say unknown. · `OpenCheck`, `PoliteHttp`, `posting_url`, `due_for_check`, `is_verified_closed`, `verification_label`, `OpenChecker`
