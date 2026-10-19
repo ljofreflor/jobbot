@@ -14,6 +14,7 @@ from pathlib import Path
 from jobbot.cv.selection import SelectedAchievement, SelectionResult
 from jobbot.jobs.language import detect_language
 from jobbot.jobs.normalization import fold_text
+from jobbot.matching.analyzer import _STOPWORDS
 from jobbot.models.candidate import Candidate
 from jobbot.models.experience import Achievement, Experience
 from jobbot.models.job import JobPosting
@@ -155,7 +156,12 @@ def _best(requirement: str, options: list[tuple[str, str]]) -> tuple[str, str] |
 
 
 def _words(text: str) -> set[str]:
-    return {word for word in fold_text(text).split() if len(word) >= _MIN_WORD}
+    """Content words only: sharing 'experiencia' is not having exercised the requirement."""
+    return {
+        word
+        for word in fold_text(text).split()
+        if len(word) >= _MIN_WORD and word not in _STOPWORDS
+    }
 
 
 def _role_blob(role: Experience) -> str:
