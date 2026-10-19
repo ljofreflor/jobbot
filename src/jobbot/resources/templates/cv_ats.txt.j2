@@ -18,9 +18,9 @@
 {% for exp, achievements in experiences %}
 {{ ats_role(exp) }}
 {{ exp_dates(exp) }}{% if exp.ats_dates_show_location() %} | {{ exp.location }}{% endif +%}
-{% if exp.description %}{{ exp.description | trim }}
+{% if not exp_compact(exp) %}{% if exp.description %}{{ exp.description | trim }}
 {% endif %}{% for ach in achievements %}- {{ ach.text | trim }}{% if ach.metrics %} ({{ metrics_line(ach.metrics) }}){% endif +%}
-{% endfor %}
+{% endfor %}{% endif %}
 {% endfor %}{% endif %}{% if projects +%}
 {{ labels.projects }}
 {% for project in projects %}{{ project.name }}{% if project.url %} — {{ project.url }}{% endif +%}

@@ -7,7 +7,9 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 EducationStatus = Literal["completed", "in_progress", "candidate", "abandoned"]
+EducationKind = Literal["degree", "course"]
 EDUCATION_STATUSES: tuple[str, ...] = ("completed", "in_progress", "candidate", "abandoned")
+EDUCATION_KINDS: tuple[str, ...] = ("degree", "course")
 
 
 class Education(BaseModel):
@@ -18,6 +20,8 @@ class Education(BaseModel):
     end_date: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     duration_semesters: int | None = Field(default=None, ge=1)
     details: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    kind: EducationKind = "degree"
     status: EducationStatus | None = None
     expected_end: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
 
@@ -29,6 +33,16 @@ class Education(BaseModel):
         if value not in EDUCATION_STATUSES:
             allowed = ", ".join(EDUCATION_STATUSES)
             raise ValueError(f"status must be one of: {allowed}")
+        return value
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def _known_kind(cls, value: object) -> object:
+        if value is None or value == "":
+            return "degree"
+        if value not in EDUCATION_KINDS:
+            allowed = ", ".join(EDUCATION_KINDS)
+            raise ValueError(f"kind must be one of: {allowed}")
         return value
 
     @model_validator(mode="after")

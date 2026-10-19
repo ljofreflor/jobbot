@@ -17,6 +17,7 @@ def build_ats_text(
     credit: bool = False,
     language: str | None = None,
     configured: str | None = None,
+    compact_before: str | None = None,
 ) -> str:
     return render_cv_ats(
         candidate,
@@ -25,4 +26,5 @@ def build_ats_text(
         credit=credit,
         language=as_cv_language(language),
         configured=as_cv_language(configured),
+        compact_before=compact_before,
     )

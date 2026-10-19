@@ -2092,6 +2092,8 @@ def cv_build(
             full=full,
             language=lang,
             configured_language=config.cv.language,
+            compact_before=config.cv.compact_before,
+            max_pages=config.cv.max_pages,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         err_console.print(f"[red]{exc}[/red]")
@@ -2822,6 +2824,10 @@ def _propagate_base_cv(config: JobbotConfig, candidate: Candidate, *, style: CvS
                 target=target,
                 style=style,
                 credit=config.cv.jobbot_signature,
+                compact_before=config.cv.compact_before,
+                max_pages=config.cv.max_pages,
+                language=None,
+                configured_language=config.cv.language,
             )
         except (FileNotFoundError, RuntimeError) as exc:
             err_console.print(f"[red]cv ({target.value}): {exc}[/red]")

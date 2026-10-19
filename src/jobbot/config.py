@@ -53,6 +53,8 @@ class CvConfig:
     jobbot_signature: bool = False
     jobbot_project_url: str | None = None
     language: str | None = None
+    compact_before: str | None = None
+    max_pages: int | None = None
 
 
 @dataclass(frozen=True)
@@ -202,10 +204,14 @@ def _load_cv(raw: dict[str, object]) -> CvConfig:
     cv_raw: dict[str, object] = section if isinstance(section, dict) else {}
     url = cv_raw.get("jobbot_project_url")
     language = cv_raw.get("language")
+    compact = cv_raw.get("compact_before")
+    pages = cv_raw.get("max_pages")
     return CvConfig(
         jobbot_signature=cv_raw.get("jobbot_signature") is True,
         jobbot_project_url=url if isinstance(url, str) and url.strip() else None,
         language=language if language in ("es", "en") else None,
+        compact_before=compact if isinstance(compact, str) and len(compact) == 7 else None,
+        max_pages=pages if isinstance(pages, int) and pages > 0 else None,
     )
 
 

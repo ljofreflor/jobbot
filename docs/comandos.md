@@ -66,7 +66,7 @@ jobbot cv propagate                 # solo plan
 jobbot cv propagate --apply         # confirma destino por destino
 ```
 
-Una experiencia puede separar `unit` del empleador y anotar `work_mode` (`remote`, `onsite`, `hybrid`). Sin esos campos el CV sale igual que antes. `cv build --target ats --lang es` pone los encabezados y las fechas en español; sin `--lang` manda `[cv] language` y, si no está, el idioma del resumen y los logros. Un texto ambiguo queda en inglés. Idiomas (`A1`–`C2` o `native`) y certificaciones van en secciones propias; `profile validate` avisa si una certificación ya venció y sale 0.
+Una experiencia puede separar `unit` del empleador y anotar `work_mode` (`remote`, `onsite`, `hybrid`). Sin esos campos el CV sale igual que antes. `cv build --target ats --lang es` pone los encabezados y las fechas en español; sin `--lang` manda `[cv] language` y, si no está, el idioma del resumen y los logros. Un texto ambiguo queda en inglés. Idiomas (`A1`–`C2` o `native`) y certificaciones van en secciones propias; `profile validate` avisa si una certificación ya venció y sale 0. `[cv] compact_before` (YYYY-MM) deja en una línea los roles ya cerrados antes de esa fecha; `[cv] max_pages` registra en `selection.json` qué compactar y qué cursos sacar cuando el PDF se pasa, sin borrar hechos del perfil.
 
 ## Vacantes
 

@@ -39,7 +39,7 @@ def _health_profile_with_unknown_keys() -> dict[str, Any]:
                 "id": "d1",
                 "institution": "Universidad Ficticia",
                 "degree": "MSc",
-                "tags": ["salud_publica"],
+                "campus": ["salud_publica"],
             }
         ],
     }
@@ -50,7 +50,7 @@ def test_unknown_keys_are_listed_with_id_paths() -> None:
     paths = {i.path: i.message for i in issues}
     assert paths["rosters"] == _UNKNOWN_MSG
     assert paths["experience.e1.achivements"] == _UNKNOWN_MSG
-    assert paths["education.d1.tags"] == _UNKNOWN_MSG
+    assert paths["education.d1.campus"] == _UNKNOWN_MSG
     assert Candidate.model_validate(_health_profile_with_unknown_keys())
 
 
@@ -71,7 +71,7 @@ def test_apply_confirmed_skills_on_raw_keeps_unknown_keys() -> None:
     out = apply_confirmed_skills(raw, ["Epidemiología de campo"])
     assert out["rosters"][0]["name"] == "Inglés"
     assert out["experience"][0]["achivements"]
-    assert out["education"][0]["tags"] == ["salud_publica"]
+    assert out["education"][0]["campus"] == ["salud_publica"]
     assert "Epidemiología de campo" in out["skills"]["other"]
     assert "Vigilancia epidemiológica" in out["skills"]["engineering"]
 
@@ -117,7 +117,7 @@ def test_profile_validate_warns_and_stays_valid(
     blob = out + err
     assert "rosters: clave desconocida, se ignora" in blob
     assert "experience.e1.achivements: clave desconocida, se ignora" in blob
-    assert "education.d1.tags: clave desconocida, se ignora" in blob
+    assert "education.d1.campus: clave desconocida, se ignora" in blob
 
 
 def test_profile_validate_strict_exits_validation(
@@ -215,6 +215,6 @@ def test_suggest_promote_keeps_unknown_keys(
     saved = yaml.safe_load((tmp_path / "data" / "profile.yaml").read_text(encoding="utf-8"))
     assert saved["rosters"][0]["name"] == "Inglés"
     assert saved["experience"][0]["achivements"]
-    assert saved["education"][0]["tags"] == ["salud_publica"]
+    assert saved["education"][0]["campus"] == ["salud_publica"]
     other = saved.get("skills", {}).get("other") or []
     assert any("tableau" in str(s).casefold() for s in other)

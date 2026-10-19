@@ -81,6 +81,7 @@
 \section{Experiencia Profesional}
 {% for exp, achievements in experiences %}
 \cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp_employer(exp) | latex -}} }{ {{- exp_place(exp) | latex -}} }{}{}
+{% if not exp_compact(exp) %}
 {% if exp.description %}
 {{ exp.description | latex_para }}
 {% endif %}
@@ -90,6 +91,7 @@
   \item {{ ach.text | latex_para }}{% if ach.metrics %} \textit{({{ metrics_line(ach.metrics) }})}{% endif %}
 {% endfor %}
 \end{itemize}
+{% endif %}
 {% endif %}
 
 {% endfor %}
