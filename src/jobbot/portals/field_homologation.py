@@ -147,7 +147,8 @@ _HOMOLOGATION: dict[ProfileFact, tuple[str, ...]] = {
     ProfileFact.EMPLOYER: ("employer", "company", "empleador"),
     ProfileFact.UNIT: ("department", "área", "area", "unidad"),
     ProfileFact.WORK_MODE: ("work arrangement", "work mode", "modalidad"),
-    ProfileFact.LANGUAGES: ("language", "languages", "idioma", "idiomas", "proficiency", "nivel"),
+    # Not "nivel" / "proficiency": bare, they label seniority or a skill level too.
+    ProfileFact.LANGUAGES: ("language", "languages", "idioma", "idiomas"),
     ProfileFact.CERTIFICATIONS: (
         "certifications",
         "licenses & certifications",

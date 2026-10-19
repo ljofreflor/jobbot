@@ -12,6 +12,7 @@ from jobbot.exit_codes import SUCCESS
 from jobbot.matching.analyzer import RuleBasedJobAnalyzer
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
+from jobbot.models.match import MatchStrength
 from jobbot.portals.field_homologation import ProfileFact, answer_for_label, resolve_fact
 from jobbot.profile.validator import validate_candidate
 from tests.fixtures.profile import sample_profile_dict
@@ -138,6 +139,15 @@ def test_language_label_resolves_and_an_unknown_label_stays_empty() -> None:
     assert "you decide" in why
 
 
+def test_a_bare_level_label_is_not_a_language_field() -> None:
+    candidate = _profile()
+    for label in ("Nivel", "Proficiency"):
+        assert resolve_fact(label) is None
+        value, why = answer_for_label(candidate, label)
+        assert value == ""
+        assert "you decide" in why
+
+
 def test_posting_mention_adds_evidence_and_silence_does_not() -> None:
     candidate = _profile()
     mentioned = JobPosting(
@@ -160,6 +170,26 @@ def test_posting_mention_adds_evidence_and_silence_does_not() -> None:
     assert "Epidemiología de campo, nivel inicial" in labels
     assert "Epidemiología" not in " ".join(item.label for item in miss.items)
     assert hit.score >= miss.score
+
+
+def test_a_required_language_is_read_from_the_profile() -> None:
+    stated = JobPosting(
+        id="J0001",
+        title="Un cargo",
+        company="Casa Ficticia",
+        description="Se pide inglés.",
+        language_requirements=["english"],
+    )
+    analyzer = RuleBasedJobAnalyzer()
+    match = analyzer.analyze(_profile(), stated)
+    item = next(item for item in match.items if "english" in item.label)
+    assert item.strength is MatchStrength.STRONG
+    assert "Inglés (B2)" in item.detail
+    assert not any("not modeled in profile.yaml" in i.detail for i in match.items)
+
+    without = analyzer.analyze(_profile(languages=[]), stated)
+    silent = next(item for item in without.items if "english" in item.label)
+    assert silent.strength is MatchStrength.UNKNOWN
 
 
 def test_profile_validate_warns_and_exits_zero(

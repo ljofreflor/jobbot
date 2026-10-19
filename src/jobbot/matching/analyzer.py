@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
+from jobbot.jobs.conditions import language_code
 from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill, skills_in_text
 from jobbot.jobs.parsing import degree_fields, extract_skills_from_text, looks_like_page_metadata
 from jobbot.jobs.untrusted import for_scoring, is_instruction
@@ -177,20 +178,12 @@ class RuleBasedJobAnalyzer:
                     )
                 )
 
+        items.extend(_language_item(candidate, lang) for lang in job.language_requirements)
+
         items.extend(_profile_evidence(candidate, job, items, cited))
 
         role_item, role_cap = _role_family_item(candidate, job)
         items.append(role_item)
-
-        for lang in job.language_requirements:
-            # Languages are often not structured in profile → unknown, never missing
-            items.append(
-                MatchItem(
-                    label=f"{lang} proficiency",
-                    strength=MatchStrength.UNKNOWN,
-                    detail="not modeled in profile.yaml",
-                )
-            )
 
         if job.seniority:
             items.append(_seniority_item(candidate, job.seniority))
@@ -501,6 +494,26 @@ def _partial_token(token: str, candidate_tokens: set[str]) -> bool:
     if not words:
         return False
     return any(word in candidate_tokens for word in words)
+
+
+def _language_item(candidate: Candidate, required: str) -> MatchItem:
+    """A language the posting asks for, read against the languages the profile states.
+
+    A language the profile does not list is unknown, never missing: the candidate
+    may speak it without having written it down.
+    """
+    label = f"{required} proficiency"
+    code = language_code(required)
+    if code is not None:
+        for lang in candidate.languages:
+            if language_code(lang.name) == code:
+                return MatchItem(
+                    label=label,
+                    strength=MatchStrength.STRONG,
+                    detail=f"profile states {lang.line()}",
+                )
+    detail = "not stated in profile.yaml" if candidate.languages else "not modeled in profile.yaml"
+    return MatchItem(label=label, strength=MatchStrength.UNKNOWN, detail=detail)
 
 
 def _seniority_item(candidate: Candidate, required: str) -> MatchItem:
