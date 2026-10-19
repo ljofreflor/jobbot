@@ -688,6 +688,16 @@
           keepProgressFocus = true;
           jumpTo(steps[next].id);
         });
+        /* Leaving the pin: next Tab lands on the step the page is reading. */
+        progress.addEventListener("focusout", function (event) {
+          var next = event.relatedTarget;
+          if (next && progress.contains(next)) return;
+          var current = Array.prototype.indexOf.call(steps, currentStep);
+          if (current < 0) current = 0;
+          dots.forEach(function (dot, i) {
+            dot.setAttribute("tabindex", i === current ? "0" : "-1");
+          });
+        });
       }
       function bindCatalogStoryTags() {
         storyTags = Array.prototype.slice.call(
