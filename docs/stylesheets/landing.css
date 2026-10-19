@@ -2121,6 +2121,17 @@ a.jb-scrolly__lede-loop:not([aria-current="true"]):focus-visible {
   opacity: 1;
 }
 
+/* Softened lede cmds restore when their story step is :target (item 161). */
+body:has(#story-get:target) a.jb-scrolly__lede-cmd[href="#story-get"],
+body:has(#story-match:target) a.jb-scrolly__lede-cmd[href="#story-match"],
+body:has(#story-build:target) a.jb-scrolly__lede-cmd[href="#story-build"],
+body:has(#story-conditions:target) a.jb-scrolly__lede-cmd[href="#story-conditions"],
+body:has(#story-apply:target) a.jb-scrolly__lede-cmd[href="#story-apply"],
+body:has(#story-advise:target) a.jb-scrolly__lede-cmd[href="#story-advise"],
+body:has(#story-sync:target) a.jb-scrolly__lede-cmd[href="#story-sync"] {
+  opacity: 1;
+}
+
 a.jb-scrolly__lede-cmd {
   display: inline-flex;
   align-items: center;
