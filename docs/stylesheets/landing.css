@@ -2422,6 +2422,33 @@ body:has(
   opacity: 1;
 }
 
+/* Softened pin chapter restores when a catalog row of that loop is hovered or focused
+   (same chapter a #cmd-* jump already restores). */
+body:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-scrolly__pin:not(.is-presence)
+  .jb-scrolly__chapter:last-child,
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-scrolly__pin.is-presence
+  .jb-scrolly__chapter:first-child {
+  opacity: 1;
+}
+
 .jb-scrolly__meter {
   position: relative;
   flex: 1 0 100%;
