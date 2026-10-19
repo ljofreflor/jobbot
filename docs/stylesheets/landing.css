@@ -1153,17 +1153,19 @@ a.jb-in-story__tag--presence[aria-current="step"] {
   color: var(--jb-navy);
 }
 
-/* Catalog marks of the other loop — same 0.42 as lede cmds (html.jb-pin-presence). */
-html:not(.jb-pin-presence) a.jb-in-story__tag--presence,
-html.jb-pin-presence a.jb-in-story__tag:not(.jb-in-story__tag--presence) {
+/* Catalog story rows of the other loop — same 0.42 as lede cmds (html.jb-pin-presence). */
+html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence),
+html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
   opacity: 0.42;
   transition: opacity 0.2s ease;
 }
 
-html:not(.jb-pin-presence) a.jb-in-story__tag--presence:hover,
-html:not(.jb-pin-presence) a.jb-in-story__tag--presence:focus-visible,
-html.jb-pin-presence a.jb-in-story__tag:not(.jb-in-story__tag--presence):hover,
-html.jb-pin-presence a.jb-in-story__tag:not(.jb-in-story__tag--presence):focus-visible {
+html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence):hover,
+html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence:focus-visible),
+html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence):has(.jb-in-story:focus),
+html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)):hover,
+html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence):focus-visible),
+html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)):has(.jb-in-story:focus) {
   opacity: 1;
 }
 
@@ -2238,8 +2240,8 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   a.jb-scrolly__split-link:not([aria-current="true"]),
   .jb-scrolly__pin:not(.is-presence) ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd--presence,
   .jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence),
-  html:not(.jb-pin-presence) a.jb-in-story__tag--presence,
-  html.jb-pin-presence a.jb-in-story__tag:not(.jb-in-story__tag--presence),
+  html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence),
+  html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)),
   html.jb-pin-presence a.jb-cmdnav__story[data-story-cmds]:not([data-story-cmds*="advise"]):not([data-story-cmds*="sync"]):not(.is-current) {
     opacity: 1;
     transition: none;
