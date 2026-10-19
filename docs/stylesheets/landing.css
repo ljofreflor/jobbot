@@ -1767,6 +1767,17 @@ a.jb-scrolly__lede-loop--presence[aria-current="true"] {
   border-bottom-color: var(--jb-navy);
 }
 
+/* Soften the other loop name — same 0.42 as inactive pin chapters. */
+a.jb-scrolly__lede-loop:not([aria-current="true"]) {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+
+a.jb-scrolly__lede-loop:not([aria-current="true"]):hover,
+a.jb-scrolly__lede-loop:not([aria-current="true"]):focus-visible {
+  opacity: 1;
+}
+
 a.jb-scrolly__lede-cmd {
   display: inline-flex;
   align-items: center;
@@ -2160,6 +2171,11 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child,
   .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child {
     opacity: 1;
+  }
+
+  a.jb-scrolly__lede-loop:not([aria-current="true"]) {
+    opacity: 1;
+    transition: none;
   }
 
   .jb-term__line--hitl {
