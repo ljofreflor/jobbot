@@ -402,6 +402,8 @@
       var loops = root.querySelectorAll(".jb-scrolly__loop");
       var ledeCmds = root.querySelectorAll("a.jb-scrolly__lede-cmd");
       var ledeLoops = root.querySelectorAll("a.jb-scrolly__lede-loop");
+      var storyTags = [];
+      var currentStep = steps[0] || null;
       var bar = document.getElementById("jb-scrolly-bar");
       var count = document.getElementById("jb-scrolly-count");
       var pin = root.querySelector(".jb-scrolly__pin");
@@ -415,9 +417,18 @@
           else loop.removeAttribute("aria-current");
         });
       }
+      function markStoryTags(step) {
+        if (!step) return;
+        storyTags.forEach(function (link) {
+          var href = link.getAttribute("href") || "";
+          if (href === "#" + step.id) link.setAttribute("aria-current", "step");
+          else link.removeAttribute("aria-current");
+        });
+      }
       function show(step) {
         var index = Array.prototype.indexOf.call(steps, step);
         var keepAll = reduceMotion.matches;
+        currentStep = step;
         steps.forEach(function (node) {
           node.classList.toggle("is-active", keepAll || node === step);
         });
@@ -434,6 +445,7 @@
           if (href === "#" + step.id) link.setAttribute("aria-current", "step");
           else link.removeAttribute("aria-current");
         });
+        markStoryTags(step);
         if (bar && steps.length) {
           bar.style.width = ((index + 1) / steps.length * 100) + "%";
         }
@@ -533,9 +545,14 @@
         link.addEventListener("click", onJump);
       });
       function bindCatalogStoryTags() {
-        document.querySelectorAll("a.jb-in-story__tag[href^='#story-']").forEach(function (link) {
+        storyTags = Array.prototype.slice.call(
+          document.querySelectorAll("a.jb-in-story__tag[href^='#story-']")
+        );
+        storyTags.forEach(function (link) {
           link.addEventListener("click", onJump);
         });
+        /* Catalog lives in page.content after this script; seed after it mounts. */
+        markStoryTags(currentStep);
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", bindCatalogStoryTags);
