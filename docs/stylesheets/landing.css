@@ -2161,10 +2161,23 @@ body:has(#story-sync:target) a.jb-scrolly__lede-cmd[href="#story-sync"] {
   opacity: 1;
 }
 
-/* Softened lede loop name restores when a step of that chapter is :target. */
-body:has(#story-get:target, #story-match:target, #story-build:target, #story-conditions:target, #story-apply:target)
+/* Softened lede loop name restores when a step of that chapter is :target
+   (#story-* item 163; #cmd-* from «En el catálogo» / stage, like pin 166). */
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target,
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
   a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence),
-body:has(#story-advise:target, #story-sync:target) a.jb-scrolly__lede-loop--presence {
+body:has(#story-advise:target, #story-sync:target, #cmd-advise:target, #cmd-sync:target)
+  a.jb-scrolly__lede-loop--presence {
   opacity: 1;
 }
 
