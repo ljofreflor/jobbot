@@ -1517,6 +1517,7 @@ a.jb-scrolly__split-link:not([aria-current="true"]):focus-visible {
 
 .jb-scrolly__progress {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -1672,8 +1673,10 @@ a.jb-scrolly__loop:hover {
 
 .jb-scrolly__meter {
   position: relative;
+  flex: 1 0 100%;
   height: 2px;
-  margin: -0.35rem 0 0.85rem;
+  /* Inside the progress landmark; full-width row under dots + count. */
+  margin: -0.35rem 0 0;
   /* Apply track (cobalt wash) | gap | presence track (navy wash). */
   background: linear-gradient(
     to right,
@@ -2125,6 +2128,12 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
     grid-row: 2;
     align-self: start;
     padding-top: 0.35rem; /* match presence chapter hairline + padding */
+  }
+
+  .jb-scrolly__meter {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 0.15rem;
   }
 }
 
