@@ -4461,6 +4461,67 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: hovering a softened get, match, conditions, or apply command in the lede
+   restores the softened Postular lede commands. The command under the pointer is already
+   full; that command's step already restores these commands. */
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  a.jb-scrolly__lede-cmd[href="#story-get"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  a.jb-scrolly__lede-cmd[href="#story-match"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  a.jb-scrolly__lede-cmd[href="#story-build"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  a.jb-scrolly__lede-cmd[href="#story-conditions"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  a.jb-scrolly__lede-cmd[href="#story-apply"] {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
