@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-146 commands, 244 modules, 1352 public symbols.
+146 commands, 245 modules, 1353 public symbols.
 
 ## Commands
 
@@ -372,6 +372,7 @@ writing it again — the promotion rule lives in
 - `recheck.py` — Re-run today's offline detectors on sites already stored in the registry. · `RecheckChange`, `plan_recheck`, `apply_recheck`
 - `recon.py` — Learn portal truth from a page you are already on (issue #45). · `ReconReport`, `ReconError`, `resolve_recon_site`, `recon_from_html`, `plan_recon`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
+- `share_gate.py` — A public catalog line that carries contact data or a home path is not shareable. · `share_refusal`
 - `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `account_need`, `signup_target`, `signup_sheet`, `screening_to_prepare`
 - `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `ReservedDomainRejected`, `public_url`, `request_url`, `canonical_key`, `host_of`, `display_url`, `is_reserved_host`, `ensure_not_reserved`, `registrable_domain`, `slugify`, `company_hint_from_url`
 
