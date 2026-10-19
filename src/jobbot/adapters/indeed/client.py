@@ -91,6 +91,14 @@ class IndeedAdapter:
             timeout_seconds=300,
         )
 
+    def _require_owner(self, browser: BrowserSession, owner_name: str) -> None:
+        """Stop before typing when the open resume is not this workspace."""
+        from jobbot.adapters.indeed.owner import IndeedOwnerMismatch, refuse_indeed_write
+
+        refusal = refuse_indeed_write(browser.page.inner_text("body"), owner_name)
+        if refusal:
+            raise IndeedOwnerMismatch(refusal)
+
     def login(self, *, continue_url: str | None = None) -> None:
         """HITL Indeed login. Prefer email / magic link; never type a password.
 
@@ -240,6 +248,7 @@ class IndeedAdapter:
                     verified=False,
                     message="Login required; sync aborted.",
                 )
+            self._require_owner(browser, candidate.personal.name)
 
             console.print(
                 "[bold]Applying Indeed Resume from profile.yaml[/bold] "
@@ -275,6 +284,7 @@ class IndeedAdapter:
                     verified=False,
                     message="Login required; reconcile aborted.",
                 )
+            self._require_owner(browser, candidate.personal.name)
             console.print(
                 "[bold]Reconciling Indeed Resume → full mirror of profile.yaml[/bold]\n"
                 "Publications stay in profile only (not Indeed Recognitions)."
