@@ -39,7 +39,7 @@
 {% for exp, achievements in experiences %}
 {{ bold(exp.title) }} --- {{ exp_employer(exp) | latex }}\\
 \textit{ {{ exp.format_date_range() | latex }} }{% if exp_place(exp) %} $\cdot$ {{ exp_place(exp) | latex }}{% endif %}
-
+{% if not exp_compact(exp) %}
 {% if exp.description %}
 {{ exp.description | latex_para }}
 {% endif %}
@@ -49,6 +49,7 @@
   \item {{ ach.text | latex_para }}{% if ach.metrics %} \textit{({{ metrics_line(ach.metrics) }})}{% endif %}
 {% endfor %}
 \end{itemize}
+{% endif %}
 {% endif %}
 
 {% endfor %}

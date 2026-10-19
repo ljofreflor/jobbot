@@ -11,6 +11,7 @@ from jobbot.jobs.normalization import fold_text, normalize_skill
 from jobbot.jobs.parsing import extract_skills_from_text
 from jobbot.matching.analyzer import achievement_echo_hits, posting_word_index
 from jobbot.models.candidate import Candidate
+from jobbot.models.education import Education
 from jobbot.models.experience import Achievement, Experience
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch
@@ -47,6 +48,10 @@ class SelectionResult:
     gaps: list[str] = field(default_factory=list)
     # False when the posting had no extracted terms and none selected an achievement.
     used_posting_terms: bool = True
+    # None means every degree and course. A list is what a job CV keeps.
+    education_ids: list[str] | None = None
+    compact_ids: list[str] = field(default_factory=list)
+    page_warning: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -63,6 +68,12 @@ class SelectionResult:
             payload["full"] = True
         if self.gaps:
             payload["gaps"] = self.gaps
+        if self.education_ids is not None:
+            payload["education_ids"] = self.education_ids
+        if self.compact_ids:
+            payload["compact_ids"] = self.compact_ids
+        if self.page_warning:
+            payload["page_warning"] = self.page_warning
         return payload
 
 
@@ -77,6 +88,9 @@ def select_for_base_cv(candidate: Candidate) -> SelectionResult:
         selected_achievements=achievements,
         skill_names=candidate.skills.all_skills(),
         include_publications=True,
+        education_ids=[
+            edu.id for edu in candidate.education if edu.resolved_status() != "abandoned"
+        ],
     )
 
 
@@ -86,6 +100,7 @@ def select_for_job(
     match: JobMatch | None = None,
     *,
     full: bool = False,
+    course_floor: int = 0,
 ) -> SelectionResult:
     """Select achievements/skills overlapping the job — never invent.
 
@@ -94,7 +109,11 @@ def select_for_job(
     """
     job_tokens = _job_tokens(job)
     if full:
-        return _select_full(candidate, job, job_tokens)
+        result = _select_full(candidate, job, job_tokens)
+        result.education_ids = _education_ids(
+            candidate, job_tokens, course_floor=len(candidate.education)
+        )
+        return result
     selected: list[SelectedAchievement] = []
     exp_ids: list[str] = []
 
@@ -164,6 +183,7 @@ def select_for_job(
         job_id=job.id,
         gaps=_gaps(candidate, job),
         used_posting_terms=used_terms or not few_tokens,
+        education_ids=_education_ids(candidate, job_tokens, course_floor),
     )
 
 
@@ -318,6 +338,40 @@ def _gaps(candidate: Candidate, job: JobPosting) -> list[str]:
         if re.search(rf"(?<!\w){re.escape(needle)}(?!\w)", haystack) is None:
             gaps.append(skill)
     return gaps
+
+
+def _education_ids(candidate: Candidate, job_tokens: set[str], course_floor: int) -> list[str]:
+    """Degrees always. Courses only when the posting names them, then a recency floor."""
+    degrees: list[str] = []
+    courses: list[Education] = []
+    matched: list[Education] = []
+    for edu in candidate.education:
+        if edu.resolved_status() == "abandoned":
+            continue
+        if edu.kind != "course":
+            degrees.append(edu.id)
+            continue
+        courses.append(edu)
+        if _course_matches(edu, job_tokens):
+            matched.append(edu)
+    if len(matched) < course_floor:
+        rest = [edu for edu in courses if edu not in matched]
+        rest.sort(key=lambda edu: edu.end_date or edu.start_date or "", reverse=True)
+        matched.extend(rest[: course_floor - len(matched)])
+    chosen = {edu.id for edu in matched}
+    return degrees + [edu.id for edu in courses if edu.id in chosen]
+
+
+def _course_matches(edu: Education, job_tokens: set[str]) -> bool:
+    for tag in edu.tags:
+        if normalize_skill(tag) in job_tokens:
+            return True
+    blob = fold_text(edu.degree)
+    for token in job_tokens:
+        phrase = fold_text(token.replace("_", " "))
+        if phrase and re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", blob):
+            return True
+    return False
 
 
 def _job_tokens(job: JobPosting) -> set[str]:

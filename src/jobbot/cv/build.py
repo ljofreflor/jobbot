@@ -12,8 +12,10 @@ from pathlib import Path
 from jobbot.config import CvConfig, JobbotConfig
 from jobbot.cv.application_log import ApplicationLogOptions, build_application_log
 from jobbot.cv.ats import build_ats_text
+from jobbot.cv.pages import pages_from_xelatex_log, plan_page_trim
 from jobbot.cv.renderer import CvStyle, as_cv_language, cv_language, render_cv_ats, render_cv_tex
 from jobbot.cv.selection import (
+    SelectionResult,
     select_for_base_cv,
     select_for_job,
     write_selection_json,
@@ -62,6 +64,8 @@ def build_cv(
     full: bool = False,
     language: str | None = None,
     configured_language: str | None = None,
+    compact_before: str | None = None,
+    max_pages: int | None = None,
 ) -> list[Path]:
     """Build CV artifacts under output/base/ or output/jobs/<id>/.
 
@@ -106,6 +110,7 @@ def build_cv(
                 credit=credit,
                 language=language,
                 configured=configured_language,
+                compact_before=compact_before,
             ),
             encoding="utf-8",
         )
@@ -125,7 +130,13 @@ def build_cv(
             fallback_language=cv_language(style),
         )
     tex_content = render_cv_tex(
-        candidate, templates_dir, selection, style=style, application_log=log, credit=credit
+        candidate,
+        templates_dir,
+        selection,
+        style=style,
+        application_log=log,
+        credit=credit,
+        compact_before=compact_before,
     )
     tex_path.write_text(tex_content, encoding="utf-8")
     logger.info("Wrote LaTeX CV: %s", tex_path)
@@ -141,14 +152,70 @@ def build_cv(
             credit=credit,
             language=as_cv_language(language),
             configured=as_cv_language(configured_language),
+            compact_before=compact_before,
         ),
         encoding="utf-8",
     )
     logger.info("Wrote ATS CV: %s", ats_path)
 
     pdf_path = _compile_xelatex(tex_path, out_dir)
+    _record_page_trim(
+        candidate,
+        selection,
+        out_dir,
+        max_pages=max_pages,
+        compact_before=compact_before,
+        job=job,
+    )
     written.extend([pdf_path, ats_path])
     return written
+
+
+def _record_page_trim(
+    candidate: Candidate,
+    selection: SelectionResult,
+    out_dir: Path,
+    *,
+    max_pages: int | None,
+    compact_before: str | None,
+    job: JobPosting | None,
+) -> None:
+    """Write the page-trim plan into selection.json. It does not delete profile facts."""
+    if max_pages is None or job is None:
+        return
+    log_path = out_dir / "build.log"
+    if not log_path.is_file():
+        return
+    pages = pages_from_xelatex_log(log_path.read_text(encoding="utf-8"))
+    kept = set(selection.experience_ids)
+    finished: list[tuple[str, str]] = []
+    for exp in candidate.experience:
+        if exp.id in kept and exp.end_date and not exp.current:
+            finished.append((exp.id, exp.end_date))
+    by_id = {edu.id: edu for edu in candidate.education}
+    courses = [
+        eid
+        for eid in selection.education_ids or []
+        if eid in by_id and by_id[eid].kind == "course"
+    ]
+    already = set(selection.compact_ids)
+    if compact_before:
+        already.update(eid for eid, end in finished if end < compact_before)
+    plan = plan_page_trim(
+        pages=pages,
+        max_pages=max_pages,
+        finished=finished,
+        already_compact=already,
+        course_ids=courses,
+    )
+    if plan.warning is None:
+        return
+    selection.compact_ids.extend(plan.compact_ids)
+    if selection.education_ids is not None:
+        drop = set(plan.drop_course_ids)
+        selection.education_ids = [eid for eid in selection.education_ids if eid not in drop]
+    selection.page_warning = plan.warning
+    write_selection_json(selection, out_dir / "selection.json")
 
 
 def should_rebuild_job_cv(job_dir: Path, profile_path: Path) -> bool:
@@ -208,6 +275,9 @@ def build_adapted_cv(
             match=match,
             application_log=options,
             credit=config.cv.jobbot_signature,
+            compact_before=config.cv.compact_before,
+            max_pages=config.cv.max_pages,
+            configured_language=config.cv.language,
         )
     except RuntimeError as exc:
         logger.warning("%s", exc)
@@ -219,6 +289,8 @@ def build_adapted_cv(
             job=job,
             match=match,
             credit=config.cv.jobbot_signature,
+            compact_before=config.cv.compact_before,
+            configured_language=config.cv.language,
         )
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from pathlib import Path
 
@@ -337,6 +337,41 @@ def _href_latex(url: str) -> str:
     return rf"\href{{{escape_latex_url(url)}}}{{{escape_latex(url_label(url))}}}"
 
 
+def skills_for_selection(candidate: Candidate, selection: SelectionResult) -> dict[str, list[str]]:
+    """Job builds keep the skills the selection named. Empty groups disappear."""
+    allowed = set(selection.skill_names)
+    grouped: dict[str, list[str]] = {}
+    for group, items in candidate.skills.as_dict().items():
+        kept = [item for item in items if item in allowed]
+        if kept:
+            grouped[group] = kept
+    return grouped
+
+
+def education_for_selection(candidate: Candidate, selection: SelectionResult) -> list[Education]:
+    """None keeps every shown degree. A list is the job CV's education."""
+    shown = shown_education(candidate)
+    if selection.education_ids is None:
+        return shown
+    allowed = set(selection.education_ids)
+    return [edu for edu in shown if edu.id in allowed]
+
+
+def _exp_compact(
+    selection: SelectionResult, compact_before: str | None
+) -> Callable[[Experience], bool]:
+    extra = set(selection.compact_ids)
+
+    def exp_compact(exp: Experience) -> bool:
+        if exp.id in extra:
+            return True
+        if not compact_before or exp.current or not exp.end_date:
+            return False
+        return exp.end_date < compact_before
+
+    return exp_compact
+
+
 def render_cv_tex(
     candidate: Candidate,
     templates_dir: Path,
@@ -345,6 +380,7 @@ def render_cv_tex(
     style: CvStyle = CvStyle.MODERNCV,
     application_log: ApplicationLog | None = None,
     credit: bool = False,
+    compact_before: str | None = None,
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
@@ -355,10 +391,10 @@ def render_cv_tex(
         candidate=candidate,
         personal=candidate.personal,
         experiences=experiences,
-        skills=candidate.skills.as_dict(),
+        skills=skills_for_selection(candidate, selection),
         publications=candidate.publications if selection.include_publications else [],
         projects=candidate.projects,
-        education=shown_education(candidate),
+        education=education_for_selection(candidate, selection),
         href=_href_latex,
         application_log=application_log,
         contact_line=_contact_line_latex(candidate),
@@ -380,6 +416,7 @@ def render_cv_tex(
         mark=MARK,
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.CV,
+        exp_compact=_exp_compact(selection, compact_before),
     )
 
 
@@ -391,6 +428,7 @@ def render_cv_ats(
     credit: bool = False,
     language: Language | None = None,
     configured: Language | None = None,
+    compact_before: str | None = None,
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
@@ -412,10 +450,10 @@ def render_cv_ats(
         candidate=candidate,
         personal=candidate.personal,
         experiences=experiences,
-        skills=candidate.skills.as_dict(),
+        skills=skills_for_selection(candidate, selection),
         publications=candidate.publications if selection.include_publications else [],
         projects=candidate.projects,
-        education=shown_education(candidate),
+        education=education_for_selection(candidate, selection),
         metrics_line=_metrics_line,
         edu_dates=edu_dates,
         edu_label=lambda edu: edu_label(edu, resolved),
@@ -425,4 +463,5 @@ def render_cv_ats(
         labels=_ATS_LABELS[resolved],
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.ATS,
+        exp_compact=_exp_compact(selection, compact_before),
     )
