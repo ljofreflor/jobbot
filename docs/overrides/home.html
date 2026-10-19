@@ -269,7 +269,7 @@
       </p>
       {% if en %}
         <p class="jb-scrolly__split jb-scrolly__split--start"><a class="jb-scrolly__split-link" href="#story-get" aria-current="true" aria-label="Jump to the Apply loop">Apply</a></p>
-        <article class="jb-scrolly__step is-active" id="story-get">
+        <article class="jb-scrolly__step is-active" id="story-get" aria-current="step">
           <p class="jb-scrolly__kicker">1 · apply</p>
           <h3>Find where they publish</h3>
           <p>A link or a sweep stores the posting on your machine. The portal receives nothing yet.</p>
@@ -328,7 +328,7 @@
         </article>
       {% else %}
         <p class="jb-scrolly__split jb-scrolly__split--start"><a class="jb-scrolly__split-link" href="#story-get" aria-current="true" aria-label="Ir al bucle Postular">Postular</a></p>
-        <article class="jb-scrolly__step is-active" id="story-get">
+        <article class="jb-scrolly__step is-active" id="story-get" aria-current="step">
           <p class="jb-scrolly__kicker">1 · postular</p>
           <h3>Encuentra dónde publican</h3>
           <p>Un link o un sweep deja el aviso en tu máquina. El portal todavía no recibe nada.</p>
@@ -432,6 +432,8 @@
         currentStep = step;
         steps.forEach(function (node) {
           node.classList.toggle("is-active", keepAll || node === step);
+          if (node === step) node.setAttribute("aria-current", "step");
+          else node.removeAttribute("aria-current");
         });
         dots.forEach(function (dot, i) {
           dot.classList.toggle("is-current", i === index);
