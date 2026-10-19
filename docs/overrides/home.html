@@ -781,6 +781,10 @@
             if (on) link.setAttribute("aria-current", "location");
             else link.removeAttribute("aria-current");
           });
+          /* Headings follow the same scroll current so non-story titles can soften. */
+          targets.forEach(function (item) {
+            item.heading.classList.toggle("is-cmdnav-current", item.link === current);
+          });
           /* Keep the tab stop on the focused link while arrowing; else follow scroll. */
           var focused = document.activeElement;
           if (focused && nav.contains(focused) && focused.tagName === "A") {
