@@ -1779,6 +1779,20 @@ body:has(
   opacity: 1;
 }
 
+/* Reverse: hovering a softened lede command restores that chapter cut. */
+body:has(
+    a.jb-scrolly__lede-cmd--presence:hover,
+    a.jb-scrolly__lede-cmd--presence:focus-visible
+  )
+  a.jb-scrolly__split-link--presence:not([aria-current="true"]),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Softened chapter cut restores when a step of that chapter is :target
    (#story-* item 164; #cmd-* from «En el catálogo» / stage, like lede/pin 166–167). */
 body:has(
