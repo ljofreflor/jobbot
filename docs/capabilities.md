@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-144 commands, 242 modules, 1346 public symbols.
+145 commands, 243 modules, 1350 public symbols.
 
 ## Commands
 
@@ -125,6 +125,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile answers set` — Set one application answer. Refuses a national id. Writes only with --yes.
 - `jobbot profile answers show` — Show which application-answer blocks are filled, without values.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
+- `jobbot profile import-folder` — List role ids a folder would add or replace. Does not write profile.yaml.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
@@ -503,6 +504,7 @@ writing it again — the promotion rule lives in
 ### `profile`
 
 - `diff.py` — Lightweight structural diff helpers for profiles. · `summarize_profile`, `compare_summaries`
+- `folder_import.py` — A folder of CVs proposes role ids. It does not write the profile. · `classify_role_ids`, `role_ids_in_pdf`, `pdfs_in`, `folder_report`
 - `importer_common.py` — Pieces shared by the CV importers: result type, sections, dates, ids. · `ImportResult`, `write_generated_profile`, `empty_skills`, `section_match`, `section_kind`, `map_skill_group`, `parse_date_range`, `is_present`, `parse_one_date`, `month_key`, `normalize_key`, `slugify`, `unique_id`
 - `importer_latex.py` — Import a legacy moderncv-style LaTeX CV into a Candidate profile dict. · `LatexImportError`, `import_latex_cv`
 - `importer_pdf.py` — Import a CV exported to PDF (Word-style layout) into a Candidate profile dict. · `PdfImportError`, `extract_pdf_text`, `import_pdf_cv`, `parse_cv_text`

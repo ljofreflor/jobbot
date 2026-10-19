@@ -1743,6 +1743,38 @@ def profile_import_pdf(
         )
 
 
+@profile_app.command("import-folder")
+def profile_import_folder(
+    folder: Annotated[Path, typer.Argument(help="Directory of PDF CVs. Nothing is written.")],
+) -> None:
+    """List role ids a folder would add or replace. Does not write profile.yaml."""
+    from jobbot.profile.folder_import import folder_report
+    from jobbot.profile.loader import ProfileLoadError, load_profile
+
+    if not folder.is_dir():
+        err_console.print("import-folder needs a directory.")
+        raise _QuietExit(VALIDATION_FAILURE)
+    config = load_config()
+    stored: set[str] = set()
+    if config.profile_path.is_file():
+        try:
+            candidate = load_profile(config.profile_path)
+        except ProfileLoadError as exc:
+            err_console.print(str(exc))
+            raise _QuietExit(VALIDATION_FAILURE) from exc
+        stored = {exp.id for exp in candidate.experience}
+    new, conflict, unread = folder_report(folder, stored)
+    for role_id in new:
+        console.print(f"new: {role_id}")
+    for role_id in conflict:
+        console.print(f"conflict: {role_id}")
+    for name in unread:
+        err_console.print(f"unread: {name}")
+    if not new and not conflict and not unread:
+        console.print("no pdfs")
+    raise typer.Exit(SUCCESS)
+
+
 @profile_app.command("promote-generated")
 def profile_promote_generated(
     yes: Annotated[bool, typer.Option("--yes", "-y")] = False,
