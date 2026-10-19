@@ -1072,12 +1072,17 @@ a.jb-in-story__tag:hover {
 }
 
 a.jb-in-story__tag--presence:hover {
-  background: rgba(0, 88, 248, 0.14);
+  background: rgba(0, 24, 56, 0.16);
+  color: var(--jb-navy);
 }
 
 a.jb-in-story__tag:focus-visible {
   outline: 2px solid var(--jb-cobalt);
   outline-offset: 2px;
+}
+
+a.jb-in-story__tag--presence:focus-visible {
+  outline-color: var(--jb-navy);
 }
 
 @media (max-width: 960px) {
