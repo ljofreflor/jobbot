@@ -150,7 +150,7 @@ def test_cdp_failure_does_not_open_another_browser(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     stored, _cv = _workspace(tmp_path, project_root, monkeypatch)
-    from jobbot.adapters.ats.apply_fill import ApplyFillError
+    from jobbot.adapters.ats.apply_fill import ApplyFillAttachError
     from jobbot.cli import run_cli
     from jobbot.exit_codes import GENERIC_FAILURE
 
@@ -160,7 +160,7 @@ def test_cdp_failure_does_not_open_another_browser(
     )
 
     def broken(*_a: Any, **_k: Any) -> None:
-        raise ApplyFillError("Could not attach to Chrome at http://127.0.0.1:9222: refused")
+        raise ApplyFillAttachError("Could not attach to Chrome at http://127.0.0.1:9222: refused")
 
     monkeypatch.setattr("jobbot.adapters.ats.apply_fill.open_and_fill_over_cdp", broken)
 
@@ -174,6 +174,41 @@ def test_cdp_failure_does_not_open_another_browser(
     err = capsys.readouterr().err
     assert "Could not attach" in err
     assert "Falling back" not in err
+
+
+def test_a_failure_after_the_attach_still_leaves_the_package(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Chrome opened: the page failing to load is not a missed attach."""
+    stored, _cv = _workspace(tmp_path, project_root, monkeypatch)
+    from jobbot.adapters.ats.apply_fill import ApplyFillError
+    from jobbot.cli import run_cli
+
+    opened: list[str] = []
+    monkeypatch.setattr(
+        "jobbot.browser.background.open_url", lambda url, **_k: opened.append(url) or url
+    )
+
+    def broken(*_a: Any, **_k: Any) -> None:
+        raise ApplyFillError(f"Could not load {ATS_URL}: net::ERR_TIMED_OUT")
+
+    monkeypatch.setattr("jobbot.adapters.ats.apply_fill.open_and_fill_over_cdp", broken)
+
+    code = run_cli(
+        ["application", "apply", stored.id, "--apply", "--yes", "--cdp", CDP],
+        standalone_mode=False,
+    )
+    captured = capsys.readouterr()
+
+    assert code == SUCCESS
+    assert opened == [], "the requested Chrome is where this stays"
+    assert "Could not load" in captured.err
+    sheet = tmp_path / "output" / "jobs" / stored.id / "application" / "ats_prefill.yaml"
+    assert sheet.is_file()
+    assert list((tmp_path / "output" / "ops" / "failures").glob("*.json")) == []
 
 
 def test_without_cdp_the_default_browser_is_used_as_before(
