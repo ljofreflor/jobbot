@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 
 from rich.console import Console
@@ -119,12 +118,6 @@ class LinkedInAdapter:
             if not profile.headline:
                 console.print(
                     "[yellow]LinkedIn DOM lacked stable markers; sparse snapshot saved.[/yellow]"
-                )
-                profile = ExternalProfile(
-                    source="linkedin",
-                    headline=None,
-                    summary=None,
-                    captured_at=datetime.now(UTC),
                 )
             return profile
 

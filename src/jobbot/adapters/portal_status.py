@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from jobbot.adapters.diff_engine import load_snapshot
+from jobbot.adapters.diff_engine import load_snapshot, snapshot_unread
 from jobbot.config import JobbotConfig
 from jobbot.profile.loader import load_profile
 
@@ -23,14 +23,23 @@ def build_profile_status(config: JobbotConfig) -> dict[str, Any]:
             return "✓"
         return "!"
 
+    linkedin_unread = linkedin is not None and snapshot_unread(linkedin)
+
+    def linkedin_mark(present: bool, remote: str | None = None) -> str:
+        if linkedin is None:
+            return "—"
+        if linkedin_unread:
+            return "no leído"
+        if remote is not None:
+            return mark(candidate.personal.headline, remote)
+        return "✓" if present else "!"
+
     rows = [
         {
             "section": "Headline",
             "local": "✓",
             "indeed": mark(candidate.personal.headline, indeed.headline if indeed else None),
-            "linkedin": mark(
-                candidate.personal.headline, linkedin.headline if linkedin else None
-            ),
+            "linkedin": linkedin_mark(False, linkedin.headline if linkedin else None),
         },
         {
             "section": "Experience",
@@ -40,11 +49,7 @@ def build_profile_status(config: JobbotConfig) -> dict[str, Any]:
                 if indeed and indeed.experience
                 else ("—" if indeed is None else "!")
             ),
-            "linkedin": (
-                "✓"
-                if linkedin and linkedin.experience
-                else ("—" if linkedin is None else "!")
-            ),
+            "linkedin": linkedin_mark(bool(linkedin and linkedin.experience)),
         },
         {
             "section": "Skills",
@@ -54,11 +59,7 @@ def build_profile_status(config: JobbotConfig) -> dict[str, Any]:
                 if indeed and indeed.skills
                 else ("—" if indeed is None else "!")
             ),
-            "linkedin": (
-                "✓"
-                if linkedin and linkedin.skills
-                else ("—" if linkedin is None else "!")
-            ),
+            "linkedin": linkedin_mark(bool(linkedin and linkedin.skills)),
         },
     ]
     return {"rows": rows}

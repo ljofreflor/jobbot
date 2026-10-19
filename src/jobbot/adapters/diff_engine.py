@@ -12,6 +12,23 @@ from jobbot.models.external_profile import ExternalExperience, ExternalProfile
 from jobbot.models.sync import SyncOperation, SyncOpType, SyncPlan
 
 
+def snapshot_unread(profile: ExternalProfile) -> bool:
+    """True when the file has no headline, summary, place, role, study or skill.
+
+    That is a failed read, not a profile that happens to be empty in one section.
+    """
+    return not any(
+        (
+            (profile.headline or "").strip(),
+            (profile.summary or "").strip(),
+            (profile.location or "").strip(),
+            profile.experience,
+            profile.education,
+            profile.skills,
+        )
+    )
+
+
 def load_snapshot(output_dir: Path, source: str) -> ExternalProfile | None:
     path = output_dir / "snapshots" / source / "profile.json"
     if not path.is_file():
@@ -149,6 +166,8 @@ def render_profile_diff(
     external = load_snapshot(output_dir, source)
     if external is None:
         return f"No {source} snapshot found. Run: jobbot {source} pull"
+    if snapshot_unread(external):
+        return f"{source.upper()} snapshot was not read."
     ops = build_diff_operations(candidate, external, section=section)
     lines = [f"{source.upper()} PROFILE DIFF"]
     if section:
