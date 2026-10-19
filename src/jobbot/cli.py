@@ -3129,6 +3129,10 @@ def jobs_search(
             "Also: JOBBOT_CDP_URL. Start with: jobbot browser chrome-debug",
         ),
     ] = None,
+    cdp_timeout: Annotated[
+        float,
+        typer.Option("--cdp-timeout", help="Seconds to wait for a CDP attach (default 15)"),
+    ] = 15,
 ) -> None:
     """Search Indeed and store job postings locally (small volumes)."""
     from jobbot.adapters.indeed.jobs import IndeedJobSource
@@ -3141,7 +3145,7 @@ def jobs_search(
 
     session, config = _session()
     cdp_url = resolve_cdp_url(cdp)
-    source = IndeedJobSource(config, cdp_url=cdp_url)
+    source = IndeedJobSource(config, cdp_url=cdp_url, cdp_attach_s=cdp_timeout)
     q = JobSearchQuery(query=query, location=location, remote=remote, limit=limit)
 
     if cdp_url:
@@ -3150,6 +3154,11 @@ def jobs_search(
     try:
         found = source.search_jobs(q) if enrich else source.search_cards(q)
     except Exception as exc:
+        from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout
+
+        if isinstance(exc, (CdpAttachTimeout, CdpAttachInterrupted)):
+            err_console.print(f"[red]{exc}[/red]")
+            raise _RecordedExit(GENERIC_FAILURE, error_class="CdpAttach", message=str(exc)) from exc
         err_console.print(f"[red]Indeed search failed: {exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
 
@@ -4284,20 +4293,25 @@ def _fill_ats_over_cdp(
     job_id: str,
     *,
     foreground: bool = False,
+    attach_timeout_s: float = 15,
 ) -> bool:
-    """Fill known fields in your Chrome. False → fall back. Never raises the window."""
+    """Fill known fields in the requested Chrome. A failure does not open another browser."""
     from jobbot.adapters.ats import apply_fill
     from jobbot.adapters.ats.email_apply import resolve_cv_path
 
     cv_pdf = resolve_cv_path(config.output_dir, job_id)
     try:
         result = apply_fill.open_and_fill_over_cdp(
-            cdp, url, candidate, cv_path=cv_pdf, focus=foreground
+            cdp,
+            url,
+            candidate,
+            cv_path=cv_pdf,
+            focus=foreground,
+            attach_timeout_s=attach_timeout_s,
         )
     except apply_fill.ApplyFillError as exc:
-        err_console.print(f"[yellow]{exc}[/yellow]")
-        err_console.print("[yellow]Falling back to your default browser + prefill sheet.[/yellow]")
-        return False
+        err_console.print(f"[red]{exc}[/red]")
+        raise _RecordedExit(GENERIC_FAILURE, error_class="CdpAttach", message=str(exc)) from exc
     if result.opened:
         where = f"Chrome ({cdp})"
         if foreground:
@@ -4355,6 +4369,10 @@ def application_apply(
         str | None,
         typer.Option("--cdp", help="Attach to your logged-in Chrome (see browser chrome-debug)"),
     ] = None,
+    cdp_timeout: Annotated[
+        float,
+        typer.Option("--cdp-timeout", help="Seconds to wait for a CDP attach (default 15)"),
+    ] = 15,
     foreground: Annotated[
         bool,
         typer.Option(
@@ -4382,6 +4400,7 @@ def application_apply(
             yes=yes,
             attach=attach,
             cdp=cdp,
+            cdp_timeout=cdp_timeout,
             foreground=foreground,
             limit=limit,
         )
@@ -4395,6 +4414,7 @@ def application_apply(
         yes=yes,
         attach=attach,
         cdp=cdp,
+        cdp_timeout=cdp_timeout,
         foreground=foreground,
     )
 
@@ -4405,6 +4425,7 @@ def _application_apply_all(
     yes: bool,
     attach: bool,
     cdp: str | None,
+    cdp_timeout: float,
     foreground: bool,
     limit: int | None,
 ) -> None:
@@ -4463,6 +4484,7 @@ def _application_apply_all(
                 yes=True,
                 attach=attach,
                 cdp=cdp,
+                cdp_timeout=cdp_timeout,
                 foreground=foreground,
             )
             opened += 1
@@ -4495,6 +4517,7 @@ def _application_apply_one(
     yes: bool,
     attach: bool,
     cdp: str | None,
+    cdp_timeout: float = 15,
     foreground: bool = False,
 ) -> None:
     """Assist apply for a single job id (same behaviour as before --all)."""
@@ -4693,18 +4716,21 @@ def _application_apply_one(
     ):
         console.print("Aborted.")
         raise typer.Exit(SUCCESS)
-    # Ensure package exists
     job_dir = config.output_dir / "jobs" / job.id
+    filled_in_cdp = False
+    if cdp:
+        _fill_ats_over_cdp(
+            str(cdp),
+            _ats_target_url(adapter, job, plan.ats_url),
+            candidate,
+            config,
+            job.id,
+            foreground=foreground,
+            attach_timeout_s=cdp_timeout,
+        )
+        filled_in_cdp = True
     app_dir = prepare_application_package(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
-    )
-    filled_in_cdp = bool(cdp) and _fill_ats_over_cdp(
-        str(cdp),
-        _ats_target_url(adapter, job, plan.ats_url),
-        candidate,
-        config,
-        job.id,
-        foreground=foreground,
     )
     if not filled_in_cdp:
         if adapter is not None and hasattr(adapter, "open"):
