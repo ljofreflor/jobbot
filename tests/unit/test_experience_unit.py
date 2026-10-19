@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from jobbot.companies.signup import signup_sheet
 from jobbot.cv.renderer import CvStyle, render_cv_ats, render_cv_tex
 from jobbot.models.candidate import Candidate
+from jobbot.models.experience import Experience
 from jobbot.portals.form_learn import FieldKind, FormField, FormKnowledge
 from tests.fixtures.profile import sample_profile_dict
 
@@ -61,6 +62,27 @@ def test_ats_line_names_unit_and_mode(project_root: Path) -> None:
     assert _ATS_LINE in ats
 
 
+def test_ats_line_follows_the_english_headings_when_the_profile_is_too_short(
+    project_root: Path,
+) -> None:
+    candidate = _candidate().model_copy(update={"summary": "Epidemiology analyst."})
+    ats = render_cv_ats(candidate, project_root / "templates")
+    assert "| Chile (remote)" in ats
+    assert "(remoto)" not in ats
+
+
+def test_the_name_is_not_evidence_of_the_profile_language(project_root: Path) -> None:
+    personal = _candidate().personal.model_copy(update={"name": "Ana de la Fuente Rivas"})
+    candidate = _candidate().model_copy(
+        update={
+            "personal": personal,
+            "summary": "Analyst of the surveillance data in the regional service.",
+        }
+    )
+    ats = render_cv_ats(candidate, project_root / "templates")
+    assert "| Chile (remote)" in ats
+
+
 def test_signup_employer_is_the_company_without_the_unit() -> None:
     form = FormKnowledge(
         url="https://example.test/jobs",
@@ -74,6 +96,36 @@ def test_signup_employer_is_the_company_without_the_unit() -> None:
     assert sheet["Employer"].value == "Servicio Regional Ficticio"
     assert "Unidad" not in sheet["Employer"].value
     assert sheet["Department"].value == "Unidad de Vigilancia Epidemiológica"
+
+
+def test_signup_employer_is_the_role_that_ended_last() -> None:
+    long_job = {
+        "id": "analista-larga",
+        "company": "Servicio Regional Ficticio",
+        "title": "Analista",
+        "start_date": "2018-01",
+        "end_date": "2024-06",
+        "current": False,
+        "achievements": [],
+    }
+    short_contract = {
+        "id": "asesoria-breve",
+        "company": "Consultora Ficticia",
+        "title": "Asesor",
+        "start_date": "2020-01",
+        "end_date": "2020-06",
+        "current": False,
+        "achievements": [],
+    }
+    roles = [Experience.model_validate(role) for role in (long_job, short_contract)]
+    candidate = _candidate().model_copy(update={"experience": roles})
+    form = FormKnowledge(
+        url="https://example.test/jobs",
+        readable=True,
+        fields=[FormField(name="employer", label="Employer", kind=FieldKind.TEXT)],
+    )
+    sheet = {item.label: item for item in signup_sheet(candidate, form=form)}
+    assert sheet["Employer"].value == "Servicio Regional Ficticio"
 
 
 def test_unknown_work_mode_lists_the_valid_values() -> None:

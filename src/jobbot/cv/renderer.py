@@ -44,13 +44,13 @@ def cv_language(style: CvStyle) -> Language:
 
 
 def _profile_language(candidate: Candidate) -> Language:
-    """Language of the work-mode word on the ATS line. Headings stay as they are."""
-    blob = " ".join(
-        part
-        for part in (candidate.summary, candidate.personal.headline, candidate.personal.name)
-        if part
-    )
-    return detect_language(blob) or "es"
+    """Language of the work-mode word on the ATS line. Headings stay as they are.
+
+    A name is not evidence ('de la' in a surname is not Spanish prose), and a
+    profile too short to tell follows the template's own English headings.
+    """
+    blob = " ".join(part for part in (candidate.summary, candidate.personal.headline) if part)
+    return detect_language(blob) or "en"
 
 
 def split_name(full_name: str) -> tuple[str, str]:

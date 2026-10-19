@@ -294,7 +294,7 @@ def answer_for_label(candidate: Candidate, label: str) -> tuple[str, str]:
 
 
 def _from_role(candidate: Candidate, field: str) -> tuple[str, str]:
-    """Employer, unit, or work mode from the current role (latest start if several)."""
+    """Employer, unit, or work mode from the current role, else the one that ended last."""
     role = _portal_role(candidate)
     if role is None:
         return ("", "you decide: not a fact in the profile")
@@ -307,8 +307,11 @@ def _portal_role(candidate: Candidate) -> Experience | None:
     if not roles:
         return None
     current = [role for role in roles if role.current]
-    pool = current or roles
-    return max(pool, key=lambda role: role.start_date)
+    if current:
+        return max(current, key=lambda role: role.start_date)
+    # Nothing open: the last employer is the one that ended last, not the one
+    # that started last (a short contract may overlap a longer job).
+    return max(roles, key=lambda role: (role.end_date or role.start_date, role.start_date))
 
 
 def _pair(value: object, source: str) -> tuple[str, str]:
