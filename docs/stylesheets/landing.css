@@ -961,6 +961,26 @@ html.jb-pin-presence a.jb-cmdnav__story[data-story-cmds]:not([data-story-cmds*="
   opacity: 1;
 }
 
+/* Apply-only group headings soften with the same Presence cue as cmdnav (item 129). */
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:focus,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:focus,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:focus,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications:focus {
+  opacity: 1;
+}
+
 .jb-section--cmds h3 {
   margin: 1.6rem 0 0.55rem;
   scroll-margin-top: 6.5rem;
@@ -2242,7 +2262,11 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   .jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence),
   html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence),
   html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)),
-  html.jb-pin-presence a.jb-cmdnav__story[data-story-cmds]:not([data-story-cmds*="advise"]):not([data-story-cmds*="sync"]):not(.is-current) {
+  html.jb-pin-presence a.jb-cmdnav__story[data-story-cmds]:not([data-story-cmds*="advise"]):not([data-story-cmds*="sync"]):not(.is-current),
+  html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes,
+  html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones,
+  html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies,
+  html.jb-pin-presence .jb-section--cmds h3#cmd-applications {
     opacity: 1;
     transition: none;
   }
