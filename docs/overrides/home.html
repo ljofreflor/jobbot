@@ -437,6 +437,12 @@
           var on = cmds.indexOf(key) !== -1;
           link.classList.toggle("is-pin-step", on);
           link.classList.toggle("is-pin-presence", on && presence);
+          var id = (link.getAttribute("href") || "").replace(/^#/, "");
+          var heading = id ? document.getElementById(id) : null;
+          if (heading) {
+            heading.classList.toggle("is-pin-step", on);
+            heading.classList.toggle("is-pin-presence", on && presence);
+          }
         });
       }
       function show(step) {
