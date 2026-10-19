@@ -29,6 +29,15 @@
 {{ candidate.summary | latex_para }}
 {% endif %}
 
+{% if highlights %}
+\section*{Highlights}
+\begin{itemize}
+{% for line in highlights %}
+  \item {{ line | latex_para }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
 {% if candidate.specialties %}
 \section*{Specialties}
 {{ specialties_line }}
