@@ -3182,6 +3182,58 @@ def _closing_now() -> datetime:
     return closing.utc_now()
 
 
+def _evidenced_portals(registry: CompanyRegistry) -> list[tuple[str, str]]:
+    """Career-site hosts whose ATS was observed, not guessed from a hostname."""
+    from jobbot.portals.detect import AtsKind
+
+    sites: list[tuple[str, str]] = []
+    for company in registry.companies:
+        for site in company.career_sites:
+            if site.ats == AtsKind.UNKNOWN:
+                continue
+            evidenced = any(obs.ats == site.ats for obs in site.observations)
+            if evidenced or site.status.value == "active":
+                sites.append((site.domain, site.ats.value))
+    return sites
+
+
+def _events_by_job(
+    repo: ApplicationRepository,
+) -> dict[str, list[tuple[str, str | None, datetime]]]:
+    grouped: dict[str, list[tuple[str, str | None, datetime]]] = {}
+    for app in repo.list_all():
+        grouped[app.job_id] = [
+            (event.event_type, event.detail, event.created_at) for event in repo.events_for(app.id)
+        ]
+    return grouped
+
+
+def _opacity_line(session: Session, config: JobbotConfig, job: JobPosting) -> str:
+    """One line for show/match. Local rows only."""
+    from jobbot.companies.registry import load_companies
+    from jobbot.jobs.opacity import assess
+    from jobbot.jobs.repository import JobRepository
+
+    repo = JobRepository(session)
+    stored = repo.list_all()
+    peers = stored if any(item.id == job.id for item in stored) else [*stored, job]
+    signal = assess(
+        job,
+        peers=peers,
+        sites=_evidenced_portals(load_companies(config.companies_path)),
+        events=_events_by_job(ApplicationRepository(session)).get(job.id, []),
+        now=_closing_now(),
+        max_age_days=config.search.max_age_days,
+    )
+    return (
+        f"Opacity: {signal.band} ({signal.score:.2f})  "
+        f"freshness={signal.freshness}  closure={signal.closure}  "
+        f"repost={'yes' if signal.repost else 'no'}  "
+        f"portal={'known' if signal.portal_known else 'unknown'}  "
+        f"silence={signal.silence}"
+    )
+
+
 def _closing_flag(job: JobPosting, now: datetime, *, soon_days: int) -> str:
     from jobbot.jobs.closing import ClosingState, closing_state
     from jobbot.jobs.closure import closure_evidence
@@ -3700,7 +3752,7 @@ def jobs_show(
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     """Show a stored job posting."""
-    session, _ = _session()
+    session, config = _session()
     job = JobRepository(session).get(job_id)
     if job is None:
         err_console.print(f"[red]Job not found: {job_id}[/red]")
@@ -3732,6 +3784,7 @@ def jobs_show(
         console.print("Requirements:")
         for req in job.requirements:
             console.print(f"  - {req}")
+    console.print(_opacity_line(session, config, job), markup=False)
     console.print(Panel(job.description[:2000], title="Description"))
 
 
@@ -3766,6 +3819,7 @@ def jobs_match(
         console.print_json(data=match.to_dict())
         return
     console.print(format_match_report(match))
+    console.print(_opacity_line(session, config, job), markup=False)
 
 
 @jobs_app.command("conditions")
@@ -3977,14 +4031,30 @@ def jobs_shortlist(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
+    from jobbot.companies.registry import load_companies
+    from jobbot.jobs.opacity import Opacity, assess, shortlist_key
     from jobbot.matching.scoring import match_reasons
 
     repo = JobRepository(session)
     analyzer = RuleBasedJobAnalyzer()
     now = _closing_now()
-    rows: list[tuple[float, str, str, str, str, list[str]]] = []
+    stored = repo.list_all()
+    sites = _evidenced_portals(load_companies(config.companies_path))
+    events = _events_by_job(ApplicationRepository(session))
+    signals = {
+        job.id: assess(
+            job,
+            peers=stored,
+            sites=sites,
+            events=events.get(job.id, []),
+            now=now,
+            max_age_days=config.search.max_age_days,
+        )
+        for job in stored
+    }
+    rows: list[tuple[tuple[int, int, float], float, str, str, str, str, list[str], Opacity]] = []
     hidden = 0
-    for job in repo.list_all():
+    for job in stored:
         if is_verified_closed(job) and not include_closed:
             hidden += 1
             continue
@@ -3998,20 +4068,37 @@ def jobs_shortlist(
             flag = f"  [{label}]"
         if is_verified_closed(job):
             flag += f"  [{verification_label(job)}]"
-        rows.append((match.score, job.id, job.title, job.company, flag, match_reasons(match)))
-    rows.sort(key=lambda r: r[0], reverse=True)
+        opacity = signals[job.id]
+        rows.append(
+            (
+                shortlist_key(
+                    closed=opacity.closure == "closed",
+                    band=opacity.band,
+                    fit=match.score,
+                ),
+                match.score,
+                job.id,
+                job.title,
+                job.company,
+                flag,
+                match_reasons(match),
+                opacity,
+            )
+        )
+    rows.sort(key=lambda r: r[0])
     console.print("[bold]TOP MATCHES[/bold]")
-    for score, jid, title, company, flag, reasons in rows:
+    for _key, score, jid, title, company, flag, reasons, opacity in rows:
         mark = shortlist_mark(config.output_dir / "jobs" / jid / "admissibility.json")
         line = f"{score:5.1f}%  {jid}  {title}  {company}{flag}{mark}"
         console.print(line, markup=False, highlight=False)
+        console.print(f"         opacity {opacity.label()}", markup=False, highlight=False)
         for reason in reasons:
             console.print(f"         {reason}", markup=False, highlight=False, soft_wrap=True)
     if hidden:
         console.print(
             f"{hidden} hidden: verified closed by jobs check-open (--include-closed to list them)."
         )
-    _warn_if_matcher_blind([row[0] for row in rows])
+    _warn_if_matcher_blind([row[1] for row in rows])
 
 
 @jobs_app.command("admissibility")
