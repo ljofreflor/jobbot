@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-146 commands, 245 modules, 1353 public symbols.
+147 commands, 246 modules, 1355 public symbols.
 
 ## Commands
 
@@ -49,6 +49,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
 - `jobbot cv check` — Print a structural CV checklist. Never rewrites the profile.
 - `jobbot cv gap` — Show which posting terms the profile already evidences.
+- `jobbot cv layout` — Report overfull boxes in a LaTeX log. Does not compile.
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
@@ -387,6 +388,7 @@ writing it again — the promotion rule lives in
 - `gap.py` — Which posting terms the profile already evidences, and which stay questions. · `GapStatus`, `GapTerm`, `GapReport`, `gap_report`, `write_gap_report`
 - `highlights.py` — Quantified bullets already in the profile, surfaced as highlights. · `HighlightPlan`, `select_highlights`
 - `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_url`, `escape_latex_multiline`
+- `layout.py` — A LaTeX log names overfull boxes and how many pages were written. · `layout_findings`, `pages_written`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `pages.py` — How many pages the PDF took, and what to shorten before deleting a fact. · `PageTrim`, `pages_from_xelatex_log`, `plan_page_trim`
 - `portal_update.py` — Active portals this workspace has not integrated yet. Nothing here writes the profile. · `integration_log_path`, `load_seen`, `unseen_active_portals`, `format_new_portals`
