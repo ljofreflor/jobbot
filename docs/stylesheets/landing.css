@@ -5063,6 +5063,52 @@ html:not(.jb-pin-presence):has(#cmd-advise:target, #cmd-sync:target)
   opacity: 1;
 }
 
+/* Presence: a jump to a get, match, build, conditions, or apply catalog row
+   restores the other softened Postular lede commands. The matching command
+   already restores from that hash; hovering that row already restores the others. */
+html.jb-pin-presence:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  a.jb-scrolly__lede-cmd[href="#story-get"],
+html.jb-pin-presence:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  a.jb-scrolly__lede-cmd[href="#story-match"],
+html.jb-pin-presence:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  a.jb-scrolly__lede-cmd[href="#story-build"],
+html.jb-pin-presence:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  a.jb-scrolly__lede-cmd[href="#story-conditions"],
+html.jb-pin-presence:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  a.jb-scrolly__lede-cmd[href="#story-apply"] {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
