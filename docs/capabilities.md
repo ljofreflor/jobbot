@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-134 commands, 226 modules, 1282 public symbols.
+135 commands, 227 modules, 1288 public symbols.
 
 ## Commands
 
@@ -43,6 +43,7 @@ writing it again — the promotion rule lives in
 - `jobbot companies sites` — Career portals reusable by later job discovery.
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
+- `jobbot cv check` — Print a structural CV checklist. Never rewrites the profile.
 - `jobbot cv gap` — Show which posting terms the profile already evidences.
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
@@ -350,6 +351,7 @@ writing it again — the promotion rule lives in
 - `application_log.py` — Opt-in last page of a job CV: which posting it was built for, the match, and where · `LogText`, `ApplicationLogOptions`, `EvidenceLine`, `ApplicationLog`, `posting_url`, `build_application_log`, `strong_requirement_evidence`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
 - `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
+- `check.py` — Structural CV checks. A failure asks a question; it never adds a fact. · `CheckStatus`, `Check`, `CvCheckReport`, `check_cv`, `accepted_suggestion`, `write_cv_check`
 - `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `MissingAdaptedCvError`, `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `resolve_job_adapted_cv`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `has_receipt_for`, `write_company_receipt`
 - `gap.py` — Which posting terms the profile already evidences, and which stay questions. · `GapStatus`, `GapTerm`, `GapReport`, `gap_report`, `write_gap_report`
 - `highlights.py` — Quantified bullets already in the profile, surfaced as highlights. · `HighlightPlan`, `select_highlights`

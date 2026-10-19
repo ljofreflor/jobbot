@@ -2040,6 +2040,36 @@ def cv_gap(
     err_console.print(f"[dim]{path}[/dim]")
 
 
+@cv_app.command("check")
+def cv_check(
+    job_id: Annotated[
+        str | None,
+        typer.Option("--job", help="Also list posting terms the profile does not cover"),
+    ] = None,
+) -> None:
+    """Print a structural CV checklist. Never rewrites the profile."""
+    from jobbot.cv.check import check_cv, write_cv_check
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    job = None
+    if job_id:
+        session, _ = _session()
+        job = JobRepository(session).get(job_id)
+        if job is None:
+            err_console.print(f"[red]Job not found: {job_id}[/red]")
+            raise _QuietExit(VALIDATION_FAILURE)
+    report = check_cv(candidate, job)
+    path = write_cv_check(report, config.output_dir)
+    for line in report.lines():
+        console.print(line)
+    err_console.print(f"[dim]{path}[/dim]")
+
+
 @cv_app.command("build")
 def cv_build(
     target: Annotated[
