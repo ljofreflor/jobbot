@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from jobbot.browser.sessions import SessionState, SessionStatus, session_for, site_spec
+from jobbot.browser.sessions import SessionState, SessionStatus, site_spec
 from jobbot.companies.signup import AccountNeed, account_need
 from jobbot.portals.detect import AtsKind
 
@@ -33,13 +33,28 @@ def session_site(ats: AtsKind) -> str | None:
     return spec.site if spec is not None else None
 
 
-def login_warning(ats: AtsKind, states: Sequence[SessionState]) -> str | None:
-    """A warning when the portal needs an account and no session is evidenced."""
+def _state_named(states: Sequence[SessionState], site: str | None) -> SessionState | None:
+    if not site:
+        return None
+    key = site.casefold()
+    return next((state for state in states if state.site.casefold() == key), None)
+
+
+def login_warning(
+    ats: AtsKind,
+    states: Sequence[SessionState],
+    *,
+    host: str | None = None,
+) -> str | None:
+    """A warning when the portal needs an account and no session is evidenced.
+
+    Workday is one account per tenant. A ready page on another host is not this one.
+    """
     if account_need(ats) is not AccountNeed.NEEDED:
         return None
     portal = _PORTAL_NAMES.get(ats, ats.value)
-    site = session_site(ats)
-    state = session_for(states, site) if site is not None else None
+    site = host if ats is AtsKind.WORKDAY and host else session_site(ats)
+    state = _state_named(states, site)
     if state is not None and state.ready:
         return None
     if state is None:
