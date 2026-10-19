@@ -1711,6 +1711,13 @@ a.jb-scrolly__split-link:not([aria-current="true"]):focus-visible {
   opacity: 1;
 }
 
+/* Softened chapter cut restores when a step of that chapter is :target (like lede, 163). */
+body:has(#story-get:target, #story-match:target, #story-build:target, #story-conditions:target, #story-apply:target)
+  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence),
+body:has(#story-advise:target, #story-sync:target) a.jb-scrolly__split-link--presence {
+  opacity: 1;
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
