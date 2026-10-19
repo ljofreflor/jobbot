@@ -1885,6 +1885,83 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: hovering an apply-only group's bar, heading, or table restores that group's
+   softened story rows. build stays in CV, which is not dimmed. */
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-vacantes"]:hover,
+    .jb-cmdnav a[href="#cmd-vacantes"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-vacancies"]:hover,
+    .jb-cmdnav a[href="#cmd-vacancies"]:focus-visible,
+    .jb-section--cmds h3#cmd-vacantes:hover,
+    .jb-section--cmds h3#cmd-vacantes:focus,
+    .jb-section--cmds h3#cmd-vacantes:focus-within,
+    .jb-section--cmds h3#cmd-vacancies:hover,
+    .jb-section--cmds h3#cmd-vacancies:focus,
+    .jb-section--cmds h3#cmd-vacancies:focus-within,
+    .jb-section--cmds h3#cmd-vacantes + table:hover,
+    .jb-section--cmds h3#cmd-vacantes + table:focus-within,
+    .jb-section--cmds h3#cmd-vacancies + table:hover,
+    .jb-section--cmds h3#cmd-vacancies + table:focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-get),
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-vacantes"]:hover,
+    .jb-cmdnav a[href="#cmd-vacantes"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-vacancies"]:hover,
+    .jb-cmdnav a[href="#cmd-vacancies"]:focus-visible,
+    .jb-section--cmds h3#cmd-vacantes:hover,
+    .jb-section--cmds h3#cmd-vacantes:focus,
+    .jb-section--cmds h3#cmd-vacantes:focus-within,
+    .jb-section--cmds h3#cmd-vacancies:hover,
+    .jb-section--cmds h3#cmd-vacancies:focus,
+    .jb-section--cmds h3#cmd-vacancies:focus-within,
+    .jb-section--cmds h3#cmd-vacantes + table:hover,
+    .jb-section--cmds h3#cmd-vacantes + table:focus-within,
+    .jb-section--cmds h3#cmd-vacancies + table:hover,
+    .jb-section--cmds h3#cmd-vacancies + table:focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-match),
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-vacantes"]:hover,
+    .jb-cmdnav a[href="#cmd-vacantes"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-vacancies"]:hover,
+    .jb-cmdnav a[href="#cmd-vacancies"]:focus-visible,
+    .jb-section--cmds h3#cmd-vacantes:hover,
+    .jb-section--cmds h3#cmd-vacantes:focus,
+    .jb-section--cmds h3#cmd-vacantes:focus-within,
+    .jb-section--cmds h3#cmd-vacancies:hover,
+    .jb-section--cmds h3#cmd-vacancies:focus,
+    .jb-section--cmds h3#cmd-vacancies:focus-within,
+    .jb-section--cmds h3#cmd-vacantes + table:hover,
+    .jb-section--cmds h3#cmd-vacantes + table:focus-within,
+    .jb-section--cmds h3#cmd-vacancies + table:hover,
+    .jb-section--cmds h3#cmd-vacancies + table:focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-conditions),
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-postulaciones"]:hover,
+    .jb-cmdnav a[href="#cmd-postulaciones"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-applications"]:hover,
+    .jb-cmdnav a[href="#cmd-applications"]:focus-visible,
+    .jb-section--cmds h3#cmd-postulaciones:hover,
+    .jb-section--cmds h3#cmd-postulaciones:focus,
+    .jb-section--cmds h3#cmd-postulaciones:focus-within,
+    .jb-section--cmds h3#cmd-applications:hover,
+    .jb-section--cmds h3#cmd-applications:focus,
+    .jb-section--cmds h3#cmd-applications:focus-within,
+    .jb-section--cmds h3#cmd-postulaciones + table:hover,
+    .jb-section--cmds h3#cmd-postulaciones + table:focus-within,
+    .jb-section--cmds h3#cmd-applications + table:hover,
+    .jb-section--cmds h3#cmd-applications + table:focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-apply) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
