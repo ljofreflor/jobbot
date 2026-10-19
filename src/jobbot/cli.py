@@ -3091,11 +3091,13 @@ def _closing_now() -> datetime:
     return closing.utc_now()
 
 
-def _closing_flag(job: JobPosting, now: datetime) -> str:
+def _closing_flag(job: JobPosting, now: datetime, *, soon_days: int) -> str:
     from jobbot.jobs.closing import ClosingState, closing_state
+    from jobbot.jobs.closure import closure_evidence
 
-    state = closing_state(job.closes_at, job.closes_on, now=now)
-    if state is ClosingState.EXPIRED:
+    stated = closure_evidence(job.raw_description or "") or closure_evidence(job.description or "")
+    state = closing_state(job.closes_at, job.closes_on, now=now, soon_days=soon_days)
+    if stated or state is ClosingState.EXPIRED:
         return "vencido"
     if state is ClosingState.SOON:
         return "cierra pronto"
@@ -3626,7 +3628,7 @@ def jobs_show(
 
         console.print(f"Online: {verification_label(job)}", markup=False)
     if job.closes_on or job.closes_at:
-        flag = _closing_flag(job, _closing_now())
+        flag = _closing_flag(job, _closing_now(), soon_days=3)
         console.print(
             f"Closes: {_closing_line(job)}" + (f"  ⚠ {flag}" if flag else ""), markup=False
         )
@@ -3862,8 +3864,18 @@ def jobs_shortlist(
         bool,
         typer.Option("--include-closed", help="Also list postings check-open found closed"),
     ] = False,
+    soon_days: Annotated[
+        int,
+        typer.Option(
+            "--soon-days",
+            help="Flag a published closing within this many days (default 3)",
+        ),
+    ] = 3,
 ) -> None:
-    """Rank stored jobs by match score; hides postings verified closed (jobs check-open)."""
+    """Rank stored jobs by match score; flag a close and a finished posting."""
+    if soon_days < 1:
+        err_console.print("[red]--soon-days must be at least 1[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
     from jobbot.jobs.admissibility import shortlist_mark
     from jobbot.jobs.check_open import is_verified_closed, verification_label
 
@@ -3887,9 +3899,12 @@ def jobs_shortlist(
             continue
         match = analyzer.analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
-        flag = _closing_flag(job, now)
-        if flag:
-            flag = f"  [{flag}: {_closing_line(job, evidence=False)}]"
+        label = _closing_flag(job, now, soon_days=soon_days)
+        flag = ""
+        if label and (job.closes_at or job.closes_on):
+            flag = f"  [{label}: {_closing_line(job, evidence=False)}]"
+        elif label:
+            flag = f"  [{label}]"
         if is_verified_closed(job):
             flag += f"  [{verification_label(job)}]"
         rows.append((match.score, job.id, job.title, job.company, flag, match_reasons(match)))

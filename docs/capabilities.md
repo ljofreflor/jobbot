@@ -75,7 +75,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs note` — Attach a free-text note to a job.
 - `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
 - `jobbot jobs search` — Search Indeed and store job postings locally (small volumes).
-- `jobbot jobs shortlist` — Rank stored jobs by match score; hides postings verified closed (jobs check-open).
+- `jobbot jobs shortlist` — Rank stored jobs by match score; flag a close and a finished posting.
 - `jobbot jobs show` — Show a stored job posting.
 - `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot (read-only audit).
 - `jobbot linkedin inspect` — Inspect LinkedIn page for selector development.
