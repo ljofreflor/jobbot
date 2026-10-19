@@ -273,6 +273,8 @@ _ATS_LABELS: dict[Language, dict[str, str]] = {
         "education": "EDUCATION",
         "skills": "SKILLS",
         "publications": "PUBLICATIONS",
+        "languages": "LANGUAGES",
+        "certifications": "CERTIFICATIONS",
     },
     "es": {
         "email": "Correo:",
@@ -284,6 +286,8 @@ _ATS_LABELS: dict[Language, dict[str, str]] = {
         "education": "FORMACIÓN",
         "skills": "HABILIDADES",
         "publications": "PUBLICACIONES",
+        "languages": "IDIOMAS",
+        "certifications": "CERTIFICACIONES",
     },
 }
 

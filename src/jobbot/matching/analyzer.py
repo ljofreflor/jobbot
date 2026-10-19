@@ -430,6 +430,8 @@ def _profile_evidence(
         *((claim, "profile") for claim in candidate.skills.all_skills()),
         *((claim, "profile") for claim in candidate.specialties),
         *((edu.degree, "profile") for edu in candidate.education),
+        *((lang.name, "profile") for lang in candidate.languages),
+        *((cert.name, "profile") for cert in candidate.certifications),
         *((exp.title, "held") for exp in candidate.experience),
     ]
     for claim, kind in claims:

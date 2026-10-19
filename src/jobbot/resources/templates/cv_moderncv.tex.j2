@@ -112,6 +112,20 @@
 {% endfor %}
 {% endif %}
 
+{% if candidate.languages %}
+\section{Idiomas}
+{% for lang in candidate.languages %}
+\cvitem{ {{- lang.name | latex -}} }{ {{- lang.level | latex -}} }
+{% endfor %}
+{% endif %}
+
+{% if candidate.certifications %}
+\section{Certificaciones}
+{% for cert in candidate.certifications %}
+\cvitem{ {{- cert.name | latex -}} }{ {{- cert.issuer | latex }} ({{ cert.date[:4] }}) }
+{% endfor %}
+{% endif %}
+
 {% if skills %}
 \section{Habilidades}
 % Skill names are terms to match, not prose: break between them, never inside one.

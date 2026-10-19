@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-131 commands, 218 modules, 1242 public symbols.
+131 commands, 219 modules, 1244 public symbols.
 
 ## Commands
 
@@ -401,6 +401,7 @@ writing it again — the promotion rule lives in
 
 - `application.py` — Application tracking models. · `ApplicationStatus`, `Application`, `ApplicationEvent`
 - `candidate.py` — Candidate domain model — single source of truth representation. · `orcid_is_valid`, `PersonalInfo`, `Candidate`
+- `credentials.py` — Languages and certifications the profile already states. · `Language`, `Certification`
 - `education.py` — Education model. · `Education`
 - `experience.py` — Experience and achievement models. · `Achievement`, `Experience`, `format_metric`, `metrics_as_display`
 - `external_profile.py` — External profile snapshot for portal diffs. · `ExternalExperience`, `ExternalEducation`, `ExternalProfile`

@@ -43,6 +43,8 @@ class ProfileFact(StrEnum):
     EMPLOYER = "employer"
     UNIT = "unit"
     WORK_MODE = "work_mode"
+    LANGUAGES = "languages"
+    CERTIFICATIONS = "certifications"
 
 
 # One fact → many accepted portal labels. Unknown labels stay unmapped (HITL).
@@ -145,6 +147,12 @@ _HOMOLOGATION: dict[ProfileFact, tuple[str, ...]] = {
     ProfileFact.EMPLOYER: ("employer", "company", "empleador"),
     ProfileFact.UNIT: ("department", "área", "area", "unidad"),
     ProfileFact.WORK_MODE: ("work arrangement", "work mode", "modalidad"),
+    ProfileFact.LANGUAGES: ("language", "languages", "idioma", "idiomas", "proficiency", "nivel"),
+    ProfileFact.CERTIFICATIONS: (
+        "certifications",
+        "licenses & certifications",
+        "certificaciones",
+    ),
 }
 
 _NATIONAL_ID_LABELS = frozenset(
@@ -221,6 +229,12 @@ def value_for_fact(candidate: Candidate, fact: ProfileFact) -> tuple[str, str]:
         return _from_role(candidate, "unit")
     if fact is ProfileFact.WORK_MODE:
         return _from_role(candidate, "work_mode")
+    if fact is ProfileFact.LANGUAGES:
+        lines = [lang.line() for lang in candidate.languages]
+        return _pair("; ".join(lines), "languages")
+    if fact is ProfileFact.CERTIFICATIONS:
+        lines = [cert.line() for cert in candidate.certifications]
+        return _pair("; ".join(lines), "certifications")
     if fact is ProfileFact.LINKEDIN:
         return _pair(personal.linkedin, "personal.linkedin")
     if fact is ProfileFact.GITHUB:

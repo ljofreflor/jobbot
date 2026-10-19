@@ -35,7 +35,17 @@
 {% if edu.start_date or edu.end_date %}{{ edu_dates(edu) }}
 {% endif %}{% if edu.details %}{{ edu.details | trim }}
 {% endif %}
-{% endfor %}{% endif %}{% if skills +%}
+{% endfor %}{% endif %}{% if candidate.languages %}
+{{ labels.languages }}
+{% for lang in candidate.languages %}
+{{ lang.line() }}
+{% endfor %}
+{% endif %}{% if candidate.certifications %}
+{{ labels.certifications }}
+{% for cert in candidate.certifications %}
+{{ cert.line() }}
+{% endfor %}
+{% endif %}{% if skills +%}
 {{ labels.skills }}
 {% for group, items in skills.items() %}{{ group_label(group) }}: {{ items | join(', ') }}
 {% endfor %}{% endif %}{% if publications +%}
