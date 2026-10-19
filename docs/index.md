@@ -182,7 +182,7 @@ Cada comando público de `src/jobbot/cli.py`, en una línea. Las banderas están
 [referencia](comandos.md). `jobbot <comando> --help` imprime el resto. Nada de esta
 lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o **presencia** (navy) son los siete pasos de arriba; la marca vuelve a ese paso del bucle. En la barra, **CV**, **Vacantes** y **Postulaciones** van subrayados: ahí viven esos siete.
 
-<nav class="jb-cmdnav" aria-label="Grupos de comandos. Las flechas mueven entre grupos" aria-keyshortcuts="ArrowLeft ArrowRight Home End">
+<nav class="jb-cmdnav" aria-label="Grupos de comandos. Tab cae en el grupo actual; las flechas mueven entre grupos" aria-keyshortcuts="ArrowLeft ArrowRight Home End">
   <a href="#cmd-maquina" aria-controls="cmd-maquina">Máquina local</a>
   <a href="#cmd-perfil" aria-controls="cmd-perfil">Perfil</a>
   <a href="#cmd-cv" aria-controls="cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Pasos postular y presencia">CV</a>
