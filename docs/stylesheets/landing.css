@@ -1207,13 +1207,9 @@ a.jb-in-story__tag--presence[aria-current="step"] {
     font-size: 0.68rem;
   }
 
-  /* Same 1.5rem touch floor as catalog story tags. */
   a.jb-scrolly__lede-cmd,
   a.jb-scrolly__lede-loop,
   a.jb-scrolly__split-link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.5rem;
     padding: 0.15rem 0.2rem;
   }
 
@@ -1349,6 +1345,9 @@ a.jb-in-story__tag--presence[aria-current="step"] {
 
 /* Same jump as pin chips and lede loop names (first step of the chapter). */
 a.jb-scrolly__split-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   color: inherit;
   text-decoration: none;
   border-bottom: 1px solid rgba(0, 88, 248, 0.35);
@@ -1707,6 +1706,9 @@ a.jb-scrolly__loop:focus-visible {
 }
 
 a.jb-scrolly__lede-loop {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1750,6 +1752,9 @@ a.jb-scrolly__lede-loop--presence[aria-current="true"] {
 }
 
 a.jb-scrolly__lede-cmd {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   color: var(--jb-cobalt);
   text-decoration: none;
   border-bottom: 1px solid rgba(0, 88, 248, 0.35);
