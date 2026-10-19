@@ -315,6 +315,14 @@ def _print_version_and_exit(value: bool) -> None:
         raise typer.Exit(code=SUCCESS)
 
 
+def _update_and_exit(value: bool) -> None:
+    """``jobbot -U`` is ``jobbot update``: reinstall from main, then stop."""
+    if not value:
+        return
+    update_cmd()
+    raise typer.Exit(code=SUCCESS)
+
+
 @app.callback()
 def main(
     verbose: Annotated[
@@ -329,6 +337,16 @@ def main(
             callback=_print_version_and_exit,
             is_eager=True,
             help="Show JobBot version and exit",
+        ),
+    ] = False,
+    update: Annotated[
+        bool,
+        typer.Option(
+            "--update",
+            "-U",
+            callback=_update_and_exit,
+            is_eager=True,
+            help="Reinstall JobBot from main and exit (same as `jobbot update`)",
         ),
     ] = False,
     workspace: Annotated[
