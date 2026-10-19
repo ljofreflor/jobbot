@@ -1258,6 +1258,11 @@ a.jb-in-story__tag:focus-visible {
   border-top: 0;
 }
 
+.jb-scrolly__split--presence {
+  border-top-color: rgba(0, 24, 56, 0.28);
+  color: var(--jb-navy);
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
