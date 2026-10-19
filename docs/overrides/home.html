@@ -221,8 +221,8 @@
          data-loop-presence="{% if en %}Presence{% else %}Presencia{% endif %}">
       <div class="jb-scrolly__terminal">
         <nav class="jb-scrolly__progress"
-             aria-label="{% if en %}Story steps: apply and presence. Arrow keys move between steps{% else %}Pasos del relato: postular y presencia. Las flechas mueven entre pasos{% endif %}"
-             aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End">
+             aria-label="{% if en %}Story steps: apply and presence. Arrow keys move between steps; Page Up/Down jump loops{% else %}Pasos del relato: postular y presencia. Las flechas mueven entre pasos; Av Pág/Re Pág saltan de bucle{% endif %}"
+             aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End PageUp PageDown">
           <p class="jb-scrolly__dots" id="jb-scrolly-dots">
             <span class="jb-scrolly__chapter">
               <a href="#story-get" class="jb-scrolly__dot is-current" aria-current="step" aria-label="{% if en %}Step 1, apply, get{% else %}Paso 1, postular, get{% endif %}"></a>
@@ -595,7 +595,8 @@
           if (
             key !== "ArrowRight" && key !== "ArrowLeft" &&
             key !== "ArrowDown" && key !== "ArrowUp" &&
-            key !== "Home" && key !== "End"
+            key !== "Home" && key !== "End" &&
+            key !== "PageUp" && key !== "PageDown"
           ) return;
           var current = Array.prototype.indexOf.call(steps, currentStep);
           if (current < 0) current = 0;
@@ -608,6 +609,12 @@
             next = 0;
           } else if (key === "End") {
             next = steps.length - 1;
+          } else if (key === "PageDown") {
+            /* First presence step, or last step if already there. */
+            next = current < 5 ? 5 : steps.length - 1;
+          } else if (key === "PageUp") {
+            /* First apply step from presence; stay at start inside apply. */
+            next = current >= 5 ? 0 : 0;
           }
           if (next === current || !steps[next]) return;
           event.preventDefault();
