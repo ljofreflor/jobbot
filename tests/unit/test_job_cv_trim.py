@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
+from jobbot.cv import build as build_module
+from jobbot.cv.build import BuildTarget, build_cv
 from jobbot.cv.pages import pages_from_xelatex_log, plan_page_trim
 from jobbot.cv.renderer import render_cv_ats, render_cv_tex
 from jobbot.cv.selection import select_for_base_cv, select_for_job
@@ -152,6 +156,81 @@ def test_xelatex_log_page_count_and_trim_order() -> None:
     assert under.compact_ids == ()
     assert under.drop_course_ids == ()
     assert under.warning is None
+
+
+def _fake_xelatex(pages: list[int]) -> Callable[[Path, Path], Path]:
+    """Stand in for XeLaTeX: each pass writes the log with the next page count."""
+
+    def compile_tex(tex_path: Path, work_dir: Path) -> Path:
+        reported = pages.pop(0)
+        (work_dir / "build.log").write_text(
+            f"Output written on cv.pdf ({reported} pages, 1 bytes).\n", encoding="utf-8"
+        )
+        pdf = work_dir / "cv.pdf"
+        pdf.write_bytes(b"%PDF-1.5\n")
+        return pdf
+
+    return compile_tex
+
+
+def test_page_trim_rebuilds_the_artifacts_it_planned(
+    project_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pages = [4, 1]
+    monkeypatch.setattr(build_module, "_compile_xelatex", _fake_xelatex(pages))
+    candidate = _candidate()
+    output = tmp_path / "output"
+    build_cv(
+        candidate,
+        project_root / "templates",
+        output,
+        target=BuildTarget.CV,
+        job=_job("gestión de emergencias"),
+        max_pages=2,
+    )
+
+    assert pages == []
+    job_dir = output / "jobs" / "J0143"
+    payload = json.loads((job_dir / "selection.json").read_text(encoding="utf-8"))
+    assert payload["compact_ids"] == ["old-role"]
+    assert payload["education_ids"] == ["degree-1"]
+    assert "page_warning" not in payload
+    ats = (job_dir / "cv_ats.txt").read_text(encoding="utf-8")
+    tex = (job_dir / "cv.tex").read_text(encoding="utf-8")
+    for text in (ats, tex):
+        assert "Curso de emergencias" not in text
+        assert "Informe anual de vigilancia" not in text
+        assert "Analista" in text
+
+
+def test_full_job_cv_is_never_trimmed(
+    project_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pages = [4, 4]
+    monkeypatch.setattr(build_module, "_compile_xelatex", _fake_xelatex(pages))
+    candidate = _candidate()
+    output = tmp_path / "output"
+    build_cv(
+        candidate,
+        project_root / "templates",
+        output,
+        target=BuildTarget.CV,
+        job=_job("gestión de emergencias"),
+        full=True,
+        compact_before="2014-01",
+        max_pages=2,
+    )
+
+    assert pages == [4]
+    job_dir = output / "jobs" / "J0143"
+    payload = json.loads((job_dir / "selection.json").read_text(encoding="utf-8"))
+    assert "compact_ids" not in payload
+    assert "page_warning" not in payload
+    ats = (job_dir / "cv_ats.txt").read_text(encoding="utf-8")
+    tex = (job_dir / "cv.tex").read_text(encoding="utf-8")
+    for text in (ats, tex):
+        assert "Curso de emergencias" in text
+        assert "Informe anual de vigilancia" in text
 
 
 def test_unknown_education_kind_names_the_two_values() -> None:

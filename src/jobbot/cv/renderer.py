@@ -363,6 +363,9 @@ def _exp_compact(
     extra = set(selection.compact_ids)
 
     def exp_compact(exp: Experience) -> bool:
+        if selection.full:
+            # --full keeps every role whole: nothing is collapsed to its date line.
+            return False
         if exp.id in extra:
             return True
         if not compact_before or exp.current or not exp.end_date:

@@ -119,6 +119,7 @@ def build_cv(
         return written
 
     tex_path = out_dir / "cv.tex"
+    ats_path = out_dir / "cv_ats.txt"
     log = None
     if application_log is not None and job is not None and match is not None:
         log = build_application_log(
@@ -129,44 +130,52 @@ def build_cv(
             options=application_log,
             fallback_language=cv_language(style),
         )
-    tex_content = render_cv_tex(
-        candidate,
-        templates_dir,
-        selection,
-        style=style,
-        application_log=log,
-        credit=credit,
-        compact_before=compact_before,
-    )
-    tex_path.write_text(tex_content, encoding="utf-8")
-    logger.info("Wrote LaTeX CV: %s", tex_path)
-    written.append(tex_path)
 
-    # Written before XeLaTeX: a TeX failure must not leave the ATS text of an older profile.
-    ats_path = out_dir / "cv_ats.txt"
-    ats_path.write_text(
-        render_cv_ats(
+    def write_sources() -> None:
+        tex_content = render_cv_tex(
             candidate,
             templates_dir,
             selection,
+            style=style,
+            application_log=log,
             credit=credit,
-            language=as_cv_language(language),
-            configured=as_cv_language(configured_language),
             compact_before=compact_before,
-        ),
-        encoding="utf-8",
-    )
-    logger.info("Wrote ATS CV: %s", ats_path)
+        )
+        tex_path.write_text(tex_content, encoding="utf-8")
+        logger.info("Wrote LaTeX CV: %s", tex_path)
+
+        # Written before XeLaTeX: a TeX failure must not leave the ATS text of an older profile.
+        ats_path.write_text(
+            render_cv_ats(
+                candidate,
+                templates_dir,
+                selection,
+                credit=credit,
+                language=as_cv_language(language),
+                configured=as_cv_language(configured_language),
+                compact_before=compact_before,
+            ),
+            encoding="utf-8",
+        )
+        logger.info("Wrote ATS CV: %s", ats_path)
+
+    write_sources()
+    written.append(tex_path)
 
     pdf_path = _compile_xelatex(tex_path, out_dir)
-    _record_page_trim(
+    if _record_page_trim(
         candidate,
         selection,
         out_dir,
         max_pages=max_pages,
         compact_before=compact_before,
         job=job,
-    )
+    ):
+        # The plan is presentation only, so the artifacts are rebuilt from the trimmed
+        # selection instead of keeping the ones the first pass already wrote.
+        write_sources()
+        pdf_path = _compile_xelatex(tex_path, out_dir)
+        _clear_page_warning_when_it_fits(selection, out_dir, max_pages=max_pages)
     written.extend([pdf_path, ats_path])
     return written
 
@@ -179,13 +188,17 @@ def _record_page_trim(
     max_pages: int | None,
     compact_before: str | None,
     job: JobPosting | None,
-) -> None:
-    """Write the page-trim plan into selection.json. It does not delete profile facts."""
-    if max_pages is None or job is None:
-        return
+) -> bool:
+    """Write the page-trim plan into selection.json. It does not delete profile facts.
+
+    True when the selection changed, so the artifacts have to be built again. A ``full``
+    job CV keeps every fact, so nothing is trimmed out of it.
+    """
+    if max_pages is None or job is None or selection.full:
+        return False
     log_path = out_dir / "build.log"
     if not log_path.is_file():
-        return
+        return False
     pages = pages_from_xelatex_log(log_path.read_text(encoding="utf-8"))
     kept = set(selection.experience_ids)
     finished: list[tuple[str, str]] = []
@@ -209,12 +222,30 @@ def _record_page_trim(
         course_ids=courses,
     )
     if plan.warning is None:
-        return
+        return False
     selection.compact_ids.extend(plan.compact_ids)
     if selection.education_ids is not None:
         drop = set(plan.drop_course_ids)
         selection.education_ids = [eid for eid in selection.education_ids if eid not in drop]
     selection.page_warning = plan.warning
+    write_selection_json(selection, out_dir / "selection.json")
+    return True
+
+
+def _clear_page_warning_when_it_fits(
+    selection: SelectionResult,
+    out_dir: Path,
+    *,
+    max_pages: int | None,
+) -> None:
+    """Drop the warning once the trimmed PDF is within the limit."""
+    log_path = out_dir / "build.log"
+    if max_pages is None or not log_path.is_file():
+        return
+    pages = pages_from_xelatex_log(log_path.read_text(encoding="utf-8"))
+    if pages is None or pages > max_pages:
+        return
+    selection.page_warning = None
     write_selection_json(selection, out_dir / "selection.json")
 
 
