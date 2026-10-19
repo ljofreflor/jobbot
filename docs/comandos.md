@@ -266,7 +266,8 @@ desafíos que aparezcan. No hay resolución automática de CAPTCHAs.
 | `companies learn URL` | Registra una relación empresa↔portal como conocimiento *candidate*. Una bolsa compartida (trabajando.cl, laborum, computrabajo, bumeran, chiletrabajos, empleos públicos) no se guarda; un subdominio de empresa en trabajando.cl sí, con ese ATS. |
 | `companies list` | Lista empresas y sus plataformas de carreras. Un sitio cuyo host es una bolsa queda marcado «host de bolsa: revisar» y sugiere `companies reject`. |
 | `companies show EMPRESA` | Una empresa con todos sus portales, observaciones y contradicciones. |
-| `companies promote EMPRESA` | Candidate → active. Es la única forma de volverlo verdad. |
+| `companies promote EMPRESA` | Candidate → active, un sitio a la vez. |
+| `companies auto-promote` | Lista candidatos con ATS conocido o evidencia que no sea solo HTTP 200. `--apply` los marca active. Rechazados, stale y bolsas no entran. |
 | `companies reject EMPRESA --site URL` | Marca un portal descubierto como incorrecto. |
 | `companies discover SEEDS.yaml` | One-shot: siembra portales candidatos para una lista de empresas. |
 | `companies import CANDIDATES.yaml` | Fusiona candidatos del one-shot al registro (siguen siendo candidate). |

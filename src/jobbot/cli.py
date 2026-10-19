@@ -7949,7 +7949,7 @@ def companies_promote(
     ] = None,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation")] = False,
 ) -> None:
-    """Promote candidate knowledge to active (the only way it becomes truth)."""
+    """Promote one company's candidate sites to active."""
     from jobbot.companies.models import KnowledgeStatus
     from jobbot.companies.registry import save_companies
     from jobbot.companies.urls import canonical_key
@@ -7983,6 +7983,34 @@ def companies_promote(
     if promoted:
         save_companies(registry, path)
     console.print(f"[green]Promoted[/green] {promoted} career site(s) → {path}")
+
+
+@companies_app.command("auto-promote")
+def companies_auto_promote(
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Mark eligible candidate sites active"),
+    ] = False,
+) -> None:
+    """List candidate sites technical evidence can promote. Dry-run writes nothing."""
+    from jobbot.companies.auto_promote import auto_promote_plan
+    from jobbot.companies.registry import save_companies
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    plan = auto_promote_plan(registry)
+    if not plan:
+        console.print("Nothing to auto-promote.")
+        return
+    for record, site in plan:
+        console.print(f"{record.id}  {site.url}  {site.ats.value}")
+    if not apply_changes:
+        console.print("Dry-run only. Re-run with --apply to mark these active.")
+        return
+    for record, site in plan:
+        registry.promote(record.id, url=site.url)
+    save_companies(registry, path)
+    console.print(f"Promoted {len(plan)} career site(s).")
 
 
 @companies_app.command("reject")
