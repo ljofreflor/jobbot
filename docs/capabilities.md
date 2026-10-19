@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 216 modules, 1227 public symbols.
+130 commands, 217 modules, 1235 public symbols.
 
 ## Commands
 
@@ -116,6 +116,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
 - `jobbot profile queries` — Job searches from your experience; --check measures them, --apply saves them.
 - `jobbot profile show` — Show a summary of the local profile.
+- `jobbot profile skills-map` — Map each declared skill to the role or degree that already shows it.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
 - `jobbot profile validate` — Validate data/profile.yaml and application_answers.yaml.
@@ -404,7 +405,7 @@ writing it again — the promotion rule lives in
 - `job.py` — Job posting domain model. · `JobPosting`
 - `match.py` — Job match result models. · `MatchStrength`, `MatchItem`, `JobMatch`
 - `project.py` — Personal project model. · `Project`
-- `skill.py` — Skill groupings and publications. · `SkillGroups`, `Publication`
+- `skill.py` — Skill groupings and publications. · `SkillGroups`, `SkillEvidence`, `Publication`
 - `sync.py` — Sync plan models for writable portal adapters. · `SyncOpType`, `SyncOperation`, `SyncPlan`, `SyncResult`
 - `targets.py` — Shared types for target renderers and constraints. · `ProfileTarget`, `TargetConstraints`, `ExperienceRenderer`, `YearMonth`
 
@@ -464,6 +465,7 @@ writing it again — the promotion rule lives in
 - `pdf_glyphs.py` — Recover the ligature glyphs a PDF's /ToUnicode map forgets. · `repair_missing_ligatures`
 - `query_check.py` — Measure saved searches against title results before anything is stored. · `QueryCell`, `QueryWarning`, `QueryCheck`, `significant_stems`, `title_covers`, `dominant_words`, `measure_queries`, `format_cell`, `sources_or_reject`, `search_source_titles`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
+- `skill_map.py` — Which declared skills a role or a degree already shows. Never invents a skill. · `SkillUse`, `map_skills`, `unbacked_skills`, `unbacked_achievements`, `evidence_records`, `format_map`, `format_unbacked`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`, `unknown_profile_keys`
 
 ### `publications`

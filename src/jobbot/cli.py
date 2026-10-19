@@ -1454,6 +1454,60 @@ def profile_show() -> None:
         console.print(Panel(candidate.summary.strip(), title="Summary"))
 
 
+@profile_app.command("skills-map")
+def profile_skills_map(
+    unbacked: Annotated[
+        bool,
+        typer.Option("--unbacked", help="Skills with no evidence, and achievements with no skill"),
+    ] = False,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Write the evidence links into profile.yaml after confirm"),
+    ] = False,
+) -> None:
+    """Map each declared skill to the role or degree that already shows it."""
+    from jobbot.cv.tune import backup_profile
+    from jobbot.profile.skill_map import evidence_records, format_map, format_unbacked, map_skills
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+        raw = load_profile_raw(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    uses = map_skills(candidate)
+    lines = format_unbacked(candidate) if unbacked else format_map(uses)
+    if not lines:
+        console.print("No skill evidence.")
+    for line in lines:
+        console.print(line, markup=False)
+    if not apply_changes:
+        raise typer.Exit(SUCCESS)
+    records = evidence_records(uses)
+    if not records:
+        console.print("Nothing to write.")
+        raise typer.Exit(SUCCESS)
+    if not typer.confirm("Write skill evidence into profile.yaml?", default=False):
+        console.print("Nothing written.")
+        raise typer.Exit(SUCCESS)
+    raw["skill_evidence"] = [record.model_dump() for record in records]
+    backup = backup_profile(config.profile_path)
+    config.profile_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    stored = load_profile(config.profile_path)
+    check = validate_candidate(stored)
+    if not check.ok:
+        for issue in check.issues:
+            err_console.print(str(issue))
+        raise typer.Exit(VALIDATION_FAILURE)
+    console.print(f"Wrote skill evidence. Backup: {backup.name}", markup=False)
+    raise typer.Exit(SUCCESS)
+
+
 @profile_app.command("import-latex")
 def profile_import_latex(
     tex_path: Annotated[

@@ -9,7 +9,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, TypeAdapter, field_val
 from jobbot.models.education import Education
 from jobbot.models.experience import Experience
 from jobbot.models.project import Project
-from jobbot.models.skill import Publication, SkillGroups
+from jobbot.models.skill import Publication, SkillEvidence, SkillGroups
 
 _HTTP_URL = TypeAdapter(HttpUrl)
 _ORCID_SHAPE = re.compile(r"\d{4}-\d{4}-\d{4}-\d{3}[\dX]")
@@ -84,6 +84,7 @@ class Candidate(BaseModel):
     experience: list[Experience] = Field(default_factory=list)
     education: list[Education] = Field(default_factory=list)
     skills: SkillGroups = Field(default_factory=SkillGroups)
+    skill_evidence: list[SkillEvidence] = Field(default_factory=list)
     publications: list[Publication] = Field(default_factory=list)
     projects: list[Project] = Field(default_factory=list)
 
