@@ -2058,6 +2058,31 @@ body:has(#story-advise:target, #story-sync:target, #cmd-advise:target, #cmd-sync
   opacity: 1;
 }
 
+/* Softened chapter cut restores when a catalog row of that loop is hovered or focused
+   (same cut a #cmd-* jump already restores). */
+body:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  a.jb-scrolly__split-link--presence:not([aria-current="true"]),
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
