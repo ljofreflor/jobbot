@@ -239,7 +239,7 @@ writing it again — the promotion rule lives in
 - `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `indeed_session_authenticated`, `normalize_indeed_continue_url`
 - `cv_upload.py` — Decide whether an Indeed PDF upload is needed. The portal write stays HITL. · `receipt_path`, `file_sha256`, `load_receipt_sha`, `icon_glyph_message`
 - `external.py` — An Indeed posting whose apply step leaves Indeed. · `IndeedVerificationRequired`, `read_apply_entry`, `gate_indeed_entry`, `external_apply_url`, `remember_external_landing`, `strip_indeed_tracking`
-- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
+- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `posting_is_closed`, `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
 - `owner.py` — The open Indeed resume must name this workspace before anything is typed. · `IndeedOwnerMismatch`, `cv_name_verdict`, `refuse_indeed_write`, `write_allowed`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `preferences.py` — Project local preferences onto Indeed's Preferencias tab. Sends nothing. · `PreferencePlan`, `desired_titles`, `plan_preferences`, `save_preferences`

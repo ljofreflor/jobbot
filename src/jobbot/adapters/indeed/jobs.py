@@ -15,7 +15,7 @@ from rich.console import Console
 from jobbot.adapters.indeed import selectors
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
-from jobbot.jobs.closure import visible_soup
+from jobbot.jobs.closure import closure_evidence, visible_soup
 from jobbot.jobs.indeed_url import indeed_jk_rejection
 from jobbot.jobs.parsing import parse_job_text
 from jobbot.jobs.sources import JobSearchQuery
@@ -24,14 +24,12 @@ from jobbot.models.job import JobPosting
 logger = logging.getLogger("jobbot.indeed.jobs")
 console = Console()
 
-# Wording Indeed uses when a posting is closed. Not a list of job families.
-_CLOSED_MARKERS: tuple[str, ...] = (
-    "this job has expired",
-    "no longer accepting",
-    "ya no acepta",
-    "este empleo ha expirado",
-    "esta oferta ha caducado",
-)
+# Closed wording lives in jobbot.jobs.closure so Indeed and the shared check stay aligned.
+
+
+def posting_is_closed(html: str) -> bool:
+    """True when the page says the vacancy is no longer open."""
+    return closure_evidence(html) is not None
 
 
 class IndeedJobClosed(ValueError):
@@ -295,12 +293,6 @@ def _unique_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return unique
 
 
-def posting_is_closed(html: str) -> bool:
-    """True when the page says the vacancy is no longer open."""
-    folded = (html or "").casefold()
-    return any(marker in folded for marker in _CLOSED_MARKERS)
-
-
 def indeed_apply_url(viewjob_url: str | None, jk: str | None) -> str | None:
     """Indeed Apply handoff for one vacancy: same country host, only jk."""
     if not viewjob_url or not jk:
@@ -363,10 +355,8 @@ def card_to_job_posting(
     detail_html: str | None,
     placeholder_id: str,
 ) -> JobPosting:
-    if detail_html and posting_is_closed(detail_html):
-        raise IndeedJobClosed(
-            "This Indeed job is no longer accepting applications (expired)."
-        )
+    if detail_html and (phrase := closure_evidence(detail_html)):
+        raise IndeedJobClosed(phrase)
     detail = parse_indeed_job_detail_html(detail_html) if detail_html else {}
     title = detail.get("title") or card.get("title") or "Untitled"
     company = detail.get("company") or card.get("company") or "Unknown"

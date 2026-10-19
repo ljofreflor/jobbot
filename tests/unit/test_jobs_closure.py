@@ -124,3 +124,19 @@ def test_accented_posting_url_is_sent_percent_encoded(monkeypatch: pytest.Monkey
 def test_unsendable_posting_url_is_an_os_error() -> None:
     with pytest.raises(OSError, match="cannot be requested"):
         fetch_posting_text("http://[::1")
+
+
+def test_spanish_indeed_caduco_banner_is_evidence() -> None:
+    from pathlib import Path
+
+    html = (
+        Path(__file__).parents[1] / "fixtures/jobs/indeed_viewjob_caduco.html"
+    ).read_text(encoding="utf-8")
+    assert closure_evidence(html) == "este empleo caducó"
+    assert closure_evidence("Este empleo ha caducado en Indeed") == "este empleo ha caducado"
+    assert closure_evidence("esta oferta caducó") == "esta oferta caducó"
+
+
+def test_unrelated_caducar_and_warehouse_wording_stay_open() -> None:
+    assert closure_evidence("El plazo del contrato puede caducar si no se renueva.") is None
+    assert closure_evidence("We are filling a warehouse and closing the books.") is None

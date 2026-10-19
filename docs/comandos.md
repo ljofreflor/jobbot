@@ -184,7 +184,7 @@ espera de ese `appname`.
 | `application interview JOB_ID` | Preguntas desde el aviso archivado y la evidencia de `selection.json`. Un requisito sin eco es un puente, no un logro nuevo. |
 | `application show JOB_ID` | Ruta y estado del paquete. |
 | `application open JOB_ID` | Abre la URL de la vacante o del ATS en el navegador (no postula). |
-| `application apply JOB_ID` | Plan de prellenado. Indeed que sale a otro portal no usa Indeed Apply. Con `--cdp` la sesión se consulta en ese host (`[::1]` sigue siendo `[::1]`); un adjunto que no vuelve no abre otro navegador. Sin `--cdp` un perfil ajeno no se lee y se abre el navegador por defecto. `--apply` abre; el envío lo haces tú. |
+| `application apply JOB_ID` | Plan de prellenado. Indeed que sale a otro portal no usa Indeed Apply. Con `--cdp` la sesión se consulta en ese host (`[::1]` sigue siendo `[::1]`); un adjunto que no vuelve no abre otro navegador. Sin `--cdp` un perfil ajeno no se lee y se abre el navegador por defecto. `--apply` abre; el envío lo haces tú. Un banner «Este empleo caducó en Indeed» (o cualquier frase de cierre) no abre y no marca `applied`. |
 | `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso. Sale 0 si todo está respaldado y 2 si una afirmación no lo está. Una carta o una pregunta de motivación sale 4: si las afirmaciones están respaldadas lo dice, y la motivación la confirma la persona. |
 | `jobs describe JOB_ID --file aviso.txt` | Reemplaza la descripción de un aviso ya guardado. Conserva el id, la URL, la nota y la postulación. |
 | `applications list` | Lista las postulaciones registradas (alias: `applications status`). |
