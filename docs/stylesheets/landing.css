@@ -2185,6 +2185,20 @@ body:has(
   opacity: 1;
 }
 
+/* Reverse: hovering the softened loop name restores that loop's commands. */
+body:has(
+    a.jb-scrolly__lede-loop--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__lede-loop--presence:not([aria-current="true"]):focus-visible
+  )
+  a.jb-scrolly__lede-cmd--presence,
+body:has(
+    a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence):not([aria-current="true"]):focus-visible
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
 /* Commands of the other loop — same 0.42 as the inactive loop name (pin drives). */
 .jb-scrolly__pin:not(.is-presence) ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd--presence,
 .jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
