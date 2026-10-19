@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 216 modules, 1220 public symbols.
+129 commands, 216 modules, 1221 public symbols.
 
 ## Commands
 
@@ -347,7 +347,7 @@ writing it again — the promotion rule lives in
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
 - `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `url_label`, `render_cv_tex`, `render_cv_ats`
-- `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
+- `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`, `profile_facts_text`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
 - `text_layer.py` — The text an ATS reads from a CV. Icons and stuffed terms are findings, not facts. · `TextLayerIssue`, `check_text_layer`, `issues_in_text`, `issues_for_outputs`

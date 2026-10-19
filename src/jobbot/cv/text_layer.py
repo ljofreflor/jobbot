@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from jobbot.cv.selection import profile_facts_text
 from jobbot.jobs.normalization import fold_text
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
@@ -15,7 +16,10 @@ _PUA = re.compile(r"[\uE000-\uF8FF]")
 _ALLOWED_BULLETS = frozenset({"•", "-", "–"})
 # Font-awesome bullets often survive as one of these letters, glued to the line.
 _ICON_LETTERS = frozenset({"f", "a", "Ȳ"})
-_SEPARATORS = frozenset(" \t|•-–—:·/( ")
+_SEPARATORS = frozenset(" \t\r\n\f\v|•-–—:·/( ")
+# A contact only counts where it stands on its own: the handle "ana" inside
+# "ana@example.com" or "ana-ejemplo" is not the LinkedIn contact.
+_JOINERS = frozenset("@._-+")
 _BULLET_LINE = re.compile(r"^(\S)\s+\S")
 
 
@@ -83,13 +87,23 @@ def issues_for_outputs(
 
 def _glued_icon(text: str, candidate: Candidate) -> bool:
     for _label, value in _contacts(candidate):
-        at = text.find(value)
-        if at <= 0:
-            continue
-        previous = text[at - 1]
-        if previous not in _SEPARATORS:
+        spots = _occurrences(text, value)
+        if spots and all(at > 0 and text[at - 1] not in _SEPARATORS for at in spots):
             return True
     return False
+
+
+def _occurrences(text: str, value: str) -> list[int]:
+    """Offsets where the value is a whole token, not a piece of a longer one."""
+    spots: list[int] = []
+    at = text.find(value)
+    while at != -1:
+        before = text[at - 1 : at]
+        after = text[at + len(value) : at + len(value) + 1]
+        if before not in _JOINERS and after not in _JOINERS:
+            spots.append(at)
+        at = text.find(value, at + 1)
+    return spots
 
 
 def _bad_bullet(text: str) -> bool:
@@ -108,7 +122,7 @@ def _bad_bullet(text: str) -> bool:
 def _missing_contact(text: str, candidate: Candidate) -> list[TextLayerIssue]:
     missing: list[TextLayerIssue] = []
     for label, value in _contacts(candidate):
-        if value and value not in text:
+        if value and not _occurrences(text, value):
             missing.append(
                 TextLayerIssue("contact_missing", f"{label} missing from the text layer")
             )
@@ -116,7 +130,7 @@ def _missing_contact(text: str, candidate: Candidate) -> list[TextLayerIssue]:
 
 
 def _stuffed(text: str, candidate: Candidate, job: JobPosting) -> list[TextLayerIssue]:
-    haystack = fold_text(_candidate_blob(candidate))
+    haystack = fold_text(profile_facts_text(candidate))
     page = fold_text(text)
     issues: list[TextLayerIssue] = []
     for skill in job.skills:
@@ -143,12 +157,3 @@ def _contacts(candidate: Candidate) -> list[tuple[str, str]]:
         handle = personal.linkedin.rstrip("/").rsplit("/", 1)[-1]
         found.append(("linkedin", handle))
     return found
-
-
-def _candidate_blob(candidate: Candidate) -> str:
-    parts = [candidate.summary or "", *candidate.specialties, *candidate.skills.all_skills()]
-    for exp in candidate.experience:
-        parts.extend([exp.title, exp.description or ""])
-        parts.extend(ach.text for ach in exp.achievements)
-    parts.extend(edu.degree for edu in candidate.education)
-    return "\n".join(parts)

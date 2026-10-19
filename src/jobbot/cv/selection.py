@@ -230,21 +230,29 @@ def filter_experiences(
     return result
 
 
+def profile_facts_text(candidate: Candidate) -> str:
+    """Everything the profile states in words — the facts a CV is allowed to print."""
+    parts: list[str] = [
+        candidate.personal.headline,
+        candidate.summary or "",
+        *candidate.specialties,
+        *candidate.skills.all_skills(),
+    ]
+    for exp in candidate.experience:
+        parts.extend([exp.title, exp.company, exp.description or ""])
+        parts.extend(ach.text for ach in exp.achievements)
+    for edu in candidate.education:
+        parts.extend([edu.degree, edu.institution, edu.details or ""])
+    for project in candidate.projects:
+        parts.extend([project.name, project.description, *project.tags])
+    for pub in candidate.publications:
+        parts.extend([pub.title, pub.journal or ""])
+    return "\n".join(parts)
+
+
 def _gaps(candidate: Candidate, job: JobPosting) -> list[str]:
     """Posting skills the profile never states. They stay off the CV."""
-    haystack = fold_text(
-        "\n".join(
-            [
-                candidate.summary or "",
-                *candidate.specialties,
-                *candidate.skills.all_skills(),
-                *(exp.title for exp in candidate.experience),
-                *(exp.description or "" for exp in candidate.experience),
-                *(ach.text for exp in candidate.experience for ach in exp.achievements),
-                *(edu.degree for edu in candidate.education),
-            ]
-        )
-    )
+    haystack = fold_text(profile_facts_text(candidate))
     gaps: list[str] = []
     for skill in job.skills:
         needle = fold_text(skill)
