@@ -30,7 +30,7 @@ from jobbot.applications.manager import (
 from jobbot.browser.background import background_notice
 from jobbot.companies.models import DiscoverySource
 from jobbot.companies.registry import CompanyRegistry
-from jobbot.config import JobbotConfig, load_config
+from jobbot.config import ConfigError, JobbotConfig, load_config
 from jobbot.cv.build import BuildTarget, build_cv
 from jobbot.cv.renderer import CvStyle
 from jobbot.db.engine import make_engine, make_session_factory
@@ -239,6 +239,11 @@ def run_cli(
         # Pointing a profile at somebody else's data is a wrong invocation, not a bug:
         # report it and stop, without recording an ops failure or writing anything.
         err_console.print(f"[bold red]Wrong workspace[/bold red]\n{exc}")
+        if standalone_mode:
+            raise SystemExit(VALIDATION_FAILURE) from exc
+        return VALIDATION_FAILURE
+    except ConfigError as exc:
+        err_console.print(f"[bold red]Invalid config[/bold red]\n{exc}")
         if standalone_mode:
             raise SystemExit(VALIDATION_FAILURE) from exc
         return VALIDATION_FAILURE
