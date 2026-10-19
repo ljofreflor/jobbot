@@ -1523,17 +1523,30 @@ a.jb-scrolly__loop:focus-visible {
   position: relative;
   height: 2px;
   margin: -0.35rem 0 0.85rem;
+  /* Apply track (cobalt wash) | gap | presence track (navy wash). */
   background: linear-gradient(
     to right,
     rgba(200, 216, 248, 0.22) 0,
     rgba(200, 216, 248, 0.22) calc(100% * 5 / 7 - 1.5px),
     transparent calc(100% * 5 / 7 - 1.5px),
     transparent calc(100% * 5 / 7 + 1.5px),
-    rgba(200, 216, 248, 0.22) calc(100% * 5 / 7 + 1.5px),
-    rgba(200, 216, 248, 0.22) 100%
+    rgba(197, 212, 238, 0.22) calc(100% * 5 / 7 + 1.5px),
+    rgba(197, 212, 238, 0.22) 100%
   );
   border-radius: 1px;
   overflow: visible;
+}
+
+.jb-scrolly__pin.is-presence .jb-scrolly__meter {
+  background: linear-gradient(
+    to right,
+    rgba(200, 216, 248, 0.12) 0,
+    rgba(200, 216, 248, 0.12) calc(100% * 5 / 7 - 1.5px),
+    transparent calc(100% * 5 / 7 - 1.5px),
+    transparent calc(100% * 5 / 7 + 1.5px),
+    rgba(197, 212, 238, 0.34) calc(100% * 5 / 7 + 1.5px),
+    rgba(197, 212, 238, 0.34) 100%
+  );
 }
 
 /* Chapter break after the five apply steps; presence is the last two. */
