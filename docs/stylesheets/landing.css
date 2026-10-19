@@ -1970,11 +1970,23 @@ a.jb-scrolly__loop:hover {
   opacity: 1;
 }
 
-/* Softened pin chapter restores when a step of that chapter is :target (lede/split 163–164). */
-body:has(#story-advise:target, #story-sync:target)
+/* Softened pin chapter restores when a step of that chapter is :target
+   (#story-* from lede/tags, item 165; #cmd-* from «En el catálogo» / stage). */
+body:has(#story-advise:target, #story-sync:target, #cmd-advise:target, #cmd-sync:target)
   .jb-scrolly__pin:not(.is-presence)
   .jb-scrolly__chapter:last-child,
-body:has(#story-get:target, #story-match:target, #story-build:target, #story-conditions:target, #story-apply:target)
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target,
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
   .jb-scrolly__pin.is-presence
   .jb-scrolly__chapter:first-child {
   opacity: 1;
