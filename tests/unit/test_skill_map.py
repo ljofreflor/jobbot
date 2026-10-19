@@ -9,7 +9,7 @@ import yaml
 
 from jobbot.exit_codes import SUCCESS
 from jobbot.models.candidate import Candidate
-from jobbot.profile.skill_map import format_map, format_unbacked, map_skills
+from jobbot.profile.skill_map import format_map, format_unbacked, map_skills, unbacked_skills
 from jobbot.profile.validator import validate_candidate
 
 DECLARED = (
@@ -100,6 +100,52 @@ def test_unbacked_skill_and_achievement_are_listed_and_not_linked() -> None:
     assert f"unbacked skill: {UNBACKED}" in lines
     assert "unbacked achievement: ach-ceramica" in lines
     assert not any(line.startswith(f"{UNBACKED} ->") for line in format_map(map_skills(candidate)))
+
+
+def _one_achievement(skills: list[str], text: str) -> Candidate:
+    return Candidate.model_validate(
+        {
+            "personal": {
+                "name": "Ana Ejemplo",
+                "headline": "Profesional",
+                "email": "ana@example.com",
+            },
+            "experience": [
+                {
+                    "id": "role-1",
+                    "company": "Organismo Ficticio",
+                    "title": "Cargo",
+                    "start_date": "2022-01",
+                    "end_date": "2024-12",
+                    "current": False,
+                    "achievements": [{"id": "ach-1", "text": text, "tags": []}],
+                }
+            ],
+            "skills": {"other": skills},
+        }
+    )
+
+
+def test_a_short_skill_is_backed_by_the_achievement_that_names_it() -> None:
+    candidate = _one_achievement(
+        ["SQL", "Power BI"],
+        "Publique tableros en Power BI sobre consultas SQL.",
+    )
+    assert {use.skill for use in map_skills(candidate)} == {"SQL", "Power BI"}
+
+
+def test_a_short_skill_is_not_backed_by_a_longer_word_that_contains_it() -> None:
+    candidate = _one_achievement(
+        ["SQL", "Power BI"],
+        "Migre una base sqlite y automatice el power query.",
+    )
+    assert map_skills(candidate) == []
+    assert unbacked_skills(candidate) == ["SQL", "Power BI"]
+
+
+def test_a_plural_skill_is_backed_by_the_singular_in_the_prose() -> None:
+    candidate = _one_achievement(["Gestion de redes"], "Gestione una red regional.")
+    assert [use.skill for use in map_skills(candidate)] == ["Gestion de redes"]
 
 
 def _workspace(tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
