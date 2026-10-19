@@ -983,6 +983,18 @@ body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd
   opacity: 1;
 }
 
+/* Non-story tables follow their heading (item 139); scroll-current heading leaves the table full. */
+body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) + table {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+
+body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current):hover + table,
+body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current):focus + table,
+body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) + table:hover {
+  opacity: 1;
+}
+
 /* Apply-only group headings soften with the same Presence cue as cmdnav (item 129). */
 html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes,
 html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones,
@@ -2287,6 +2299,7 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   html.jb-pin-presence a.jb-cmdnav__story[data-story-cmds]:not([data-story-cmds*="advise"]):not([data-story-cmds*="sync"]):not(.is-current),
   body:has(.jb-hero) .jb-cmdnav a:not(.jb-cmdnav__story):not(.is-current),
   body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current),
+  body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) + table,
   html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes,
   html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones,
   html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies,
