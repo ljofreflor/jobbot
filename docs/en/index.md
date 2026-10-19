@@ -240,7 +240,7 @@ Nothing in this list submits alone or invents a fact. Rows marked **apply** (cob
 
 | Command | What it does |
 |---------|----------------|
-| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <a class="jb-in-story__tag" href="#story-get" aria-label="Step 1, apply, get">apply</a></span> | Downloads one posting (Get on Board, Indeed, Workday), builds the CV and the package. It does not send. |
+| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <a class="jb-in-story__tag" href="#story-get" aria-current="step" aria-label="Step 1, apply, get">apply</a></span> | Downloads one posting (Get on Board, Indeed, Workday), builds the CV and the package. It does not send. |
 | `jobbot jobs add` | Stores a vacancy from a file or stdin. |
 | `jobbot jobs search QUERY` | Searches Indeed and stores results locally. |
 | `jobbot jobs discover` | Discovers via a public API: `--source workday` or `--source un-careers`. `--dry-run` writes nothing. |
