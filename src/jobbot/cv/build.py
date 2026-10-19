@@ -66,6 +66,7 @@ def build_cv(
     configured_language: str | None = None,
     compact_before: str | None = None,
     max_pages: int | None = None,
+    highlight_lines: tuple[str, ...] = (),
 ) -> list[Path]:
     """Build CV artifacts under output/base/ or output/jobs/<id>/.
 
@@ -137,6 +138,7 @@ def build_cv(
         application_log=log,
         credit=credit,
         compact_before=compact_before,
+        highlights=highlight_lines,
     )
     tex_path.write_text(tex_content, encoding="utf-8")
     logger.info("Wrote LaTeX CV: %s", tex_path)

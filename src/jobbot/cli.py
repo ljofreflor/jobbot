@@ -2037,6 +2037,13 @@ def cv_build(
         str | None,
         typer.Option("--lang", help="ATS headings: es or en"),
     ] = None,
+    highlights: Annotated[
+        bool,
+        typer.Option(
+            "--highlights",
+            help="Open with quantified bullets already in the profile.",
+        ),
+    ] = False,
 ) -> None:
     """Build CV from profile.yaml (base or job-specific)."""
     if full and not job_id:
@@ -2080,6 +2087,15 @@ def cv_build(
         match = RuleBasedJobAnalyzer().analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
 
+    highlight_lines: tuple[str, ...] = ()
+    if highlights:
+        from jobbot.cv.highlights import select_highlights
+
+        plan = select_highlights(candidate, job)
+        highlight_lines = plan.lines
+        if plan.warning:
+            err_console.print(f"[yellow]{plan.warning}[/yellow]")
+
     from jobbot.cv.build import application_log_options
 
     try:
@@ -2098,6 +2114,7 @@ def cv_build(
             configured_language=config.cv.language,
             compact_before=config.cv.compact_before,
             max_pages=config.cv.max_pages,
+            highlight_lines=highlight_lines,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         err_console.print(f"[red]{exc}[/red]")

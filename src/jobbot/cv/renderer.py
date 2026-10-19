@@ -381,6 +381,7 @@ def render_cv_tex(
     application_log: ApplicationLog | None = None,
     credit: bool = False,
     compact_before: str | None = None,
+    highlights: tuple[str, ...] = (),
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
@@ -417,6 +418,7 @@ def render_cv_tex(
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.CV,
         exp_compact=_exp_compact(selection, compact_before),
+        highlights=highlights,
     )
 
 

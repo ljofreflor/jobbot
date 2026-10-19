@@ -72,6 +72,15 @@
 {{ candidate.summary | latex_para }}
 {% endif %}
 
+{% if highlights %}
+\section{Logros}
+\begin{itemize}
+{% for line in highlights %}
+  \item {{ line | latex_para }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
 {% if candidate.specialties %}
 \section{Especialidades}
 \cvitem{}{ {{- specialties_line -}} }
