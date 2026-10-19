@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-141 commands, 238 modules, 1334 public symbols.
+142 commands, 239 modules, 1338 public symbols.
 
 ## Commands
 
@@ -53,6 +53,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
+- `jobbot cv update` — List active portals this workspace has not integrated. Does not write the profile.
 - `jobbot empleospublicos search` — Search open Empleos Públicos concursos (Servicio Civil open data) and store leads.
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
@@ -382,6 +383,7 @@ writing it again — the promotion rule lives in
 - `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_url`, `escape_latex_multiline`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
 - `pages.py` — How many pages the PDF took, and what to shorten before deleting a fact. · `PageTrim`, `pages_from_xelatex_log`, `plan_page_trim`
+- `portal_update.py` — Active portals this workspace has not integrated yet. Nothing here writes the profile. · `integration_log_path`, `load_seen`, `unseen_active_portals`, `format_new_portals`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
 - `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `as_cv_language`, `resolve_ats_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `skills_for_selection`, `education_for_selection`, `render_cv_tex`, `render_cv_ats`
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
