@@ -784,6 +784,13 @@
             nav.scrollLeft += linkBox.left - navBox.left - 8;
           }
         });
+        /* Leaving the bar: next Tab lands on the group the page is reading. */
+        nav.addEventListener("focusout", function (event) {
+          var next = event.relatedTarget;
+          if (next && nav.contains(next)) return;
+          var current = nav.querySelector("a.is-current");
+          setRoving(current || links[0]);
+        });
         window.addEventListener("scroll", schedule, { passive: true });
         window.addEventListener("resize", schedule);
         window.addEventListener("hashchange", function () {
