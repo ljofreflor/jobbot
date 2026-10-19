@@ -1434,10 +1434,12 @@ html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story
 }
 
 html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence):hover,
+html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence):focus-within,
 html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence:focus-visible),
 html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence):has(.jb-in-story:focus),
 html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence):has(.jb-in-story:target),
 html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)):hover,
+html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)):focus-within,
 html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence):focus-visible),
 html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)):has(.jb-in-story:focus),
 html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)):has(.jb-in-story:target) {
