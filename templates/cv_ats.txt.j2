@@ -16,8 +16,8 @@
 
 {% endif %}{% if experiences %}EXPERIENCE
 {% for exp, achievements in experiences %}
-{{ exp.title }} — {{ exp.company }}
-{{ exp.format_date_range() }}{% if exp.location %} | {{ exp.location }}{% endif +%}
+{{ ats_role(exp) }}
+{{ exp.format_date_range() }}{% if exp.ats_dates_show_location() %} | {{ exp.location }}{% endif +%}
 {% if exp.description %}{{ exp.description | trim }}
 {% endif %}{% for ach in achievements %}- {{ ach.text | trim }}{% if ach.metrics %} ({{ metrics_line(ach.metrics) }}){% endif +%}
 {% endfor %}

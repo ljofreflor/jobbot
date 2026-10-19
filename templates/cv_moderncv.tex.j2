@@ -80,7 +80,7 @@
 {% if experiences %}
 \section{Experiencia Profesional}
 {% for exp, achievements in experiences %}
-\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp.company | latex -}} }{ {{- (exp.location or '') | latex -}} }{}{}
+\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp_employer(exp) | latex -}} }{ {{- exp_place(exp) | latex -}} }{}{}
 {% if exp.description %}
 {{ exp.description | latex_para }}
 {% endif %}

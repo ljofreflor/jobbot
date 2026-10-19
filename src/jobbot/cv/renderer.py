@@ -13,7 +13,7 @@ from jobbot.branding import CV_CREDIT, MARK, REPO_URL
 from jobbot.cv.application_log import ApplicationLog
 from jobbot.cv.latex import escape_latex, escape_latex_multiline, escape_latex_url
 from jobbot.cv.selection import SelectionResult, filter_experiences, select_for_base_cv
-from jobbot.jobs.language import Language
+from jobbot.jobs.language import Language, detect_language
 from jobbot.models.candidate import Candidate
 from jobbot.models.education import Education
 from jobbot.models.experience import format_metric
@@ -41,6 +41,16 @@ _LANGUAGE_BY_STYLE: dict[CvStyle, Language] = {
 def cv_language(style: CvStyle) -> Language:
     """The language the template's own headings are written in."""
     return _LANGUAGE_BY_STYLE[style]
+
+
+def _profile_language(candidate: Candidate) -> Language:
+    """Language of the work-mode word on the ATS line. Headings stay as they are."""
+    blob = " ".join(
+        part
+        for part in (candidate.summary, candidate.personal.headline, candidate.personal.name)
+        if part
+    )
+    return detect_language(blob) or "es"
 
 
 def split_name(full_name: str) -> tuple[str, str]:
@@ -306,6 +316,8 @@ def render_cv_tex(
         name_first=name_first,
         name_last=name_last,
         exp_dates=lambda exp: es_date_range(exp.start_date, exp.end_date),
+        exp_employer=lambda exp: exp.employer_line(),
+        exp_place=lambda exp: exp.place_line(cv_language(style)),
         edu_years=lambda edu: edu_when(edu, language="es", years_only=True),
         linkedin_handle=social_handle(candidate.personal.linkedin),
         github_handle=social_handle(candidate.personal.github),
@@ -327,6 +339,7 @@ def render_cv_ats(
     env = _build_env(templates_dir)
     template = env.get_template("cv_ats.txt.j2")
     experiences = filter_experiences(candidate, selection)
+    language = _profile_language(candidate)
     return template.render(
         candidate=candidate,
         personal=candidate.personal,
@@ -339,6 +352,7 @@ def render_cv_ats(
         edu_dates=_edu_dates,
         edu_label=lambda edu: edu_label(edu, "en"),
         group_label=_group_label,
+        ats_role=lambda exp: exp.ats_role_line(language),
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.ATS,
     )

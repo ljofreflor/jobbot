@@ -66,6 +66,8 @@ jobbot cv propagate                 # solo plan
 jobbot cv propagate --apply         # confirma destino por destino
 ```
 
+Una experiencia puede separar `unit` del empleador y anotar `work_mode` (`remote`, `onsite`, `hybrid`). Sin esos campos el CV sale igual que antes.
+
 ## Vacantes
 
 | Comando | Qué hace |
