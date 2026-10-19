@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-138 commands, 230 modules, 1303 public symbols.
+139 commands, 231 modules, 1306 public symbols.
 
 ## Commands
 
@@ -31,13 +31,14 @@ writing it again — the promotion rule lives in
 - `jobbot browser login` — List permanent, active and candidate portals that still need you to sign in.
 - `jobbot browser sessions` — Report which browser sessions JobBot can reach (read-only; never attaches).
 - `jobbot capture` — Keep a share URL as a candidate — no fetch, no CAPTCHA (phone-friendly).
+- `jobbot companies auto-promote` — List candidate sites technical evidence can promote. Dry-run writes nothing.
 - `jobbot companies detect` — Classify a URL (posting / career portal / ATS / redirect). Writes nothing.
 - `jobbot companies discover` — One-shot: seed candidate career portals for a company list (never canonical).
 - `jobbot companies export` — Write a shareable snapshot: active entries only, no candidate PII.
 - `jobbot companies import` — Merge oneshot candidates into the registry (still candidate, never active).
 - `jobbot companies learn` — Register a company/portal relation you found yourself (candidate by default).
 - `jobbot companies list` — List known companies and their career platforms.
-- `jobbot companies promote` — Promote candidate knowledge to active (the only way it becomes truth).
+- `jobbot companies promote` — Promote one company's candidate sites to active.
 - `jobbot companies recheck` — Re-run offline detectors on saved sites. Dry-run writes nothing.
 - `jobbot companies recon` — Learn ATS markers and form questions from a page you entered (issue #45).
 - `jobbot companies reject` — Mark a discovered portal as wrong so it stops coming back.
@@ -341,6 +342,7 @@ writing it again — the promotion rule lives in
 
 ### `companies`
 
+- `auto_promote.py` — Which candidate career sites technical evidence can promote. · `has_technical_evidence`, `auto_promote_eligible`, `auto_promote_plan`
 - `discovery.py` — Classify a URL as posting / corporate career portal / ATS instance / redirect. · `SiteClassification`, `classify_url`, `career_root_url`, `career_page_evidence`
 - `learn.py` — Turn URLs seen during normal use into candidate company knowledge. · `LearnResult`, `learn_from_url`, `company_name_for_job`, `learn_from_job`
 - `models.py` — Company ↔ career platform knowledge model (shareable; never candidate PII). · `utc_now`, `CareerSiteType`, `KnowledgeStatus`, `DiscoverySource`, `Observation`, `CareerSite`, `CompanyRecord`
