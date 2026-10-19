@@ -961,6 +961,17 @@ html.jb-pin-presence a.jb-cmdnav__story[data-story-cmds]:not([data-story-cmds*="
   opacity: 1;
 }
 
+/* Non-story groups soften so CV / Vacantes / Postulaciones lead (scroll .is-current wins). */
+body:has(.jb-hero) .jb-cmdnav a:not(.jb-cmdnav__story):not(.is-current) {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+
+body:has(.jb-hero) .jb-cmdnav a:not(.jb-cmdnav__story):not(.is-current):hover,
+body:has(.jb-hero) .jb-cmdnav a:not(.jb-cmdnav__story):not(.is-current):focus-visible {
+  opacity: 1;
+}
+
 /* Apply-only group headings soften with the same Presence cue as cmdnav (item 129). */
 html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes,
 html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones,
@@ -2263,6 +2274,7 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   html:not(.jb-pin-presence) .jb-section--cmds tr:has(.jb-in-story__tag--presence),
   html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)),
   html.jb-pin-presence a.jb-cmdnav__story[data-story-cmds]:not([data-story-cmds*="advise"]):not([data-story-cmds*="sync"]):not(.is-current),
+  body:has(.jb-hero) .jb-cmdnav a:not(.jb-cmdnav__story):not(.is-current),
   html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes,
   html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones,
   html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies,
