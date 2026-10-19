@@ -1458,6 +1458,60 @@ html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds tr:has(#cmd-appl
   opacity: 1;
 }
 
+/* Other-loop catalog row restores when its inactive story step is hovered/focused
+   (same row the #story-* jump already restores). */
+html:not(.jb-pin-presence):has(
+    #story-advise.jb-scrolly__step:not(.is-active):hover,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-advise),
+html:not(.jb-pin-presence):has(
+    #story-sync.jb-scrolly__step:not(.is-active):hover,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-sync),
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-get),
+html.jb-pin-presence:has(
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-match),
+html.jb-pin-presence:has(
+    #story-build.jb-scrolly__step:not(.is-active):hover,
+    #story-build.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-build.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-build),
+html.jb-pin-presence:has(
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-conditions),
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-apply) {
+  opacity: 1;
+}
+
 @media (max-width: 960px) {
   body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]),
   body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) thead,
