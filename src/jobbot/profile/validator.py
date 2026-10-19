@@ -6,6 +6,7 @@ import re
 from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import date
 from types import UnionType
 from typing import Any, Union, get_args, get_origin
 
@@ -48,6 +49,7 @@ def validate_candidate(candidate: Candidate) -> ValidationResult:
     _check_unique_ids(candidate, result)
     _check_duplicate_achievement_text(candidate, result)
     _check_education(candidate, result)
+    _check_certifications(candidate, result)
     _check_headline_degree(candidate, result)
     return result
 
@@ -56,6 +58,19 @@ def _check_education(candidate: Candidate, result: ValidationResult) -> None:
     for edu in candidate.education:
         if edu.resolved_status() == "completed" and not edu.end_date:
             result.warn(f"education.{edu.id}", "completed degree has no end_date")
+
+
+def _check_certifications(candidate: Candidate, result: ValidationResult) -> None:
+    """An expired certificate is a warning. The profile stays valid."""
+    today = date.today()
+    for cert in candidate.certifications:
+        if cert.expires and _year_month(cert.expires) < (today.year, today.month):
+            result.warn(f"certifications.{cert.id}", f"expires {cert.expires} is in the past")
+
+
+def _year_month(value: str) -> tuple[int, int]:
+    year, month = value.split("-", 1)
+    return int(year), int(month)
 
 
 _CANDIDATE_HEADLINE = re.compile(r"\bdoctor c\b|\bphd candidate\b|\bcandidate\b")
@@ -145,6 +160,9 @@ def _check_unique_ids(candidate: Candidate, result: ValidationResult) -> None:
 
     project_ids = [p.id for p in candidate.projects]
     _assert_unique(project_ids, "projects", result)
+
+    cert_ids = [cert.id for cert in candidate.certifications]
+    _assert_unique(cert_ids, "certifications", result)
 
     ach_ids = [a.id for exp in candidate.experience for a in exp.achievements]
     _assert_unique(ach_ids, "achievements", result)
