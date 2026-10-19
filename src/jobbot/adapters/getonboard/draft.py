@@ -321,7 +321,8 @@ def _draft_experience(candidate: Candidate) -> str:
         ).casefold()
         highlighted = [skill for skill in skills if skill.casefold() in emphasis]
         shown = (highlighted + [s for s in skills if s not in highlighted])[:8]
-        paragraphs.append(_join_sentences(["Stack habitual: " + ", ".join(shown)]))
+        # The heading names the section. "Stack" assumed a software trade.
+        paragraphs.append(_join_sentences(["Habilidades: " + ", ".join(shown)]))
 
     if candidate.summary:
         # The summary leads, but the roles own their space: it gets what is left of
