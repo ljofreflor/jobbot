@@ -237,7 +237,7 @@ lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o 
 
 | Comando | Qué hace |
 |---------|----------|
-| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <a class="jb-in-story__tag" href="#story-get" aria-label="Paso 1, postular, get">postular</a></span> | Descarga un aviso puntual (Get on Board, Indeed, Workday), arma CV y paquete. No envía. |
+| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <a class="jb-in-story__tag" href="#story-get" aria-current="step" aria-label="Paso 1, postular, get">postular</a></span> | Descarga un aviso puntual (Get on Board, Indeed, Workday), arma CV y paquete. No envía. |
 | `jobbot jobs add` | Guarda una vacante desde un archivo o stdin. |
 | `jobbot jobs search CONSULTA` | Busca en Indeed y guarda en local. |
 | `jobbot jobs discover` | Descubre por API pública: `--source workday` o `--source un-careers`. `--dry-run` no escribe. |
