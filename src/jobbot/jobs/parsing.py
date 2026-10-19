@@ -159,6 +159,23 @@ _PAGE_FIELD_LABELS = frozenset(
         "grado",
     }
 )
+# A stamp of when the post went up, or a heading that is not itself a skill.
+_POSTING_CHROME_LINES = frozenset(
+    {
+        "publicado",
+        "posted",
+        "principales desafios",
+        "key challenges",
+        "main challenges",
+    }
+)
+_POSTING_CHROME_PREFIXES = (
+    "publicado en ",
+    "publicado el ",
+    "posted on ",
+    "posted in ",
+)
+_HASHTAG_RE = re.compile(r"(?<!\w)#\w+")
 # Page chrome with no value of its own: buttons, table headings, reference numbers.
 _PAGE_CHROME_WORDS = frozenset(
     {
@@ -202,6 +219,8 @@ def looks_like_page_metadata(phrase: str) -> bool:
     if text in _CURRENCY_CODES or folded in _PAGE_FIELD_LABELS:
         return True
     if bare in _PAGE_FIELD_LABELS or bare in _PAGE_CHROME_WORDS:
+        return True
+    if folded in _POSTING_CHROME_LINES or folded.startswith(_POSTING_CHROME_PREFIXES):
         return True
     if _URLISH_RE.search(text) or _SOCIAL_RE.search(text) or _DELIVERABLE_ROW_RE.match(text):
         return True
@@ -530,7 +549,14 @@ def _text_blocks(text: str) -> list[str]:
         if not stripped:
             flush()
             continue
+        stripped = " ".join(_HASHTAG_RE.sub(" ", stripped).split())
+        if not stripped:
+            flush()
+            continue
         folded = fold_text(stripped)
+        if folded in _POSTING_CHROME_LINES or folded.startswith(_POSTING_CHROME_PREFIXES):
+            flush()
+            continue
         if folded in _PAGE_FIELD_LABELS:
             flush()
             value_pending = True
