@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-141 commands, 235 modules, 1323 public symbols.
+141 commands, 235 modules, 1324 public symbols.
 
 ## Commands
 
@@ -415,7 +415,7 @@ writing it again — the promotion rule lives in
 - `language.py` — Spanish or English? Deterministic, from function words only — never a guess on a tie. · `detect_language`, `posting_language`
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `stem_word`, `cognate_key`, `concept_of`, `WordIndex`, `normalize_many`
 - `opacity.py` — How illegible a posting is, from evidence already on disk. No network. · `Opacity`, `closure_of`, `freshness_band`, `ats_identity`, `repost_ids`, `portal_known`, `silence_of`, `opacity_score`, `band_for`, `shortlist_key`, `assess`
-- `open_signals.py` — What a job board itself publishes about a posting still taking applicants. · `OpenStatus`, `Signal`, `trabajando_offer_id`, `read_trabajando`, `is_chiletrabajos`, `read_chiletrabajos`
+- `open_signals.py` — What a job board itself publishes about a posting still taking applicants. · `OpenStatus`, `Signal`, `trabajando_offer_id`, `trabajando_needs_slug`, `read_trabajando`, `is_chiletrabajos`, `read_chiletrabajos`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `degree_fields`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `pdf_index.py` — List PDF links on one public page. Same host only; nothing is downloaded. · `fetch_page`, `matching_pdfs`
 - `pdf_posting.py` — Turn a public bases PDF into one posting. No OCR, no stored bytes. · `NotAPdf`, `PdfAddError`, `PdfNoText`, `PdfClosed`, `PdfFetchError`, `PdfBlocked`, `PublicBody`, `PdfDraft`, `fetch_public`, `looks_like_pdf`, `posting_identity`, `job_from_public`, `job_from_body`
