@@ -1624,12 +1624,9 @@ a.jb-scrolly__loop:focus-visible {
 }
 
 /* Soften the other loop so the active chapter cluster leads the eye. */
-.jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child {
-  opacity: 0.42;
-}
-
+.jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child,
 .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child {
-  opacity: 0.5;
+  opacity: 0.42;
 }
 
 .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
