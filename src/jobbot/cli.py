@@ -7020,6 +7020,7 @@ def companies_list(
     """List known companies and their career platforms."""
     from jobbot.companies.models import KnowledgeStatus
     from jobbot.companies.urls import display_url
+    from jobbot.portals.detect import job_board_host_review
 
     config = load_config()
     registry, path = _companies_registry(config)
@@ -7044,24 +7045,31 @@ def companies_list(
     table.add_column("Status")
     table.add_column("Conf.")
     rows = 0
+    review_ids: list[str] = []
     for record in registry.companies:
         for site in record.career_sites:
             if wanted is not None and site.status.value not in wanted:
                 continue
+            review = job_board_host_review(site.url)
+            site_type = site.site_type.value if not review else f"{site.site_type.value} · {review}"
             table.add_row(
                 record.id,
                 record.country or "—",
                 display_url(site.url),
-                site.site_type.value,
+                site_type,
                 site.ats.value,
                 site.status.value,
                 str(site.confidence),
             )
+            if review and record.id not in review_ids:
+                review_ids.append(record.id)
             rows += 1
     if rows == 0:
         console.print(f"No career sites with status {status!r}.")
         return
     console.print(table)
+    for company_id in review_ids:
+        console.print(f"jobbot companies reject {company_id}")
 
 
 @companies_app.command("show")

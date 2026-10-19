@@ -15,6 +15,7 @@ from jobbot.portals.detect import (
     aggregator_board,
     detect_ats,
     detect_ats_in_html,
+    is_white_label_tenant,
 )
 from jobbot.portals.redirect import follow_redirect_url
 
@@ -198,6 +199,8 @@ def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
     normalized = public_url(url)
     parsed = urlparse(normalized)
     host = parsed.netloc
+    if is_white_label_tenant(normalized):
+        return f"https://{host.split(':')[0]}"
     segments = [seg for seg in parsed.path.split("/") if seg]
     if ats in {AtsKind.GREENHOUSE, AtsKind.LEVER, AtsKind.ASHBY, AtsKind.SMARTRECRUITERS}:
         return f"https://{host}/{segments[0]}" if segments else f"https://{host}"
@@ -269,6 +272,9 @@ def _site_type_for(url: str, ats: AtsKind, *, host_ats: AtsKind) -> CareerSiteTy
     """``ats`` says which technology; the host says whose page this is."""
     if ats == AtsKind.EMAIL:
         return CareerSiteType.UNKNOWN
+    if is_white_label_tenant(url):
+        posting = _is_posting_path(urlparse(url).path)
+        return CareerSiteType.JOB_POSTING if posting else CareerSiteType.ATS_INSTANCE
     if host_ats in JOB_BOARD_KINDS or aggregator_board(url) is not None:
         return CareerSiteType.JOB_BOARD
     posting = _is_posting_path(urlparse(url).path)
