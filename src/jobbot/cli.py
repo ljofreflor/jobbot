@@ -90,7 +90,10 @@ def _restamp_after_profile_promote(config: JobbotConfig) -> None:
 
 app = typer.Typer(
     name="jobbot",
-    help="Local terminal tool for job search and structured CV management.",
+    help=(
+        "Start here: profile, cv, get, capture. "
+        "Local terminal tool for job search and structured CV management."
+    ),
     no_args_is_help=True,
 )
 profile_app = typer.Typer(help="Candidate profile operations", no_args_is_help=True)
