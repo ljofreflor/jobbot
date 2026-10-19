@@ -525,6 +525,8 @@
           if (step && step.id) meter.setAttribute("aria-controls", step.id);
         }
         if (pin) pin.classList.toggle("is-presence", index >= 5);
+        /* Catalog lives outside .jb-scrolly; html class drives inactive-loop tag dim. */
+        document.documentElement.classList.toggle("jb-pin-presence", index >= 5);
         var echo = step.querySelector(".jb-scrolly__echo code");
         var note = step.querySelector(".jb-scrolly__echo-out");
         var label = step.querySelector(".jb-scrolly__kicker");
