@@ -188,9 +188,9 @@ lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o 
 <nav class="jb-cmdnav" aria-label="Grupos de comandos">
   <a href="#cmd-maquina">Máquina local</a>
   <a href="#cmd-perfil">Perfil</a>
-  <a href="#cmd-cv" class="jb-cmdnav__story" title="Pasos postular y presencia">CV</a>
-  <a href="#cmd-vacantes" class="jb-cmdnav__story" title="Pasos postular">Vacantes</a>
-  <a href="#cmd-postulaciones" class="jb-cmdnav__story" title="Pasos postular">Postulaciones</a>
+  <a href="#cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Pasos postular y presencia">CV</a>
+  <a href="#cmd-vacantes" class="jb-cmdnav__story" data-story-cmds="get match conditions" title="Pasos postular">Vacantes</a>
+  <a href="#cmd-postulaciones" class="jb-cmdnav__story" data-story-cmds="apply" title="Pasos postular">Postulaciones</a>
   <a href="#cmd-portales">Portales</a>
   <a href="#cmd-navegador">Navegador</a>
   <a href="#cmd-empresas">Empresas</a>

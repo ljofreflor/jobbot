@@ -188,9 +188,9 @@ Nothing in this list submits alone or invents a fact. Rows marked **apply** (cob
 <nav class="jb-cmdnav" aria-label="Command groups">
   <a href="#cmd-machine">On your machine</a>
   <a href="#cmd-profile">Profile</a>
-  <a href="#cmd-cv" class="jb-cmdnav__story" title="Apply and presence steps">CV</a>
-  <a href="#cmd-vacancies" class="jb-cmdnav__story" title="Apply steps">Vacancies</a>
-  <a href="#cmd-applications" class="jb-cmdnav__story" title="Apply steps">Applications</a>
+  <a href="#cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Apply and presence steps">CV</a>
+  <a href="#cmd-vacancies" class="jb-cmdnav__story" data-story-cmds="get match conditions" title="Apply steps">Vacancies</a>
+  <a href="#cmd-applications" class="jb-cmdnav__story" data-story-cmds="apply" title="Apply steps">Applications</a>
   <a href="#cmd-portals">Portals</a>
   <a href="#cmd-browser">Browser</a>
   <a href="#cmd-companies">Companies</a>

@@ -426,6 +426,17 @@
           else link.removeAttribute("aria-current");
         });
       }
+      function markCmdnavPin(step) {
+        if (!step) return;
+        var key = (step.id || "").replace(/^story-/, "");
+        var presence = key === "advise" || key === "sync";
+        document.querySelectorAll("a.jb-cmdnav__story[data-story-cmds]").forEach(function (link) {
+          var cmds = (link.getAttribute("data-story-cmds") || "").trim().split(/\s+/);
+          var on = cmds.indexOf(key) !== -1;
+          link.classList.toggle("is-pin-step", on);
+          link.classList.toggle("is-pin-presence", on && presence);
+        });
+      }
       function show(step) {
         var index = Array.prototype.indexOf.call(steps, step);
         var keepAll = reduceMotion.matches;
@@ -450,6 +461,7 @@
           else link.removeAttribute("aria-current");
         });
         markStoryTags(step);
+        markCmdnavPin(step);
         if (bar && steps.length) {
           bar.style.width = ((index + 1) / steps.length * 100) + "%";
         }
@@ -560,6 +572,7 @@
         });
         /* Catalog lives in page.content after this script; seed after it mounts. */
         markStoryTags(currentStep);
+        markCmdnavPin(currentStep);
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", bindCatalogStoryTags);
