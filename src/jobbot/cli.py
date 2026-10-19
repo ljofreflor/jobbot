@@ -4603,7 +4603,13 @@ def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
     console.print(open_ats_in_browser(target))
 
 
-def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | None) -> None:
+def _warn_if_login_needed(
+    config: JobbotConfig,
+    ats_kind: AtsKind,
+    cdp: str | None,
+    *,
+    host: str | None = None,
+) -> None:
     from urllib.parse import urlparse
 
     from jobbot.applications.login_gate import login_warning, session_site
@@ -4623,7 +4629,7 @@ def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | No
         if cdp_port is not None and cdp_port not in ports:
             ports.append(cdp_port)
         states = browser_sessions.inspect_sessions(config.root, sites=[site], ports=ports)
-    warning = login_warning(ats_kind, states)
+    warning = login_warning(ats_kind, states, host=host)
     if warning:
         console.print(f"[bold yellow]{warning}[/bold yellow]")
 
@@ -4973,7 +4979,14 @@ def _application_apply_one(
         except IndeedVerificationRequired as exc:
             err_console.print(f"[yellow]{exc}[/yellow]")
             raise _QuietExit(MANUAL_CHALLENGE) from exc
-    _warn_if_login_needed(config, plan.ats_kind, cdp)
+    from urllib.parse import urlparse
+
+    _warn_if_login_needed(
+        config,
+        plan.ats_kind,
+        cdp,
+        host=urlparse(plan.ats_url).hostname if plan.ats_url else None,
+    )
 
     if plan.method == ApplyMethod.LINKEDIN_MESSAGE:
         from jobbot.adapters.ats.apply import open_ats_in_browser
