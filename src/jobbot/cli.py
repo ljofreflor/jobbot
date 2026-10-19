@@ -2217,6 +2217,28 @@ def cv_check(
     err_console.print(f"[dim]{path}[/dim]")
 
 
+@cv_app.command("layout")
+def cv_layout(
+    log_path: Annotated[Path, typer.Argument(help="LaTeX log. Nothing is compiled.")],
+) -> None:
+    """Report overfull boxes in a LaTeX log. Does not compile."""
+    from jobbot.cv.layout import layout_findings, pages_written
+
+    if not log_path.is_file():
+        err_console.print("log not found")
+        raise _QuietExit(VALIDATION_FAILURE)
+    text = log_path.read_text(encoding="utf-8")
+    pages = pages_written(text)
+    if pages is not None:
+        console.print(f"pages: {pages}")
+    findings = layout_findings(text)
+    if not findings:
+        console.print("no overfull boxes")
+        return
+    for line in findings:
+        console.print(line)
+
+
 @cv_app.command("build")
 def cv_build(
     target: Annotated[
