@@ -383,7 +383,18 @@ def _field(lines: list[str], *keys: str) -> str | None:
     return None
 
 
+# Employment level, not a profession. Bare "práctica" is not enough: "buenas prácticas"
+# and "práctica clínica" are the work itself.
+_INTERN_RE = re.compile(
+    r"modalidad de pr[aá]ctica|pr[aá]ctica profesional|pasant[ií]a|"
+    r"\bpasante\b|\bpracticante\b|\binternship\b|\bintern\b|\btrainee\b",
+    re.IGNORECASE,
+)
+
+
 def _infer_seniority(text: str) -> str | None:
+    if _INTERN_RE.search(text):
+        return "intern"
     lower = text.lower()
     for label in ("staff", "principal", "senior", "semi-senior", "mid", "junior", "lead"):
         if re.search(rf"\b{re.escape(label)}\b", lower):
