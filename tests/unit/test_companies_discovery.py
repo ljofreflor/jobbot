@@ -55,7 +55,7 @@ def test_new_ats_vendors_are_detected() -> None:
         detect_ats("https://career5.successfactors.eu/careers?company=empresa")
         == AtsKind.SUCCESSFACTORS
     )
-    assert detect_ats("https://empresa.taleo.net/careersection/x") == AtsKind.ORACLE
+    assert detect_ats("https://empresa.taleo.net/careersection/x") == AtsKind.TALEO
 
 
 def test_posting_url_collapses_to_portal_root() -> None:
