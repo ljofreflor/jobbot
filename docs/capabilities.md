@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-145 commands, 243 modules, 1350 public symbols.
+146 commands, 244 modules, 1352 public symbols.
 
 ## Commands
 
@@ -130,6 +130,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
 - `jobbot profile queries` — Job searches from your experience; --check measures them, --apply saves them.
+- `jobbot profile rejection` — Classify a rejection. A preference or a condition does not edit the profile.
 - `jobbot profile show` — Show a summary of the local profile.
 - `jobbot profile skills-map` — Map each declared skill to the role or degree that already shows it.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
@@ -514,6 +515,7 @@ writing it again — the promotion rule lives in
 - `pdf_glyphs.py` — Recover the ligature glyphs a PDF's /ToUnicode map forgets. · `repair_missing_ligatures`
 - `presentations.py` — Presentation variants may rephrase. They may not change the headline or add a figure. · `presentation_problems`, `presentations_block`
 - `query_check.py` — Measure saved searches against title results before anything is stored. · `QueryCell`, `QueryWarning`, `QueryCheck`, `significant_stems`, `title_covers`, `dominant_words`, `measure_queries`, `format_cell`, `sources_or_reject`, `search_source_titles`
+- `rejection.py` — A rejection is a preference, a condition, or a missing fact. Only the last may edit. · `rejection_kind`, `may_edit_profile`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
 - `skill_map.py` — Which declared skills a role or a degree already shows. Never invents a skill. · `SkillUse`, `map_skills`, `unbacked_skills`, `unbacked_achievements`, `evidence_records`, `format_map`, `format_unbacked`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`, `unknown_profile_keys`
