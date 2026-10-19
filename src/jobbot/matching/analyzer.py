@@ -8,6 +8,7 @@ from typing import Protocol
 
 from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill, skills_in_text
 from jobbot.jobs.parsing import degree_fields, extract_skills_from_text, looks_like_page_metadata
+from jobbot.jobs.untrusted import for_scoring, is_instruction
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch, MatchItem, MatchStrength
@@ -236,12 +237,16 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
     pairs: list[tuple[str, str, str]] = []
     seen: set[str] = set()
     for skill in job.skills:
+        if is_instruction(skill):
+            continue
         token = normalize_skill(skill)
         if token and token not in seen and not looks_like_page_metadata(skill):
             seen.add(token)
             pairs.append((token, skill, skill))
     long_skills = [fold_text(label) for _, label, _ in pairs if len(label.split()) >= 3]
     for req in job.requirements:
+        if is_instruction(req):
+            continue
         if re.search(r"(?i)\b(english|spanish|idioma|language|proficiency)\b", req):
             continue
         if looks_like_page_metadata(req):
@@ -253,7 +258,7 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
         if token and token not in seen and len(req) <= _MAX_REQUIREMENT_CHARS:
             seen.add(token)
             pairs.append((token, req[:80], req))
-    blob = f"{job.title}\n{job.description}\n{job.raw_description}"
+    blob = for_scoring(f"{job.title}\n{job.description}\n{job.raw_description}")
     if len(pairs) < 3:
         for hint in extract_skills_from_text(blob):
             token = normalize_skill(hint)
@@ -412,7 +417,11 @@ def _profile_evidence(
     costs nothing. A claim already cited for a requirement is not counted twice.
     """
     posting = WordIndex(
-        frozenset(_keyword_candidates(f"{job.title}\n{job.description}\n{job.raw_description}"))
+        frozenset(
+            _keyword_candidates(
+                for_scoring(f"{job.title}\n{job.description}\n{job.raw_description}")
+            )
+        )
     )
     if not posting.words:
         return []
