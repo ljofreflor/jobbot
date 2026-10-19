@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-144 commands, 241 modules, 1344 public symbols.
+144 commands, 242 modules, 1346 public symbols.
 
 ## Commands
 
@@ -186,6 +186,7 @@ writing it again — the promotion rule lives in
 
 ### `adapters/ats`
 
+- `advance.py` — An advance label may be pressed later. A submit label never is. · `button_role`, `pressable_advance`
 - `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `split_personal_name`, `prefill_field_map`, `prefill_sheet_fields`, `describe_prefill`
 - `apply_fill.py` — Fill an external ATS form in your own Chrome (CDP) and stop before submit. · `ApplyFillError`, `FieldFill`, `ApplyFillPlan`, `ApplyFillResult`, `profile_key_for`, `plan_apply_fill`, `looks_like_login`, `has_captcha`, `fill_open_page`, `acquire_fill_page`, `open_and_fill_over_cdp`
 - `ashby.py` — Ashby ATS adapter — open + known-field map only (HITL submit). · `AshbyAdapter`
