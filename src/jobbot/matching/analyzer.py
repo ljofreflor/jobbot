@@ -16,6 +16,9 @@ from jobbot.models.match import JobMatch, MatchItem, MatchStrength
 # A job whose posting names almost nothing cannot be a perfect fit, whatever it asks.
 _THIN_EVIDENCE_ITEMS = 3
 _THIN_EVIDENCE_CAP = 80.0
+_INTERN_CAP = 40.0
+_HIGHER_LEVEL_RE = re.compile(r"\b(?:senior|lead|staff|principal)\b")
+_HELD_INTERN_RE = re.compile(r"\b(?:intern|pasante|trainee|practicante)\b")
 
 # Requirement sentences are prose: only content words carry evidence.
 _STOPWORDS = frozenset(
@@ -195,7 +198,12 @@ class RuleBasedJobAnalyzer:
         if job.seniority:
             items.append(_seniority_item(candidate, job.seniority))
 
-        score = _score(items, role_cap=role_cap, required_tokens={t for t, _, _ in required})
+        score = _score(
+            items,
+            role_cap=role_cap,
+            level_cap=_intern_cap(candidate, job.seniority),
+            required_tokens={t for t, _, _ in required},
+        )
         return JobMatch(job_id=job.id, score=score, items=items)
 
 
@@ -604,11 +612,24 @@ def _title_words(*titles: str) -> set[str]:
     }
 
 
+def _intern_cap(candidate: Candidate, required: str | None) -> float | None:
+    """A higher level already held cannot score as a perfect internship fit."""
+    if required != "intern":
+        return None
+    titles = fold_text(" ".join(exp.title for exp in candidate.experience))
+    if _HELD_INTERN_RE.search(titles):
+        return None
+    if _HIGHER_LEVEL_RE.search(titles):
+        return _INTERN_CAP
+    return None
+
+
 def _score(
     items: list[MatchItem],
     *,
     role_cap: float | None,
     required_tokens: set[str],
+    level_cap: float | None = None,
 ) -> float:
     """Score only on strong/partial/missing skill-like items; unknowns excluded."""
     relevant = [i for i in items if i.strength != MatchStrength.UNKNOWN]
@@ -627,4 +648,6 @@ def _score(
         score = min(score, _THIN_EVIDENCE_CAP)
     if role_cap is not None:
         score = min(score, role_cap)
+    if level_cap is not None:
+        score = min(score, level_cap)
     return round(score, 1)
