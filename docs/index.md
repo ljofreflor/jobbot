@@ -180,7 +180,7 @@ evidencia, y foco en Chile / Latam en búsquedas y roundups.
 
 Cada comando público de `src/jobbot/cli.py`, en una línea. Las banderas están en la
 [referencia](comandos.md). `jobbot <comando> --help` imprime el resto. Nada de esta
-lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o **presencia** (navy) son los siete pasos de arriba; la marca vuelve a ese paso del bucle. En la barra, **CV**, **Vacantes** y **Postulaciones** van subrayados: ahí viven esos siete. Los demás grupos (y sus tablas) se atenúan; el que estás leyendo vuelve a pleno. Con el pin en Presencia, Vacantes y Postulaciones también se atenúan, salvo el grupo que lees. Las filas del relato del otro bucle se atenúan; hover, foco o un salto `#cmd-*` las recuperan (en Presencia, también su grupo en la barra).
+lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o **presencia** (navy) son los siete pasos de arriba; la marca vuelve a ese paso del bucle. En la barra, **CV**, **Vacantes** y **Postulaciones** van subrayados: ahí viven esos siete. Los demás grupos (y sus tablas) se atenúan; el que estás leyendo vuelve a pleno. Un salto `#cmd-*` recupera también el enlace de ese grupo en la barra. Con el pin en Presencia, Vacantes y Postulaciones también se atenúan, salvo el grupo que lees. Las filas del relato del otro bucle se atenúan; hover, foco o un salto `#cmd-*` las recuperan (en Presencia, también su grupo en la barra).
 
 <nav class="jb-cmdnav" aria-label="Grupos de comandos. Tab cae en el grupo actual; las flechas mueven entre grupos" aria-keyshortcuts="ArrowLeft ArrowRight Home End">
   <a href="#cmd-maquina" aria-controls="cmd-maquina">Máquina local</a>
