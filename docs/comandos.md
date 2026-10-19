@@ -197,7 +197,7 @@ en el recibo; niega un PDF de glyphs de íconos).
 
 ### LinkedIn
 
-`linkedin login`, `linkedin status`, `linkedin inspect`, `linkedin pull`,
+`linkedin login`, `linkedin status` (`valid`, `not authenticated` o `unreachable`), `linkedin inspect`, `linkedin pull`,
 `linkedin diff`, `linkedin sync` (Publications, con DOI y coautores),
 `linkedin sweep [QUERY]` (barrido de posts de reclutadores → vacantes + detección de ATS;
 descarta "19 de ago." fuera de `--max-age-days` y un texto que nombra Madrid cuando el país es CL).
