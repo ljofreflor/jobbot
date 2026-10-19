@@ -515,6 +515,9 @@
       loops.forEach(function (loop) {
         loop.addEventListener("click", onJump);
       });
+      root.querySelectorAll("a.jb-scrolly__lede-cmd").forEach(function (link) {
+        link.addEventListener("click", onJump);
+      });
       window.addEventListener("hashchange", showHashed);
       if (!showHashed() && steps[0]) show(steps[0]);
       if (reduceMotion.matches) return;
