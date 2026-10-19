@@ -2822,6 +2822,7 @@ def _propagate_base_cv(config: JobbotConfig, candidate: Candidate, *, style: CvS
                 target=target,
                 style=style,
                 credit=config.cv.jobbot_signature,
+                configured_language=config.cv.language,
             )
         except (FileNotFoundError, RuntimeError) as exc:
             err_console.print(f"[red]cv ({target.value}): {exc}[/red]")

@@ -63,6 +63,16 @@ def test_an_entry_without_status_keeps_finished_dates_and_names_in_progress(
     assert "in progress" in ats
 
 
+def test_spanish_ats_education_keeps_the_status_wording(project_root: Path) -> None:
+    templates = project_root / "templates"
+    underway = render_cv_ats(_candidate(expected_end="2027-06"), templates, language="es")
+    assert "2021 – en curso (egreso esperado 2027)" in underway
+    assert "Presente" not in underway.split("FORMACIÓN", 1)[1]
+
+    done = render_cv_ats(_candidate(status="completed"), templates, language="es")
+    assert "Presente" not in done.split("FORMACIÓN", 1)[1]
+
+
 def test_candidate_degree_is_marked_in_spanish_and_english(project_root: Path) -> None:
     candidate = _candidate(status="candidate", expected_end="2027-06")
     templates = project_root / "templates"

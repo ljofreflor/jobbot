@@ -208,6 +208,7 @@ def build_adapted_cv(
             match=match,
             application_log=options,
             credit=config.cv.jobbot_signature,
+            configured_language=config.cv.language,
         )
     except RuntimeError as exc:
         logger.warning("%s", exc)
@@ -219,6 +220,7 @@ def build_adapted_cv(
             job=job,
             match=match,
             credit=config.cv.jobbot_signature,
+            configured_language=config.cv.language,
         )
 
 
