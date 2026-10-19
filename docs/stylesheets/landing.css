@@ -2173,6 +2173,18 @@ a.jb-scrolly__lede-loop:not([aria-current="true"]):focus-visible {
   opacity: 1;
 }
 
+/* Softened loop name restores when a command of that loop is hovered or focused
+   (same line: Presencia stays full while advise/sync is under the pointer). */
+body:has(a.jb-scrolly__lede-cmd--presence:hover, a.jb-scrolly__lede-cmd--presence:focus-visible)
+  a.jb-scrolly__lede-loop--presence:not([aria-current="true"]),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Commands of the other loop — same 0.42 as the inactive loop name (pin drives). */
 .jb-scrolly__pin:not(.is-presence) ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd--presence,
 .jb-scrolly__pin.is-presence ~ .jb-scrolly__steps a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
