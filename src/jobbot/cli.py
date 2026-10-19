@@ -2008,6 +2008,38 @@ def cv_status(
     _print_cv_status(as_json=as_json)
 
 
+@cv_app.command("gap")
+def cv_gap(
+    job_id: Annotated[str, typer.Option("--job", help="Stored posting id")],
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Print the stable gap schema"),
+    ] = False,
+) -> None:
+    """Show which posting terms the profile already evidences."""
+    from jobbot.cv.gap import gap_report, write_gap_report
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    session, _ = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    report = gap_report(candidate, job)
+    path = write_gap_report(report, config.output_dir)
+    if as_json:
+        console.print_json(data=report.as_dict())
+    else:
+        for line in report.lines():
+            console.print(line)
+    err_console.print(f"[dim]{path}[/dim]")
+
+
 @cv_app.command("build")
 def cv_build(
     target: Annotated[
