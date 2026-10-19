@@ -1423,6 +1423,13 @@ html.jb-pin-presence .jb-section--cmds tr:has(.jb-in-story__tag:not(.jb-in-story
   opacity: 1;
 }
 
+/* Inactive steps restore like lede/splits/pin chapters (item 134). */
+.jb-scrolly__step:not(.is-active):hover,
+.jb-scrolly__step:not(.is-active):focus-visible,
+.jb-scrolly__step:not(.is-active):focus-within {
+  opacity: 1;
+}
+
 /* Same inset cue as a catalog story row for the pin's current step. */
 .jb-scrolly__step[aria-current="step"] {
   box-shadow: inset 3px 0 0 var(--jb-cobalt);
