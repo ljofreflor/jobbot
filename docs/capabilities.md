@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-130 commands, 217 modules, 1235 public symbols.
+131 commands, 218 modules, 1240 public symbols.
 
 ## Commands
 
@@ -16,6 +16,7 @@ writing it again — the promotion rule lives in
 - `jobbot advisor status` — One line per sandbox: fingerprint, counts, proposal, retention. No profile PII.
 - `jobbot application apply` — Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
 - `jobbot application check-answer` — Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
+- `jobbot application interview` — Preguntas de entrevista desde lo enviado, sin inventar un logro.
 - `jobbot application open` — Open the job URL (or ATS URL) in the default browser (does not apply).
 - `jobbot application prepare` — Prepare application package for a job (does not invent answers).
 - `jobbot application show` — Show application package path and status for a job.
@@ -309,6 +310,7 @@ writing it again — the promotion rule lives in
 
 - `answer_check.py` — Check a free-text application answer against the profile and the posting. · `QuestionKind`, `Verdict`, `Evidence`, `SentenceTrace`, `AnswerCheck`, `classify_question`, `check_answer`, `render_answer_check`
 - `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
+- `interview.py` — Interview questions from the package that was sent (#203). · `InterviewCard`, `sent_selection_path`, `load_sent_selection`, `cards_for`, `format_cards`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
 
