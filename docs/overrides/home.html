@@ -730,7 +730,13 @@
             if (on) link.setAttribute("aria-current", "location");
             else link.removeAttribute("aria-current");
           });
-          setRoving(current);
+          /* Keep the tab stop on the focused link while arrowing; else follow scroll. */
+          var focused = document.activeElement;
+          if (focused && nav.contains(focused) && focused.tagName === "A") {
+            setRoving(focused);
+          } else {
+            setRoving(current);
+          }
         }
         var frame = 0;
         function place() {
