@@ -416,13 +416,7 @@ def _profile_evidence(
     what is found is added: a claim the posting does not mention is not a gap, so it
     costs nothing. A claim already cited for a requirement is not counted twice.
     """
-    posting = WordIndex(
-        frozenset(
-            _keyword_candidates(
-                for_scoring(f"{job.title}\n{job.description}\n{job.raw_description}")
-            )
-        )
-    )
+    posting = posting_word_index(job)
     if not posting.words:
         return []
     already = [
@@ -457,9 +451,8 @@ def _profile_evidence(
             )
     for exp in candidate.experience:
         for ach in exp.achievements:
-            words = {word for word in _keyword_candidates(ach.text) if len(word) >= _ECHO_MIN_WORD}
-            hits = sorted(word for word in words if posting.has(word))
-            if len(hits) >= _ECHO_MIN_HITS and len(hits) >= _ECHO_SHARE * len(words):
+            hits = achievement_echo_hits(ach.text, posting)
+            if hits:
                 items.append(
                     MatchItem(
                         label=f"achievement:{ach.id}",
@@ -468,6 +461,27 @@ def _profile_evidence(
                     )
                 )
     return items
+
+
+def posting_word_index(job: JobPosting) -> WordIndex:
+    """Content words of the posting, the same index an achievement is echoed against."""
+    blob = for_scoring(f"{job.title}\n{job.description}\n{job.raw_description}")
+    return WordIndex(frozenset(_keyword_candidates(blob)))
+
+
+def achievement_echo_hits(text: str, posting: WordIndex) -> list[str]:
+    """Content words of an achievement that the posting also uses.
+
+    Empty unless enough of the achievement's own words are there. The bar is the
+    one `_profile_evidence` already applies, so a selector and a match cannot disagree.
+    """
+    words = {word for word in _keyword_candidates(text) if len(word) >= _ECHO_MIN_WORD}
+    if not words:
+        return []
+    hits = sorted(word for word in words if posting.has(word))
+    if len(hits) >= _ECHO_MIN_HITS and len(hits) >= _ECHO_SHARE * len(words):
+        return hits
+    return []
 
 
 def _keyword_candidates(text: str) -> set[str]:

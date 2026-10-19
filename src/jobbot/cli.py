@@ -2037,6 +2037,14 @@ def cv_build(
 
     for path in outputs:
         console.print(f"[green]Wrote[/green] {path}")
+    if job is not None and match is not None:
+        from jobbot.cv.selection import select_for_job
+
+        picked = select_for_job(candidate, job, match, full=full)
+        if not picked.used_posting_terms:
+            err_console.print(
+                "selección sin términos del aviso; revisa selection.json o re-parsea el aviso"
+            )
     from jobbot.cv.text_layer import issues_for_outputs
 
     layer = issues_for_outputs(outputs, candidate, job)

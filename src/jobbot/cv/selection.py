@@ -9,6 +9,7 @@ from pathlib import Path
 
 from jobbot.jobs.normalization import fold_text, normalize_skill
 from jobbot.jobs.parsing import extract_skills_from_text
+from jobbot.matching.analyzer import achievement_echo_hits, posting_word_index
 from jobbot.models.candidate import Candidate
 from jobbot.models.experience import Achievement, Experience
 from jobbot.models.job import JobPosting
@@ -19,7 +20,10 @@ _SHORT_JD_CHARS = 400
 _MIN_EXPERIENCES = 4
 _MIN_ACHIEVEMENTS = 4
 _FLOOR_REASON = "floor: short JD — kept recent evidence so the CV stays usable"
+_FLOOR_FEW_REASON = "floor: few experiences matched the posting"
+_FALLBACK_REASON = "fallback: no strong keyword overlap; kept recent evidence"
 _FULL_REASON = "full: kept from profile, no overlap with the posting"
+_FEW_TOKENS = 3
 
 
 @dataclass
@@ -41,6 +45,8 @@ class SelectionResult:
     full: bool = False
     # Terms the posting names that the profile does not. Never copied onto the CV.
     gaps: list[str] = field(default_factory=list)
+    # False when the posting had no extracted terms and none selected an achievement.
+    used_posting_terms: bool = True
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -102,25 +108,38 @@ def select_for_job(
         if exp_selected or _experience_relevant(exp, job_tokens):
             exp_ids.append(exp.id)
 
-    if not selected:
-        # Fallback: keep top experiences but mark reasons honestly
-        for exp in candidate.experience[:3]:
+    few_tokens = len(job_tokens) < _FEW_TOKENS
+    used_terms = bool(selected)
+    if not selected and few_tokens:
+        echoed = _echoed_achievements(candidate, job, match)
+        if echoed:
+            for exp, ach, reason in echoed:
+                selected.append(SelectedAchievement(id=ach.id, reason=[reason]))
+                exp_ids.append(exp.id)
+        else:
+            for exp in _by_recency(candidate)[:3]:
+                exp_ids.append(exp.id)
+                for ach in exp.achievements[:2]:
+                    selected.append(SelectedAchievement(id=ach.id, reason=[_FALLBACK_REASON]))
+    elif not selected:
+        for exp in _by_recency(candidate)[:3]:
             exp_ids.append(exp.id)
             for ach in exp.achievements[:2]:
-                selected.append(
-                    SelectedAchievement(
-                        id=ach.id,
-                        reason=["fallback: no strong keyword overlap; kept recent evidence"],
-                    )
-                )
+                selected.append(SelectedAchievement(id=ach.id, reason=[_FALLBACK_REASON]))
 
     jd_blob = " ".join(
         part
         for part in (job.description, job.title, "\n".join(job.requirements))
         if part
     )
-    if len(jd_blob) < _SHORT_JD_CHARS or len({e for e in exp_ids}) < _MIN_EXPERIENCES:
-        _pad_selection_floor(candidate, exp_ids, selected)
+    short_jd = len(jd_blob) < _SHORT_JD_CHARS
+    if short_jd or len({e for e in exp_ids}) < _MIN_EXPERIENCES:
+        _pad_selection_floor(
+            candidate,
+            exp_ids,
+            selected,
+            reason=_FLOOR_REASON if short_jd else _FLOOR_FEW_REASON,
+        )
 
     # Skills: intersection only
     skill_names = [
@@ -137,7 +156,6 @@ def select_for_job(
             seen.add(eid)
             ordered_exp.append(eid)
 
-    _ = match  # reserved for future weighting
     return SelectionResult(
         experience_ids=ordered_exp,
         selected_achievements=selected,
@@ -145,6 +163,7 @@ def select_for_job(
         include_publications=True,
         job_id=job.id,
         gaps=_gaps(candidate, job),
+        used_posting_terms=used_terms or not few_tokens,
     )
 
 
@@ -175,6 +194,50 @@ def _select_full(
     )
 
 
+def _by_recency(candidate: Candidate) -> list[Experience]:
+    """Most recent role first. A tie keeps profile order."""
+    indexed = list(enumerate(candidate.experience))
+    indexed.sort(key=lambda pair: (pair[1].start_date or "", -pair[0]), reverse=True)
+    return [exp for _, exp in indexed]
+
+
+def _echoed_achievements(
+    candidate: Candidate,
+    job: JobPosting,
+    match: JobMatch | None,
+) -> list[tuple[Experience, Achievement, str]]:
+    """Achievements the posting repeats, most overlap first, then the more recent role."""
+    index = posting_word_index(job)
+    found: dict[str, tuple[int, str]] = {}
+    owners: dict[str, tuple[Experience, Achievement, int]] = {}
+    for position, exp in enumerate(candidate.experience):
+        for ach in exp.achievements:
+            owners[ach.id] = (exp, ach, position)
+            hits = achievement_echo_hits(ach.text, index)
+            if hits:
+                found[ach.id] = (len(hits), f"posting echoes: {', '.join(hits[:5])}")
+    if match is not None:
+        for item in match.items:
+            prefix = "achievement:"
+            if not item.label.startswith(prefix):
+                continue
+            ach_id = item.label[len(prefix) :]
+            if ach_id in found or ach_id not in owners:
+                continue
+            detail = item.detail or ""
+            if "echo" not in detail.casefold():
+                continue
+            shown = detail.split(":", 1)[-1].strip()
+            count = len([part for part in shown.split(",") if part.strip()])
+            found[ach_id] = (count, f"posting echoes: {shown}")
+    ranked: list[tuple[int, str, int, Experience, Achievement, str]] = []
+    for ach_id, (hit_count, reason) in found.items():
+        exp, ach, position = owners[ach_id]
+        ranked.append((hit_count, exp.start_date or "", -position, exp, ach, reason))
+    ranked.sort(key=lambda row: (row[0], row[1], row[2]), reverse=True)
+    return [(exp, ach, reason) for _, _, _, exp, ach, reason in ranked]
+
+
 def _overlap(item: SelectedAchievement) -> int:
     return sum(1 for reason in item.reason if reason != _FULL_REASON)
 
@@ -183,8 +246,10 @@ def _pad_selection_floor(
     candidate: Candidate,
     exp_ids: list[str],
     selected: list[SelectedAchievement],
+    *,
+    reason: str = _FLOOR_REASON,
 ) -> None:
-    """Keep enough recent evidence when the posting is too short to select by keywords."""
+    """Keep enough recent evidence when the posting did not fill the CV."""
     selected_ids = {item.id for item in selected}
     for exp in candidate.experience:
         if len({eid for eid in exp_ids}) >= _MIN_EXPERIENCES and len(selected) >= _MIN_ACHIEVEMENTS:
@@ -194,7 +259,7 @@ def _pad_selection_floor(
         for ach in exp.achievements:
             if ach.id in selected_ids:
                 continue
-            selected.append(SelectedAchievement(id=ach.id, reason=[_FLOOR_REASON]))
+            selected.append(SelectedAchievement(id=ach.id, reason=[reason]))
             selected_ids.add(ach.id)
             if (
                 len(selected) >= _MIN_ACHIEVEMENTS
