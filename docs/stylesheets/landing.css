@@ -2449,6 +2449,22 @@ body:has(
   opacity: 1;
 }
 
+/* Reverse of item 192: hovering the softened pin chapter restores that loop's catalog rows. */
+html:not(.jb-pin-presence):has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:focus-within
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag--presence),
+html.jb-pin-presence:has(
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
+  opacity: 1;
+}
+
 .jb-scrolly__meter {
   position: relative;
   flex: 1 0 100%;
