@@ -2540,6 +2540,18 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Presence: hovering advise or sync restores the softened Postular lede commands.
+   Same-loop rows already restore their own command; these are the other loop (mirror of item 230). */
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
