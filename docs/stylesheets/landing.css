@@ -2401,6 +2401,35 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: hovering the softened build row restores the apply-only rows.
+   Group chrome already returns (item 222); row opacity is separate. */
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-get),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-match),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-conditions),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-apply) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
