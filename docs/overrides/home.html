@@ -715,6 +715,14 @@
           if (heading) targets.push({ link: link, heading: heading });
         });
         if (!targets.length) return;
+        /* Roving tabindex: one tab stop; arrows move between groups. */
+        function setRoving(active) {
+          var fallback = links[0];
+          links.forEach(function (link) {
+            link.setAttribute("tabindex", link === active ? "0" : "-1");
+          });
+          if (!active && fallback) fallback.setAttribute("tabindex", "0");
+        }
         function mark(current) {
           links.forEach(function (link) {
             var on = link === current;
@@ -722,6 +730,7 @@
             if (on) link.setAttribute("aria-current", "location");
             else link.removeAttribute("aria-current");
           });
+          setRoving(current);
         }
         var frame = 0;
         function place() {
@@ -761,6 +770,7 @@
           else if (key === "End") next = items.length - 1;
           if (next === current || !items[next]) return;
           event.preventDefault();
+          setRoving(items[next]);
           items[next].focus();
           var linkBox = items[next].getBoundingClientRect();
           var navBox = nav.getBoundingClientRect();
