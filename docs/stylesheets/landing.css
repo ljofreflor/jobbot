@@ -1937,6 +1937,13 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
     margin-bottom: 0.55rem;
   }
 
+  /* Catalog jump lives only on the pin under 960px (.jb-scrolly__more is hidden). */
+  a.jb-scrolly__stage-cmd-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+  }
+
   .jb-scrolly__stage-out {
     font-size: 0.76rem;
     padding: 0.4rem 0.55rem;
