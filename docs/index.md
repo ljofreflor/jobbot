@@ -186,15 +186,15 @@ Cada comando público de `src/jobbot/cli.py`, en una línea. Las banderas están
 lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o **presencia** (navy) son los siete pasos de arriba; la marca vuelve a ese paso del bucle. En la barra, **CV**, **Vacantes** y **Postulaciones** van subrayados: ahí viven esos siete.
 
 <nav class="jb-cmdnav" aria-label="Grupos de comandos">
-  <a href="#cmd-maquina">Máquina local</a>
-  <a href="#cmd-perfil">Perfil</a>
-  <a href="#cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Pasos postular y presencia">CV</a>
-  <a href="#cmd-vacantes" class="jb-cmdnav__story is-pin-step" data-story-cmds="get match conditions" title="Pasos postular">Vacantes</a>
-  <a href="#cmd-postulaciones" class="jb-cmdnav__story" data-story-cmds="apply" title="Pasos postular">Postulaciones</a>
-  <a href="#cmd-portales">Portales</a>
-  <a href="#cmd-navegador">Navegador</a>
-  <a href="#cmd-empresas">Empresas</a>
-  <a href="#cmd-operacion">Operación</a>
+  <a href="#cmd-maquina" aria-controls="cmd-maquina">Máquina local</a>
+  <a href="#cmd-perfil" aria-controls="cmd-perfil">Perfil</a>
+  <a href="#cmd-cv" aria-controls="cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Pasos postular y presencia">CV</a>
+  <a href="#cmd-vacantes" aria-controls="cmd-vacantes" class="jb-cmdnav__story is-pin-step" data-story-cmds="get match conditions" title="Pasos postular">Vacantes</a>
+  <a href="#cmd-postulaciones" aria-controls="cmd-postulaciones" class="jb-cmdnav__story" data-story-cmds="apply" title="Pasos postular">Postulaciones</a>
+  <a href="#cmd-portales" aria-controls="cmd-portales">Portales</a>
+  <a href="#cmd-navegador" aria-controls="cmd-navegador">Navegador</a>
+  <a href="#cmd-empresas" aria-controls="cmd-empresas">Empresas</a>
+  <a href="#cmd-operacion" aria-controls="cmd-operacion">Operación</a>
 </nav>
 
 ### Máquina local {#cmd-maquina}

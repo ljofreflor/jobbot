@@ -186,15 +186,15 @@ Every public command in `src/jobbot/cli.py`, one line each. Flags are in the
 Nothing in this list submits alone or invents a fact. Rows marked **apply** (cobalt) or **presence** (navy) are the seven steps above; the mark returns to that step in the loop. In the bar, **CV**, **Vacancies**, and **Applications** are underlined: that is where those seven live.
 
 <nav class="jb-cmdnav" aria-label="Command groups">
-  <a href="#cmd-machine">On your machine</a>
-  <a href="#cmd-profile">Profile</a>
-  <a href="#cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Apply and presence steps">CV</a>
-  <a href="#cmd-vacancies" class="jb-cmdnav__story is-pin-step" data-story-cmds="get match conditions" title="Apply steps">Vacancies</a>
-  <a href="#cmd-applications" class="jb-cmdnav__story" data-story-cmds="apply" title="Apply steps">Applications</a>
-  <a href="#cmd-portals">Portals</a>
-  <a href="#cmd-browser">Browser</a>
-  <a href="#cmd-companies">Companies</a>
-  <a href="#cmd-ops">Operations</a>
+  <a href="#cmd-machine" aria-controls="cmd-machine">On your machine</a>
+  <a href="#cmd-profile" aria-controls="cmd-profile">Profile</a>
+  <a href="#cmd-cv" aria-controls="cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Apply and presence steps">CV</a>
+  <a href="#cmd-vacancies" aria-controls="cmd-vacancies" class="jb-cmdnav__story is-pin-step" data-story-cmds="get match conditions" title="Apply steps">Vacancies</a>
+  <a href="#cmd-applications" aria-controls="cmd-applications" class="jb-cmdnav__story" data-story-cmds="apply" title="Apply steps">Applications</a>
+  <a href="#cmd-portals" aria-controls="cmd-portals">Portals</a>
+  <a href="#cmd-browser" aria-controls="cmd-browser">Browser</a>
+  <a href="#cmd-companies" aria-controls="cmd-companies">Companies</a>
+  <a href="#cmd-ops" aria-controls="cmd-ops">Operations</a>
 </nav>
 
 ### On your machine {#cmd-machine}
