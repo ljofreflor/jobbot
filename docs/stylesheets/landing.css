@@ -1597,6 +1597,42 @@ a.jb-scrolly__loop:focus-visible {
   line-height: 1.5;
 }
 
+a.jb-scrolly__lede-cmd {
+  color: var(--jb-cobalt);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 88, 248, 0.35);
+}
+
+a.jb-scrolly__lede-cmd:hover {
+  border-bottom-color: var(--jb-cobalt);
+}
+
+a.jb-scrolly__lede-cmd:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 2px;
+  border-radius: 0.15rem;
+}
+
+a.jb-scrolly__lede-cmd--presence {
+  color: var(--jb-navy);
+  border-bottom-color: rgba(0, 24, 56, 0.35);
+}
+
+a.jb-scrolly__lede-cmd--presence:hover {
+  border-bottom-color: var(--jb-navy);
+}
+
+a.jb-scrolly__lede-cmd--presence:focus-visible {
+  outline-color: var(--jb-navy);
+}
+
+.jb-scrolly__lede-cmd code {
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
 .jb-scrolly__stage-title {
   margin: 0 0 0.4rem;
   font-family: var(--jb-font-brand);
