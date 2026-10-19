@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-138 commands, 230 modules, 1301 public symbols.
+138 commands, 230 modules, 1303 public symbols.
 
 ## Commands
 
@@ -85,7 +85,7 @@ writing it again — the promotion rule lives in
 - `jobbot jobs search` — Search Indeed and store job postings locally (small volumes).
 - `jobbot jobs shortlist` — Rank stored jobs by match score; flag a close and a finished posting.
 - `jobbot jobs show` — Show a stored job posting.
-- `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot (read-only audit).
+- `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot. Mismatches are warnings; exit 0.
 - `jobbot linkedin inspect` — Inspect LinkedIn page for selector development.
 - `jobbot linkedin jobs` — Save LinkedIn job cards from a search page; --dry-run writes nothing.
 - `jobbot linkedin login` — Open LinkedIn login with persistent browser profile.
@@ -170,7 +170,7 @@ writing it again — the promotion rule lives in
 ### `adapters`
 
 - `base.py` — Shared portal adapter protocols. · `ProfileDiff`, `ProfileAdapter`, `WritableProfileAdapter`, `ApplyMethod`, `PrefillResult`, `ApplicationPackage`, `ApplicationPortalAdapter`
-- `diff_engine.py` — Diff Candidate vs ExternalProfile. · `load_snapshot`, `save_snapshot`, `build_diff_operations`, `build_sync_plan`, `render_profile_diff`, `dump_json`
+- `diff_engine.py` — Diff Candidate vs ExternalProfile. · `load_snapshot`, `save_snapshot`, `build_diff_operations`, `build_sync_plan`, `render_profile_diff`, `dump_json`, `ConsistencyFinding`, `consistency_findings`
 - `html_parse.py` — Parse ExternalProfile from HTML fixtures or live pages. · `parse_indeed_profile_html`, `parse_linkedin_profile_html`, `load_external_from_file`
 - `portal_status.py` — Profile consistency status across local / Indeed / LinkedIn snapshots. · `build_profile_status`
 
