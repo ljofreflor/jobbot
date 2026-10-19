@@ -5383,6 +5383,14 @@ html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the CV heading restores the softened build row.
+   The CV group stays full; hovering that heading already restores this row. */
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  tr:has(#cmd-build) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
