@@ -1026,6 +1026,34 @@ html.jb-pin-presence .jb-section--cmds h3#cmd-applications:has(+ table:focus-wit
   opacity: 1;
 }
 
+/* Apply-only tables follow their Presence-dimmed heading (item 137); hover/focus restore. */
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications + table {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:hover + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:focus + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes + table:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes + table:focus-within,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:hover + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:focus + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones + table:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones + table:focus-within,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:hover + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:focus + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies + table:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies + table:focus-within,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications:hover + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications:focus + table,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications + table:hover,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications + table:focus-within {
+  opacity: 1;
+}
+
 .jb-section--cmds h3 {
   margin: 1.6rem 0 0.55rem;
   scroll-margin-top: 6.5rem;
@@ -2314,7 +2342,11 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes,
   html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones,
   html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies,
-  html.jb-pin-presence .jb-section--cmds h3#cmd-applications {
+  html.jb-pin-presence .jb-section--cmds h3#cmd-applications,
+  html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes + table,
+  html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones + table,
+  html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies + table,
+  html.jb-pin-presence .jb-section--cmds h3#cmd-applications + table {
     opacity: 1;
     transition: none;
   }
