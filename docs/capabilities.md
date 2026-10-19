@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-140 commands, 232 modules, 1314 public symbols.
+140 commands, 233 modules, 1316 public symbols.
 
 ## Commands
 
@@ -175,6 +175,10 @@ writing it again — the promotion rule lives in
 - `diff_engine.py` — Diff Candidate vs ExternalProfile. · `load_snapshot`, `save_snapshot`, `build_diff_operations`, `build_sync_plan`, `render_profile_diff`, `dump_json`, `ConsistencyFinding`, `consistency_findings`
 - `html_parse.py` — Parse ExternalProfile from HTML fixtures or live pages. · `parse_indeed_profile_html`, `parse_linkedin_profile_html`, `load_external_from_file`
 - `portal_status.py` — Profile consistency status across local / Indeed / LinkedIn snapshots. · `build_profile_status`
+
+### `adapters/alta_direccion`
+
+- `parse.py` — Saved Alta Dirección Pública ficha. The site's robots.txt forbids fetching it. · `AdpParseError`, `parse_ficha`
 
 ### `adapters/ats`
 

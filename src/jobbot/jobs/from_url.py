@@ -171,6 +171,18 @@ def _fetch_job(
         return fetch_ready_posting(portal.url, body=html)
     if portal.ats_kind == AtsKind.WORKDAY and html is None:
         return fetch_workday_posting(portal.url)
+    if portal.ats_kind == AtsKind.ALTA_DIRECCION_PUBLICA and html is not None:
+        from jobbot.adapters.alta_direccion.parse import AdpParseError, parse_ficha
+
+        try:
+            return parse_ficha(html, url=portal.url)
+        except AdpParseError as exc:
+            msg = (
+                f"JobBot cannot read a saved {portal.domain} page yet. Copy the "
+                "ficha text into a file and run "
+                f"`jobbot jobs add --file ficha.txt --url {portal.url}`."
+            )
+            raise UnsupportedPortalFetchError(msg) from exc
     if html is not None:
         try:
             return job_from_career_html(html, url=portal.url)
