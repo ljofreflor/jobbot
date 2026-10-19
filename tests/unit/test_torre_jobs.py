@@ -154,6 +154,58 @@ def test_remote_search_drops_onsite_even_when_api_returns_them(
     assert any(j.remote_type == "remote_countries" for j in jobs)
 
 
+def test_anywhere_keeps_a_region_the_title_states() -> None:
+    job = job_from_api_item(
+        {
+            "id": "latam1",
+            "objective": "Analista Remote (LATAM)",
+            "place": {"anywhere": True},
+            "organizations": [{"name": "Bolsa Neutra"}],
+        }
+    )
+
+    assert job.location == "Remote (LATAM)"
+    assert job.remote_type == "fully_remote"
+    assert job.location != "Remote / anywhere"
+
+
+def test_anywhere_keeps_a_region_written_only_in_the_description() -> None:
+    job = job_from_api_item(
+        {
+            "id": "eu1",
+            "objective": "Analista de operaciones",
+            "description": "Cobertura Remote (Europe) con visitas trimestrales.",
+            "place": {"anywhere": True},
+        }
+    )
+
+    assert job.location == "Remote (Europe)"
+
+
+def test_a_spanish_remote_region_is_kept_as_written() -> None:
+    job = job_from_api_item(
+        {
+            "id": "es1",
+            "objective": "Analista Remoto (Europa)",
+            "place": {"anywhere": True},
+        }
+    )
+
+    assert job.location == "Remoto (Europa)"
+
+
+def test_remote_anywhere_in_parentheses_stays_open() -> None:
+    job = job_from_api_item(
+        {
+            "id": "open1",
+            "objective": "Analista Remote (anywhere)",
+            "place": {"anywhere": True},
+        }
+    )
+
+    assert job.location == "Remote / anywhere"
+
+
 def test_a_country_restricted_remote_role_names_its_countries(
     payload: dict[str, Any],
 ) -> None:
