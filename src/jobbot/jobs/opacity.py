@@ -10,8 +10,9 @@ Weights, each added and then capped at 1:
 - portal not known (host absent, or present only as ``unknown``): 0.20
 - ``silence`` (latest local event is prepared/applied and older than N days): 0.25
 
-Closure is not a weight. A filled or expired banner is ``closed`` and the shortlist
-ranks it after every posting that is not closed. Bands: score < 0.25 ``clear``,
+Closure is not a weight. A filled banner, or a published close already past, is
+``closed`` and the shortlist ranks it after every posting that is not closed.
+Bands: score < 0.25 ``clear``,
 < 0.55 ``murky``, otherwise ``opaque``.
 """
 
@@ -21,6 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from urllib.parse import urlparse
 
+from jobbot.jobs.closing import ClosingState, closing_state
 from jobbot.jobs.closure import closure_evidence
 from jobbot.jobs.freshness import DEFAULT_MAX_AGE_DAYS, age_in_days
 from jobbot.jobs.normalization import fold_text
@@ -65,9 +67,11 @@ class Opacity:
         return " ".join(parts)
 
 
-def closure_of(job: JobPosting) -> str:
-    """``closed`` from a filled/expired phrase or a stored closed status; else open or unknown."""
+def closure_of(job: JobPosting, *, now: datetime) -> str:
+    """``closed`` from a filled phrase, a published close already past, or a stored status."""
     if closure_evidence(job.description) or closure_evidence(job.raw_description or ""):
+        return "closed"
+    if closing_state(job.closes_at, job.closes_on, now=now) is ClosingState.EXPIRED:
         return "closed"
     status = (job.open_status or "").casefold()
     if status == "open":
@@ -208,7 +212,7 @@ def assess(
 ) -> Opacity:
     """Signals for one posting. Reads only the arguments; it does not fetch."""
     freshness = freshness_band(job.posted_at, max_age_days=max_age_days, now=now)
-    closure = closure_of(job)
+    closure = closure_of(job, now=now)
     repost = job.id in repost_ids(peers)
     known = portal_known(job, sites)
     silence = silence_of(events, now=now, after_days=silence_days)
