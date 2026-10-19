@@ -5473,6 +5473,21 @@ html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
   opacity: 1;
 }
 
+/* Presence: a jump to a Vacantes heading restores the softened get, match,
+   and conditions lede commands, and a jump to a Postulaciones heading
+   restores the softened apply lede command. Hovering that heading already
+   restores these commands. */
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  a.jb-scrolly__lede-cmd[href="#story-get"],
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  a.jb-scrolly__lede-cmd[href="#story-match"],
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  a.jb-scrolly__lede-cmd[href="#story-conditions"],
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  a.jb-scrolly__lede-cmd[href="#story-apply"] {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
