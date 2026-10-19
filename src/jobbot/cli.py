@@ -1347,6 +1347,7 @@ def profile_validate(
     unknowns = unknown_profile_keys(raw)
     if lang is not None:
         _reject_overlay(candidate, config.profile_path, lang)
+    _reject_presentations(candidate, raw)
     if not result.ok or (strict and unknowns):
         err_console.print("[bold red]PROFILE INVALID[/bold red]")
         for issue in result.issues:
@@ -1404,6 +1405,22 @@ def _reject_overlay(candidate: Candidate, profile_path: Path, lang: str) -> None
     if not problems:
         return
     err_console.print("[bold red]OVERLAY INVALID[/bold red]")
+    for problem in problems:
+        err_console.print(problem)
+    raise _QuietExit(VALIDATION_FAILURE)
+
+
+def _reject_presentations(candidate: Candidate, raw: dict[str, Any]) -> None:
+    """A variant that changes the headline or adds a figure is exit 2."""
+    from jobbot.profile.presentations import presentation_problems, presentations_block
+
+    block = presentations_block(raw)
+    if block is None:
+        return
+    problems = presentation_problems(candidate, block)
+    if not problems:
+        return
+    err_console.print("[bold red]PRESENTATION INVALID[/bold red]")
     for problem in problems:
         err_console.print(problem)
     raise _QuietExit(VALIDATION_FAILURE)

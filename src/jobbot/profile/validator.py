@@ -112,6 +112,8 @@ def _collect_unknown_keys(
         name = str(key)
         path = f"{prefix}.{name}" if prefix else name
         if name not in fields:
+            if prefix == "" and name == "presentations":
+                continue
             if not allow_extra:
                 issues.append(ValidationIssue(path=path, message=UNKNOWN_KEY_MESSAGE))
             continue
