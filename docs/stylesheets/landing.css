@@ -1291,6 +1291,16 @@ a.jb-in-story__tag--presence[aria-current="step"] {
   opacity: 1;
 }
 
+/* Same inset cue as a catalog story row for the pin's current step. */
+.jb-scrolly__step[aria-current="step"] {
+  box-shadow: inset 3px 0 0 var(--jb-cobalt);
+}
+
+#story-advise[aria-current="step"],
+#story-sync[aria-current="step"] {
+  box-shadow: inset 3px 0 0 var(--jb-navy);
+}
+
 .jb-scrolly__step:focus {
   outline: 2px solid var(--jb-cobalt);
   outline-offset: 4px;
