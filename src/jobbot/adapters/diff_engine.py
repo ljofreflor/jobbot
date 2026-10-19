@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from jobbot.branding import MARK, stamp_description, strip_mark
 from jobbot.models.candidate import Candidate
-from jobbot.models.external_profile import ExternalProfile
+from jobbot.models.external_profile import ExternalExperience, ExternalProfile
 from jobbot.models.sync import SyncOperation, SyncOpType, SyncPlan
 
 
@@ -170,7 +171,10 @@ def render_profile_diff(
             lines.append(f"= {op.label or op.field}")
         else:
             lines.append(f"{mark} {op.section} {op.label or op.field}: {op.after or op.before}")
-    if not ops:
+    if section in {None, "experience"}:
+        for finding in consistency_findings(candidate, external):
+            lines.append(f"warning {finding.id}  local={finding.local}  {source}={finding.remote}")
+    if not ops and len(lines) == 1:
         lines.append("No differences detected.")
     return "\n".join(lines)
 
@@ -220,3 +224,53 @@ def dump_json(path: Path, data: object) -> None:
         path.write_text(data.model_dump_json(indent=2), encoding="utf-8")
     else:
         path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+
+
+@dataclass(frozen=True)
+class ConsistencyFinding:
+    """A structural mismatch. It is a warning: nothing is written to the profile."""
+
+    id: str
+    local: str
+    remote: str
+
+
+def consistency_findings(
+    candidate: Candidate,
+    external: ExternalProfile,
+) -> tuple[ConsistencyFinding, ...]:
+    """Same title, different employer string. An exact pair is not a mismatch."""
+    remote_exact = {
+        ((item.company or "").casefold(), (item.title or "").casefold())
+        for item in external.experience
+    }
+    findings: list[ConsistencyFinding] = []
+    for exp in candidate.experience:
+        if (exp.company.casefold(), exp.title.casefold()) in remote_exact:
+            continue
+        partner = _company_partner(exp.title, exp.company, external.experience)
+        if partner is None or not (partner.company or "").strip():
+            continue
+        findings.append(
+            ConsistencyFinding(
+                id="experience.company_mismatch",
+                local=exp.company,
+                remote=partner.company or "",
+            )
+        )
+    return tuple(findings)
+
+
+def _company_partner(
+    title: str,
+    company: str,
+    remote: list[ExternalExperience],
+) -> ExternalExperience | None:
+    title_key = title.casefold()
+    company_key = company.casefold()
+    for item in remote:
+        same_title = (item.title or "").casefold() == title_key
+        other_company = (item.company or "").casefold() != company_key
+        if same_title and other_company:
+            return item
+    return None

@@ -5759,7 +5759,7 @@ def linkedin_pull(
 def linkedin_diff(
     section: Annotated[str | None, typer.Option("--section")] = None,
 ) -> None:
-    """Diff local profile vs LinkedIn snapshot (read-only audit)."""
+    """Diff local profile vs LinkedIn snapshot. Mismatches are warnings; exit 0."""
     from jobbot.adapters.diff_engine import render_profile_diff
 
     config = load_config()
