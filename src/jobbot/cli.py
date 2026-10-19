@@ -2554,6 +2554,25 @@ def _reword_with_llm(
     return out
 
 
+@cv_app.command("update")
+def cv_update() -> None:
+    """List active portals this workspace has not integrated. Does not write the profile."""
+    from jobbot.companies.registry import load_companies
+    from jobbot.cv.portal_update import (
+        format_new_portals,
+        integration_log_path,
+        load_seen,
+        unseen_active_portals,
+    )
+
+    config = load_config()
+    registry = load_companies(config.companies_path)
+    seen = load_seen(integration_log_path(config.output_dir))
+    for line in format_new_portals(unseen_active_portals(registry, seen)):
+        console.print(line)
+    raise typer.Exit(SUCCESS)
+
+
 @cv_app.command("propagate")
 def cv_propagate(
     targets: Annotated[
