@@ -1554,6 +1554,14 @@ a.jb-scrolly__loop:focus-visible {
   background: #c5d4ee;
 }
 
+.jb-scrolly__pin.is-presence .jb-scrolly__meter::after {
+  background: rgba(197, 212, 238, 0.9);
+}
+
+.jb-scrolly__pin.is-presence .jb-scrolly__count {
+  color: #c5d4ee;
+}
+
 .jb-scrolly__pin.is-presence .jb-scrolly__terminal {
   border-color: rgba(197, 212, 238, 0.4);
   box-shadow: 0 18px 40px rgba(0, 24, 56, 0.34);
