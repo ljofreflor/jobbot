@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-129 commands, 214 modules, 1214 public symbols.
+129 commands, 215 modules, 1216 public symbols.
 
 ## Commands
 
@@ -386,6 +386,7 @@ writing it again — the promotion rule lives in
 - `pdf_posting.py` — Turn a public bases PDF into one posting. No OCR, no stored bytes. · `NotAPdf`, `PdfAddError`, `PdfNoText`, `PdfClosed`, `PdfFetchError`, `PdfBlocked`, `PublicBody`, `PdfDraft`, `fetch_public`, `looks_like_pdf`, `posting_identity`, `job_from_public`, `job_from_body`
 - `repository.py` — Job persistence repository. · `JobRepository`, `StoredJobIndex`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
+- `untrusted.py` — A posting is someone else's text. A line that instructs the tool is not a fact. · `is_instruction`, `for_scoring`
 
 ### `matching`
 

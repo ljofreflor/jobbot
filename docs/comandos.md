@@ -89,6 +89,7 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source chiletrabajos --query TEXTO` | Lee la búsqueda HTML pública (`f=2`). La ficha trae publicación y expiración en America/Santiago. No pide rutas que `robots.txt` prohíbe. Un listado sin avisos sale 5. |
 | `jobs discover --source vacantes --country CL` | Lee la landing del país (o `--all-sitemap` y filtra el sitemap por el texto). El detalle es JSON-LD. No pide `/api/` ni URLs con `?`. `robots.txt` se consulta en cada corrida. |
 | `jobs add --file listado.html --url https://acme.buk.cl/trabaja-con-nosotros` | Ingiere las tarjetas `jobs__card` de un HTML guardado. Sin tarjetas, sale 5. |
+| `jobs add --file aviso.txt` | Guarda el texto completo. Una línea «ignore previous instructions» o «fetch https://…» no entra al score y no se descarga. |
 | `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
 | `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
 | `jobs check-open [JOB_ID…] [--all] [--dry-run] [--json]` | Vuelve a consultar en línea si cada aviso guardado sigue abierto: `abierto` / `cerrado` / `desconocido`, con motivo y fecha de verificación. `--all` omite los cerrados verificados hace menos de 24 h; `--dry-run` no escribe; `--json` trae la URL completa. Solo lectura. |

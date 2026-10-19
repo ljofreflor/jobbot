@@ -7,6 +7,7 @@ import unicodedata
 from typing import Any
 
 from jobbot.jobs.normalization import fold_text, normalize_skill
+from jobbot.jobs.untrusted import for_scoring
 from jobbot.models.job import JobPosting
 
 _HEADER_FIELD_RE = re.compile(
@@ -340,15 +341,16 @@ def parse_job_text(
     url: str | None = None,
 ) -> JobPosting:
     """Best-effort parse of a pasted JD into a JobPosting."""
-    lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip()]
+    trusted = for_scoring(text)
+    lines = [ln.strip() for ln in trusted.strip().splitlines() if ln.strip()]
     title = _field(lines, "title", "role", "cargo", "puesto") or (lines[0] if lines else "Untitled")
     company = _field(lines, "company", "empresa", "organization") or "Unknown"
     location = _field(lines, "location", "ubicacion", "ubicación", "city")
-    seniority = _infer_seniority(text)
-    remote_type = _infer_remote(text)
-    skills = _extract_skills(text)
-    requirements = _extract_requirements(text)
-    languages = _extract_languages(text)
+    seniority = _infer_seniority(trusted)
+    remote_type = _infer_remote(trusted)
+    skills = _extract_skills(trusted)
+    requirements = _extract_requirements(trusted)
+    languages = _extract_languages(trusted)
 
     description = text.strip()
     return JobPosting(
