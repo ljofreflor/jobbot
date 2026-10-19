@@ -556,12 +556,37 @@ def _clean_skill(phrase: str, *, max_words: int = _ITEM_MAX_WORDS) -> str | None
     return cleaned
 
 
+# Headings that ask something of the candidate. Folded, so the accent and the
+# question mark do not matter. A bare "perfil" is not one of them.
+_REQUIREMENT_OPENERS = frozenset(
+    {
+        "requirements",
+        "requisitos",
+        "what you ll need",
+        "what youll need",
+        "perfil del cargo",
+        "perfil buscado",
+        "que buscamos",
+        "lo que necesitas",
+        "formacion y experiencia",
+        "conocimientos deseables",
+    }
+)
+
+
+def _opens_requirements(line: str) -> bool:
+    folded = fold_text(line)
+    if folded in _REQUIREMENT_OPENERS:
+        return True
+    return folded.startswith(("requirements", "requisitos", "what you ll need", "what youll need"))
+
+
 def _extract_requirements(text: str) -> list[str]:
     reqs: list[str] = []
     in_block = False
     for line in text.splitlines():
         stripped = line.strip()
-        if re.match(r"(?i)^(requirements|requisitos|requirements:|what you.ll need)", stripped):
+        if _opens_requirements(stripped):
             in_block = True
             continue
         if in_block:
