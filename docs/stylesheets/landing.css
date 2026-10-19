@@ -1099,6 +1099,19 @@ a.jb-in-story__tag--presence:focus-visible {
   outline-color: var(--jb-navy);
 }
 
+/* Same current wash as the lede command that names this story step. */
+a.jb-in-story__tag[aria-current="step"] {
+  background: rgba(0, 88, 248, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(0, 88, 248, 0.45);
+  color: var(--jb-navy);
+}
+
+a.jb-in-story__tag--presence[aria-current="step"] {
+  background: rgba(0, 24, 56, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(0, 24, 56, 0.4);
+  color: var(--jb-navy);
+}
+
 @media (max-width: 960px) {
   body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]),
   body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) thead,
