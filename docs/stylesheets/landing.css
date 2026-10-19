@@ -1009,12 +1009,20 @@ html.jb-pin-presence .jb-section--cmds h3#cmd-applications {
 
 html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:hover,
 html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:focus,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:has(+ table:hover),
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacantes:has(+ table:focus-within),
 html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:hover,
 html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:focus,
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:has(+ table:hover),
+html.jb-pin-presence .jb-section--cmds h3#cmd-postulaciones:has(+ table:focus-within),
 html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:hover,
 html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:focus,
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:has(+ table:hover),
+html.jb-pin-presence .jb-section--cmds h3#cmd-vacancies:has(+ table:focus-within),
 html.jb-pin-presence .jb-section--cmds h3#cmd-applications:hover,
-html.jb-pin-presence .jb-section--cmds h3#cmd-applications:focus {
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications:focus,
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications:has(+ table:hover),
+html.jb-pin-presence .jb-section--cmds h3#cmd-applications:has(+ table:focus-within) {
   opacity: 1;
 }
 
