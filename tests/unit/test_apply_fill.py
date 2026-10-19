@@ -19,6 +19,7 @@ from jobbot.adapters.ats.apply_fill import (
 )
 from jobbot.models.candidate import Candidate
 from jobbot.portals.form_learn import FieldKind, FormField, learn_form_html
+from jobbot.portals.selectors import field_selector
 from tests.fixtures.profile import sample_profile_dict
 
 GREENHOUSE = Path("tests/fixtures/forms/greenhouse_apply.html")
@@ -59,6 +60,10 @@ def _candidate() -> Candidate:
         }
     )
     return Candidate.model_validate(data)
+
+
+def _css(name: str) -> str:
+    return field_selector(FormField(name=name, label=name, kind=FieldKind.TEXT)) or ""
 
 
 def _pdf(tmp_path: Path) -> Path:
@@ -205,18 +210,14 @@ def test_fill_open_page_types_values_attaches_and_never_clicks(
 ) -> None:
     pdf = _pdf(tmp_path)
     page = FakePage(_greenhouse(project_root))
-    page.values['[name="job_application[first_name]"], [id="job_application[first_name]"]'] = (
-        "Marta"
-    )
+    page.values[_css("job_application[first_name]")] = "Marta"
 
     result = fill_open_page(page, _candidate(), cv_path=pdf)
 
     assert result.submitted is False
     assert page.clicked == [] and page.pressed == [], "never click or press submit"
     assert result.attached is True
-    assert page.uploaded == [
-        ('[name="job_application[resume]"], [id="job_application[resume]"]', str(pdf))
-    ]
+    assert page.uploaded == [(_css("job_application[resume]"), str(pdf))]
     assert "First Name" in result.kept, "a value already on the page is left alone"
     assert set(result.filled) == {"Last Name", "Email", "Phone", "LinkedIn Profile"}
     assert "marta.soto@example.com" in page.filled.values()
@@ -433,3 +434,87 @@ def test_cdp_connection_failure_raises_for_the_fallback() -> None:
             playwright_factory=lambda: playwright,
         )
     assert playwright.stopped is True
+
+
+class _ResolvingLocator(_Locator):
+    """A fill that does not match an element in the HTML fails the test."""
+
+    def fill(self, value: str) -> None:
+        from bs4 import BeautifulSoup
+
+        if not BeautifulSoup(self._page.html, "html.parser").select(self._selector):
+            msg = f"selector matches nothing: {self._selector}"
+            raise AssertionError(msg)
+        super().fill(value)
+
+
+class ResolvingPage(FakePage):
+    def locator(self, selector: str) -> _ResolvingLocator:
+        return _ResolvingLocator(self, selector)
+
+
+def test_field_selector_escapes_quotes_and_digit_ids() -> None:
+    quoted = field_selector(FormField(name='say "hi"', label="Email", kind=FieldKind.EMAIL))
+    assert quoted is not None
+    assert '[name="say \\"hi\\""]' in quoted
+    digit = field_selector(FormField(name="14", label="Email", kind=FieldKind.TEXT))
+    assert digit is not None and '[id="14"]' in digit and "#14" not in digit
+    long = field_selector(FormField(name="bio", label="Bio", kind=FieldKind.LONG_TEXT))
+    assert long is not None and long.startswith('textarea[name="bio"]')
+
+
+def test_given_names_resolve_through_homologation_middle_name_does_not() -> None:
+    given = FormField(
+        name="legalNameSection_firstName",
+        label="Given Name(s)",
+        kind=FieldKind.TEXT,
+    )
+    family = FormField(name="legalNameSection_lastName", label="Family Name", kind=FieldKind.TEXT)
+    middle = FormField(
+        name="legalNameSection_middleName",
+        label="Middle Name",
+        kind=FieldKind.TEXT,
+    )
+    assert profile_key_for(given) == "first_name"
+    assert profile_key_for(family) == "last_name"
+    assert profile_key_for(middle) is None
+
+
+def test_workday_my_information_fills_identity_and_skips_password(
+    project_root: Path,
+) -> None:
+    html = (project_root / "tests/fixtures/workday/my_information.html").read_text(encoding="utf-8")
+    page = ResolvingPage(html, url="https://acme.wd5.myworkdayjobs.com/en-US/job/apply")
+    result = fill_open_page(page, _candidate())
+
+    assert result.login_required is False
+    assert set(result.filled) == {"Given Name(s)", "Family Name", "Phone"}
+    assert "Middle Name" not in result.filled
+    assert page.clicked == []
+    assert page.filled
+    assert all("password" not in selector.casefold() for selector in page.filled)
+    assert all("createAccount" not in selector for selector in page.filled)
+
+
+def test_hidden_workday_password_does_not_block_the_apply_step(project_root: Path) -> None:
+    path = project_root / "tests/fixtures/workday/apply_flow_with_hidden_password.html"
+    page = ResolvingPage(
+        path.read_text(encoding="utf-8"),
+        url="https://acme.wd5.myworkdayjobs.com/en-US/job/apply",
+    )
+    result = fill_open_page(page, _candidate())
+
+    assert result.login_required is False
+    assert set(result.filled) == {"Given Name(s)", "Family Name"}
+    assert page.clicked == []
+
+
+def test_workday_sign_in_page_types_nothing(project_root: Path) -> None:
+    html = (project_root / "tests/fixtures/forms/workday_login_sso.html").read_text(
+        encoding="utf-8"
+    )
+    page = FakePage(html, url="https://acme.wd5.myworkdayjobs.com/login")
+    result = fill_open_page(page, _candidate())
+
+    assert result.login_required is True
+    assert page.filled == {} and page.clicked == []
