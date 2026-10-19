@@ -1545,16 +1545,32 @@ a.jb-scrolly__loop:focus-visible {
   text-align: right;
 }
 
+/* 1.5rem touch floor; 0.45rem mark via ::before (was narrow-only). */
 .jb-scrolly__dot {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+.jb-scrolly__dot::before {
+  content: "";
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
   background: rgba(200, 216, 248, 0.28);
-  text-decoration: none;
 }
 
 .jb-scrolly__dot:hover {
+  background: transparent;
+}
+
+.jb-scrolly__dot:hover::before {
   background: rgba(126, 176, 255, 0.7);
 }
 
@@ -1563,11 +1579,11 @@ a.jb-scrolly__loop:focus-visible {
   outline-offset: 3px;
 }
 
-.jb-scrolly__dot.is-done {
+.jb-scrolly__dot.is-done::before {
   background: rgba(0, 88, 248, 0.7);
 }
 
-.jb-scrolly__dot.is-current {
+.jb-scrolly__dot.is-current::before {
   background: #7eb0ff;
   box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
 }
@@ -1582,16 +1598,16 @@ a.jb-scrolly__loop:focus-visible {
   background: rgba(197, 212, 238, 0.55);
 }
 
-.jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-done {
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-done::before {
   background: rgba(197, 212, 238, 0.75);
 }
 
-.jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-current {
+.jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-current::before {
   background: #c5d4ee;
   box-shadow: 0 0 0 3px rgba(197, 212, 238, 0.4);
 }
 
-.jb-scrolly__chapter:last-child .jb-scrolly__dot:hover {
+.jb-scrolly__chapter:last-child .jb-scrolly__dot:hover::before {
   background: rgba(197, 212, 238, 0.75);
 }
 
@@ -2007,55 +2023,6 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
 
   .jb-benefits {
     grid-template-columns: 1fr;
-  }
-
-  .jb-scrolly__dot {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .jb-scrolly__dot::before {
-    content: "";
-    width: 0.45rem;
-    height: 0.45rem;
-    border-radius: 50%;
-    background: rgba(200, 216, 248, 0.28);
-  }
-
-  .jb-scrolly__dot.is-done::before {
-    background: rgba(0, 88, 248, 0.7);
-  }
-
-  .jb-scrolly__dot.is-current::before {
-    background: #7eb0ff;
-    box-shadow: 0 0 0 3px rgba(0, 88, 248, 0.28);
-  }
-
-  .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-done::before {
-    background: rgba(197, 212, 238, 0.75);
-  }
-
-  .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child .jb-scrolly__dot.is-current::before {
-    background: #c5d4ee;
-    box-shadow: 0 0 0 3px rgba(197, 212, 238, 0.4);
-  }
-
-  .jb-scrolly__dot:hover {
-    background: transparent;
-  }
-
-  .jb-scrolly__dot:hover::before {
-    background: rgba(126, 176, 255, 0.7);
-  }
-
-  .jb-scrolly__chapter:last-child .jb-scrolly__dot:hover::before {
-    background: rgba(197, 212, 238, 0.75);
   }
 
   a.jb-scrolly__loop {
