@@ -1328,6 +1328,10 @@ def profile_validate(
             help="Treat unknown YAML keys as errors (default: warn and exit 0)",
         ),
     ] = False,
+    lang: Annotated[
+        str | None,
+        typer.Option("--lang", help="Check profile.<lang>.yaml ids and numbers (en)"),
+    ] = None,
 ) -> None:
     """Validate data/profile.yaml and application_answers.yaml."""
     config = load_config()
@@ -1341,6 +1345,8 @@ def profile_validate(
 
     result = validate_candidate(candidate)
     unknowns = unknown_profile_keys(raw)
+    if lang is not None:
+        _reject_overlay(candidate, config.profile_path, lang)
     if not result.ok or (strict and unknowns):
         err_console.print("[bold red]PROFILE INVALID[/bold red]")
         for issue in result.issues:
@@ -1377,6 +1383,30 @@ def profile_validate(
     console.print(f"Skills: {candidate.skills.count()}")
     console.print(f"Publications: {len(candidate.publications)}")
     raise typer.Exit(SUCCESS)
+
+
+def _reject_overlay(candidate: Candidate, profile_path: Path, lang: str) -> None:
+    """An overlay id the base does not have, or a changed number, is exit 2."""
+    from jobbot.profile.overlay import overlay_problems, read_overlay
+
+    if lang != "en":
+        err_console.print("--lang must be en")
+        raise _QuietExit(VALIDATION_FAILURE)
+    path = profile_path.with_name("profile.en.yaml")
+    if not path.is_file():
+        return
+    try:
+        texts = read_overlay(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    problems = overlay_problems(candidate, texts)
+    if not problems:
+        return
+    err_console.print("[bold red]OVERLAY INVALID[/bold red]")
+    for problem in problems:
+        err_console.print(problem)
+    raise _QuietExit(VALIDATION_FAILURE)
 
 
 @answers_app.command("show")
