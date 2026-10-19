@@ -530,6 +530,8 @@
       var held = null;
       var holdTimer = 0;
       var live = document.getElementById("jb-scrolly-live");
+      /* When true, keep focus on the progress dot (arrow keys) instead of the article. */
+      var keepProgressFocus = false;
       function hold(step) {
         held = step;
         show(step);
@@ -538,8 +540,8 @@
           held = null;
           holdTimer = 0;
         }, 1200);
+        var index = Array.prototype.indexOf.call(steps, step);
         if (live && steps.length) {
-          var index = Array.prototype.indexOf.call(steps, step);
           var title = step.querySelector("h3");
           var loopName = pin
             ? pin.getAttribute(index >= 5 ? "data-loop-presence" : "data-loop-apply")
@@ -548,6 +550,18 @@
           line += (index + 1) + " / " + steps.length;
           if (title && title.textContent) line += ". " + title.textContent;
           if (live.textContent !== line) live.textContent = line;
+        }
+        if (keepProgressFocus) {
+          keepProgressFocus = false;
+          var dot = dots[index];
+          if (dot) {
+            try {
+              dot.focus({ preventScroll: true });
+            } catch (err) {
+              dot.focus();
+            }
+          }
+          return;
         }
         if (!step.hasAttribute("tabindex")) step.setAttribute("tabindex", "-1");
         try {
@@ -629,6 +643,7 @@
           }
           if (next === current || !steps[next]) return;
           event.preventDefault();
+          keepProgressFocus = true;
           jumpTo(steps[next].id);
         });
       }
