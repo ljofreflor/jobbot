@@ -5275,9 +5275,14 @@ def linkedin_status(
 ) -> None:
     """Check whether a LinkedIn session appears valid."""
     from jobbot.adapters.linkedin.client import LinkedInAdapter
-    from jobbot.browser.cdp import resolve_cdp_url
+    from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout, resolve_cdp_url
 
-    ok = LinkedInAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).session_valid()
+    try:
+        adapter = LinkedInAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp))
+        ok = adapter.session_valid()
+    except (CdpAttachTimeout, CdpAttachInterrupted) as exc:
+        err_console.print(f"LinkedIn session: unreachable ({exc})")
+        raise typer.Exit(GENERIC_FAILURE) from exc
     console.print("LinkedIn session: " + ("valid" if ok else "not authenticated"))
 
 

@@ -14,7 +14,6 @@ from typing import Any, Self
 from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
 
 from jobbot.browser.background import new_background_page
-from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S
 from jobbot.browser.sessions import ensure_profile_free
 
 logger = logging.getLogger("jobbot.browser.session")
@@ -25,6 +24,7 @@ class BrowserTimeouts:
     navigation_ms: int = 30_000
     action_ms: int = 10_000
     manual_interaction_seconds: int | None = None
+    cdp_connect_ms: int = 15_000
 
 
 def launch_persistent_kwargs(
@@ -59,7 +59,7 @@ class BrowserSession:
         cdp_url: str | None = None,
         timeouts: BrowserTimeouts | None = None,
         debug_root: Path | None = None,
-        cdp_attach_s: float = DEFAULT_CDP_ATTACH_S,
+        cdp_attach_s: float | None = None,
     ) -> None:
         self.profile_dir = profile_dir
         self.headless = headless
@@ -68,14 +68,17 @@ class BrowserSession:
         # automated Chromium. Not a CAPTCHA bypass; still HITL for challenges.
         self.channel = channel
         self.cdp_url = cdp_url
-        self.cdp_attach_s = cdp_attach_s
         self.timeouts = timeouts or BrowserTimeouts()
+        self.cdp_attach_s = (
+            self.timeouts.cdp_connect_ms / 1000 if cdp_attach_s is None else cdp_attach_s
+        )
         self.debug_root = debug_root or Path("output/debug")
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
         self._page: Page | None = None
         self._owns_context = True
+        self._owns_cdp_page = False
 
     @property
     def page(self) -> Page:
@@ -126,7 +129,9 @@ class BrowserSession:
             self._context = self._browser.contexts[0]
         else:
             self._context = self._browser.new_context()
-        self._page = self._context.pages[0] if self._context.pages else self.new_tab()
+        # The user's open tab stays put. This session works in a tab it opened.
+        self._page = self.new_tab()
+        self._owns_cdp_page = True
 
     def new_tab(self) -> Page:
         """A new tab; attached to the user's Chrome it opens in the background."""
@@ -157,7 +162,12 @@ class BrowserSession:
             return self._playwright.chromium.launch_persistent_context(**kwargs)
 
     def __exit__(self, *args: object) -> None:
-        # CDP: disconnect only — never close the user's Chrome window.
+        # CDP: close only the tab this session opened, then disconnect.
+        if self._owns_cdp_page and self._page is not None:
+            try:
+                self._page.close()
+            except Exception:  # noqa: BLE001 — disconnect even if the tab is already gone
+                logger.debug("CDP tab close failed", exc_info=True)
         if self._owns_context and self._context is not None:
             self._context.close()
         if self._browser is not None:
