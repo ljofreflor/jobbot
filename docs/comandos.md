@@ -42,6 +42,7 @@ jobbot update --schedule status
 | `profile answers show [--reveal]` | Muestra qué bloques de respuestas tienen datos. Sin `--reveal` no imprime valores. |
 | `profile answers set CLAVE VALOR [--yes]` | Escribe una clave (por ejemplo `salary.amount`). Sin `--yes` no escribe. Se niega a guardar un RUN. |
 | `profile show` | Resumen del perfil local, incluidos los grados abandonados que el CV omite. |
+| `profile skills-map` | Asocia cada aptitud declarada al cargo o grado que ya la muestra. `--unbacked` lista las que no tienen evidencia. `--apply` escribe el vínculo tras confirmar y deja un respaldo. |
 | `profile import-pdf RUTA` | Importa un CV PDF (capa de texto) a `profile.generated.yaml`. `--promote` lo copia a `profile.yaml` tras validar. |
 | `profile import-latex [RUTA]` | Importa un CV LaTeX legado a `profile.generated.yaml`. |
 | `profile promote-generated` | Copia `profile.generated.yaml` → `profile.yaml` tras confirmación. |
