@@ -2218,6 +2218,56 @@ html.jb-pin-presence:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence: hovering the inactive match step restores the other apply-only group
+   too. Vacantes already restores from that step hover; the match catalog row
+   hover already restores both (above). */
+html.jb-pin-presence:has(
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications
+  + table {
+  opacity: 1;
+}
+
 /* Presence: hovering an inactive apply-only step restores that group's bar + heading + table
    (same chrome a #story-* jump already restores). */
 html.jb-pin-presence:has(
