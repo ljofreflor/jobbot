@@ -8264,6 +8264,22 @@ body:has(
   opacity: 1;
 }
 
+/* Softened lede commands of a loop restore when a catalog command of that loop
+   is the :target. The matching command already restores; hovering a catalog
+   row of that loop already restores every sibling command (item 393). */
+body:has(#cmd-advise:target, #cmd-sync:target)
+  a.jb-scrolly__lede-cmd--presence,
+body:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
 /* Softened catalog rows of a loop restore when a lede command of that loop
    is hovered or focused. The matching row already restores; the loop name,
    chapter cut, and pin chapter already restore every row of that loop
