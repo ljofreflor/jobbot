@@ -1681,6 +1681,18 @@ html.jb-pin-presence:has(#cmd-apply:target) .jb-section--cmds h3#cmd-application
   opacity: 1;
 }
 
+/* Soft wash on apply bar pills when a story-row command is :target (Presence; completes 451). */
+html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target)
+  .jb-cmdnav
+  a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target)
+  .jb-cmdnav
+  a[href="#cmd-vacancies"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-apply:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-apply:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
 /* Soft wash + table inset on apply catalog chrome when a story-row command is :target (Presence; completes 438). */
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-section--cmds h3#cmd-vacantes,
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-section--cmds h3#cmd-vacancies,
