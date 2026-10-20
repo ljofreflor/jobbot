@@ -2248,6 +2248,23 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Postular: hovering the CV group restores the softened Presence lede name.
+   Rows, steps, lede commands, chapter cut, and pin chapter already restore
+   from the same hover; Vacantes and Postulaciones already restore this name
+   (item 356). */
+html:not(.jb-pin-presence):has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  a.jb-scrolly__lede-loop--presence:not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Postular: hovering either apply-only group restores the softened advise and sync rows. */
 html:not(.jb-pin-presence):has(
     .jb-cmdnav a[href="#cmd-vacantes"]:hover,
