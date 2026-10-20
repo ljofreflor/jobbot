@@ -15,6 +15,10 @@ body:has(.jb-hero) {
   --jb-font-brand: "Nunito", "IBM Plex Sans", sans-serif;
   --jb-font-body: "IBM Plex Sans", sans-serif;
   --jb-font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+  /* Material indigo → brand cobalt (prose links + accent hover/focus). */
+  --md-typeset-a-color: var(--jb-cobalt);
+  --md-accent-fg-color: var(--jb-cobalt);
+  --md-accent-fg-color--transparent: rgba(0, 88, 248, 0.1);
 }
 
 body:has(.jb-hero) .md-typeset > h1:first-of-type {
