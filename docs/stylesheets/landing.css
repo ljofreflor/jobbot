@@ -4982,6 +4982,40 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on CV catalog chrome when hovering the Presence pin chapter
+   (last-child under is-presence) via body:has without requiring
+   html.jb-pin-presence (pin-presence navy wash below covers the same
+   chapter under the pin; mirrors Apply-current Presence pin chapter → CV
+   and Presence-current lede → CV). */
+body:has(
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:hover,
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:hover,
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:hover,
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Presence pin on CV: keep navy wash when hovering the Presence pin chapter
    (under Presence that last chapter is current; blue wash above covers the
    Apply-current case; mirrors Presence chapter cut navy). */
