@@ -2063,6 +2063,23 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: hovering the CV group restores the softened Postular chapter cut.
+   The build row, step, and lede command already restore from the same hover;
+   Vacantes and Postulaciones already restore this cut (item 352 mirror).
+   build stays in CV. */
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Reverse of item 215: hovering a softened apply-only row restores that group's
    bar + heading + table. build stays with CV, which is not dimmed. */
 html.jb-pin-presence:has(
