@@ -1907,6 +1907,30 @@ html.jb-pin-presence:has(#story-apply:target)
   opacity: 1;
 }
 
+/* Soft wash on the other apply group when apply is :target (Presence;
+   completes opacity restore above; same cue as #story-conditions→postulaciones). */
+html.jb-pin-presence:has(#story-apply:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(#story-apply:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-vacancies {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Presence: a jump to the get catalog row («En el catálogo») restores the other
    apply-only group too. Vacantes already restores from that hash; the #story-get
    jump already restores both; advise/sync and build row jumps already restore both. */
