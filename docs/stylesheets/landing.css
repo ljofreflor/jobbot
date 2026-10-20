@@ -5936,6 +5936,15 @@ html:not(.jb-pin-presence):has(#cmd-cv:target)
   opacity: 1;
 }
 
+/* Postular: a jump to the CV heading restores the softened Presence chapter
+   cut. Rows, steps, and lede commands already restore from that hash;
+   hovering that heading already restores this cut; Vacantes and
+   Postulaciones already restore it from their heading jumps. */
+html:not(.jb-pin-presence):has(#cmd-cv:target)
+  a.jb-scrolly__split-link--presence:not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Postular: a jump to a Vacantes or Postulaciones heading restores the
    softened advise and sync rows. Hovering that heading already restores
    these rows. */
