@@ -28,6 +28,10 @@ engineering map.
 
 Direction of dependency: **domain → adapters**, never the reverse.
 
+UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `ports`,
+`plan-apply`, `specification`, `acl`. Issues that grow the domain cite an anchor
+and update the diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+
 ## 2. Layered structure
 
 ```text
