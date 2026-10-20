@@ -7578,6 +7578,15 @@ html.jb-pin-presence .jb-section--cmds h3#cmd-applications:not(.is-cmdnav-curren
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.45);
 }
 
+/* Scroll-current group heading: same soft wash as the cmdnav .is-current pill.
+   Pin-step (below) intensifies further when the pin also points here. */
+.jb-section--cmds h3.is-cmdnav-current {
+  padding-left: 0.65rem;
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.45);
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
 /* Pin's current story group: intensify the heading bar (navy for advise/sync). */
 .jb-section--cmds h3.is-pin-step {
   box-shadow: inset 3px 0 0 var(--jb-cobalt);
