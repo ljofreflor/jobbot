@@ -6060,6 +6060,16 @@ html.jb-pin-presence:has(#cmd-cv:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the CV heading restores the softened Postular lede
+   name. The build row, step, lede command, chapter cut, and pin chapter
+   already restore from that hash; hovering that heading already restores
+   this name; Vacantes and Postulaciones already restore it from their
+   heading jumps. build stays in CV. */
+html.jb-pin-presence:has(#cmd-cv:target)
+  a.jb-scrolly__lede-loop:not(.jb-scrolly__lede-loop--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Postular: a jump to the CV heading restores the softened advise and sync
    rows. The CV group stays full; hovering that heading already restores
    these rows. */
