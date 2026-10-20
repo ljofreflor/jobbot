@@ -5408,6 +5408,56 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Soft wash on CV catalog chrome when hovering an apply lede command
+   without requiring the Presence pin (same cue as apply catalog-row hover
+   → CV above; mirrors CV lede → CV chrome). */
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash on the other apply group when scanning Vacantes/Postulaciones
    chrome without requiring the Presence pin (heading :target sibling wash
    above; Presence pin already washes the sibling on hover). */
