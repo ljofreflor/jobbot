@@ -8190,6 +8190,33 @@ body:has(
   opacity: 1;
 }
 
+/* Softened lede commands of a loop restore when a catalog row of that loop
+   is hovered or focused. The matching command already restores; the loop name,
+   chapter cut, pin chapter, and inactive steps already restore every command of
+   that loop (reverse of item 392's sibling pairing). */
+body:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  a.jb-scrolly__lede-cmd--presence,
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
 /* Inactive step restores when its lede command is hovered or focused. */
 body:has(a.jb-scrolly__lede-cmd[href="#story-get"]:hover, a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible)
   #story-get.jb-scrolly__step:not(.is-active),
