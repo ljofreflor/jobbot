@@ -9244,7 +9244,9 @@ a.jb-scrolly__loop:hover {
   background: transparent;
 }
 
-.jb-scrolly__dot:hover::before {
+/* Brighter mark while scanning: match hover when the keyboard lands on a dot. */
+.jb-scrolly__dot:hover::before,
+.jb-scrolly__dot:focus-visible::before {
   background: rgba(126, 176, 255, 0.7);
 }
 
@@ -9281,7 +9283,8 @@ a.jb-scrolly__loop:hover {
   box-shadow: 0 0 0 3px rgba(197, 212, 238, 0.4);
 }
 
-.jb-scrolly__chapter:last-child .jb-scrolly__dot:hover::before {
+.jb-scrolly__chapter:last-child .jb-scrolly__dot:hover::before,
+.jb-scrolly__chapter:last-child .jb-scrolly__dot:focus-visible::before {
   background: rgba(197, 212, 238, 0.75);
 }
 
