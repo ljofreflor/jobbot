@@ -3322,6 +3322,144 @@ body:has(#story-sync:target)
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on both apply groups when hovering a CV catalog row without
+   requiring the Presence pin (CV chrome already washes from that row;
+   Presence pin already washes both apply groups on that row hover; mirrors
+   CV story-row :target and CV story step :target). */
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"]:not(.is-current),
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"]:not(.is-current),
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes,
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies,
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+body:has(
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash + table inset on CV when scanning that heading or table
    (pill→heading wash already; :target same-group wash above; mirrors
    Vacantes/Postulaciones heading/table hover). */
