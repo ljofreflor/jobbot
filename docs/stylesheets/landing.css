@@ -5177,6 +5177,23 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Postular: a jump to an advise or sync step restores the other softened
+   Presence lede commands. The matching command already restores from that
+   hash; the catalog-row jump already restores these commands; hovering that
+   inactive step already restores these commands. */
+html:not(.jb-pin-presence):has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  a.jb-scrolly__lede-cmd[href="#story-advise"],
+html:not(.jb-pin-presence):has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  a.jb-scrolly__lede-cmd[href="#story-sync"] {
+  opacity: 1;
+}
+
 /* Presence: a jump to a get, match, build, conditions, or apply catalog row
    restores the other softened Postular lede commands. The matching command
    already restores from that hash; hovering that row already restores the others. */
