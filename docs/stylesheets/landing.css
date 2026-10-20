@@ -2307,6 +2307,53 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: hovering the CV group restores the softened Postular steps
+   (get, match, conditions, apply). Those rows and the build step already
+   restore from the same hover; Vacantes and Postulaciones already restore
+   these steps. build stays in CV. */
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  #story-get.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  #story-match.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  #story-conditions.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Reverse of item 215: hovering a softened apply-only row restores that group's
    bar + heading + table. build stays with CV, which is not dimmed. */
 html.jb-pin-presence:has(
