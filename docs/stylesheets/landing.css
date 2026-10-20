@@ -1682,6 +1682,48 @@ html.jb-pin-presence:has(#cmd-cv:target) .jb-section--cmds h3#cmd-cv.is-pin-pres
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Soft wash + table inset on CV when scanning that heading or table
+   (pill→heading wash already; :target same-group wash above; mirrors
+   Vacantes/Postulaciones heading/table hover). */
+body:has(
+    #cmd-cv:hover,
+    #cmd-cv:focus-visible,
+    #cmd-cv:focus-within,
+    #cmd-cv + table:hover,
+    #cmd-cv + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    #cmd-cv:hover,
+    #cmd-cv:focus-visible,
+    #cmd-cv:focus-within,
+    #cmd-cv + table:hover,
+    #cmd-cv + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
+/* Presence pin on CV: keep navy wash when scanning the CV heading or table. */
+html.jb-pin-presence:has(
+    #cmd-cv:hover,
+    #cmd-cv:focus-visible,
+    #cmd-cv:focus-within,
+    #cmd-cv + table:hover,
+    #cmd-cv + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Soft wash + table inset on a non-story group heading when it is :target
    (pill already washes from that hash; mirrors cmdnav hover wash and CV :target). */
 body:has(#cmd-maquina:target) .jb-section--cmds h3#cmd-maquina,
