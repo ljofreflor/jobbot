@@ -5223,6 +5223,32 @@ body:has(#cmd-applications:target) .jb-section--cmds h3#cmd-vacancies:not(.is-pi
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on CV catalog chrome when a Vacantes/Postulaciones heading is
+   :target without requiring the Presence pin (same-group and sibling wash
+   above; mirrors #cmd-cv:target → both apply groups and apply chrome → CV
+   hover). */
+body:has(#cmd-vacantes:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-vacancies:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-postulaciones:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-applications:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(#cmd-vacantes:target) .jb-section--cmds h3#cmd-cv,
+body:has(#cmd-vacancies:target) .jb-section--cmds h3#cmd-cv,
+body:has(#cmd-postulaciones:target) .jb-section--cmds h3#cmd-cv,
+body:has(#cmd-applications:target) .jb-section--cmds h3#cmd-cv {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(#cmd-vacantes:target) .jb-section--cmds h3#cmd-cv:not(.is-pin-step) + table,
+body:has(#cmd-vacancies:target) .jb-section--cmds h3#cmd-cv:not(.is-pin-step) + table,
+body:has(#cmd-postulaciones:target) .jb-section--cmds h3#cmd-cv:not(.is-pin-step) + table,
+body:has(#cmd-applications:target) .jb-section--cmds h3#cmd-cv:not(.is-pin-step) + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash on the other apply group when scanning Vacantes/Postulaciones
    chrome without requiring the Presence pin (heading :target sibling wash
    above; Presence pin already washes the sibling on hover). */
