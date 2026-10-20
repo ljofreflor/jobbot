@@ -1682,6 +1682,39 @@ html.jb-pin-presence:has(#cmd-cv:target) .jb-section--cmds h3#cmd-cv.is-pin-pres
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Soft wash + table inset on a non-story group heading when it is :target
+   (pill already washes from that hash; mirrors cmdnav hover wash and CV :target). */
+body:has(#cmd-maquina:target) .jb-section--cmds h3#cmd-maquina,
+body:has(#cmd-perfil:target) .jb-section--cmds h3#cmd-perfil,
+body:has(#cmd-portales:target) .jb-section--cmds h3#cmd-portales,
+body:has(#cmd-navegador:target) .jb-section--cmds h3#cmd-navegador,
+body:has(#cmd-empresas:target) .jb-section--cmds h3#cmd-empresas,
+body:has(#cmd-operacion:target) .jb-section--cmds h3#cmd-operacion,
+body:has(#cmd-machine:target) .jb-section--cmds h3#cmd-machine,
+body:has(#cmd-profile:target) .jb-section--cmds h3#cmd-profile,
+body:has(#cmd-portals:target) .jb-section--cmds h3#cmd-portals,
+body:has(#cmd-browser:target) .jb-section--cmds h3#cmd-browser,
+body:has(#cmd-companies:target) .jb-section--cmds h3#cmd-companies,
+body:has(#cmd-ops:target) .jb-section--cmds h3#cmd-ops {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(#cmd-maquina:target) .jb-section--cmds h3#cmd-maquina + table,
+body:has(#cmd-perfil:target) .jb-section--cmds h3#cmd-perfil + table,
+body:has(#cmd-portales:target) .jb-section--cmds h3#cmd-portales + table,
+body:has(#cmd-navegador:target) .jb-section--cmds h3#cmd-navegador + table,
+body:has(#cmd-empresas:target) .jb-section--cmds h3#cmd-empresas + table,
+body:has(#cmd-operacion:target) .jb-section--cmds h3#cmd-operacion + table,
+body:has(#cmd-machine:target) .jb-section--cmds h3#cmd-machine + table,
+body:has(#cmd-profile:target) .jb-section--cmds h3#cmd-profile + table,
+body:has(#cmd-portals:target) .jb-section--cmds h3#cmd-portals + table,
+body:has(#cmd-browser:target) .jb-section--cmds h3#cmd-browser + table,
+body:has(#cmd-companies:target) .jb-section--cmds h3#cmd-companies + table,
+body:has(#cmd-ops:target) .jb-section--cmds h3#cmd-ops + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Presence: a story-row :target also restores that apply-only group's bar + heading + table. */
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-cmdnav a[href="#cmd-vacantes"],
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-cmdnav a[href="#cmd-vacancies"],
