@@ -8585,6 +8585,22 @@ body:has(
   opacity: 1;
 }
 
+/* Softened chapter cut restores when a lede command of that loop is hovered or
+   focused (same cut a catalog row already restores; the loop name already
+   restores from that command). */
+body:has(
+    a.jb-scrolly__lede-cmd--presence:hover,
+    a.jb-scrolly__lede-cmd--presence:focus-visible
+  )
+  a.jb-scrolly__split-link--presence:not([aria-current="true"]),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]) {
+  opacity: 1;
+}
+
 /* Reverse of item 196: hovering the softened chapter cut restores that loop's catalog rows. */
 html:not(.jb-pin-presence):has(
     a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
