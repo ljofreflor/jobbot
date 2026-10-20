@@ -5458,6 +5458,39 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence pin on CV: keep navy wash when hovering an apply lede command
+   (blue wash above covers the Apply-current case; mirrors apply catalog
+   row hover navy and CV lede navy under pin). */
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Soft wash on the other apply group when scanning Vacantes/Postulaciones
    chrome without requiring the Presence pin (heading :target sibling wash
    above; Presence pin already washes the sibling on hover). */
