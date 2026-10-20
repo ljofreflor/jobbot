@@ -9825,7 +9825,9 @@ a.jb-scrolly__stage-cmd-link {
   border-bottom: 1px solid rgba(126, 176, 255, 0.35);
 }
 
-a.jb-scrolly__stage-cmd-link:hover {
+/* Solid underline while scanning: match hover when the keyboard lands on the stage cmd. */
+a.jb-scrolly__stage-cmd-link:hover,
+a.jb-scrolly__stage-cmd-link:focus-visible {
   border-bottom-color: #7eb0ff;
 }
 
@@ -9874,7 +9876,8 @@ a.jb-scrolly__stage-cmd-link:focus-visible {
   border-bottom-color: rgba(197, 212, 238, 0.45);
 }
 
-.jb-scrolly__pin.is-presence a.jb-scrolly__stage-cmd-link:hover {
+.jb-scrolly__pin.is-presence a.jb-scrolly__stage-cmd-link:hover,
+.jb-scrolly__pin.is-presence a.jb-scrolly__stage-cmd-link:focus-visible {
   border-bottom-color: #c5d4ee;
 }
 
