@@ -5872,6 +5872,17 @@ html:not(.jb-pin-presence):has(#cmd-cv:target)
   opacity: 1;
 }
 
+/* Postular: a jump to the CV heading restores the softened advise and sync
+   steps. Those rows already restore from that hash; hovering that heading
+   already restores these steps; Vacantes and Postulaciones already restore
+   them from their heading jumps. */
+html:not(.jb-pin-presence):has(#cmd-cv:target)
+  #story-advise.jb-scrolly__step:not(.is-active),
+html:not(.jb-pin-presence):has(#cmd-cv:target)
+  #story-sync.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Postular: a jump to a Vacantes or Postulaciones heading restores the
    softened advise and sync rows. Hovering that heading already restores
    these rows. */
