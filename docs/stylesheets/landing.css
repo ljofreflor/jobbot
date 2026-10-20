@@ -7641,6 +7641,11 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds :target {
   --md-scroll-margin: 10rem;
 }
 
+/* Section title (#comandos / #commands) only needs the site header — not the group bar gap. */
+body:has(.jb-hero) .md-typeset .jb-section--cmds h2:target {
+  --md-scroll-margin: 4.5rem;
+}
+
 /* Beat Material's table:not([class]) (inline-block, 0.64rem, overflow). */
 body:has(.jb-hero) .md-typeset .jb-section--cmds .md-typeset__scrollwrap,
 body:has(.jb-hero) .md-typeset .jb-section--cmds .md-typeset__table {
