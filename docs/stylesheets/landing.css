@@ -7838,9 +7838,11 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
 
 /* Soft wash + table inset while scanning a group heading (match 420 / 427).
    Skip pin-step so the stronger cobalt/navy table inset (428) stays.
-   Same cues when the pointer/keyboard is in the adjacent table (not only on the h3). */
+   Same cues when the pointer/keyboard is in the adjacent table (not only on the h3),
+   or when the jump lands on the heading (:target). */
 .jb-section--cmds h3:hover,
 .jb-section--cmds h3:focus-visible,
+.jb-section--cmds h3:target,
 .jb-section--cmds h3:has(+ table:hover),
 .jb-section--cmds h3:has(+ table:focus-within) {
   background: rgba(0, 88, 248, 0.06);
@@ -7849,6 +7851,7 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
 
 .jb-section--cmds h3:hover:not(.is-pin-step) + table,
 .jb-section--cmds h3:focus-visible:not(.is-pin-step) + table,
+.jb-section--cmds h3:target:not(.is-pin-step) + table,
 .jb-section--cmds h3:not(.is-pin-step) + table:hover,
 .jb-section--cmds h3:not(.is-pin-step) + table:focus-within {
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
@@ -7857,6 +7860,7 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
 /* Presence pin group: keep navy wash while scanning (432/433 used cobalt). */
 .jb-section--cmds h3.is-pin-step.is-pin-presence:hover,
 .jb-section--cmds h3.is-pin-step.is-pin-presence:focus-visible,
+.jb-section--cmds h3.is-pin-step.is-pin-presence:target,
 .jb-section--cmds h3.is-pin-step.is-pin-presence:has(+ table:hover),
 .jb-section--cmds h3.is-pin-step.is-pin-presence:has(+ table:focus-within) {
   background: rgba(0, 24, 56, 0.05);
