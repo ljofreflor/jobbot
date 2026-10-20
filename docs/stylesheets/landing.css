@@ -7638,12 +7638,15 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.4);
 }
 
-/* Soft row wash while scanning: cobalt for postular, navy for presencia. */
-.jb-section--cmds tr:has(.jb-in-story):hover td {
+/* Soft row wash while scanning: cobalt for postular, navy for presencia.
+   Match hover when the keyboard lands inside the row (tag or command). */
+.jb-section--cmds tr:has(.jb-in-story):hover td,
+.jb-section--cmds tr:has(.jb-in-story):focus-within td {
   background: rgba(0, 88, 248, 0.07);
 }
 
-.jb-section--cmds tr:has(.jb-in-story__tag--presence):hover td {
+.jb-section--cmds tr:has(.jb-in-story__tag--presence):hover td,
+.jb-section--cmds tr:has(.jb-in-story__tag--presence):focus-within td {
   background: rgba(0, 24, 56, 0.06);
 }
 
