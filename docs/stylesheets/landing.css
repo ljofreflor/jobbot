@@ -1881,6 +1881,32 @@ html.jb-pin-presence:has(#story-conditions:target)
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence: a jump to apply (Postular lede name / chapter cut) restores the
+   other apply-only group too. Postulaciones already restores from that hash;
+   the get/match/conditions story jumps already restore both the other way. */
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-cmdnav
+  a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-cmdnav
+  a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacantes
+  + table,
+html.jb-pin-presence:has(#story-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacancies
+  + table {
+  opacity: 1;
+}
+
 /* Presence: a jump to the get catalog row («En el catálogo») restores the other
    apply-only group too. Vacantes already restores from that hash; the #story-get
    jump already restores both; advise/sync and build row jumps already restore both. */
