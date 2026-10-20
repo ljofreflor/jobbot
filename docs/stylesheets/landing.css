@@ -1681,6 +1681,28 @@ html.jb-pin-presence:has(#cmd-apply:target) .jb-section--cmds h3#cmd-application
   opacity: 1;
 }
 
+/* Soft wash + table inset on apply catalog chrome when a story-row command is :target (Presence; completes 438). */
+html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-section--cmds h3#cmd-vacancies,
+html.jb-pin-presence:has(#cmd-apply:target) .jb-section--cmds h3#cmd-postulaciones,
+html.jb-pin-presence:has(#cmd-apply:target) .jb-section--cmds h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target)
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target)
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(#cmd-apply:target) .jb-section--cmds h3#cmd-postulaciones:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#cmd-apply:target) .jb-section--cmds h3#cmd-applications:not(.is-pin-step) + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Presence: a #story-* jump to an apply-only step restores that group's bar + heading + table
    (same chrome a #cmd-* jump already restores). build stays with CV, which is not dimmed. */
 html.jb-pin-presence:has(#story-get:target, #story-match:target, #story-conditions:target) .jb-cmdnav a[href="#cmd-vacantes"],
