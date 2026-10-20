@@ -18,7 +18,8 @@ issue ya cita UML y el diagrama está al día.
 | #185 | Value Object | [fact-preference](uml.md#fact-preference) | body_ready | [185](sdd-issue-patches/185.md) |
 | #195 | Association, EvidenceStrength | [fact-preference](uml.md#fact-preference) | body_ready | [195](sdd-issue-patches/195.md) |
 | #206 | Aggregate (Preferences) | [fact-preference](uml.md#fact-preference) | body_ready | [206](sdd-issue-patches/206.md) |
-| #221 / #400 | Overlay / Projection | [fact-preference](uml.md#fact-preference) | body_ready | [221](sdd-issue-patches/221.md) |
+| #221 | Overlay / Projection | [fact-preference](uml.md#fact-preference) | body_ready | [221](sdd-issue-patches/221.md) |
+| #400 | Overlay / Projection | [fact-preference](uml.md#fact-preference) | body_ready | [400](sdd-issue-patches/400.md) |
 | #166 | Specification | [specification](uml.md#specification) | body_ready | [166](sdd-issue-patches/166.md) |
 | #186 | Specification + Command | [specification](uml.md#specification) · [plan-apply](uml.md#plan-apply) | body_ready | [186](sdd-issue-patches/186.md) |
 | #94 | ACL | [acl](uml.md#acl) | body_ready | [94](sdd-issue-patches/94.md) |
@@ -28,6 +29,9 @@ issue ya cita UML y el diagrama está al día.
 | #303 | Preferences aggregate + ACL | [fact-preference](uml.md#fact-preference) · [acl](uml.md#acl) | body_ready | [303](sdd-issue-patches/303.md) |
 | #265 | Registry + Factory / DI | [ports](uml.md#ports) | body_ready | [265](sdd-issue-patches/265.md) |
 | #218 | ProfileAdapter + Snapshot diff | [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [218](sdd-issue-patches/218.md) |
+| #414 | Command (import HITL) | [plan-apply](uml.md#plan-apply) | body_ready | [414](sdd-issue-patches/414.md) |
+| #382 | VO deadline + selection plan | [specification](uml.md#specification) · [plan-apply](uml.md#plan-apply) | body_ready | [382](sdd-issue-patches/382.md) |
+| #219 | WritableProfileAdapter + ACL | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) · [acl](uml.md#acl) | body_ready | [219](sdd-issue-patches/219.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

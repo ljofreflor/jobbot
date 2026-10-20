@@ -143,8 +143,17 @@ classDiagram
   class JobPosting {
     +list~Requirement~ requirements_typed
     +PostingClarity clarity
+    +datetime|None closes_at
+    +str|None closes_timezone
+  }
+  class ProfileOverlay {
+    <<Projection>>
+    +str lang
+    +dict by_id
+    +source_hash per entry
   }
   Candidate ..> ApplicationPreferences : used with
+  Candidate ..> ProfileOverlay : composed with
   Candidate *-- LanguageSkill
   Candidate *-- SkillUse
   Candidate *-- Experience
