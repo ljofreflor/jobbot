@@ -3236,6 +3236,92 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on both apply groups when a CV story step is :target without
+   requiring the Presence pin (CV chrome already washes above; Presence pin
+   already washes both apply groups from that hash; mirrors inactive CV step
+   hover and CV story-row :target). */
+body:has(#story-build:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#story-advise:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#story-sync:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#story-build:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#story-advise:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#story-sync:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#story-build:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#story-advise:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#story-sync:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#story-build:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
+body:has(#story-advise:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
+body:has(#story-sync:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(#story-build:target) .jb-section--cmds h3#cmd-vacantes,
+body:has(#story-advise:target) .jb-section--cmds h3#cmd-vacantes,
+body:has(#story-sync:target) .jb-section--cmds h3#cmd-vacantes,
+body:has(#story-build:target) .jb-section--cmds h3#cmd-vacancies,
+body:has(#story-advise:target) .jb-section--cmds h3#cmd-vacancies,
+body:has(#story-sync:target) .jb-section--cmds h3#cmd-vacancies,
+body:has(#story-build:target) .jb-section--cmds h3#cmd-postulaciones,
+body:has(#story-advise:target) .jb-section--cmds h3#cmd-postulaciones,
+body:has(#story-sync:target) .jb-section--cmds h3#cmd-postulaciones,
+body:has(#story-build:target) .jb-section--cmds h3#cmd-applications,
+body:has(#story-advise:target) .jb-section--cmds h3#cmd-applications,
+body:has(#story-sync:target) .jb-section--cmds h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(#story-build:target)
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+body:has(#story-advise:target)
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+body:has(#story-sync:target)
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+body:has(#story-build:target)
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+body:has(#story-advise:target)
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+body:has(#story-sync:target)
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+body:has(#story-build:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+body:has(#story-advise:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+body:has(#story-sync:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+body:has(#story-build:target)
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table,
+body:has(#story-advise:target)
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table,
+body:has(#story-sync:target)
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash + table inset on CV when scanning that heading or table
    (pill→heading wash already; :target same-group wash above; mirrors
    Vacantes/Postulaciones heading/table hover). */
