@@ -7730,6 +7730,16 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
   border-radius: 0.15rem;
 }
 
+/* Soft wash + table inset while the keyboard is on a group heading (match 420 / 427). */
+.jb-section--cmds h3:focus-visible {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.jb-section--cmds h3:focus-visible + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Presence catalog landings keep the navy ring (advise / sync). */
 .jb-section--cmds .jb-in-story:has(.jb-in-story__tag--presence):focus-visible {
   outline-color: var(--jb-navy);
