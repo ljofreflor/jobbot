@@ -8511,6 +8511,56 @@ body:has(
   opacity: 1;
 }
 
+/* Softened inactive steps of a loop restore when a step of that loop is the
+   :target. The step under the hash is already full; a lede command of that
+   loop already restores every inactive sibling (item 390). */
+body:has(#story-advise:target, #story-sync:target)
+  #story-advise.jb-scrolly__step:not(.is-active),
+body:has(#story-advise:target, #story-sync:target)
+  #story-sync.jb-scrolly__step:not(.is-active),
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  #story-get.jb-scrolly__step:not(.is-active),
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  #story-match.jb-scrolly__step:not(.is-active),
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  #story-build.jb-scrolly__step:not(.is-active),
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  #story-conditions.jb-scrolly__step:not(.is-active),
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Softened lede loop name restores when an inactive step of that loop is hovered or focused
    (same name a #story-* jump already restores). */
 body:has(
