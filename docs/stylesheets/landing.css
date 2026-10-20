@@ -8217,6 +8217,25 @@ body:has(
   opacity: 1;
 }
 
+/* Softened catalog rows of a loop restore when a lede command of that loop
+   is hovered or focused. The matching row already restores; the loop name,
+   chapter cut, and pin chapter already restore every row of that loop
+   (reverse of item 393). */
+body:has(
+    a.jb-scrolly__lede-cmd--presence:hover,
+    a.jb-scrolly__lede-cmd--presence:focus-visible
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag--presence),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
+  opacity: 1;
+}
+
 /* Inactive step restores when its lede command is hovered or focused. */
 body:has(a.jb-scrolly__lede-cmd[href="#story-get"]:hover, a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible)
   #story-get.jb-scrolly__step:not(.is-active),
