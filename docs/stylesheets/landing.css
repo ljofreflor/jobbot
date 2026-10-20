@@ -5897,6 +5897,89 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: a jump to an advise or sync step restores the softened apply-only
+   groups (bar, heading, and table). Same-loop steps already restore their own
+   group; hovering that inactive step already restores these groups
+   (mirror of item 246). */
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes
+  + table,
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies
+  + table,
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  .jb-section--cmds
+  h3#cmd-applications
+  + table {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
