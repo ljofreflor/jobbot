@@ -2924,6 +2924,144 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Soft wash on both apply groups when hovering a CV lede command without
+   requiring the Presence pin (CV chrome already washes above; Presence pin
+   already washes both apply groups on that lede hover; mirrors CV story-row
+   :target and CV chrome scan). */
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"]:not(.is-current),
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"]:not(.is-current),
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes,
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies,
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+body:has(
+    a.jb-scrolly__lede-cmd[href="#story-build"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-build"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash + table inset on CV when scanning that heading or table
    (pill→heading wash already; :target same-group wash above; mirrors
    Vacantes/Postulaciones heading/table hover). */
