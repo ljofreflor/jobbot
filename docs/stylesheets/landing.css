@@ -1257,6 +1257,27 @@ html.jb-pin-presence:has(#cmd-cv + table .jb-in-story:target) .jb-cmdnav a[href=
   background: rgba(0, 24, 56, 0.08);
 }
 
+/* Soft wash on story bar pills when the pin story step is :target (same map as 445). */
+body:has(#story-build:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#story-advise:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#story-sync:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#story-get:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#story-match:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#story-conditions:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#story-apply:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#story-get:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#story-match:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#story-conditions:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#story-apply:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+html.jb-pin-presence:has(#story-build:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+html.jb-pin-presence:has(#story-advise:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+html.jb-pin-presence:has(#story-sync:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
 /* Softened heading/table restore when their cmdnav link is hovered/focused (reverse of 156). */
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:hover) .jb-section--cmds h3#cmd-maquina,
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:focus-visible) .jb-section--cmds h3#cmd-maquina,
