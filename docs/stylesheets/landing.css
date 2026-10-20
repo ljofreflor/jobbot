@@ -3728,6 +3728,28 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence pin on CV: keep navy wash when hovering the Postular chapter cut
+   (under Presence that cut is not current; blue wash above already applies
+   then; this keeps navy instead of cobalt; mirrors Presence chapter cut navy
+   and Postular lede loop navy). */
+html.jb-pin-presence:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
+html.jb-pin-presence:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Soft wash on both apply groups when hovering the Postular pin chapter
    without requiring the Presence pin (when Apply is current the first pin
    chapter is Postular; Presence pin already washes both apply groups when
