@@ -6309,6 +6309,25 @@ html.jb-pin-presence:has(#cmd-cv:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the CV heading restores the softened apply-only rows.
+   Group chrome already returns from that hash; hovering that heading already
+   restores these rows; the build row jump already restores them. build stays
+   in CV. */
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  tr:has(#cmd-get),
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  tr:has(#cmd-match),
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  tr:has(#cmd-conditions),
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  tr:has(#cmd-apply) {
+  opacity: 1;
+}
+
 /* Postular: a jump to the CV heading restores the softened advise and sync
    rows. The CV group stays full; hovering that heading already restores
    these rows. */
