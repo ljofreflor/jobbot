@@ -1258,6 +1258,40 @@ html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-applications"]:focus-visible) .
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Story groups: same wash when cmdnav points at them (435 covered softened-only). */
+body:has(.jb-cmdnav a[href="#cmd-cv"]:hover) .jb-section--cmds h3#cmd-cv,
+body:has(.jb-cmdnav a[href="#cmd-cv"]:focus-visible) .jb-section--cmds h3#cmd-cv,
+body:has(.jb-cmdnav a[href="#cmd-vacantes"]:hover) .jb-section--cmds h3#cmd-vacantes,
+body:has(.jb-cmdnav a[href="#cmd-vacantes"]:focus-visible) .jb-section--cmds h3#cmd-vacantes,
+body:has(.jb-cmdnav a[href="#cmd-postulaciones"]:hover) .jb-section--cmds h3#cmd-postulaciones,
+body:has(.jb-cmdnav a[href="#cmd-postulaciones"]:focus-visible) .jb-section--cmds h3#cmd-postulaciones,
+body:has(.jb-cmdnav a[href="#cmd-vacancies"]:hover) .jb-section--cmds h3#cmd-vacancies,
+body:has(.jb-cmdnav a[href="#cmd-vacancies"]:focus-visible) .jb-section--cmds h3#cmd-vacancies,
+body:has(.jb-cmdnav a[href="#cmd-applications"]:hover) .jb-section--cmds h3#cmd-applications,
+body:has(.jb-cmdnav a[href="#cmd-applications"]:focus-visible) .jb-section--cmds h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(.jb-cmdnav a[href="#cmd-cv"]:hover) .jb-section--cmds h3#cmd-cv:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-cv"]:focus-visible) .jb-section--cmds h3#cmd-cv:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-vacantes"]:hover) .jb-section--cmds h3#cmd-vacantes:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-vacantes"]:focus-visible) .jb-section--cmds h3#cmd-vacantes:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-postulaciones"]:hover) .jb-section--cmds h3#cmd-postulaciones:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-postulaciones"]:focus-visible) .jb-section--cmds h3#cmd-postulaciones:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-vacancies"]:hover) .jb-section--cmds h3#cmd-vacancies:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-vacancies"]:focus-visible) .jb-section--cmds h3#cmd-vacancies:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-applications"]:hover) .jb-section--cmds h3#cmd-applications:not(.is-pin-step) + table,
+body:has(.jb-cmdnav a[href="#cmd-applications"]:focus-visible) .jb-section--cmds h3#cmd-applications:not(.is-pin-step) + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
+/* Presence pin on CV: cmdnav must not swap navy wash for cobalt (434). */
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-cv"]:hover) .jb-section--cmds h3#cmd-cv.is-pin-presence,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-cv"]:focus-visible) .jb-section--cmds h3#cmd-cv.is-pin-presence {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Presence: a story-row :target also restores that apply-only group's bar + heading + table. */
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-cmdnav a[href="#cmd-vacantes"],
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-cmdnav a[href="#cmd-vacancies"],
