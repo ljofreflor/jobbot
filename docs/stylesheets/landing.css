@@ -7748,6 +7748,14 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence pin group: keep navy wash while scanning (432/433 used cobalt). */
+.jb-section--cmds h3.is-pin-step.is-pin-presence:hover,
+.jb-section--cmds h3.is-pin-step.is-pin-presence:focus-visible,
+.jb-section--cmds h3.is-pin-step.is-pin-presence:has(+ table:hover),
+.jb-section--cmds h3.is-pin-step.is-pin-presence:has(+ table:focus-within) {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Presence catalog landings keep the navy ring (advise / sync). */
 .jb-section--cmds .jb-in-story:has(.jb-in-story__tag--presence):focus-visible {
   outline-color: var(--jb-navy);
