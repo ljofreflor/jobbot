@@ -3630,6 +3630,50 @@ html.jb-pin-presence:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence: hovering the apply lede command restores the other apply-only
+   group too. Postulaciones already restores from that lede hover; the inactive
+   apply step and apply catalog row hover already restore both. */
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes
+  + table,
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies
+  + table {
+  opacity: 1;
+}
+
 /* Reverse of item 207: hovering the softened apply-only group restores its lede commands. */
 html.jb-pin-presence:has(
     .jb-cmdnav a[href="#cmd-vacantes"]:hover,
