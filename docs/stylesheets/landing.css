@@ -9562,7 +9562,9 @@ a.jb-scrolly__lede-loop {
   border-radius: 0.15rem;
 }
 
-a.jb-scrolly__lede-loop:hover {
+/* Solid underline while scanning: match hover when the keyboard lands on the loop name. */
+a.jb-scrolly__lede-loop:hover,
+a.jb-scrolly__lede-loop:focus-visible {
   border-bottom-color: var(--jb-cobalt);
 }
 
@@ -9581,7 +9583,8 @@ a.jb-scrolly__lede-loop--presence {
   border-bottom-color: rgba(0, 24, 56, 0.35);
 }
 
-a.jb-scrolly__lede-loop--presence:hover {
+a.jb-scrolly__lede-loop--presence:hover,
+a.jb-scrolly__lede-loop--presence:focus-visible {
   border-bottom-color: var(--jb-navy);
 }
 
