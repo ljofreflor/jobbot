@@ -5326,6 +5326,16 @@ html.jb-pin-presence:has(#cmd-advise:target, #cmd-sync:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the advise or sync catalog row restores the softened
+   build catalog row. Apply-only rows already restore from that jump
+   (item 292); hovering that row already restores this row (mirror of
+   item 333). build stays in CV. */
+html.jb-pin-presence:has(#cmd-advise:target, #cmd-sync:target)
+  .jb-section--cmds
+  tr:has(#cmd-build) {
+  opacity: 1;
+}
+
 /* Presence: a jump to the advise or sync catalog row restores both
    softened apply-only groups. The hash stays on the Presence row;
    hovering that row already restores this chrome. */
