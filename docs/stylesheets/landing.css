@@ -7681,9 +7681,14 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   width: 42%;
 }
 
-.jb-section--cmds td:first-child code {
+/* Command column: navy weight, no Material gray chip (prose chips are cobalt). */
+body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
+  font-family: var(--jb-font-mono);
   font-weight: 650;
   color: var(--jb-navy);
+  background-color: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
 .jb-section--cmds code {
