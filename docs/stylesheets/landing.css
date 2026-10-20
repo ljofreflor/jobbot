@@ -5850,6 +5850,17 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: a jump to an advise or sync step restores the softened Postular
+   lede commands. The Presence commands stay full; hovering that inactive step
+   already restores these commands (mirror of item 323). */
+html.jb-pin-presence:has(
+    #story-advise:target,
+    #story-sync:target
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
