@@ -6139,6 +6139,24 @@ html.jb-pin-presence:has(#story-build:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the build step restores the other softened Postular
+   catalog rows. The build row already restores from that jump; hovering that
+   inactive step already restores these rows (mirror of item 259). */
+html.jb-pin-presence:has(#story-build:target)
+  .jb-section--cmds
+  tr:has(#cmd-get),
+html.jb-pin-presence:has(#story-build:target)
+  .jb-section--cmds
+  tr:has(#cmd-match),
+html.jb-pin-presence:has(#story-build:target)
+  .jb-section--cmds
+  tr:has(#cmd-conditions),
+html.jb-pin-presence:has(#story-build:target)
+  .jb-section--cmds
+  tr:has(#cmd-apply) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
