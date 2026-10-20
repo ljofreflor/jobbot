@@ -8065,6 +8065,92 @@ body:has(
   opacity: 1;
 }
 
+/* Softened inactive steps of a loop restore when a catalog row of that loop
+   is hovered or focused. The matching step already restores; the loop name,
+   chapter cut, pin chapter, and lede commands already restore every step of
+   that loop. */
+body:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  #story-advise.jb-scrolly__step:not(.is-active),
+body:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  #story-sync.jb-scrolly__step:not(.is-active),
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  #story-get.jb-scrolly__step:not(.is-active),
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  #story-match.jb-scrolly__step:not(.is-active),
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  #story-build.jb-scrolly__step:not(.is-active),
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  #story-conditions.jb-scrolly__step:not(.is-active),
+body:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Softened lede command restores when its catalog row is hovered or focused. */
 body:has(
     .jb-section--cmds tr:has(#cmd-get):hover,
