@@ -1202,6 +1202,44 @@ html.jb-pin-presence:has(#cmd-applications + table:focus-within) .jb-cmdnav a[hr
   background: rgba(0, 88, 248, 0.08);
 }
 
+/* Soft wash on story bar pills when their group chrome is scanned (reverse of 436; skip .is-current). */
+body:has(#cmd-cv:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-cv:hover) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-cv:focus-visible) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-cv + table:hover) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-cv + table:focus-within) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-vacantes:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#cmd-vacantes:hover) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#cmd-vacantes:focus-visible) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#cmd-vacantes + table:hover) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#cmd-vacantes + table:focus-within) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#cmd-postulaciones:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#cmd-postulaciones:hover) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#cmd-postulaciones:focus-visible) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#cmd-postulaciones + table:hover) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#cmd-postulaciones + table:focus-within) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#cmd-vacancies:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#cmd-vacancies:hover) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#cmd-vacancies:focus-visible) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#cmd-vacancies + table:hover) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#cmd-vacancies + table:focus-within) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#cmd-applications:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
+body:has(#cmd-applications:hover) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
+body:has(#cmd-applications:focus-visible) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
+body:has(#cmd-applications + table:hover) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
+body:has(#cmd-applications + table:focus-within) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+/* Presence pin on CV: scanning the group keeps the navy pill wash (same as 434). */
+html.jb-pin-presence:has(#cmd-cv:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-cv:hover) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-cv:focus-visible) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-cv + table:hover) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-cv + table:focus-within) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
 /* Softened heading/table restore when their cmdnav link is hovered/focused (reverse of 156). */
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:hover) .jb-section--cmds h3#cmd-maquina,
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:focus-visible) .jb-section--cmds h3#cmd-maquina,
