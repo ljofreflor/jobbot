@@ -9008,6 +9008,24 @@ body:has(
   opacity: 1;
 }
 
+/* Softened pin chapter restores when a lede command of that loop is hovered or
+   focused (same chapter a catalog row already restores; the loop name and
+   chapter cut already restore from that command). */
+body:has(
+    a.jb-scrolly__lede-cmd--presence:hover,
+    a.jb-scrolly__lede-cmd--presence:focus-visible
+  )
+  .jb-scrolly__pin:not(.is-presence)
+  .jb-scrolly__chapter:last-child,
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  .jb-scrolly__pin.is-presence
+  .jb-scrolly__chapter:first-child {
+  opacity: 1;
+}
+
 /* Reverse of item 192: hovering the softened pin chapter restores that loop's catalog rows. */
 html:not(.jb-pin-presence):has(
     .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
