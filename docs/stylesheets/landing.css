@@ -5886,6 +5886,22 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Postular: a jump to a Vacantes or Postulaciones heading restores the
+   softened Presence pin chapter. Rows, steps, lede commands, and the
+   chapter cut already restore from that hash; hovering that heading
+   already restores this chapter; under Presence the same jump already
+   restores the Postular pin chapter. */
+html:not(.jb-pin-presence):has(
+    #cmd-vacantes:target,
+    #cmd-vacancies:target,
+    #cmd-postulaciones:target,
+    #cmd-applications:target
+  )
+  .jb-scrolly__pin:not(.is-presence)
+  .jb-scrolly__chapter:last-child {
+  opacity: 1;
+}
+
 /* Presence: a jump to a Vacantes heading restores the softened apply row,
    and a jump to a Postulaciones heading restores the softened get, match,
    and conditions rows. Same-group rows already restore; hovering that
