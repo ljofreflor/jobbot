@@ -4458,6 +4458,52 @@ html.jb-pin-presence:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence: a jump to either apply-only heading restores the other group's
+   chrome too. Same-group chrome already restores from that hash; hovering
+   that heading already restores both (above). */
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-applications
+  + table,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-cmdnav
+  a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-cmdnav
+  a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-vacantes
+  + table,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-vacancies
+  + table {
+  opacity: 1;
+}
+
 /* Presence: the softened Postular chapter cut restores both apply-only groups
    (bar + heading + table). CV, which holds build, is not dimmed. */
 html.jb-pin-presence:has(
