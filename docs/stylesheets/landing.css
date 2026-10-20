@@ -1240,6 +1240,19 @@ html.jb-pin-presence:has(#cmd-cv + table:focus-within) .jb-cmdnav a[href="#cmd-c
   background: rgba(0, 24, 56, 0.08);
 }
 
+/* Soft wash on story bar pills when a story command in the group is :target (completes 438 for the bar). */
+body:has(#cmd-cv + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current),
+body:has(#cmd-vacantes + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+body:has(#cmd-postulaciones + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(#cmd-vacancies + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+body:has(#cmd-applications + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+html.jb-pin-presence:has(#cmd-cv + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
 /* Softened heading/table restore when their cmdnav link is hovered/focused (reverse of 156). */
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:hover) .jb-section--cmds h3#cmd-maquina,
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:focus-visible) .jb-section--cmds h3#cmd-maquina,
