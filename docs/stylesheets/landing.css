@@ -2583,6 +2583,39 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Postular: hovering a Postular catalog row restores the softened Presence catalog rows.
+   Same-loop rows stay full; these are the other loop. */
+html:not(.jb-pin-presence):has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-advise),
+html:not(.jb-pin-presence):has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-build):hover,
+    .jb-section--cmds tr:has(#cmd-build):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-sync) {
+  opacity: 1;
+}
+
 /* Presence: hovering advise or sync restores the softened Postular steps.
    Same-loop rows already restore their own step; these are the other loop (mirror of item 232). */
 html.jb-pin-presence:has(
