@@ -247,10 +247,17 @@ body:has(.jb-hero) .md-tabs {
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.jb-audio__toggle:hover {
+/* Soft wash while scanning: match hover when the keyboard lands on the toggle. */
+.jb-audio__toggle:hover,
+.jb-audio__toggle:focus-visible {
   background: #fff;
   border-color: rgba(0, 88, 248, 0.35);
   color: var(--jb-navy);
+}
+
+.jb-audio__toggle:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 3px;
 }
 
 .jb-audio__toggle[aria-pressed="true"] {
