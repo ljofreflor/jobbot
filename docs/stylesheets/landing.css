@@ -8443,6 +8443,24 @@ body:has(
   opacity: 1;
 }
 
+/* Softened catalog rows of a loop restore when a step of that loop is the
+   :target. The matching row already restores; hovering that inactive step
+   already restores every sibling row (item 395). */
+body:has(#story-advise:target, #story-sync:target)
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag--presence),
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
+  opacity: 1;
+}
+
 /* Softened lede loop name restores when an inactive step of that loop is hovered or focused
    (same name a #story-* jump already restores). */
 body:has(
