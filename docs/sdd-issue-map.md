@@ -24,6 +24,10 @@ issue ya cita UML y el diagrama está al día.
 | #94 | ACL | [acl](uml.md#acl) | body_ready | [94](sdd-issue-patches/94.md) |
 | #203 | Specification + Command | [plan-apply](uml.md#plan-apply) | body_ready | [203](sdd-issue-patches/203.md) |
 | #178 | PostingClarity (VO) | [specification](uml.md#specification) | body_ready | [178](sdd-issue-patches/178.md) |
+| #404 | Strategy (CV variant) | [ports](uml.md#ports) | body_ready | [404](sdd-issue-patches/404.md) |
+| #303 | Preferences aggregate + ACL | [fact-preference](uml.md#fact-preference) · [acl](uml.md#acl) | body_ready | [303](sdd-issue-patches/303.md) |
+| #265 | Registry + Factory / DI | [ports](uml.md#ports) | body_ready | [265](sdd-issue-patches/265.md) |
+| #218 | ProfileAdapter + Snapshot diff | [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [218](sdd-issue-patches/218.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

@@ -155,7 +155,7 @@ classDiagram
 
 ## Puertos y adapters (hexagonal) {#ports}
 
-Patrones: **Port/Adapter**, **Factory**, **Strategy**.
+Patrones: **Port/Adapter**, **Factory**, **Strategy**, **Registry**.
 
 ```mermaid
 classDiagram
@@ -186,12 +186,25 @@ classDiagram
   class RuleBasedJobAnalyzer {
     +analyze(Candidate, JobPosting) JobMatch
   }
+  class SourceChannel {
+    <<Registry entry>>
+    +str id
+    +evidence
+    +capabilities
+  }
+  class CvPresentationVariant {
+    <<Strategy choice>>
+    +str name
+    +list match_terms
+  }
   JobSourceAdapter ..> JobPosting : produces
   ApplicationPortalAdapter ..> Candidate : reads
   ProfileAdapter ..> Candidate : diffs
   WritableProfileAdapter --|> ProfileAdapter
   RuleBasedJobAnalyzer ..> Candidate : reads
   RuleBasedJobAnalyzer ..> JobPosting : reads
+  SourceChannel ..> JobSourceAdapter : selects
+  CvPresentationVariant ..> Candidate : presentation only
 ```
 
 ## Plan-then-apply (Command) {#plan-apply}
