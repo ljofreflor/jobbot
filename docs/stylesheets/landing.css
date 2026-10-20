@@ -4009,6 +4009,19 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when hovering the Postular chapter
+   cut / split-link (pill+heading navy above; mirrors Postular lede table
+   inset under Presence). */
+html.jb-pin-presence:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash on both apply groups when hovering the Postular pin chapter
    without requiring the Presence pin (when Apply is current the first pin
    chapter is Postular; Presence pin already washes both apply groups when
