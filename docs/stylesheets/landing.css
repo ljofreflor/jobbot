@@ -1757,6 +1757,244 @@ body:has(#cmd-ops:target) .jb-section--cmds h3#cmd-ops + table {
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash + table inset on a non-story group when scanning that heading
+   or table (pill→heading wash already; :target same-group wash above;
+   mirrors CV / Vacantes heading/table hover). */
+body:has(
+    #cmd-maquina:hover,
+    #cmd-maquina:focus-visible,
+    #cmd-maquina:focus-within,
+    #cmd-maquina + table:hover,
+    #cmd-maquina + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-maquina,
+body:has(
+    #cmd-perfil:hover,
+    #cmd-perfil:focus-visible,
+    #cmd-perfil:focus-within,
+    #cmd-perfil + table:hover,
+    #cmd-perfil + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-perfil,
+body:has(
+    #cmd-portales:hover,
+    #cmd-portales:focus-visible,
+    #cmd-portales:focus-within,
+    #cmd-portales + table:hover,
+    #cmd-portales + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-portales,
+body:has(
+    #cmd-navegador:hover,
+    #cmd-navegador:focus-visible,
+    #cmd-navegador:focus-within,
+    #cmd-navegador + table:hover,
+    #cmd-navegador + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-navegador,
+body:has(
+    #cmd-empresas:hover,
+    #cmd-empresas:focus-visible,
+    #cmd-empresas:focus-within,
+    #cmd-empresas + table:hover,
+    #cmd-empresas + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-empresas,
+body:has(
+    #cmd-operacion:hover,
+    #cmd-operacion:focus-visible,
+    #cmd-operacion:focus-within,
+    #cmd-operacion + table:hover,
+    #cmd-operacion + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-operacion,
+body:has(
+    #cmd-machine:hover,
+    #cmd-machine:focus-visible,
+    #cmd-machine:focus-within,
+    #cmd-machine + table:hover,
+    #cmd-machine + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-machine,
+body:has(
+    #cmd-profile:hover,
+    #cmd-profile:focus-visible,
+    #cmd-profile:focus-within,
+    #cmd-profile + table:hover,
+    #cmd-profile + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-profile,
+body:has(
+    #cmd-portals:hover,
+    #cmd-portals:focus-visible,
+    #cmd-portals:focus-within,
+    #cmd-portals + table:hover,
+    #cmd-portals + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-portals,
+body:has(
+    #cmd-browser:hover,
+    #cmd-browser:focus-visible,
+    #cmd-browser:focus-within,
+    #cmd-browser + table:hover,
+    #cmd-browser + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-browser,
+body:has(
+    #cmd-companies:hover,
+    #cmd-companies:focus-visible,
+    #cmd-companies:focus-within,
+    #cmd-companies + table:hover,
+    #cmd-companies + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-companies,
+body:has(
+    #cmd-ops:hover,
+    #cmd-ops:focus-visible,
+    #cmd-ops:focus-within,
+    #cmd-ops + table:hover,
+    #cmd-ops + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-ops {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    #cmd-maquina:hover,
+    #cmd-maquina:focus-visible,
+    #cmd-maquina:focus-within,
+    #cmd-maquina + table:hover,
+    #cmd-maquina + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-maquina
+  + table,
+body:has(
+    #cmd-perfil:hover,
+    #cmd-perfil:focus-visible,
+    #cmd-perfil:focus-within,
+    #cmd-perfil + table:hover,
+    #cmd-perfil + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-perfil
+  + table,
+body:has(
+    #cmd-portales:hover,
+    #cmd-portales:focus-visible,
+    #cmd-portales:focus-within,
+    #cmd-portales + table:hover,
+    #cmd-portales + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-portales
+  + table,
+body:has(
+    #cmd-navegador:hover,
+    #cmd-navegador:focus-visible,
+    #cmd-navegador:focus-within,
+    #cmd-navegador + table:hover,
+    #cmd-navegador + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-navegador
+  + table,
+body:has(
+    #cmd-empresas:hover,
+    #cmd-empresas:focus-visible,
+    #cmd-empresas:focus-within,
+    #cmd-empresas + table:hover,
+    #cmd-empresas + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-empresas
+  + table,
+body:has(
+    #cmd-operacion:hover,
+    #cmd-operacion:focus-visible,
+    #cmd-operacion:focus-within,
+    #cmd-operacion + table:hover,
+    #cmd-operacion + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-operacion
+  + table,
+body:has(
+    #cmd-machine:hover,
+    #cmd-machine:focus-visible,
+    #cmd-machine:focus-within,
+    #cmd-machine + table:hover,
+    #cmd-machine + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-machine
+  + table,
+body:has(
+    #cmd-profile:hover,
+    #cmd-profile:focus-visible,
+    #cmd-profile:focus-within,
+    #cmd-profile + table:hover,
+    #cmd-profile + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-profile
+  + table,
+body:has(
+    #cmd-portals:hover,
+    #cmd-portals:focus-visible,
+    #cmd-portals:focus-within,
+    #cmd-portals + table:hover,
+    #cmd-portals + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-portals
+  + table,
+body:has(
+    #cmd-browser:hover,
+    #cmd-browser:focus-visible,
+    #cmd-browser:focus-within,
+    #cmd-browser + table:hover,
+    #cmd-browser + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-browser
+  + table,
+body:has(
+    #cmd-companies:hover,
+    #cmd-companies:focus-visible,
+    #cmd-companies:focus-within,
+    #cmd-companies + table:hover,
+    #cmd-companies + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-companies
+  + table,
+body:has(
+    #cmd-ops:hover,
+    #cmd-ops:focus-visible,
+    #cmd-ops:focus-within,
+    #cmd-ops + table:hover,
+    #cmd-ops + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-ops
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash + table inset on Vacantes/Postulaciones when that heading is
    :target without requiring the Presence pin (pill already washes; Presence
    pin already washes via html.jb-pin-presence; mirrors CV / non-story :target). */
