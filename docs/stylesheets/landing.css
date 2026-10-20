@@ -7887,6 +7887,11 @@ html.jb-pin-presence:has(
     border-bottom: 1px solid rgba(0, 24, 56, 0.08);
   }
 
+  /* Last stacked row: the next group heading already separates groups. */
+  body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) tr:last-child td:last-child {
+    border-bottom: none;
+  }
+
   body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) td::before {
     display: block;
     margin-bottom: 0.15rem;
