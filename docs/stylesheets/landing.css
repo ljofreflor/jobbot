@@ -8378,6 +8378,42 @@ body:has(
   opacity: 1;
 }
 
+/* Softened catalog rows of a loop restore when an inactive step of that loop
+   is hovered or focused. The matching row already restores; the loop name,
+   chapter cut, pin chapter, and lede commands already restore every row of
+   that loop (pair of items 392 and 394). */
+body:has(
+    #story-advise.jb-scrolly__step:not(.is-active):hover,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-within,
+    #story-sync.jb-scrolly__step:not(.is-active):hover,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag--presence),
+body:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-build.jb-scrolly__step:not(.is-active):hover,
+    #story-build.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-build.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within,
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
+  opacity: 1;
+}
+
 /* Softened lede loop name restores when an inactive step of that loop is hovered or focused
    (same name a #story-* jump already restores). */
 body:has(
