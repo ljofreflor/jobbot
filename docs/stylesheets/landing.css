@@ -1924,6 +1924,50 @@ html.jb-pin-presence:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence: hovering the match catalog row restores the other apply-only group
+   too. Vacantes already restores from that row hover; the get catalog row
+   hover already restores both (above). */
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications
+  + table {
+  opacity: 1;
+}
+
 /* Presence: hovering the inactive get step restores the other apply-only group
    too. Vacantes already restores from that step hover; the get catalog row
    hover and #story-get jump already restore both. */
