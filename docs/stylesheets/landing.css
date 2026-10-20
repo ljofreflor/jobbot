@@ -5253,6 +5253,19 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when hovering the Presence pin
+   chapter (pill+heading navy above; blue table inset via body:has covers
+   the non-pin-presence path; mirrors soft-wash table cue at 0.22). */
+html.jb-pin-presence:has(
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:hover,
+    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:last-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash on both apply groups when hovering the Presence pin chapter
    under Presence (that last chapter is current; Apply-current wash above
    covers :not(.is-presence); mirrors softened Postular pin chapter → both
