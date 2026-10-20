@@ -7675,6 +7675,12 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   background: rgba(0, 24, 56, 0.06);
 }
 
+/* Soft row wash while scanning non-story commands (pointer). Story rows already
+   wash on hover/focus-within; these rows have no in-row tab stop. */
+.jb-section--cmds tbody tr:not(:has(.jb-in-story)):hover td {
+  background: rgba(0, 88, 248, 0.07);
+}
+
 .jb-section--cmds tr:has(.jb-in-story:target) td,
 .jb-section--cmds tr:has(.jb-in-story__tag[aria-current="step"]) td {
   background: rgba(0, 88, 248, 0.14);
