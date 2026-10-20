@@ -4557,6 +4557,44 @@ html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash + table inset on the targeted apply-only heading itself (Presence;
+   pill already washes from that hash; sibling wash is above; mirrors
+   story-row command :target chrome wash). */
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(#cmd-vacantes:target, #cmd-vacancies:target)
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(#cmd-postulaciones:target, #cmd-applications:target)
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Presence: the softened Postular chapter cut restores both apply-only groups
    (bar + heading + table). CV, which holds build, is not dimmed. */
 html.jb-pin-presence:has(
