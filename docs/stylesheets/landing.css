@@ -21,6 +21,12 @@ body:has(.jb-hero) {
   --md-accent-fg-color--transparent: rgba(0, 88, 248, 0.1);
 }
 
+/* Selection wash: cobalt on navy text while copying a command or a line of prose. */
+body:has(.jb-hero) ::selection {
+  background: rgba(0, 88, 248, 0.22);
+  color: var(--jb-navy);
+}
+
 body:has(.jb-hero) .md-typeset > h1:first-of-type {
   display: none;
 }
