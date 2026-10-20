@@ -2448,6 +2448,50 @@ html.jb-pin-presence:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence: hovering the get lede command restores the other apply-only group
+   too. Vacantes already restores from that lede hover; the inactive get step
+   and get catalog row hover already restore both. */
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-applications
+  + table {
+  opacity: 1;
+}
+
 /* Reverse of item 207: hovering the softened apply-only group restores its lede commands. */
 html.jb-pin-presence:has(
     .jb-cmdnav a[href="#cmd-vacantes"]:hover,
