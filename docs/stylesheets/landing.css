@@ -9109,7 +9109,9 @@ html.jb-pin-presence:has(
   border-bottom: 1px solid rgba(0, 88, 248, 0.35);
 }
 
-.jb-scrolly__more a:hover {
+/* Solid underline while scanning: match hover when the keyboard lands on «En el catálogo». */
+.jb-scrolly__more a:hover,
+.jb-scrolly__more a:focus-visible {
   border-bottom-color: var(--jb-cobalt);
 }
 
@@ -9127,7 +9129,9 @@ html.jb-pin-presence:has(
 }
 
 #story-advise .jb-scrolly__more a:hover,
-#story-sync .jb-scrolly__more a:hover {
+#story-sync .jb-scrolly__more a:hover,
+#story-advise .jb-scrolly__more a:focus-visible,
+#story-sync .jb-scrolly__more a:focus-visible {
   border-bottom-color: var(--jb-navy);
 }
 
