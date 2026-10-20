@@ -3763,6 +3763,27 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence pin on CV: keep navy wash when hovering the Presence lede loop
+   name (under Presence that name is current; blue wash above covers the
+   non-current case; mirrors CV lede command navy). */
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-loop--presence:hover,
+    a.jb-scrolly__lede-loop--presence:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-loop--presence:hover,
+    a.jb-scrolly__lede-loop--presence:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Soft wash on CV catalog chrome when hovering the Presence chapter cut /
    split-link without requiring the Presence pin (pill + heading + table;
    mirrors Postular chapter cut → both apply groups and Presence lede loop
