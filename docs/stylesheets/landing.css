@@ -8479,6 +8479,22 @@ body:has(
   opacity: 1;
 }
 
+/* Softened lede commands of a loop restore when a step of that loop is the
+   :target. The matching command already restores; hovering that inactive
+   step already restores every sibling command (item 391). */
+body:has(#story-advise:target, #story-sync:target)
+  a.jb-scrolly__lede-cmd--presence,
+body:has(
+    #story-get:target,
+    #story-match:target,
+    #story-build:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
 /* Softened lede loop name restores when an inactive step of that loop is hovered or focused
    (same name a #story-* jump already restores). */
 body:has(
