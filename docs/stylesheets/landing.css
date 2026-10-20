@@ -1331,6 +1331,30 @@ html.jb-pin-presence:has(#story-sync:target) .jb-section--cmds h3#cmd-cv.is-pin-
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Soft wash + table inset on apply catalog chrome when the pin story step is :target (Presence; completes 448). */
+html.jb-pin-presence:has(#story-get:target) .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence:has(#story-match:target) .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence:has(#story-conditions:target) .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-postulaciones,
+html.jb-pin-presence:has(#story-get:target) .jb-section--cmds h3#cmd-vacancies,
+html.jb-pin-presence:has(#story-match:target) .jb-section--cmds h3#cmd-vacancies,
+html.jb-pin-presence:has(#story-conditions:target) .jb-section--cmds h3#cmd-vacancies,
+html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+html.jb-pin-presence:has(#story-get:target) .jb-section--cmds h3#cmd-vacantes:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#story-match:target) .jb-section--cmds h3#cmd-vacantes:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#story-conditions:target) .jb-section--cmds h3#cmd-vacantes:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-postulaciones:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#story-get:target) .jb-section--cmds h3#cmd-vacancies:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#story-match:target) .jb-section--cmds h3#cmd-vacancies:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#story-conditions:target) .jb-section--cmds h3#cmd-vacancies:not(.is-pin-step) + table,
+html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-applications:not(.is-pin-step) + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash on apply bar pills when scanning an inactive apply story step (Presence; completes 447 for hover/focus). */
 html.jb-pin-presence:has(
     #story-get.jb-scrolly__step:not(.is-active):hover,
