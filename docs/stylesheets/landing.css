@@ -857,8 +857,13 @@ body:has(.jb-hero) .md-typeset .jb-section pre > code {
   background: var(--jb-cobalt);
 }
 
+/* Inline code below the fold: cobalt chip, not Material gray.
+   Skip pre samples (paper fill) and the catalog command column. */
 .jb-evidence code,
-.jb-section--usecase code {
+.jb-section--usecase code,
+body:has(.jb-hero) .md-typeset .jb-section > p code,
+body:has(.jb-hero) .md-typeset .jb-section li code,
+body:has(.jb-hero) .md-typeset .jb-section--cmds td:last-child code {
   font-family: var(--jb-font-mono);
   font-size: 0.86em;
   padding: 0.08em 0.3em;
