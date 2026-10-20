@@ -2616,6 +2616,51 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Presence: hovering advise or sync restores the softened Postular catalog rows.
+   Same-loop rows stay full; these are the other loop (mirror of item 332). */
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-get),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-match),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-build),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-conditions),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-advise):hover,
+    .jb-section--cmds tr:has(#cmd-advise):focus-within,
+    .jb-section--cmds tr:has(#cmd-sync):hover,
+    .jb-section--cmds tr:has(#cmd-sync):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-apply) {
+  opacity: 1;
+}
+
 /* Presence: hovering advise or sync restores the softened Postular steps.
    Same-loop rows already restore their own step; these are the other loop (mirror of item 232). */
 html.jb-pin-presence:has(
