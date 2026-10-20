@@ -8893,7 +8893,9 @@ a.jb-scrolly__split-link {
   border-radius: 0.15rem;
 }
 
-a.jb-scrolly__split-link:hover {
+/* Solid underline while scanning: match hover when the keyboard lands on the chapter cut. */
+a.jb-scrolly__split-link:hover,
+a.jb-scrolly__split-link:focus-visible {
   border-bottom-color: var(--jb-cobalt);
 }
 
@@ -8911,7 +8913,8 @@ a.jb-scrolly__split-link--presence {
   border-bottom-color: rgba(0, 24, 56, 0.35);
 }
 
-a.jb-scrolly__split-link--presence:hover {
+a.jb-scrolly__split-link--presence:hover,
+a.jb-scrolly__split-link--presence:focus-visible {
   border-bottom-color: var(--jb-navy);
 }
 
