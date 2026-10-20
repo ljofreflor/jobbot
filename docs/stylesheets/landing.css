@@ -2030,6 +2030,22 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: hovering the CV group restores the softened build step. That row
+   already restores from the same hover; Vacantes and Postulaciones already
+   restore this step (item 248 mirror). build stays in CV. */
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-cv"]:hover,
+    .jb-cmdnav a[href="#cmd-cv"]:focus-visible,
+    .jb-section--cmds h3#cmd-cv:hover,
+    .jb-section--cmds h3#cmd-cv:focus,
+    .jb-section--cmds h3#cmd-cv:focus-within,
+    .jb-section--cmds h3#cmd-cv + table:hover,
+    .jb-section--cmds h3#cmd-cv + table:focus-within
+  )
+  #story-build.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Reverse of item 215: hovering a softened apply-only row restores that group's
    bar + heading + table. build stays with CV, which is not dimmed. */
 html.jb-pin-presence:has(
