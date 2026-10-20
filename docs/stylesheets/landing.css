@@ -1314,6 +1314,50 @@ html.jb-pin-presence:has(#story-sync:target) .jb-section--cmds h3#cmd-cv.is-pin-
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Soft wash on apply bar pills when scanning an inactive apply story step (Presence; completes 447 for hover/focus). */
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(
+    #story-get.jb-scrolly__step:not(.is-active):hover,
+    #story-get.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-get.jb-scrolly__step:not(.is-active):focus-within,
+    #story-match.jb-scrolly__step:not(.is-active):hover,
+    #story-match.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-match.jb-scrolly__step:not(.is-active):focus-within,
+    #story-conditions.jb-scrolly__step:not(.is-active):hover,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-conditions.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"]:not(.is-current),
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"]:not(.is-current),
+html.jb-pin-presence:has(
+    #story-apply.jb-scrolly__step:not(.is-active):hover,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-apply.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
 /* Softened heading/table restore when their cmdnav link is hovered/focused (reverse of 156). */
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:hover) .jb-section--cmds h3#cmd-maquina,
 body:has(.jb-cmdnav a[href="#cmd-maquina"]:focus-visible) .jb-section--cmds h3#cmd-maquina,
