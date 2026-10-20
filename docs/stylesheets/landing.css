@@ -6171,6 +6171,20 @@ html.jb-pin-presence:has(#story-build:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the build step restores the other softened Postular
+   steps. The build step of that jump stays full; hovering that inactive step
+   already restores these steps (mirror of item 270). */
+html.jb-pin-presence:has(#story-build:target)
+  #story-get.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(#story-build:target)
+  #story-match.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(#story-build:target)
+  #story-conditions.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(#story-build:target)
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Non-story group headings soften like their cmdnav links (item 138); scroll current restores. */
 body:has(.jb-hero) .jb-section--cmds h3:not(#cmd-cv):not(#cmd-vacantes):not(#cmd-postulaciones):not(#cmd-vacancies):not(#cmd-applications):not(.is-cmdnav-current) {
   opacity: 0.42;
