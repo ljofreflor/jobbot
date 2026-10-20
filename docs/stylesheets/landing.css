@@ -2080,6 +2080,32 @@ html.jb-pin-presence:has(#cmd-conditions:target)
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence: a jump to the apply catalog row («En el catálogo») restores the
+   other apply-only group too. Postulaciones already restores from that hash;
+   the #story-apply jump already restores both (above). */
+html.jb-pin-presence:has(#cmd-apply:target)
+  .jb-cmdnav
+  a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(#cmd-apply:target)
+  .jb-cmdnav
+  a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(#cmd-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(#cmd-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(#cmd-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacantes
+  + table,
+html.jb-pin-presence:has(#cmd-apply:target)
+  .jb-section--cmds
+  h3#cmd-vacancies
+  + table {
+  opacity: 1;
+}
+
 /* Presence: hovering the get catalog row restores the other apply-only group
    too. Vacantes already restores from that row hover; the #cmd-get jump
    already restores both (above). */
