@@ -5125,6 +5125,79 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence pin on CV: keep navy wash when scanning Vacantes/Postulaciones
+   chrome (blue wash above covers the Apply-current case; mirrors CV chrome
+   navy under Presence). */
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-vacantes"]:hover,
+    .jb-cmdnav a[href="#cmd-vacantes"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-vacancies"]:hover,
+    .jb-cmdnav a[href="#cmd-vacancies"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-postulaciones"]:hover,
+    .jb-cmdnav a[href="#cmd-postulaciones"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-applications"]:hover,
+    .jb-cmdnav a[href="#cmd-applications"]:focus-visible,
+    #cmd-vacantes:hover,
+    #cmd-vacantes:focus-visible,
+    #cmd-vacantes:focus-within,
+    #cmd-vacantes + table:hover,
+    #cmd-vacantes + table:focus-within,
+    #cmd-vacancies:hover,
+    #cmd-vacancies:focus-visible,
+    #cmd-vacancies:focus-within,
+    #cmd-vacancies + table:hover,
+    #cmd-vacancies + table:focus-within,
+    #cmd-postulaciones:hover,
+    #cmd-postulaciones:focus-visible,
+    #cmd-postulaciones:focus-within,
+    #cmd-postulaciones + table:hover,
+    #cmd-postulaciones + table:focus-within,
+    #cmd-applications:hover,
+    #cmd-applications:focus-visible,
+    #cmd-applications:focus-within,
+    #cmd-applications + table:hover,
+    #cmd-applications + table:focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
+html.jb-pin-presence:has(
+    .jb-cmdnav a[href="#cmd-vacantes"]:hover,
+    .jb-cmdnav a[href="#cmd-vacantes"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-vacancies"]:hover,
+    .jb-cmdnav a[href="#cmd-vacancies"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-postulaciones"]:hover,
+    .jb-cmdnav a[href="#cmd-postulaciones"]:focus-visible,
+    .jb-cmdnav a[href="#cmd-applications"]:hover,
+    .jb-cmdnav a[href="#cmd-applications"]:focus-visible,
+    #cmd-vacantes:hover,
+    #cmd-vacantes:focus-visible,
+    #cmd-vacantes:focus-within,
+    #cmd-vacantes + table:hover,
+    #cmd-vacantes + table:focus-within,
+    #cmd-vacancies:hover,
+    #cmd-vacancies:focus-visible,
+    #cmd-vacancies:focus-within,
+    #cmd-vacancies + table:hover,
+    #cmd-vacancies + table:focus-within,
+    #cmd-postulaciones:hover,
+    #cmd-postulaciones:focus-visible,
+    #cmd-postulaciones:focus-within,
+    #cmd-postulaciones + table:hover,
+    #cmd-postulaciones + table:focus-within,
+    #cmd-applications:hover,
+    #cmd-applications:focus-visible,
+    #cmd-applications:focus-within,
+    #cmd-applications + table:hover,
+    #cmd-applications + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Soft wash on the other apply group when either apply-only heading is
    :target without requiring the Presence pin (same-group wash above;
    Presence pin already washes the sibling via html.jb-pin-presence). */
