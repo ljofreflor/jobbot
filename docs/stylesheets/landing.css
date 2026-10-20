@@ -1186,6 +1186,78 @@ html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-applications"]:focus-visible) .
   opacity: 1;
 }
 
+/* Soft wash when cmdnav points at a softened group (match heading scan 431–433). */
+body:has(.jb-cmdnav a[href="#cmd-maquina"]:hover) .jb-section--cmds h3#cmd-maquina,
+body:has(.jb-cmdnav a[href="#cmd-maquina"]:focus-visible) .jb-section--cmds h3#cmd-maquina,
+body:has(.jb-cmdnav a[href="#cmd-perfil"]:hover) .jb-section--cmds h3#cmd-perfil,
+body:has(.jb-cmdnav a[href="#cmd-perfil"]:focus-visible) .jb-section--cmds h3#cmd-perfil,
+body:has(.jb-cmdnav a[href="#cmd-portales"]:hover) .jb-section--cmds h3#cmd-portales,
+body:has(.jb-cmdnav a[href="#cmd-portales"]:focus-visible) .jb-section--cmds h3#cmd-portales,
+body:has(.jb-cmdnav a[href="#cmd-navegador"]:hover) .jb-section--cmds h3#cmd-navegador,
+body:has(.jb-cmdnav a[href="#cmd-navegador"]:focus-visible) .jb-section--cmds h3#cmd-navegador,
+body:has(.jb-cmdnav a[href="#cmd-empresas"]:hover) .jb-section--cmds h3#cmd-empresas,
+body:has(.jb-cmdnav a[href="#cmd-empresas"]:focus-visible) .jb-section--cmds h3#cmd-empresas,
+body:has(.jb-cmdnav a[href="#cmd-operacion"]:hover) .jb-section--cmds h3#cmd-operacion,
+body:has(.jb-cmdnav a[href="#cmd-operacion"]:focus-visible) .jb-section--cmds h3#cmd-operacion,
+body:has(.jb-cmdnav a[href="#cmd-machine"]:hover) .jb-section--cmds h3#cmd-machine,
+body:has(.jb-cmdnav a[href="#cmd-machine"]:focus-visible) .jb-section--cmds h3#cmd-machine,
+body:has(.jb-cmdnav a[href="#cmd-profile"]:hover) .jb-section--cmds h3#cmd-profile,
+body:has(.jb-cmdnav a[href="#cmd-profile"]:focus-visible) .jb-section--cmds h3#cmd-profile,
+body:has(.jb-cmdnav a[href="#cmd-portals"]:hover) .jb-section--cmds h3#cmd-portals,
+body:has(.jb-cmdnav a[href="#cmd-portals"]:focus-visible) .jb-section--cmds h3#cmd-portals,
+body:has(.jb-cmdnav a[href="#cmd-browser"]:hover) .jb-section--cmds h3#cmd-browser,
+body:has(.jb-cmdnav a[href="#cmd-browser"]:focus-visible) .jb-section--cmds h3#cmd-browser,
+body:has(.jb-cmdnav a[href="#cmd-companies"]:hover) .jb-section--cmds h3#cmd-companies,
+body:has(.jb-cmdnav a[href="#cmd-companies"]:focus-visible) .jb-section--cmds h3#cmd-companies,
+body:has(.jb-cmdnav a[href="#cmd-ops"]:hover) .jb-section--cmds h3#cmd-ops,
+body:has(.jb-cmdnav a[href="#cmd-ops"]:focus-visible) .jb-section--cmds h3#cmd-ops,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacantes"]:hover) .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacantes"]:focus-visible) .jb-section--cmds h3#cmd-vacantes,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-postulaciones"]:hover) .jb-section--cmds h3#cmd-postulaciones,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-postulaciones"]:focus-visible) .jb-section--cmds h3#cmd-postulaciones,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacancies"]:hover) .jb-section--cmds h3#cmd-vacancies,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacancies"]:focus-visible) .jb-section--cmds h3#cmd-vacancies,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-applications"]:hover) .jb-section--cmds h3#cmd-applications,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-applications"]:focus-visible) .jb-section--cmds h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(.jb-cmdnav a[href="#cmd-maquina"]:hover) .jb-section--cmds h3#cmd-maquina + table,
+body:has(.jb-cmdnav a[href="#cmd-maquina"]:focus-visible) .jb-section--cmds h3#cmd-maquina + table,
+body:has(.jb-cmdnav a[href="#cmd-perfil"]:hover) .jb-section--cmds h3#cmd-perfil + table,
+body:has(.jb-cmdnav a[href="#cmd-perfil"]:focus-visible) .jb-section--cmds h3#cmd-perfil + table,
+body:has(.jb-cmdnav a[href="#cmd-portales"]:hover) .jb-section--cmds h3#cmd-portales + table,
+body:has(.jb-cmdnav a[href="#cmd-portales"]:focus-visible) .jb-section--cmds h3#cmd-portales + table,
+body:has(.jb-cmdnav a[href="#cmd-navegador"]:hover) .jb-section--cmds h3#cmd-navegador + table,
+body:has(.jb-cmdnav a[href="#cmd-navegador"]:focus-visible) .jb-section--cmds h3#cmd-navegador + table,
+body:has(.jb-cmdnav a[href="#cmd-empresas"]:hover) .jb-section--cmds h3#cmd-empresas + table,
+body:has(.jb-cmdnav a[href="#cmd-empresas"]:focus-visible) .jb-section--cmds h3#cmd-empresas + table,
+body:has(.jb-cmdnav a[href="#cmd-operacion"]:hover) .jb-section--cmds h3#cmd-operacion + table,
+body:has(.jb-cmdnav a[href="#cmd-operacion"]:focus-visible) .jb-section--cmds h3#cmd-operacion + table,
+body:has(.jb-cmdnav a[href="#cmd-machine"]:hover) .jb-section--cmds h3#cmd-machine + table,
+body:has(.jb-cmdnav a[href="#cmd-machine"]:focus-visible) .jb-section--cmds h3#cmd-machine + table,
+body:has(.jb-cmdnav a[href="#cmd-profile"]:hover) .jb-section--cmds h3#cmd-profile + table,
+body:has(.jb-cmdnav a[href="#cmd-profile"]:focus-visible) .jb-section--cmds h3#cmd-profile + table,
+body:has(.jb-cmdnav a[href="#cmd-portals"]:hover) .jb-section--cmds h3#cmd-portals + table,
+body:has(.jb-cmdnav a[href="#cmd-portals"]:focus-visible) .jb-section--cmds h3#cmd-portals + table,
+body:has(.jb-cmdnav a[href="#cmd-browser"]:hover) .jb-section--cmds h3#cmd-browser + table,
+body:has(.jb-cmdnav a[href="#cmd-browser"]:focus-visible) .jb-section--cmds h3#cmd-browser + table,
+body:has(.jb-cmdnav a[href="#cmd-companies"]:hover) .jb-section--cmds h3#cmd-companies + table,
+body:has(.jb-cmdnav a[href="#cmd-companies"]:focus-visible) .jb-section--cmds h3#cmd-companies + table,
+body:has(.jb-cmdnav a[href="#cmd-ops"]:hover) .jb-section--cmds h3#cmd-ops + table,
+body:has(.jb-cmdnav a[href="#cmd-ops"]:focus-visible) .jb-section--cmds h3#cmd-ops + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacantes"]:hover) .jb-section--cmds h3#cmd-vacantes + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacantes"]:focus-visible) .jb-section--cmds h3#cmd-vacantes + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-postulaciones"]:hover) .jb-section--cmds h3#cmd-postulaciones + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-postulaciones"]:focus-visible) .jb-section--cmds h3#cmd-postulaciones + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacancies"]:hover) .jb-section--cmds h3#cmd-vacancies + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-vacancies"]:focus-visible) .jb-section--cmds h3#cmd-vacancies + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-applications"]:hover) .jb-section--cmds h3#cmd-applications + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-applications"]:focus-visible) .jb-section--cmds h3#cmd-applications + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Presence: a story-row :target also restores that apply-only group's bar + heading + table. */
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-cmdnav a[href="#cmd-vacantes"],
 html.jb-pin-presence:has(#cmd-get:target, #cmd-match:target, #cmd-conditions:target) .jb-cmdnav a[href="#cmd-vacancies"],
