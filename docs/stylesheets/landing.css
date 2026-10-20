@@ -5620,6 +5620,31 @@ body:has(#story-apply:target) .jb-section--cmds h3#cmd-cv:not(.is-pin-step) + ta
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Presence pin on CV: keep navy wash when an apply story step is :target
+   (blue wash above covers the Apply-current case; mirrors inactive apply
+   step navy and CV story step :target navy). */
+html.jb-pin-presence:has(
+    #story-get:target,
+    #story-match:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 24, 56, 0.08);
+}
+
+html.jb-pin-presence:has(
+    #story-get:target,
+    #story-match:target,
+    #story-conditions:target,
+    #story-apply:target
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence {
+  background: rgba(0, 24, 56, 0.05);
+}
+
 /* Soft wash on the other apply group when scanning Vacantes/Postulaciones
    chrome without requiring the Presence pin (heading :target sibling wash
    above; Presence pin already washes the sibling on hover). */
