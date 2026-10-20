@@ -5544,6 +5544,22 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when scanning the CV heading or table
+   (heading navy above; blue table uses :not(.is-pin-step) so it does not
+   cover the pin-marked heading; mirrors CV cmdnav navy table inset). */
+html.jb-pin-presence:has(
+    #cmd-cv:hover,
+    #cmd-cv:focus-visible,
+    #cmd-cv:focus-within,
+    #cmd-cv + table:hover,
+    #cmd-cv + table:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash + table inset on a non-story group heading when it is :target
    (pill already washes from that hash; mirrors cmdnav hover wash and CV :target). */
 body:has(#cmd-maquina:target) .jb-section--cmds h3#cmd-maquina,
