@@ -7949,8 +7949,10 @@ html.jb-pin-presence:has(
     scrollbar-width: thin;
   }
 
+  /* Keep the focus ring (and the current pill) clear of the scroll clip. */
   .jb-cmdnav a {
     flex: 0 0 auto;
+    scroll-margin-inline: 0.75rem;
   }
 }
 

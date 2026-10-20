@@ -806,7 +806,8 @@
           var linkBox = chosen.link.getBoundingClientRect();
           var navBox = nav.getBoundingClientRect();
           if (linkBox.left < navBox.left || linkBox.right > navBox.right) {
-            nav.scrollLeft += linkBox.left - navBox.left - 8;
+            /* Match scroll-margin-inline on .jb-cmdnav a under 960px. */
+            nav.scrollLeft += linkBox.left - navBox.left - 12;
           }
         }
         function schedule() {
@@ -836,7 +837,8 @@
           var linkBox = items[next].getBoundingClientRect();
           var navBox = nav.getBoundingClientRect();
           if (linkBox.left < navBox.left || linkBox.right > navBox.right) {
-            nav.scrollLeft += linkBox.left - navBox.left - 8;
+            /* Match scroll-margin-inline on .jb-cmdnav a under 960px. */
+            nav.scrollLeft += linkBox.left - navBox.left - 12;
           }
         });
         /* Leaving the bar: next Tab lands on the group the page is reading. */
