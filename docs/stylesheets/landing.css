@@ -6375,6 +6375,22 @@ html.jb-pin-presence:has(#cmd-cv:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the CV heading restores the softened Postular steps
+   (get, match, conditions, apply). Those rows and the build step already
+   restore from that hash; hovering that heading already restores these
+   steps; Vacantes and Postulaciones already restore them from their heading
+   jumps. build stays in CV. */
+html.jb-pin-presence:has(#cmd-cv:target)
+  #story-get.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(#cmd-cv:target)
+  #story-match.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(#cmd-cv:target)
+  #story-conditions.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(#cmd-cv:target)
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Postular: a jump to the CV heading restores the softened advise and sync
    rows. The CV group stays full; hovering that heading already restores
    these rows. */
