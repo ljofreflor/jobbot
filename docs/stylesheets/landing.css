@@ -7722,15 +7722,16 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
   scroll-margin-top: 6.5rem;
 }
 
-.jb-section--cmds .jb-in-story:focus,
-.jb-section--cmds h3:focus {
+/* Ring on keyboard only — pointer click must not leave a sticky outline. */
+.jb-section--cmds .jb-in-story:focus-visible,
+.jb-section--cmds h3:focus-visible {
   outline: 2px solid var(--jb-cobalt);
   outline-offset: 3px;
   border-radius: 0.15rem;
 }
 
 /* Presence catalog landings keep the navy ring (advise / sync). */
-.jb-section--cmds .jb-in-story:has(.jb-in-story__tag--presence):focus {
+.jb-section--cmds .jb-in-story:has(.jb-in-story__tag--presence):focus-visible {
   outline-color: var(--jb-navy);
 }
 
