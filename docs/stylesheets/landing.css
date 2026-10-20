@@ -3797,6 +3797,39 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on CV catalog chrome when hovering the Postular pin chapter
+   without requiring the Presence pin (when Apply is current the first pin
+   chapter is Postular; both apply groups already wash above; mirrors
+   Presence pin chapter → CV chrome and Postular chapter cut → CV chrome). */
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash on CV catalog chrome when hovering the Presence lede loop name
    without requiring the Presence pin (pill + heading + table; mirrors
    Postular lede loop → both apply groups and CV lede command → CV chrome). */
