@@ -2521,6 +2521,16 @@ html.jb-pin-presence:has(#cmd-cv:target) .jb-section--cmds h3#cmd-cv.is-pin-pres
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when the CV heading is :target
+   (pill+heading navy above; blue table uses :not(.is-pin-step) so it does
+   not cover the pin-marked heading; mirrors soft-wash table cue at 0.22). */
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash on both apply groups when the CV heading is :target without
    requiring the Presence pin (CV chrome already washes above; Presence pin
    already washes both apply groups from that hash). */
