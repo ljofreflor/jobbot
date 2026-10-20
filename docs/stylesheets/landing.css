@@ -2504,6 +2504,20 @@ html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-cv"]:focus-visible) .jb-section
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when hovering the CV cmdnav pill
+   (heading navy above; blue same-group table uses :not(.is-pin-step) so it
+   does not cover the pin-marked heading; mirrors CV lede navy table inset). */
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-cv"]:hover)
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table,
+html.jb-pin-presence:has(.jb-cmdnav a[href="#cmd-cv"]:focus-visible)
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash + table inset on the CV heading when it is :target (pill already
    washes from that hash; mirrors cmdnav hover wash above; Vacantes/Postulaciones
    heading :target already washes their chrome). */
