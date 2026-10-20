@@ -740,6 +740,14 @@ body:has(.jb-hero) .md-tabs {
 .jb-section pre {
   border-radius: 0.45rem;
   border: 1px solid rgba(0, 24, 56, 0.12);
+  background: var(--jb-paper);
+  overflow: hidden;
+}
+
+/* Material paints the fill on pre>code (#f5f5f5); keep the sample on paper. */
+body:has(.jb-hero) .md-typeset .jb-section pre > code {
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .jb-benefits {
