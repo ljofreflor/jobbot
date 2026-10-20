@@ -906,6 +906,19 @@ body:has(.jb-hero) .md-tabs {
   padding-bottom: 2rem;
 }
 
+/* Underline + ring while scanning: prose links below the fold (not catalog chrome).
+   Hero CTAs, audio credit, and catalog controls already match hover on :focus-visible. */
+body:has(.jb-hero) .md-typeset .jb-section:not(.jb-section--cmds) a:not(.jb-btn):not(.headerlink):hover,
+body:has(.jb-hero) .md-typeset .jb-section:not(.jb-section--cmds) a:not(.jb-btn):not(.headerlink):focus-visible {
+  text-decoration: underline;
+}
+
+body:has(.jb-hero) .md-typeset .jb-section:not(.jb-section--cmds) a:not(.jb-btn):not(.headerlink):focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 2px;
+  border-radius: 0.1rem;
+}
+
 .jb-section--cmds {
   max-width: 68rem;
 }
