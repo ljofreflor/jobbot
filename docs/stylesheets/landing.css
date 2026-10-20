@@ -3650,6 +3650,118 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Soft wash on that apply group's chrome when hovering its softened catalog
+   row (Presence; completes opacity restore above; mirrors apply lede-cmd wash). */
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"]:not(.is-current),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"]:not(.is-current),
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Postular: the CV group stays full, but advise/sync rows inside it are softened.
    Hovering the bar, heading, or table restores those rows (mirror of item 216). */
 html:not(.jb-pin-presence):has(
