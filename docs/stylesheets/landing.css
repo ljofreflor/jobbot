@@ -282,8 +282,16 @@ body:has(.jb-hero) .md-tabs {
   text-decoration: none !important;
 }
 
-.jb-audio__credit a:hover {
+/* Underline while scanning: match hover when the keyboard lands on the credit. */
+.jb-audio__credit a:hover,
+.jb-audio__credit a:focus-visible {
   text-decoration: underline !important;
+}
+
+.jb-audio__credit a:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 2px;
+  border-radius: 0.1rem;
 }
 
 /* —— Terminal stage (product surface; agents call the same CLI) —— */
