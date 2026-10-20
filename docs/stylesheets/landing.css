@@ -8617,6 +8617,22 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Reverse of item 386: hovering the softened chapter cut restores that loop's
+   lede commands. Inactive steps and catalog rows already restore from that
+   cut; the loop name and pin chapter already restore these commands. */
+body:has(
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
+  )
+  a.jb-scrolly__lede-cmd--presence,
+body:has(
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
 .jb-scrolly__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
