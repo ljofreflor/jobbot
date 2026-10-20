@@ -9915,11 +9915,8 @@ a.jb-scrolly__loop:hover {
   background: rgba(200, 216, 248, 0.28);
 }
 
-.jb-scrolly__dot:hover {
-  background: transparent;
-}
-
-/* Brighter mark while scanning: match hover when the keyboard lands on a dot. */
+/* Brighter mark while scanning: match hover when the keyboard lands on a dot.
+   Dot host stays transparent (same as the base rule; no hover background). */
 .jb-scrolly__dot:hover::before,
 .jb-scrolly__dot:focus-visible::before {
   background: rgba(126, 176, 255, 0.7);
