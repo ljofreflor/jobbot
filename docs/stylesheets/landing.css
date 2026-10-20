@@ -1283,6 +1283,18 @@ html.jb-pin-presence:has(#story-sync:target) .jb-cmdnav a[href="#cmd-cv"]:not(.i
   background: rgba(0, 24, 56, 0.08);
 }
 
+/* Soft wash on apply bar pills when the pin story step is :target (Presence; completes 447). */
+html.jb-pin-presence:has(#story-get:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(#story-match:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(#story-conditions:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(#story-apply:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+html.jb-pin-presence:has(#story-get:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+html.jb-pin-presence:has(#story-match:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+html.jb-pin-presence:has(#story-conditions:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+html.jb-pin-presence:has(#story-apply:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
 /* Soft wash + table inset when the pin story step is :target (completes 447 for catalog chrome). */
 body:has(#story-build:target) .jb-section--cmds h3#cmd-cv,
 body:has(#story-advise:target) .jb-section--cmds h3#cmd-cv,
