@@ -1122,7 +1122,8 @@ html.jb-pin-presence:has(#cmd-applications + table .jb-in-story:target) .jb-cmdn
   opacity: 1;
 }
 
-/* Soft wash on the bar pill when its group chrome is scanned (reverse of 435; skip .is-current). */
+/* Soft wash on the bar pill when its group chrome is scanned (reverse of 435; skip .is-current).
+   Presence apply groups: include jb-in-story:target (same map as the opacity restore above). */
 body:has(#cmd-maquina:target) .jb-cmdnav a[href="#cmd-maquina"]:not(.is-current),
 body:has(#cmd-maquina:hover) .jb-cmdnav a[href="#cmd-maquina"]:not(.is-current),
 body:has(#cmd-maquina:focus-visible) .jb-cmdnav a[href="#cmd-maquina"]:not(.is-current),
@@ -1188,21 +1189,25 @@ html.jb-pin-presence:has(#cmd-vacantes:hover) .jb-cmdnav a[href="#cmd-vacantes"]
 html.jb-pin-presence:has(#cmd-vacantes:focus-visible) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-vacantes + table:hover) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-vacantes + table:focus-within) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-vacantes + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-vacantes"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-postulaciones:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-postulaciones:hover) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-postulaciones:focus-visible) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-postulaciones + table:hover) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-postulaciones + table:focus-within) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-postulaciones + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-postulaciones"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-vacancies:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-vacancies:hover) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-vacancies:focus-visible) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-vacancies + table:hover) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-vacancies + table:focus-within) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-vacancies + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-vacancies"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-applications:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-applications:hover) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-applications:focus-visible) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
 html.jb-pin-presence:has(#cmd-applications + table:hover) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
-html.jb-pin-presence:has(#cmd-applications + table:focus-within) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
+html.jb-pin-presence:has(#cmd-applications + table:focus-within) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current),
+html.jb-pin-presence:has(#cmd-applications + table .jb-in-story:target) .jb-cmdnav a[href="#cmd-applications"]:not(.is-current) {
   background: rgba(0, 88, 248, 0.08);
 }
 
