@@ -3763,6 +3763,39 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on CV catalog chrome when hovering the Presence chapter cut /
+   split-link without requiring the Presence pin (pill + heading + table;
+   mirrors Postular chapter cut → both apply groups and Presence lede loop
+   → CV chrome). */
+body:has(
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
+    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash + table inset on CV when scanning that heading or table
    (pill→heading wash already; :target same-group wash above; mirrors
    Vacantes/Postulaciones heading/table hover). */
