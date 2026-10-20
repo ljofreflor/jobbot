@@ -7681,6 +7681,12 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   background: rgba(0, 88, 248, 0.07);
 }
 
+/* Soft inset on the command cell while scanning a non-story row (pointer).
+   Story rows keep a permanent bar; these only show it under the pointer. */
+.jb-section--cmds tbody tr:not(:has(.jb-in-story)):hover td:first-child {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.28);
+}
+
 .jb-section--cmds tr:has(.jb-in-story:target) td,
 .jb-section--cmds tr:has(.jb-in-story__tag[aria-current="step"]) td {
   background: rgba(0, 88, 248, 0.14);
