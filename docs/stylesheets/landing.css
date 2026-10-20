@@ -8246,6 +8246,24 @@ body:has(
   opacity: 1;
 }
 
+/* Softened catalog rows of a loop restore when a catalog command of that loop
+   is the :target. The row under the hash is already full; hovering another
+   row of that loop already restores every sibling (item 396). */
+body:has(#cmd-advise:target, #cmd-sync:target)
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag--presence),
+body:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  .jb-section--cmds
+  tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
+  opacity: 1;
+}
+
 /* Softened catalog rows of a loop restore when a lede command of that loop
    is hovered or focused. The matching row already restores; the loop name,
    chapter cut, and pin chapter already restore every row of that loop
