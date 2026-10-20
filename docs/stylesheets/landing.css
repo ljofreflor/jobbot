@@ -8125,6 +8125,47 @@ body:has(a.jb-scrolly__lede-cmd[href="#story-sync"]:hover, a.jb-scrolly__lede-cm
   opacity: 1;
 }
 
+/* Softened inactive steps of a loop restore when a lede command of that loop
+   is hovered or focused. The matching step already restores; the loop name,
+   chapter cut, and pin chapter already restore every step of that loop. */
+body:has(
+    a.jb-scrolly__lede-cmd--presence:hover,
+    a.jb-scrolly__lede-cmd--presence:focus-visible
+  )
+  #story-advise.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__lede-cmd--presence:hover,
+    a.jb-scrolly__lede-cmd--presence:focus-visible
+  )
+  #story-sync.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  #story-get.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  #story-match.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  #story-build.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  #story-conditions.jb-scrolly__step:not(.is-active),
+body:has(
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
+    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
+  )
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Reverse: hovering an inactive step restores that command in the lede. */
 body:has(
     #story-get.jb-scrolly__step:not(.is-active):hover,
@@ -8585,22 +8626,6 @@ body:has(
   opacity: 1;
 }
 
-/* Softened chapter cut restores when a lede command of that loop is hovered or
-   focused (same cut a catalog row already restores; the loop name already
-   restores from that command). */
-body:has(
-    a.jb-scrolly__lede-cmd--presence:hover,
-    a.jb-scrolly__lede-cmd--presence:focus-visible
-  )
-  a.jb-scrolly__split-link--presence:not([aria-current="true"]),
-body:has(
-    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
-    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
-  )
-  a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]) {
-  opacity: 1;
-}
-
 /* Reverse of item 196: hovering the softened chapter cut restores that loop's catalog rows. */
 html:not(.jb-pin-presence):has(
     a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
@@ -8614,22 +8639,6 @@ html.jb-pin-presence:has(
   )
   .jb-section--cmds
   tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
-  opacity: 1;
-}
-
-/* Reverse of item 386: hovering the softened chapter cut restores that loop's
-   lede commands. Inactive steps and catalog rows already restore from that
-   cut; the loop name and pin chapter already restore these commands. */
-body:has(
-    a.jb-scrolly__split-link--presence:not([aria-current="true"]):hover,
-    a.jb-scrolly__split-link--presence:not([aria-current="true"]):focus-visible
-  )
-  a.jb-scrolly__lede-cmd--presence,
-body:has(
-    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):hover,
-    a.jb-scrolly__split-link:not(.jb-scrolly__split-link--presence):not([aria-current="true"]):focus-visible
-  )
-  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
   opacity: 1;
 }
 
@@ -9024,24 +9033,6 @@ body:has(
   opacity: 1;
 }
 
-/* Softened pin chapter restores when a lede command of that loop is hovered or
-   focused (same chapter a catalog row already restores; the loop name and
-   chapter cut already restore from that command). */
-body:has(
-    a.jb-scrolly__lede-cmd--presence:hover,
-    a.jb-scrolly__lede-cmd--presence:focus-visible
-  )
-  .jb-scrolly__pin:not(.is-presence)
-  .jb-scrolly__chapter:last-child,
-body:has(
-    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):hover,
-    a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence):focus-visible
-  )
-  .jb-scrolly__pin.is-presence
-  .jb-scrolly__chapter:first-child {
-  opacity: 1;
-}
-
 /* Reverse of item 192: hovering the softened pin chapter restores that loop's catalog rows. */
 html:not(.jb-pin-presence):has(
     .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
@@ -9055,22 +9046,6 @@ html.jb-pin-presence:has(
   )
   .jb-section--cmds
   tr:has(.jb-in-story__tag:not(.jb-in-story__tag--presence)) {
-  opacity: 1;
-}
-
-/* Reverse of item 387: hovering the softened pin chapter restores that loop's
-   lede commands. Inactive steps and catalog rows already restore from that
-   chapter; the loop name already restores these commands. */
-body:has(
-    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:hover,
-    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:last-child:focus-within
-  )
-  a.jb-scrolly__lede-cmd--presence,
-body:has(
-    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:hover,
-    .jb-scrolly__pin.is-presence .jb-scrolly__chapter:first-child:focus-within
-  )
-  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
   opacity: 1;
 }
 
