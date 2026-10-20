@@ -7684,12 +7684,15 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   color: var(--jb-navy);
 }
 
-a.jb-in-story__tag:hover {
+/* Soft tag wash while scanning: match hover when the keyboard lands on the mark. */
+a.jb-in-story__tag:hover,
+a.jb-in-story__tag:focus-visible {
   background: rgba(0, 88, 248, 0.22);
   color: var(--jb-navy);
 }
 
-a.jb-in-story__tag--presence:hover {
+a.jb-in-story__tag--presence:hover,
+a.jb-in-story__tag--presence:focus-visible {
   background: rgba(0, 24, 56, 0.16);
   color: var(--jb-navy);
 }
