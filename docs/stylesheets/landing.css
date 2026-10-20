@@ -916,7 +916,9 @@ body:has(.jb-hero) .md-tabs {
   background: transparent;
 }
 
-.jb-cmdnav a:hover {
+/* Soft wash while scanning: match hover when the keyboard lands on a group. */
+.jb-cmdnav a:hover,
+.jb-cmdnav a:focus-visible {
   background: rgba(0, 88, 248, 0.08);
 }
 
