@@ -6212,6 +6212,53 @@ html.jb-pin-presence:has(#cmd-cv:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the CV heading restores both softened apply-only
+   groups (bar, heading, and table). The build row and step jumps already
+   restore them; hovering that heading already restores these groups.
+   build stays in CV. */
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-cmdnav
+  a[href="#cmd-vacantes"],
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-cmdnav
+  a[href="#cmd-vacancies"],
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-vacantes,
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-vacancies,
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-vacantes
+  + table,
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-vacancies
+  + table,
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  h3#cmd-applications
+  + table {
+  opacity: 1;
+}
+
 /* Postular: a jump to the CV heading restores the softened advise and sync
    rows. The CV group stays full; hovering that heading already restores
    these rows. */
