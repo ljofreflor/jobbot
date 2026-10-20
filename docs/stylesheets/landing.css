@@ -4408,6 +4408,40 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on CV catalog chrome when hovering the Presence chapter cut /
+   split-link while Presence is current (aria-current; the :not([aria-current])
+   wash above does not fire then; pin-presence navy wash below covers the
+   current cut under the pin; mirrors inactive Presence cut → CV and
+   Apply-current Postular cut → CV). */
+body:has(
+    a.jb-scrolly__split-link--presence[aria-current="true"]:hover,
+    a.jb-scrolly__split-link--presence[aria-current="true"]:focus-visible
+  )
+  .jb-cmdnav
+  a[href="#cmd-cv"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    a.jb-scrolly__split-link--presence[aria-current="true"]:hover,
+    a.jb-scrolly__split-link--presence[aria-current="true"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    a.jb-scrolly__split-link--presence[aria-current="true"]:hover,
+    a.jb-scrolly__split-link--presence[aria-current="true"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash on both apply groups when hovering the Presence chapter cut /
    split-link without requiring the Presence pin (when that cut is not
    current; CV chrome already washes above; mirrors Postular chapter cut →
