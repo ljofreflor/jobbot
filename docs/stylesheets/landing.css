@@ -1158,6 +1158,32 @@ html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds h3#cmd-applicati
   opacity: 1;
 }
 
+/* Presence: a jump to get (Postular lede name / chapter cut) restores the other
+   apply-only group too. Vacantes already restores from that hash; hovering the
+   softened Postular lede name or chapter cut already restores both groups. */
+html.jb-pin-presence:has(#story-get:target)
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"],
+html.jb-pin-presence:has(#story-get:target)
+  .jb-cmdnav
+  a[href="#cmd-applications"],
+html.jb-pin-presence:has(#story-get:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+html.jb-pin-presence:has(#story-get:target)
+  .jb-section--cmds
+  h3#cmd-applications,
+html.jb-pin-presence:has(#story-get:target)
+  .jb-section--cmds
+  h3#cmd-postulaciones
+  + table,
+html.jb-pin-presence:has(#story-get:target)
+  .jb-section--cmds
+  h3#cmd-applications
+  + table {
+  opacity: 1;
+}
+
 /* Presence: hovering an inactive apply-only step restores that group's bar + heading + table
    (same chrome a #story-* jump already restores). */
 html.jb-pin-presence:has(
