@@ -196,12 +196,19 @@ body:has(.jb-hero) .md-tabs {
   transform: translateY(-1px);
 }
 
+/* Soft wash + ring while scanning: match hover when the keyboard lands on a CTA. */
+.jb-btn:focus-visible {
+  outline: 2px solid var(--jb-cobalt);
+  outline-offset: 3px;
+}
+
 .jb-btn--primary {
   background: var(--jb-cobalt);
   color: #fff !important;
 }
 
-.jb-btn--primary:hover {
+.jb-btn--primary:hover,
+.jb-btn--primary:focus-visible {
   background: var(--jb-cobalt-deep);
 }
 
@@ -211,7 +218,8 @@ body:has(.jb-hero) .md-tabs {
   box-shadow: inset 0 0 0 1.5px rgba(0, 24, 56, 0.3);
 }
 
-.jb-btn--ghost:hover {
+.jb-btn--ghost:hover,
+.jb-btn--ghost:focus-visible {
   background: rgba(0, 88, 248, 0.06);
 }
 
