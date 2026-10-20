@@ -3640,6 +3640,97 @@ body:has(
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
+/* Soft wash on both apply groups when hovering the Postular pin chapter
+   without requiring the Presence pin (when Apply is current the first pin
+   chapter is Postular; Presence pin already washes both apply groups when
+   that same chapter is softened under is-presence; mirrors Postular chapter
+   cut and Postular lede loop name). */
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacantes"]:not(.is-current),
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-vacancies"]:not(.is-current),
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-postulaciones"]:not(.is-current),
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-cmdnav
+  a[href="#cmd-applications"]:not(.is-current) {
+  background: rgba(0, 88, 248, 0.08);
+}
+
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes,
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies,
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones,
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications {
+  background: rgba(0, 88, 248, 0.06);
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacantes:not(.is-pin-step)
+  + table,
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-vacancies:not(.is-pin-step)
+  + table,
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-postulaciones:not(.is-pin-step)
+  + table,
+body:has(
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:hover,
+    .jb-scrolly__pin:not(.is-presence) .jb-scrolly__chapter:first-child:focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-applications:not(.is-pin-step)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
+}
+
 /* Soft wash + table inset on CV when scanning that heading or table
    (pill→heading wash already; :target same-group wash above; mirrors
    Vacantes/Postulaciones heading/table hover). */
