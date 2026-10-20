@@ -7627,8 +7627,18 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) {
   background: transparent;
 }
 
+/* Desktop column labels: same cue as stacked «Comando» / «Qué hace» under 960px. */
 body:has(.jb-hero) .md-typeset .jb-section--cmds table:not([class]) th {
   min-width: 0;
+  font-family: var(--jb-font-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jb-cobalt);
+  padding-top: 0.35rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(0, 24, 56, 0.12);
 }
 
 .jb-section--cmds th,
