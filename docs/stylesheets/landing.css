@@ -5740,6 +5740,30 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Postular: a jump to a get, match, build, conditions, or apply catalog row
+   restores the softened Presence catalog rows. Same-loop rows stay full;
+   hovering that row already restores these rows (mirror of item 332). */
+html:not(.jb-pin-presence):has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  .jb-section--cmds
+  tr:has(#cmd-advise),
+html:not(.jb-pin-presence):has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-build:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  .jb-section--cmds
+  tr:has(#cmd-sync) {
+  opacity: 1;
+}
+
 /* Presence: a jump to a Vacantes or Postulaciones heading restores the
    inactive advise and sync steps. The step of that group already restores
    from this jump; hovering that heading already restores these steps. */
