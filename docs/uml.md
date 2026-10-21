@@ -1131,6 +1131,52 @@ flowchart TD
 
 Reglas: la marca la cambia un mantenedor (HITL de política); tests mockean/paran la red; listados prohibidos por robots nunca entran al repositorio.
 
+## HiringRoom discover — listado + detalle, página 2 por fixture {#hiringroom-discover}
+
+Patrones: **JobSourceAdapter**, **Iterator** (stop at total / `--limit`), multi-site isolation. Issue: #377 (#243 ficha guardada; no adivinar endpoint JS).
+
+```mermaid
+classDiagram
+  direction TB
+  class HiringRoomDiscover {
+    <<JobSourceAdapter>>
+    +discover_site() SiteOutcome
+  }
+  class ListingPage {
+    +list rows
+    +int|None total
+    +str|None next_fixture_key
+  }
+  class VacancyDetail {
+    +str id
+    +JobPosting posting
+  }
+  HiringRoomDiscover --> ListingPage : /jobs (+ page2 fixture)
+  HiringRoomDiscover --> VacancyDetail : /jobs/get_vacancy/id
+  note for ListingPage "?page= / ?offset= do not work\npage 2 only via known fixture"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as jobs discover --source hiringroom
+  participant Ad as HiringRoomDiscover
+  participant Fetch as fetcher (fixture)
+  participant Store as JobRepository
+  CLI->>Ad: site *.hiringroom.com/jobs
+  Ad->>Fetch: listing page 1
+  opt page2 fixture present
+    Ad->>Fetch: listing page 2
+  end
+  loop new vacancy ids until total or --limit
+    Ad->>Fetch: get_vacancy id
+    Fetch-->>Ad: detail HTML
+    Ad->>Store: upsert (skip if known)
+  end
+  Note over Ad: peer site 503 → continue; bad --site → exit 2
+```
+
+Reglas: `--dry-run` no escribe; postular/cuenta fuera de alcance; host inválido exit 2.
+
 ## Cómo citar desde un issue
 
 ```markdown

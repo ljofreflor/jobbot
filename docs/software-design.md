@@ -33,8 +33,9 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
 `public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
-`laborum-sitemap-terms`. Issues that grow the domain cite an anchor and update
-the diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+`laborum-sitemap-terms`, `hiringroom-discover`. Issues that grow the domain cite
+an anchor and update the diagram in the closing PR. Map:
+[sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -534,6 +535,12 @@ Laborum discovery stays behind an explicit terms gate (#227); when allowed, a
 sitemap fixture path can store title+URL jobs without live fetch — see
 [#396](https://github.com/ljofreflor/jobbot/issues/396) and
 [uml.md#laborum-sitemap-terms](uml.md#laborum-sitemap-terms).
+
+HiringRoom `jobs discover` walks `/jobs` and detail URLs only when page-2 is a
+known fixture (no guessed `?page=`), stops at list total or `--limit`, and keeps
+peer sites isolated on HTTP failure — see
+[#377](https://github.com/ljofreflor/jobbot/issues/377) and
+[uml.md#hiringroom-discover](uml.md#hiringroom-discover).
 
 ## 9. Related documents
 
