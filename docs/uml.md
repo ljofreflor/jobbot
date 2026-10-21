@@ -603,6 +603,62 @@ flowchart TD
 
 Reglas: misma invariante que #34 (cifra, empresa del texto, no skills nuevas); distinto de `ProfileOverlay` / `profile.en.yaml` (#400).
 
+## Public queue — share → PR → `-U` {#public-queue-sync}
+
+Patrones: **Guard** (`share_refusal` #106), **durable Queue**, **idempotent PR batch**, sync via `jobbot -U`. Issue: #418 (#189 `-U` reinstall; #52 promote sigue HITL).
+
+```mermaid
+classDiagram
+  direction TB
+  class share_refusal {
+    <<Guard>>
+    +reason|None check(line)
+  }
+  class ShareQueue {
+    +Path local
+    +enqueue(Contribution)
+    +pending() list
+  }
+  class ShareBatch {
+    +str batch_id
+    +list lines
+  }
+  class CommonsSnapshot {
+    <<Port>>
+    +open_pr(ShareBatch)
+    +pull_main()
+  }
+  share_refusal --> ShareQueue : only if empty reason
+  ShareQueue --> ShareBatch : group
+  ShareBatch --> CommonsSnapshot : one PR per batch_id
+  CommonsSnapshot --> CompanyRegistry : foreign → candidate
+```
+
+```mermaid
+sequenceDiagram
+  participant Obs as observation / export line
+  participant Guard as share_refusal
+  participant Q as ShareQueue
+  participant GH as GitHub PR
+  participant U as jobbot -U
+  participant Reg as local companies.yaml
+  Obs->>Guard: line text
+  alt contact or home path
+    Guard-->>Obs: refuse (no enqueue)
+  else clean
+    Guard->>Q: enqueue
+    alt offline
+      Q-->>Q: keep on disk; search continues
+    else online
+      Q->>GH: open PR for batch (no duplicate)
+    end
+  end
+  U->>Reg: pull main snapshot
+  Note over Reg: new rows = candidate; promote stays HITL
+```
+
+Reglas: nada corre si la línea fue rechazada; no inventar cuenta GitHub; no compartir `profile.yaml`. `jobbot -U` actualiza programa **y** copia local del mapa desde `main` según el PR de implementación.
+
 ## Cómo citar desde un issue
 
 ```markdown

@@ -31,9 +31,9 @@ Direction of dependency: **domain → adapters**, never the reverse.
 UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `ports`,
 `plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
-`indeed-apply-advance`, `postulate-route`, `cv-derived-translation`. Issues that
-grow the domain cite an anchor and update the diagram in the closing PR. Map:
-[sdd-issue-map.md](sdd-issue-map.md).
+`indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
+`public-queue-sync`. Issues that grow the domain cite an anchor and update the
+diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -471,6 +471,11 @@ Docs and root help name the entry door (`profile`, `cv`, `get`, `capture`) befor
 portal groups; portal commands stay callable under advanced — see
 [#420](https://github.com/ljofreflor/jobbot/issues/420) (no UML; complements
 [#108](https://github.com/ljofreflor/jobbot/issues/108)).
+
+Public portal observations that pass `share_refusal` enqueue, sync via a batched
+PR, and land locally through `jobbot -U` as candidates — see
+[#418](https://github.com/ljofreflor/jobbot/issues/418) and
+[uml.md#public-queue-sync](uml.md#public-queue-sync).
 
 ## 9. Related documents
 
