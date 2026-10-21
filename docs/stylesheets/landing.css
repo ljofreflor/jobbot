@@ -17404,7 +17404,9 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
-/* Reverse of item 190: a dimmed lede command restores its other-loop catalog row. */
+/* Reverse of item 190: a dimmed lede command restores its other-loop catalog row.
+   Presence: advise/sync complete the CV set (build already; without-pin already
+   maps advise/sync). */
 html:not(.jb-pin-presence):has(
     a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
     a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible
@@ -17435,6 +17437,18 @@ html.jb-pin-presence:has(
   )
   .jb-section--cmds
   tr:has(#cmd-build),
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible
+  )
+  .jb-section--cmds
+  tr:has(#cmd-advise),
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  .jb-section--cmds
+  tr:has(#cmd-sync),
 html.jb-pin-presence:has(
     a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
     a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible
