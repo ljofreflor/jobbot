@@ -17336,7 +17336,8 @@ html.jb-pin-presence:has(#story-apply:target) .jb-section--cmds tr:has(#cmd-appl
 }
 
 /* Other-loop catalog row restores when its inactive story step is hovered/focused
-   (same row the #story-* jump already restores). */
+   (same row the #story-* jump already restores). Presence: advise/sync complete
+   the CV set (build already; without-pin already maps advise/sync). */
 html:not(.jb-pin-presence):has(
     #story-advise.jb-scrolly__step:not(.is-active):hover,
     #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
@@ -17372,6 +17373,20 @@ html.jb-pin-presence:has(
   )
   .jb-section--cmds
   tr:has(#cmd-build),
+html.jb-pin-presence:has(
+    #story-advise.jb-scrolly__step:not(.is-active):hover,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-advise),
+html.jb-pin-presence:has(
+    #story-sync.jb-scrolly__step:not(.is-active):hover,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-within
+  )
+  .jb-section--cmds
+  tr:has(#cmd-sync),
 html.jb-pin-presence:has(
     #story-conditions.jb-scrolly__step:not(.is-active):hover,
     #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
