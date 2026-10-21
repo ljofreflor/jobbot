@@ -1331,6 +1331,24 @@ html.jb-pin-presence:has(#story-sync:target) .jb-section--cmds h3#cmd-cv.is-pin-
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when a CV story step is :target
+   (heading navy above; blue table uses :not(.is-pin-step) so it does not
+   cover the pin-marked heading; mirrors #cmd-build story-row :target table inset). */
+html.jb-pin-presence:has(#story-build:target)
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table,
+html.jb-pin-presence:has(#story-advise:target)
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table,
+html.jb-pin-presence:has(#story-sync:target)
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash + table inset on apply catalog chrome when the pin story step is :target (Presence; completes 448). */
 html.jb-pin-presence:has(#story-get:target) .jb-section--cmds h3#cmd-vacantes,
 html.jb-pin-presence:has(#story-match:target) .jb-section--cmds h3#cmd-vacantes,
