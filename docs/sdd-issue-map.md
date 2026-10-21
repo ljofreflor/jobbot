@@ -32,6 +32,10 @@ issue ya cita UML y el diagrama está al día.
 | #414 | Command (import HITL) | [plan-apply](uml.md#plan-apply) | body_ready | [414](sdd-issue-patches/414.md) |
 | #382 | VO deadline + selection plan | [specification](uml.md#specification) · [plan-apply](uml.md#plan-apply) | body_ready | [382](sdd-issue-patches/382.md) |
 | #219 | WritableProfileAdapter + ACL | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) · [acl](uml.md#acl) | body_ready | [219](sdd-issue-patches/219.md) |
+| #150 | Profile ports epic | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [150](sdd-issue-patches/150.md) |
+| #284 | WritableProfileAdapter (LinkedIn sections) | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [284](sdd-issue-patches/284.md) |
+| #207 | Strategy check-open + Verdict | [ports](uml.md#ports) · [specification](uml.md#specification) | body_ready | [207](sdd-issue-patches/207.md) |
+| #140 | presentations VO + Strategy | [ports](uml.md#ports) · [fact-preference](uml.md#fact-preference) | body_ready | [140](sdd-issue-patches/140.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 
