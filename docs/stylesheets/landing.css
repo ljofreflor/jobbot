@@ -16699,6 +16699,21 @@ html:not(.jb-pin-presence):has(
   opacity: 1;
 }
 
+/* Postular: a jump to a Vacantes or Postulaciones heading restores the
+   softened Presence lede commands. Rows, steps, advise/sync lede commands,
+   chapter cut, pin chapter, and lede name already restore from that hash;
+   catalog-row and story :target already restore these Presence commands;
+   under Presence the same jump already restores the Postular lede commands. */
+html:not(.jb-pin-presence):has(
+    #cmd-vacantes:target,
+    #cmd-vacancies:target,
+    #cmd-postulaciones:target,
+    #cmd-applications:target
+  )
+  a.jb-scrolly__lede-cmd--presence {
+  opacity: 1;
+}
+
 /* Presence: a jump to a Vacantes heading restores the softened apply row,
    and a jump to a Postulaciones heading restores the softened get, match,
    and conditions rows. Same-group rows already restore; hovering that
