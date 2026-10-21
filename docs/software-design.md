@@ -35,8 +35,9 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
 `laborum-sitemap-terms`, `hiringroom-discover`, `reliefweb-discover`,
 `taleo-careersection-discover`, `successfactors-csb-discover`,
-`latam-master-table`. Issues that grow the domain cite an anchor and update the
-diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+`latam-master-table`, `whatsapp-question-queue`. Issues that grow the domain cite
+an anchor and update the diagram in the closing PR. Map:
+[sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -565,6 +566,12 @@ discover → HITL promote → shared export, never inventing ATS or treating job
 boards as employer portals — see
 [#298](https://github.com/ljofreflor/jobbot/issues/298) and
 [uml.md#latam-master-table](uml.md#latam-master-table).
+
+Candidate questions (conditions ask, blank answers, portal screens) enqueue
+locally and may be sent via WhatsApp deeplink/API only with operator HITL; apply
+writes the SST only after a confirmed diff — see
+[#251](https://github.com/ljofreflor/jobbot/issues/251) and
+[uml.md#whatsapp-question-queue](uml.md#whatsapp-question-queue).
 
 ## 9. Related documents
 

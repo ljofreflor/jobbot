@@ -1349,6 +1349,58 @@ classDiagram
 
 Reglas: batches regionales (MX, AR, …) sin duplicar CL; Tempo sin Laborum como portal; sin PII de candidato.
 
+## WhatsApp question queue — preguntar, no inventar {#whatsapp-question-queue}
+
+Patrones: **Aggregate** `Question`, **Command** send/apply HITL, **Port** channel (deeplink / Cloud API). Issue: #251. Fuera: auto-send, WA Web scrape, inferir respuestas.
+
+```mermaid
+classDiagram
+  direction TB
+  class Question {
+    +str id
+    +origin kind+ref
+    +str destination
+    +pending|sent|answered|applied|dismissed status
+    +datetime|None closes_at
+  }
+  class QuestionQueue {
+    +enqueue()
+    +plan_send() MessageBatch
+    +ingest(text)
+    +plan_apply() Diff
+  }
+  class WhatsAppChannel {
+    <<Port>>
+    +deeplink(batch)
+    +cloud_api_opt_in(batch)
+  }
+  QuestionQueue *-- Question
+  QuestionQueue --> WhatsAppChannel : send HITL only
+  note for Question "never invent answer\nid = hash origin+destination+prompt"
+```
+
+```mermaid
+sequenceDiagram
+  participant Src as conditions/answers/portal
+  participant Q as QuestionQueue
+  participant Op as operator
+  participant WA as WhatsAppChannel
+  participant SST as profile / answers
+  Src->>Q: enqueue ask gaps
+  Op->>Q: plan_send (dry-run)
+  alt --apply + confirm
+    Op->>WA: deeplink or Cloud API
+    WA-->>Q: status sent
+  end
+  Op->>Q: ingest numbered replies
+  Op->>Q: plan_apply diff
+  alt confirm
+    Q->>SST: write destination only
+  end
+```
+
+Reglas: cola en SQLite local (no git); sensitive flags; no OTP/docs por WA; otros canales no en este issue.
+
 ## Cómo citar desde un issue
 
 ```markdown
