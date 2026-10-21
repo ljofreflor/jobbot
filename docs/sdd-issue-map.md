@@ -48,7 +48,7 @@ issue ya cita UML y el diagrama está al día.
 | #398 | Mutex `jobbot update` | [update-mutex](uml.md#update-mutex) · [plan-apply](uml.md#plan-apply) | body_ready | [398](sdd-issue-patches/398.md) |
 | #412 | Indeed Apply advance, no Submit | [indeed-apply-advance](uml.md#indeed-apply-advance) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [412](sdd-issue-patches/412.md) |
 | #410 | postulate --apply + promote aparte | [postulate-route](uml.md#postulate-route) · [plan-apply](uml.md#plan-apply) · [ports](uml.md#ports) | body_ready | [410](sdd-issue-patches/410.md) |
-| #408 | cv build derived translation | [ports](uml.md#ports) · [fact-preference](uml.md#fact-preference) | pending | — |
+| #408 | cv build derived translation | [cv-derived-translation](uml.md#cv-derived-translation) · [fact-preference](uml.md#fact-preference) · [ports](uml.md#ports) | body_ready | [408](sdd-issue-patches/408.md) |
 | #420 | Tutorial entry door only | docs (no UML) | pending | — |
 | #418 | Public queue sync PR + `-U` | [ports](uml.md#ports) | pending | — |
 | #424 | ai-job-search gaps → contracts | [ports](uml.md#ports) | pending | — |

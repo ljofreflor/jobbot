@@ -556,6 +556,53 @@ sequenceDiagram
 
 Reglas: sin `--apply` no se abre nada; `--apply` no marca `applied`; promote es otro comando y es idempotente por dominio. Fuera de alcance: LinkedIn en vivo, CAPTCHA, 2FA, envío.
 
+## CV derived translation — build lee lo ya validado {#cv-derived-translation}
+
+Patrones: **Projection** (`DerivedCvTexts`), **Validator** (`cv translate` #34), build como presentación. Issue: #408 (fuera: auto-traducir, escribir el YAML, overlay `#400`).
+
+```mermaid
+classDiagram
+  direction TB
+  class Candidate {
+    <<Fact aggregate>>
+    +achievements by id
+  }
+  class DerivedCvTexts {
+    <<Projection>>
+    +str lang
+    +dict id_to_phrase
+  }
+  class translate_gate {
+    <<Validator>>
+    +accept(id, base, phrase) bool
+  }
+  class cv_build {
+    <<Command>>
+    +build(--lang) artifact
+  }
+  Candidate --> DerivedCvTexts : texts only
+  translate_gate ..> Candidate : figures + company + skills
+  translate_gate ..> DerivedCvTexts : accept | reject
+  cv_build --> DerivedCvTexts : use if accepted
+  cv_build --> Candidate : fallback base text
+  note for cv_build "never writes profile.yaml\nmissing file → base + message"
+```
+
+```mermaid
+flowchart TD
+  B[cv build --lang en] --> F{output/cv/en.yaml?}
+  F -->|missing| Base[use profile text by id]
+  F -->|has id| G{cv translate would accept?}
+  G -->|yes| Use[emit derived phrase]
+  G -->|no| Base
+  F --> Msg[print per id: used | no translation; the source text stays]
+  Use --> Art[TeX/PDF]
+  Base --> Art
+  Art --> P[(profile.yaml unchanged)]
+```
+
+Reglas: misma invariante que #34 (cifra, empresa del texto, no skills nuevas); distinto de `ProfileOverlay` / `profile.en.yaml` (#400).
+
 ## Cómo citar desde un issue
 
 ```markdown

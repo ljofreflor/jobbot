@@ -31,8 +31,8 @@ Direction of dependency: **domain → adapters**, never the reverse.
 UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `ports`,
 `plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
-`indeed-apply-advance`, `postulate-route`. Issues that grow the domain cite an
-anchor and update the diagram in the closing PR. Map:
+`indeed-apply-advance`, `postulate-route`, `cv-derived-translation`. Issues that
+grow the domain cite an anchor and update the diagram in the closing PR. Map:
 [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
@@ -460,6 +460,12 @@ that route without submitting, and a separate promote copies the contribution
 into the local portal registry — see
 [#410](https://github.com/ljofreflor/jobbot/issues/410) and
 [uml.md#postulate-route](uml.md#postulate-route).
+
+`cv build --lang` may present phrases from `output/cv/{lang}.yaml` only when
+`cv translate` would accept them; missing entries keep the profile text and never
+rewrite `profile.yaml` — see
+[#408](https://github.com/ljofreflor/jobbot/issues/408) and
+[uml.md#cv-derived-translation](uml.md#cv-derived-translation).
 
 ## 9. Related documents
 
