@@ -31,8 +31,9 @@ Direction of dependency: **domain → adapters**, never the reverse.
 UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `ports`,
 `plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
-`indeed-apply-advance`. Issues that grow the domain cite an anchor and update the
-diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+`indeed-apply-advance`, `postulate-route`. Issues that grow the domain cite an
+anchor and update the diagram in the closing PR. Map:
+[sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -453,6 +454,12 @@ Indeed Apply may click a classified **advance** label (`pressable_advance`) and
 must never click a **submit** role — see
 [#412](https://github.com/ljofreflor/jobbot/issues/412) and
 [uml.md#indeed-apply-advance](uml.md#indeed-apply-advance).
+
+`postulate` classifies a posting route from a fixture (#41); `--apply` may open
+that route without submitting, and a separate promote copies the contribution
+into the local portal registry — see
+[#410](https://github.com/ljofreflor/jobbot/issues/410) and
+[uml.md#postulate-route](uml.md#postulate-route).
 
 ## 9. Related documents
 

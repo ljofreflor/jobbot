@@ -509,6 +509,53 @@ sequenceDiagram
 
 Reglas: ningún botón con rol `submit` se pulsa; CAPTCHA/2FA/términos y el envío final quedan fuera (#412). Depende del clasificador #188; el adjunto de CV es #402.
 
+## Postulate — clasificar, abrir opcional, promote aparte {#postulate-route}
+
+Patrones: **Result** (`PostulateRoute`), **Command** plan-then-apply (`--apply`), **promote** explícito al registry. Issues: #410 (#41 clasifica con `--fixture`).
+
+```mermaid
+classDiagram
+  direction TB
+  class PostulateRoute {
+    <<Result>>
+    +email|portal|unknown kind
+    +list~Contribution~ contributions
+  }
+  class Contribution {
+    <<Value Object>>
+    +str domain
+    +str|None ats_hint
+    +str url
+  }
+  class PortalRegistry {
+    +promote(Contribution)
+  }
+  PostulateRoute *-- Contribution
+  Contribution --> PortalRegistry : only via promote
+  note for PostulateRoute "no email/phone stored\n--fixture only reads text\nportals.yaml untouched until promote"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as postulate --fixture
+  participant Class as classify route
+  participant Browser
+  participant Reg as portals.yaml
+  CLI->>Class: fixture text (no download)
+  Class-->>CLI: email | portal | unknown
+  alt --apply + portal URL
+    CLI->>Browser: open classified URL
+    Note over Browser: no Submit / CAPTCHA / 2FA
+  else default
+    CLI-->>CLI: no browser
+  end
+  opt portals promote (HITL, aparte)
+    CLI->>Reg: upsert domain once
+  end
+```
+
+Reglas: sin `--apply` no se abre nada; `--apply` no marca `applied`; promote es otro comando y es idempotente por dominio. Fuera de alcance: LinkedIn en vivo, CAPTCHA, 2FA, envío.
+
 ## Cómo citar desde un issue
 
 ```markdown
