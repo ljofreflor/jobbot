@@ -6361,6 +6361,26 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when hovering an apply catalog row
+   (pill+heading navy above; blue cross-wash table uses :not(.is-pin-step) so
+   it does not cover the pin-marked heading; mirrors apply catalog-row
+   :target navy table inset). */
+html.jb-pin-presence:has(
+    .jb-section--cmds tr:has(#cmd-get):hover,
+    .jb-section--cmds tr:has(#cmd-get):focus-within,
+    .jb-section--cmds tr:has(#cmd-match):hover,
+    .jb-section--cmds tr:has(#cmd-match):focus-within,
+    .jb-section--cmds tr:has(#cmd-conditions):hover,
+    .jb-section--cmds tr:has(#cmd-conditions):focus-within,
+    .jb-section--cmds tr:has(#cmd-apply):hover,
+    .jb-section--cmds tr:has(#cmd-apply):focus-within
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash on CV catalog chrome when hovering an apply lede command
    without requiring the Presence pin (same cue as apply catalog-row hover
    → CV above; mirrors CV lede → CV chrome). */
