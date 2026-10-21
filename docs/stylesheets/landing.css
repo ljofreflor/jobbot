@@ -12497,8 +12497,11 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
-/* Postular: hovering an inactive Postular step restores the softened Presence lede name.
-   Same-loop steps already restore their own name; this is the other loop. */
+/* Postular: hovering an inactive get, match, build, advise, sync, conditions, or
+   apply step restores the softened Presence lede name. Same-loop steps already
+   restore their own name; this is the other loop for Postular steps. Advise/sync
+   complete the CV set under pin-off (build already; pin chapter hover already;
+   pin-on advise/sync→Postular lede name already; story :target lede name already). */
 html:not(.jb-pin-presence):has(
     #story-get.jb-scrolly__step:not(.is-active):hover,
     #story-get.jb-scrolly__step:not(.is-active):focus-visible,
@@ -12509,6 +12512,12 @@ html:not(.jb-pin-presence):has(
     #story-build.jb-scrolly__step:not(.is-active):hover,
     #story-build.jb-scrolly__step:not(.is-active):focus-visible,
     #story-build.jb-scrolly__step:not(.is-active):focus-within,
+    #story-advise.jb-scrolly__step:not(.is-active):hover,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-advise.jb-scrolly__step:not(.is-active):focus-within,
+    #story-sync.jb-scrolly__step:not(.is-active):hover,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-visible,
+    #story-sync.jb-scrolly__step:not(.is-active):focus-within,
     #story-conditions.jb-scrolly__step:not(.is-active):hover,
     #story-conditions.jb-scrolly__step:not(.is-active):focus-visible,
     #story-conditions.jb-scrolly__step:not(.is-active):focus-within,
