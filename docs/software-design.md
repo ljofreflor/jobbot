@@ -34,8 +34,9 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
 `public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
 `laborum-sitemap-terms`, `hiringroom-discover`, `reliefweb-discover`,
-`taleo-careersection-discover`. Issues that grow the domain cite an anchor and
-update the diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+`taleo-careersection-discover`, `successfactors-csb-discover`. Issues that grow
+the domain cite an anchor and update the diagram in the closing PR. Map:
+[sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -553,6 +554,11 @@ column ACL (closing vs posting date differ by portal) and never invents ORC
 shapes — see
 [#245](https://github.com/ljofreflor/jobbot/issues/245) and
 [uml.md#taleo-careersection-discover](uml.md#taleo-careersection-discover).
+
+SuccessFactors CSB discovery chooses classic HTML search vs Unify sitemap (never
+`/services/`, never JS) and omits filled postings — see
+[#230](https://github.com/ljofreflor/jobbot/issues/230) and
+[uml.md#successfactors-csb-discover](uml.md#successfactors-csb-discover).
 
 ## 9. Related documents
 

@@ -1262,6 +1262,51 @@ sequenceDiagram
 
 Reglas: sin sesión/cookies de candidato; URL pública `jobdetail.ftl?job={contestNo}`; postular fuera de alcance.
 
+## SuccessFactors CSB — clásica vs Unify (sitemap) {#successfactors-csb-discover}
+
+Patrones: **JobSourceAdapter**, **Strategy** (template variant), robots Guard. Issue: #230 (#224 BID; no OData; no JS).
+
+```mermaid
+classDiagram
+  direction TB
+  class SuccessFactorsDiscover {
+    <<JobSourceAdapter>>
+    +discover_site() SiteOutcome
+  }
+  class CsbVariant {
+    <<Enumeration>>
+    classic
+    unify
+  }
+  class ClassicSearch {
+    +GET /search/?q=&startrow=
+  }
+  class UnifySitemap {
+    +GET /sitemap.xml
+    +GET /job/slug/id/
+  }
+  SuccessFactorsDiscover --> CsbVariant : detect from /search/ HTML
+  CsbVariant --> ClassicSearch : job-tile present
+  CsbVariant --> UnifySitemap : rmk-jobs-search, no tiles
+  note for UnifySitemap "never /services/\nfilter locs by query slug"
+```
+
+```mermaid
+flowchart TD
+  D[jobs discover --source successfactors] --> S[GET /search/?q=]
+  S --> V{job-tile?}
+  V -->|yes classic| P[paginate startrow]
+  V -->|Unify widget| M[GET sitemap.xml]
+  M --> J[filter /job/ URLs]
+  J --> Det[GET detail HTML]
+  P --> Det
+  Det --> C{filled / closed?}
+  C -->|yes| Skip[omit]
+  C -->|no| Save[upsert or dry-run]
+```
+
+Reglas: respetar robots; sin browser/JS; sin cuenta; categorías `/go/` no se adivinan.
+
 ## Cómo citar desde un issue
 
 ```markdown
