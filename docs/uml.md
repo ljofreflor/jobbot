@@ -465,6 +465,50 @@ sequenceDiagram
 
 Reglas: el lock vive junto al data del workspace (no en un checkout compartido sin workspace); nunca inventar el lock en el repo; tests mockean el instalador — sin `uv` real.
 
+## Indeed Apply — avance clasificado, nunca Submit {#indeed-apply-advance}
+
+Patrones: **Strategy** (`IndeedApplyAdapter`), **Specification** (`button_role` / `pressable_advance` — #188), stop-before-submit. Issue: #412 (#188 clasifica; #402 adjunto PDF).
+
+```mermaid
+classDiagram
+  direction TB
+  class IndeedApplyAdapter {
+    <<ApplicationPortalAdapter>>
+    +prefill()
+    +open()
+    +advance_step()
+  }
+  class button_role {
+    <<Specification>>
+    +classify(label) advance|submit|other
+  }
+  class pressable_advance {
+    +pick(labels) str|None
+  }
+  IndeedApplyAdapter --> pressable_advance : before click
+  pressable_advance --> button_role
+  note for pressable_advance "Next/Siguiente/Continue → advance\nEnviar/Submit/Apply → submit\nboth → submit; only submit → None"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as application apply --apply
+  participant Ad as IndeedApplyAdapter
+  participant Page as Indeed Apply page
+  participant Human
+  CLI->>Ad: open applystart / ATS
+  Ad->>Page: list button labels
+  Ad->>Ad: pressable_advance(labels)
+  alt label advance
+    Ad->>Page: click advance only
+  else None (submit-only or empty)
+    Ad-->>CLI: name submit button; no click
+  end
+  Note over Ad,Human: CAPTCHA / 2FA / terms / final Submit = HITL
+```
+
+Reglas: ningún botón con rol `submit` se pulsa; CAPTCHA/2FA/términos y el envío final quedan fuera (#412). Depende del clasificador #188; el adjunto de CV es #402.
+
 ## Cómo citar desde un issue
 
 ```markdown

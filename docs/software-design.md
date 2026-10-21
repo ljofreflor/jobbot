@@ -30,9 +30,9 @@ Direction of dependency: **domain → adapters**, never the reverse.
 
 UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `ports`,
 `plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
-`posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`.
-Issues that grow the domain cite an anchor and update the diagram in the closing
-PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+`posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
+`indeed-apply-advance`. Issues that grow the domain cite an anchor and update the
+diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -448,6 +448,11 @@ rows, or a challenge page into an empty list that the CLI prints as
 --force` so two concurrent upgrades cannot clobber the executable — see
 [#398](https://github.com/ljofreflor/jobbot/issues/398) and
 [uml.md#update-mutex](uml.md#update-mutex).
+
+Indeed Apply may click a classified **advance** label (`pressable_advance`) and
+must never click a **submit** role — see
+[#412](https://github.com/ljofreflor/jobbot/issues/412) and
+[uml.md#indeed-apply-advance](uml.md#indeed-apply-advance).
 
 ## 9. Related documents
 
