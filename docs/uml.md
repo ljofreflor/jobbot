@@ -1177,6 +1177,46 @@ sequenceDiagram
 
 Reglas: `--dry-run` no escribe; postular/cuenta fuera de alcance; host inválido exit 2.
 
+## ReliefWeb discover — API v2 + appname local {#reliefweb-discover}
+
+Patrones: **JobSourceAdapter**, **Config Port** (appname never logged), **Guard** AUTH_REQUIRED. Issue: #247 (#180 épica; no RSS/web).
+
+```mermaid
+classDiagram
+  direction TB
+  class ReliefWebConfig {
+    <<Config>>
+    +str|None appname
+    +resolve() env over toml
+  }
+  class ReliefWebDiscover {
+    <<JobSourceAdapter>>
+    +discover() list~JobPosting~
+  }
+  class JobPosting {
+    +source reliefweb
+    +closes_at
+    +remote_type
+  }
+  ReliefWebDiscover --> ReliefWebConfig : before POST
+  ReliefWebDiscover --> JobPosting : map fields
+  note for ReliefWebConfig "never print value\nmissing → exit 3 no network"
+```
+
+```mermaid
+flowchart TD
+  D[jobs discover --source reliefweb] --> C{appname configured?}
+  C -->|no| A3[exit 3 + apidoc link]
+  C -->|yes| P[POST /v2/jobs?appname=…]
+  P -->|403/400 appname| A3b[exit 3; redact value]
+  P -->|200 + data| M[map title/source/closes_at/url]
+  M --> Off{offset < total and limit?}
+  Off -->|yes| P
+  Off -->|no| Out[dry-run preview or upsert]
+```
+
+Reglas: ≤1 req/s; UA identificable; appname nunca en el repo; aplicar en el ATS del organismo, no en ReliefWeb.
+
 ## Cómo citar desde un issue
 
 ```markdown

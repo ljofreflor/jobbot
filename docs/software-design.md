@@ -33,8 +33,8 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
 `public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
-`laborum-sitemap-terms`, `hiringroom-discover`. Issues that grow the domain cite
-an anchor and update the diagram in the closing PR. Map:
+`laborum-sitemap-terms`, `hiringroom-discover`, `reliefweb-discover`. Issues that
+grow the domain cite an anchor and update the diagram in the closing PR. Map:
 [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
@@ -541,6 +541,12 @@ known fixture (no guessed `?page=`), stops at list total or `--limit`, and keeps
 peer sites isolated on HTTP failure — see
 [#377](https://github.com/ljofreflor/jobbot/issues/377) and
 [uml.md#hiringroom-discover](uml.md#hiringroom-discover).
+
+ReliefWeb discovery uses API v2 with a locally configured approved `appname`
+(never logged or committed); missing/denied appname exits 3 without scraping the
+website — see
+[#247](https://github.com/ljofreflor/jobbot/issues/247) and
+[uml.md#reliefweb-discover](uml.md#reliefweb-discover).
 
 ## 9. Related documents
 
