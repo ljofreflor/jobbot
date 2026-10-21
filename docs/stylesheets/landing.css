@@ -15251,6 +15251,40 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
+/* Presence: hovering the softened advise or sync command in the lede restores
+   the other softened Postular steps. Build already; inactive advise/sync step
+   hover already restores these steps. */
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  #story-get.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  #story-match.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  #story-conditions.jb-scrolly__step:not(.is-active),
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-advise"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-sync"]:focus-visible
+  )
+  #story-apply.jb-scrolly__step:not(.is-active) {
+  opacity: 1;
+}
+
 /* Postular: hovering an inactive advise or sync step restores the other softened
    Presence steps. The step under the pointer is already full; the Postular steps
    already restore these steps. */
