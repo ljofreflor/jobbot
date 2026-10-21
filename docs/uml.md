@@ -369,6 +369,39 @@ flowchart TD
   V -->|detail title+employer| Save[upsert + final_url + checked_at]
 ```
 
+## LinkedIn details pull — sección a sección {#linkedin-details-pull}
+
+Patrones: **ProfileAdapter** (pull), **Result** por sección. Issue: #386 (#194 snapshot vacío).
+
+```mermaid
+classDiagram
+  direction TB
+  class ProfileAdapter {
+    <<Protocol>>
+    +pull() Snapshot
+  }
+  class SectionRead {
+    <<Result>>
+    +ok|empty|unread status
+    +list blocks
+  }
+  class LinkedInProfileAdapter {
+    +pull_details(section) SectionRead
+  }
+  ProfileAdapter <|.. LinkedInProfileAdapter
+  LinkedInProfileAdapter --> SectionRead
+  note for SectionRead "empty = portal says nothing\nunread = fetch/parse failed\nnever invent facts"
+```
+
+```mermaid
+flowchart LR
+  P["/in/slug/"] --> H[headline block]
+  P --> D["/details/experience|education|…/"]
+  D -->|blocks in main| Ok[status ok]
+  D -->|No hay nada…| Empty[status empty]
+  D -->|missing / error| Unread[status unread]
+```
+
 ## Cómo citar desde un issue
 
 ```markdown
