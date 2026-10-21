@@ -42,7 +42,7 @@ issue ya cita UML y el diagrama está al día.
 | #157 | Local vault (not Candidate) | [ports](uml.md#ports) | done | [157](sdd-issue-patches/157.md) |
 | #392 | Guard TTY + HITL pause (Indeed challenge) | [hitl-pause](uml.md#hitl-pause) · [plan-apply](uml.md#plan-apply) | body_ready | [392](sdd-issue-patches/392.md) |
 | #390 | SearchOutcome: empty ≠ failed ≠ off-topic | [search-outcome](uml.md#search-outcome) · [ports](uml.md#ports) | body_ready | [390](sdd-issue-patches/390.md) |
-| #388 | Command `jobs add --url` verify | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | pending | — |
+| #388 | Command `jobs add --url` / `jobs verify` | [posting-url-verify](uml.md#posting-url-verify) · [ports](uml.md#ports) | body_ready | [388](sdd-issue-patches/388.md) |
 | #386 | ProfileAdapter LinkedIn /details/ | [ports](uml.md#ports) · [acl](uml.md#acl) | pending | — |
 | #384 | LLM extract JD (never invent) | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | pending | — |
 | #398 | Mutex `jobbot update` | [plan-apply](uml.md#plan-apply) | pending | — |

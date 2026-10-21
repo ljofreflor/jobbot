@@ -334,6 +334,41 @@ flowchart TD
   Empty --> MsgOk[may print No jobs found]
 ```
 
+## Posting URL verify — ficha vs SERP {#posting-url-verify}
+
+Patrones: **Specification**, **Value Object** (evidencia de URL). Issue: #388 (#182 id-only, #215 Workday).
+
+```mermaid
+classDiagram
+  direction TB
+  class PostingUrlCheck {
+    <<Value Object>>
+    +str final_url
+    +str url_status
+    +datetime url_checked_at
+    +str|None title
+    +str|None employer
+  }
+  class verify_posting_url {
+    <<Specification>>
+    +check(html, url) PostingUrlCheck|Reject
+  }
+  class JobRepository {
+    +upsert(JobPosting)
+  }
+  verify_posting_url --> PostingUrlCheck
+  PostingUrlCheck --> JobRepository : only detail + open
+```
+
+```mermaid
+flowchart TD
+  U[jobs add --url / jobs verify] --> F{fixture or fetcher}
+  F -->|no reader| Ask[ask --file; no network]
+  F -->|HTML| V[verify_posting_url]
+  V -->|SERP / home / closed| Reject[do not upsert]
+  V -->|detail title+employer| Save[upsert + final_url + checked_at]
+```
+
 ## Cómo citar desde un issue
 
 ```markdown
