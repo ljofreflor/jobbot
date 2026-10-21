@@ -68,6 +68,10 @@ issue ya cita UML y el diagrama está al día.
 | #230 | SuccessFactors CSB discover | [successfactors-csb-discover](uml.md#successfactors-csb-discover) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [230](sdd-issue-patches/230.md) |
 | #298 | LATAM master table seed→promote | [latam-master-table](uml.md#latam-master-table) · [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | body_ready | [298](sdd-issue-patches/298.md) |
 | #251 | WhatsApp HITL question queue | [whatsapp-question-queue](uml.md#whatsapp-question-queue) · [plan-apply](uml.md#plan-apply) · [hitl-pause](uml.md#hitl-pause) · [fact-preference](uml.md#fact-preference) | body_ready | [251](sdd-issue-patches/251.md) |
+| #267 | Aira JobSource by catalog slug | [aira-slug-discover](uml.md#aira-slug-discover) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [267](sdd-issue-patches/267.md) |
+| #241 | Trabajando white-label idDominio | [trabajando-white-label-discover](uml.md#trabajando-white-label-discover) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [241](sdd-issue-patches/241.md) |
+| #240 | Empleos Públicos live feeds + CDP | [empleos-publicos-live](uml.md#empleos-publicos-live) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [240](sdd-issue-patches/240.md) |
+| #269 | Promote policy + share opt-in + one model | [companies-promote-policy](uml.md#companies-promote-policy) · [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | body_ready | [269](sdd-issue-patches/269.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

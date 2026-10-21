@@ -1401,6 +1401,168 @@ sequenceDiagram
 
 Reglas: cola en SQLite local (no git); sensitive flags; no OTP/docs por WA; otros canales no en este issue.
 
+## Aira — discover por slug de catálogo {#aira-slug-discover}
+
+Patrones: **JobSourceAdapter**, **Registry** (slugs observados), **SearchOutcome**. Issue: #267 (#265 coverage; #241/#243 peers).
+
+```mermaid
+classDiagram
+  direction TB
+  class AiraChannel {
+    <<Registry row>>
+    +str slug
+    +str employer_name
+  }
+  class AiraDiscover {
+    <<JobSourceAdapter>>
+    +discover(slugs) SiteOutcome
+  }
+  class JobPosting {
+    +source aira
+    +company employer_of_channel
+  }
+  AiraDiscover --> AiraChannel : only catalog slugs
+  AiraDiscover --> JobPosting : title + canonical URL
+  note for AiraChannel "never invent slug from brand\nhost jobs.airavirtual.com shared"
+```
+
+```mermaid
+flowchart TD
+  D[jobs discover --source aira] --> R[slugs from companies/catalog]
+  R --> F[fixture or fetch listing]
+  F --> O{ok / refused / empty?}
+  O -->|403 or robots| Ref[refused ≠ zero jobs]
+  O -->|rows| M[map; company ≠ Aira]
+  M --> Cap[mark job_listing proven per channel]
+```
+
+Reglas: plataforma nunca es el empleador; sin autopilot de envío; suite offline.
+
+## Trabajando marca blanca — idDominio + searchjob {#trabajando-white-label-discover}
+
+Patrones: **JobSourceAdapter**, **ACL** JSON→posting, **Strategy** Nuxt vs legado. Issue: #241 (#183 bolsa ≠ portal; #285 profile push aparte).
+
+```mermaid
+classDiagram
+  direction TB
+  class TrabajandoDiscover {
+    <<JobSourceAdapter>>
+    +resolve_idDominio(host)
+    +searchjob(pagina)
+  }
+  class WhiteLabelSite {
+    +str subdomain
+    +int|None idDominio
+    +ats trabajando
+  }
+  class OfferDetail {
+    +closes_at America/Santiago
+    +salary_text|None
+  }
+  TrabajandoDiscover --> WhiteLabelSite
+  TrabajandoDiscover --> OfferDetail : /api/ofertas/id
+  note for WhiteLabelSite "www.trabajando.cl is board\nnot employer portal"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as jobs discover --source trabajando
+  participant Ad as TrabajandoDiscover
+  participant Host as empresa.trabajando.cl
+  CLI->>Ad: site from registry or --site
+  Ad->>Host: GET / → __NUXT_DATA__ idDominio
+  loop pagina 1..N until limit
+    Ad->>Host: GET /api/searchjob
+    Ad->>Host: GET /api/ofertas/id (new only)
+  end
+  Note over Ad: companies discover also probes slug.trabajando.cl
+```
+
+Reglas: filtro query/location local; confidencial → nombre del sitio; detalle login → listado + nota; dry-run no escribe.
+
+## Empleos Públicos — feeds vivos + CDP HITL {#empleos-publicos-live}
+
+Patrones: **JobSourceAdapter**, **Strategy** HTTP→CDP, **SearchOutcome** / challenge. Issue: #240 (#180; fixture-first legacy).
+
+```mermaid
+classDiagram
+  direction TB
+  class EmpleosPublicosDiscover {
+    <<JobSourceAdapter>>
+    +read_feeds() FeedUnion
+  }
+  class FeedChannel {
+    <<Strategy>>
+    +http_identifiable()
+    +cdp_same_origin()
+  }
+  class SalaryText {
+    <<Value Object>>
+    +normalize(raw) str|None
+  }
+  EmpleosPublicosDiscover --> FeedChannel
+  EmpleosPublicosDiscover --> SalaryText : 1,00 / 0 → None
+  note for FeedChannel "403 without --browser → exit 4\nnever spoof UA / CAPTCHA"
+```
+
+```mermaid
+flowchart TD
+  D[jobs discover --source empleos_publicos] --> H[HTTP both feeds]
+  H -->|200| U[union dedupe]
+  H -->|403| B{--browser / CDP?}
+  B -->|no| E4[exit 4 + hint feed-file]
+  B -->|yes| C[same-origin fetch in Chrome]
+  C --> U
+  U --> F[filter query/location local]
+  F --> S[skip expired closes_at]
+```
+
+Reglas: `--fixture` alias de `--feed-file`; un feed caído no tumba al otro; URL externa conserva `ats_kind` detectado; ClaveÚnica/postular fuera.
+
+## Companies promote policy — evidencia, opt-in, un modelo {#companies-promote-policy}
+
+Patrones: **Policy/Guard** auto-promote, **Opt-in** share, **Aggregate** único. Issue: #269 (alinea #52 #106 #265; cola #418).
+
+```mermaid
+classDiagram
+  direction TB
+  class TechnicalEvidence {
+    <<Specification>>
+    +host_rule|redirect|html_marker
+  }
+  class AutoPromote {
+    <<Policy>>
+    +eligible(CareerSite) bool
+  }
+  class ShareOptIn {
+    <<Preference>>
+    +bool enabled
+    +queue_reviewable
+  }
+  class CompanyRegistry {
+    <<Aggregate>>
+    +CareerSite sites
+    +CapabilityMap caps
+  }
+  AutoPromote --> TechnicalEvidence
+  AutoPromote --> CompanyRegistry : candidate→active
+  ShareOptIn --> CompanyRegistry : enqueue public facts
+  note for AutoPromote "unknown → HITL promote\nrejected/board never auto"
+```
+
+```mermaid
+flowchart TD
+  Learn[companies learn / recon] --> Ev{technical ATS evidence?}
+  Ev -->|yes| Auto[auto-promote + log evidence]
+  Ev -->|unknown| Cand[stay candidate]
+  Cand --> Hitl[companies promote HITL]
+  Auto --> Opt{share opt-in?}
+  Opt -->|no| Local[local only]
+  Opt -->|yes| Q[revisable outbound queue]
+```
+
+Reglas: uso local solo no promueve; contradicción → `stale`; catálogo #265 se fusiona en `companies` (canal = CareerSite); sin telemetría.
+
 ## Cómo citar desde un issue
 
 ```markdown

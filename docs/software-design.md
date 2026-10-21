@@ -573,6 +573,26 @@ writes the SST only after a confirmed diff — see
 [#251](https://github.com/ljofreflor/jobbot/issues/251) and
 [uml.md#whatsapp-question-queue](uml.md#whatsapp-question-queue).
 
+Aira `jobs discover` walks only catalog-observed slugs on
+`jobs.airavirtual.com` (employer = channel owner, never “Aira”); refused ≠ empty
+— see [#267](https://github.com/ljofreflor/jobbot/issues/267) and
+[uml.md#aira-slug-discover](uml.md#aira-slug-discover).
+
+Trabajando white-label discover resolves `idDominio` then paginates
+`/api/searchjob` on `{empresa}.trabajando.cl`; `www` stays a job board, not an
+employer portal — see [#241](https://github.com/ljofreflor/jobbot/issues/241) and
+[uml.md#trabajando-white-label-discover](uml.md#trabajando-white-label-discover).
+
+Empleos Públicos discover merges two public JSON feeds without a mandatory
+fixture; HTTP 403 without `--browser` is challenge exit 4, CDP same-origin
+fetch is HITL — see [#240](https://github.com/ljofreflor/jobbot/issues/240) and
+[uml.md#empleos-publicos-live](uml.md#empleos-publicos-live).
+
+Company career sites auto-promote only with technical ATS evidence; share is
+workspace opt-in with a revisable queue; the Chile catalog merges into
+`companies` (one model) — see [#269](https://github.com/ljofreflor/jobbot/issues/269) and
+[uml.md#companies-promote-policy](uml.md#companies-promote-policy).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
