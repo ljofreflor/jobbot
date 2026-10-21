@@ -16662,6 +16662,18 @@ html.jb-pin-presence:has(#cmd-cv:target)
   opacity: 1;
 }
 
+/* Presence: a jump to the CV heading restores the softened advise and sync
+   catalog rows. The build row already restores from that hash; Vacantes and
+   Postulaciones already restore these rows from their heading jumps. */
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  tr:has(#cmd-advise),
+html.jb-pin-presence:has(#cmd-cv:target)
+  .jb-section--cmds
+  tr:has(#cmd-sync) {
+  opacity: 1;
+}
+
 /* Presence: a jump to the CV heading restores the softened build step. That
    row already restores from that hash; hovering that heading already restores
    this step; Vacantes and Postulaciones already restore it from their heading
