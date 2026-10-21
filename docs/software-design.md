@@ -32,9 +32,9 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
-`public-queue-sync`, `capability-gap-map`, `workday-session-tenant`. Issues that
-grow the domain cite an anchor and update the diagram in the closing PR. Map:
-[sdd-issue-map.md](sdd-issue-map.md).
+`public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
+`laborum-sitemap-terms`. Issues that grow the domain cite an anchor and update
+the diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -529,6 +529,11 @@ default or page chrome misread as skills — see
 another) and may probe CDP ports beyond 9222–9224 — see
 [#394](https://github.com/ljofreflor/jobbot/issues/394) and
 [uml.md#workday-session-tenant](uml.md#workday-session-tenant).
+
+Laborum discovery stays behind an explicit terms gate (#227); when allowed, a
+sitemap fixture path can store title+URL jobs without live fetch — see
+[#396](https://github.com/ljofreflor/jobbot/issues/396) and
+[uml.md#laborum-sitemap-terms](uml.md#laborum-sitemap-terms).
 
 ## 9. Related documents
 

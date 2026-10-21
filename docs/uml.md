@@ -1094,6 +1094,43 @@ sequenceDiagram
 
 Reglas: no login ni fill aquí; company tab sigue sin ser `ready` genérico salvo evidencia de ese host.
 
+## Laborum — términos primero, luego sitemap {#laborum-sitemap-terms}
+
+Patrones: **Guard** (terms decision #227), **JobSourceAdapter** (sitemap → postings). Issue: #396. Fuera: decidir términos; descarga en vivo de laborum.cl.
+
+```mermaid
+classDiagram
+  direction TB
+  class TermsGate {
+    <<Guard>>
+    +bool allowed
+    +str reason_dated
+  }
+  class LaborumDiscover {
+    <<JobSourceAdapter>>
+    +discover_site() SiteOutcome
+  }
+  class SitemapReader {
+    +parse(fixture) list~JobPosting~
+  }
+  LaborumDiscover --> TermsGate : before any read
+  LaborumDiscover --> SitemapReader : only if allowed
+  note for TermsGate "false → exit 2, no network\ntrue → fixture/sitemap path"
+```
+
+```mermaid
+flowchart TD
+  D[jobs discover --source laborum] --> G{terms allowed?}
+  G -->|no| R[exit 2; TERMS_REASON; 0 jobs]
+  G -->|yes| F[--fixture sitemap]
+  F --> P[parse URL + title]
+  P --> Robots{robots allows URL?}
+  Robots -->|no filter page| Drop[do not upsert]
+  Robots -->|yes job URL| Save[upsert JobPosting]
+```
+
+Reglas: la marca la cambia un mantenedor (HITL de política); tests mockean/paran la red; listados prohibidos por robots nunca entran al repositorio.
+
 ## Cómo citar desde un issue
 
 ```markdown

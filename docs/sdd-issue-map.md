@@ -61,7 +61,7 @@ issue ya cita UML y el diagrama está al día.
 | #56 | Command browser login tour + session Guard | [browser-login-tour](uml.md#browser-login-tour) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [56](sdd-issue-patches/56.md) |
 | #118 | Preference search_queries + experience matcher | [experience-first-search](uml.md#experience-first-search) · [fact-preference](uml.md#fact-preference) · [ports](uml.md#ports) | body_ready | [118](sdd-issue-patches/118.md) |
 | #394 | Workday tenant session + extra CDP port | [workday-session-tenant](uml.md#workday-session-tenant) · [browser-login-tour](uml.md#browser-login-tour) · [ports](uml.md#ports) | body_ready | [394](sdd-issue-patches/394.md) |
-| #396 | Laborum sitemap JobSource | [ports](uml.md#ports) | pending | — |
+| #396 | Laborum sitemap JobSource | [laborum-sitemap-terms](uml.md#laborum-sitemap-terms) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [396](sdd-issue-patches/396.md) |
 | #377 | HiringRoom discover paginator | [ports](uml.md#ports) | pending | — |
 | #247 | ReliefWeb discover (API v2) | [ports](uml.md#ports) | pending | — |
 | #245 | Taleo careersection discover | [ports](uml.md#ports) | pending | — |
