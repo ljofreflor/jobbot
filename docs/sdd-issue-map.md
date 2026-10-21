@@ -56,6 +56,10 @@ issue ya cita UML y el diagrama está al día.
 | #374 | Preference SearchFilters + dry-run | [search-filters](uml.md#search-filters) · [fact-preference](uml.md#fact-preference) · [plan-apply](uml.md#plan-apply) | body_ready | [374](sdd-issue-patches/374.md) |
 | #54 | Command cv tune-for (budget + HITL) | [cv-tune-for](uml.md#cv-tune-for) · [plan-apply](uml.md#plan-apply) · [fact-preference](uml.md#fact-preference) | body_ready | [54](sdd-issue-patches/54.md) |
 | #285 | WritableProfileAdapter + field limits | [trabajando-profile-push](uml.md#trabajando-profile-push) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [285](sdd-issue-patches/285.md) |
+| #296 | LinkedIn Easy Apply (Strategy + HITL evidence) | [linkedin-easy-apply](uml.md#linkedin-easy-apply) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [296](sdd-issue-patches/296.md) |
+| #215 | Workday CXS detail ACL + ClosingInstant | [workday-cxs-detail](uml.md#workday-cxs-detail) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [215](sdd-issue-patches/215.md) |
+| #56 | Command browser login tour + session Guard | [browser-login-tour](uml.md#browser-login-tour) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [56](sdd-issue-patches/56.md) |
+| #118 | Preference search_queries + experience matcher | [experience-first-search](uml.md#experience-first-search) · [fact-preference](uml.md#fact-preference) · [ports](uml.md#ports) | body_ready | [118](sdd-issue-patches/118.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

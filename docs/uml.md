@@ -871,6 +871,187 @@ flowchart TD
 
 Reglas: `--fix-legacy` propone recorte con confirm por entrada; `needs_human` para renta/jornada sin hecho; fixtures sin PII.
 
+## LinkedIn Easy Apply — Solicitud sencilla HITL {#linkedin-easy-apply}
+
+Patrones: **Strategy** (`ApplicationPortalAdapter`), **Command** plan-then-apply, evidencia de UI para `submitted`. Issue: #296. Paridad con Indeed [#402](uml.md#indeed-apply-attach) / [#412](uml.md#indeed-apply-advance).
+
+```mermaid
+classDiagram
+  direction TB
+  class LinkedInEasyApplyAdapter {
+    <<ApplicationPortalAdapter>>
+    +prefill_contact_e164()
+    +attach_cv_and_select_card()
+    +pause_employer_questions()
+    +record_submitted_if_evidence()
+  }
+  class EasyApplyEvidence {
+    <<Result>>
+    +str|None ui_success_text
+    +prepared|submitted status
+  }
+  class TailoredCv {
+    <<Artifact>>
+    +Path job_package_pdf
+  }
+  LinkedInEasyApplyAdapter --> Candidate : reads SST
+  LinkedInEasyApplyAdapter --> TailoredCv : set_input_files + card
+  LinkedInEasyApplyAdapter --> EasyApplyEvidence
+  note for LinkedInEasyApplyAdapter "no InMail / no publish\nneeds_human on unknown Qs\nsubmitted only with UI text"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as application apply
+  participant Ad as EasyApplyAdapter
+  participant Page
+  participant Hum as Human
+  CLI->>Ad: open Easy Apply (CDP)
+  Ad->>Page: country +56 + tel from SST
+  Ad->>Page: set_input_files(cv.pdf) + select card
+  Ad->>Ad: employer Qs projected?
+  alt unknown
+    Ad->>Hum: HITL pause
+  end
+  Ad->>Page: look for «Solicitud enviada»
+  alt evidence
+    Ad-->>CLI: submitted
+  else none
+    Ad-->>CLI: prepared (unknown)
+  end
+  Note over Ad,Page: never auto-click final Submit
+```
+
+Reglas: móvil del SST (nunca inventado); PDF del paquete del aviso; `submitted` exige texto observable (#296).
+
+## Workday CXS — detalle público sin login {#workday-cxs-detail}
+
+Patrones: **ACL** (URL → CXS), **Adapter** puro, **VO** cierre con zona. Issue: #215. Compartido con #225 / #207.
+
+```mermaid
+classDiagram
+  direction TB
+  class WorkdayRef {
+    <<Value Object>>
+    +str host
+    +str tenant
+    +str site
+    +str external_path
+    +str req_id
+  }
+  class CxsClient {
+    <<Adapter>>
+    +parse_workday_url(url) WorkdayRef|None
+    +fetch_job(ref, fetch) WorkdayJob|Closed
+    +to_job_posting(job) JobPosting
+  }
+  class ClosingInstant {
+    <<Value Object>>
+    +date endDate
+    +tz|time_unknown
+  }
+  CxsClient --> WorkdayRef
+  CxsClient --> ClosingInstant
+  CxsClient --> JobPosting
+  note for CxsClient "no SPA HTML scrape\n404/S22 → ClosedPostingError\n406 → one retry wider Accept"
+```
+
+```mermaid
+flowchart TD
+  U[jobbot get / jobs add --url] --> P{parse_workday_url}
+  P -->|None| Other[other portals]
+  P -->|WorkdayRef| CXS[GET wday/cxs/.../job/...]
+  CXS -->|200 + jobPostingInfo| Map[to_job_posting]
+  CXS -->|404 / 403 S22| Closed[ClosedPostingError]
+  CXS -->|406| Retry[retry Accept+Content-Type]
+  Map --> Closes{endDate + tz rule}
+  Closes -->|text or site tz| Z[closes_at zoned]
+  Closes -->|missing| TU[time_unknown]
+```
+
+Reglas: rate limit + UA identificable; robots.txt; nunca login; `includeResumeParsing` / `questionnaireId` como señales (#215).
+
+## Browser login tour — un hueco, HITL humano {#browser-login-tour}
+
+Patrones: **Command** dry-run / `--apply`, **Specification** de buckets, **Guard** de evidencia de sesión. Issue: #56.
+
+```mermaid
+classDiagram
+  direction TB
+  class LoginTourPlan {
+    <<Command plan>>
+    +list~LoginGap~ gaps
+    +dry_run|apply mode
+  }
+  class LoginGap {
+    <<Value Object>>
+    +str site_id
+    +permanent|active|candidate bucket
+    +needs_login|unknown|profile_busy state
+  }
+  class SessionEvidence {
+    <<Specification>>
+    +ready only if signed-in page
+  }
+  LoginTourPlan *-- LoginGap
+  SessionEvidence --> LoginGap
+  note for SessionEvidence "CDP port ≠ ready\ncompany tab ≠ ready\nnever password/CAPTCHA"
+```
+
+```mermaid
+flowchart TD
+  Start[browser login] --> B1[permanent]
+  B1 --> B2[company active]
+  B2 --> B3[company candidate]
+  B3 --> List[print gaps]
+  List --> D{--apply?}
+  D -->|no| Stop[dry-run; no Chrome]
+  D -->|yes| Open[open first gap only]
+  Open --> HITL[human: password / CAPTCHA / 2FA]
+  HITL --> Done[stop; no promote candidate]
+```
+
+Reglas: skip ATS sin cuenta (Greenhouse/Lever/Ashby/Teamtailor); `rejected`/`stale`/job boards fuera; planner no escribe `companies.yaml` (#56).
+
+## Experience-first search — sin proxy de profesión {#experience-first-search}
+
+Patrones: **Preference** `search_queries`, **Strategy** matcher (evidencia del perfil), **Registry** de fuentes. Issue: #118. Relacionado: [#180](https://github.com/ljofreflor/jobbot/issues/180) / [#224](https://github.com/ljofreflor/jobbot/issues/224), [`search-filters`](uml.md#search-filters).
+
+```mermaid
+classDiagram
+  direction TB
+  class SearchQueries {
+    <<Preference>>
+    +list~str~ phrases
+    +derived_from experience
+  }
+  class ProfileEvidenceMatcher {
+    <<Strategy>>
+    +score(Candidate, JobPosting) JobMatch
+  }
+  class PageChromeFilter {
+    <<Specification>>
+    +drop_metadata_as_skill()
+  }
+  Candidate --> SearchQueries : derive / edit
+  ProfileEvidenceMatcher --> Candidate : skills / titles / achievements
+  ProfileEvidenceMatcher --> PageChromeFilter : ignore deadlines/salaries
+  JobSourceAdapter ..> SearchQueries : uses when no QUERY
+  note for SearchQueries "not Fact; editable\nnever default occupation\nin code"
+```
+
+```mermaid
+flowchart TD
+  P[profile.yaml experience] --> Q[derive search_queries]
+  Q --> S[JobSourceAdapter.search]
+  S --> M[matcher + profile evidence]
+  M --> C{all scores 0%?}
+  C -->|yes| A[matcher alert]
+  C -->|no| SL[shortlist]
+```
+
+Reglas: titular no es la única query; chrome de página no es requisito faltante; lado perfil solo añade; domain-agnostic (#118).
+
 ## Cómo citar desde un issue
 
 ```markdown

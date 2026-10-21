@@ -504,6 +504,27 @@ RUN/jornada/salary — see
 [#285](https://github.com/ljofreflor/jobbot/issues/285) and
 [uml.md#trabajando-profile-push](uml.md#trabajando-profile-push).
 
+LinkedIn Easy Apply prefills known SST fields, attaches the tailored PDF,
+pauses on employer questions, and records `submitted` only with UI evidence —
+see [#296](https://github.com/ljofreflor/jobbot/issues/296) and
+[uml.md#linkedin-easy-apply](uml.md#linkedin-easy-apply).
+
+`jobbot get` / `jobs add --url` for Workday download the posting via public
+CXS (no SPA scrape, no login); closed = 404/S22; `closes_at` keeps
+`time_unknown` when timezone is missing — see
+[#215](https://github.com/ljofreflor/jobbot/issues/215) and
+[uml.md#workday-cxs-detail](uml.md#workday-cxs-detail).
+
+`browser login` lists permanent → active → candidate session gaps; `--apply`
+opens one gap and stops; company tabs stay `unknown` — see
+[#56](https://github.com/ljofreflor/jobbot/issues/56) and
+[uml.md#browser-login-tour](uml.md#browser-login-tour).
+
+Search queries and matching come from experience evidence, not an occupation
+default or page chrome misread as skills — see
+[#118](https://github.com/ljofreflor/jobbot/issues/118) and
+[uml.md#experience-first-search](uml.md#experience-first-search).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
