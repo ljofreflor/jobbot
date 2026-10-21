@@ -16721,19 +16721,20 @@ html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
-/* Presence: a jump to the build step restores the other softened Postular
-   catalog rows. The build row already restores from that jump; hovering that
+/* Presence: a jump to a CV story step restores the other softened Postular
+   catalog rows. Build already restored here; advise/sync complete the set.
+   The matching CV catalog row already restores from that jump; hovering that
    inactive step already restores these rows (mirror of item 259). */
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   tr:has(#cmd-get),
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   tr:has(#cmd-match),
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   tr:has(#cmd-conditions),
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   tr:has(#cmd-apply) {
   opacity: 1;
