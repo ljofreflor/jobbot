@@ -51,7 +51,7 @@ issue ya cita UML y el diagrama está al día.
 | #408 | cv build derived translation | [cv-derived-translation](uml.md#cv-derived-translation) · [fact-preference](uml.md#fact-preference) · [ports](uml.md#ports) | body_ready | [408](sdd-issue-patches/408.md) |
 | #420 | Tutorial entry door only | docs (no UML) | body_ready | [420](sdd-issue-patches/420.md) |
 | #418 | Public queue sync PR + `-U` | [public-queue-sync](uml.md#public-queue-sync) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [418](sdd-issue-patches/418.md) |
-| #424 | ai-job-search gaps → contracts | [ports](uml.md#ports) | pending | — |
+| #424 | ai-job-search gaps → contracts | [capability-gap-map](uml.md#capability-gap-map) · [ports](uml.md#ports) | body_ready | [424](sdd-issue-patches/424.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

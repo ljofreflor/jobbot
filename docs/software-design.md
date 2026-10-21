@@ -32,8 +32,9 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
-`public-queue-sync`. Issues that grow the domain cite an anchor and update the
-diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+`public-queue-sync`, `capability-gap-map`. Issues that grow the domain cite an
+anchor and update the diagram in the closing PR. Map:
+[sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -476,6 +477,11 @@ Public portal observations that pass `share_refusal` enqueue, sync via a batched
 PR, and land locally through `jobbot -U` as candidates — see
 [#418](https://github.com/ljofreflor/jobbot/issues/418) and
 [uml.md#public-queue-sync](uml.md#public-queue-sync).
+
+Stolen use-cases without a falsifiable contract stay in the gap map until each
+row has its own test contract — see
+[#424](https://github.com/ljofreflor/jobbot/issues/424) and
+[uml.md#capability-gap-map](uml.md#capability-gap-map).
 
 ## 9. Related documents
 

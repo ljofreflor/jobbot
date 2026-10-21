@@ -659,6 +659,38 @@ sequenceDiagram
 
 Reglas: nada corre si la línea fue rechazada; no inventar cuenta GitHub; no compartir `profile.yaml`. `jobbot -U` actualiza programa **y** copia local del mapa desde `main` según el PR de implementación.
 
+## Capability gaps — inventario → contrato {#capability-gap-map}
+
+Patrones: **inventory** de puertos faltantes (ai-job-search / homónimos). Issue: #424 (mapa; no implementa). Fuera: autopilot, OAuth bandeja, inventar, followup #422.
+
+```mermaid
+flowchart LR
+  Gap[stolen use-case row] --> C{falsifiable contract?}
+  C -->|no| Open[child issue + SDD patch]
+  C -->|yes| Port[ports / Command / Spec]
+  Port --> Test[unit fixture offline]
+  Test --> Done[row closed]
+  Gap -.->|forbidden| No[autopilot / invent / inbox OAuth]
+```
+
+```mermaid
+classDiagram
+  direction TB
+  class GapRow {
+    +str name
+    +str pattern
+    +str test_contract
+    +str|None child_issue
+  }
+  class CapabilityGapMap {
+    +list~GapRow~ rows
+  }
+  CapabilityGapMap *-- GapRow
+  note for GapRow "structured interview gaps\nexpand+provenance\nportal health\nreviewer ≠ advise\ntemplate registry\nstudy question from market"
+```
+
+Reglas: #424 se cumple documentando contratos, no shippeando las seis features en un solo PR.
+
 ## Cómo citar desde un issue
 
 ```markdown
