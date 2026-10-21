@@ -1307,6 +1307,48 @@ flowchart TD
 
 Reglas: respetar robots; sin browser/JS; sin cuenta; categorías `/go/` no se adivinan.
 
+## LATAM master table — seed → discover → promote → shared {#latam-master-table}
+
+Patrones: **Pipeline** oneshot + HITL promote, commons snapshot. Issue: #298 (#265 CL; #269 one model; #183 job board ≠ employer portal).
+
+```mermaid
+flowchart LR
+  Seed[companies-latam.seed.yaml] --> Disc[companies discover]
+  Disc --> Out[output/discovery/]
+  Out --> Imp[companies import]
+  Imp --> Cand[candidate rows]
+  Cand --> Rec[recon / promote HITL]
+  Rec --> Act[active]
+  Act --> Exp[companies export]
+  Exp --> Shared[companies.shared.yaml]
+  Shared --> Site[make site / plataformas]
+```
+
+```mermaid
+classDiagram
+  direction TB
+  class CompanySeed {
+    +str company_id
+    +str name
+    +str|None domain
+    +list career_url_hints
+  }
+  class CareerSite {
+    +str url
+    +AtsKind|unknown ats
+    +candidate|active|stale|rejected status
+  }
+  class CompanyRegistry {
+    +promote HITL
+    +export active only
+  }
+  CompanySeed --> CareerSite : discover candidates
+  CareerSite --> CompanyRegistry
+  note for CareerSite "unknown without technical evidence\njob boards not employer portals\n403 = refused not absence"
+```
+
+Reglas: batches regionales (MX, AR, …) sin duplicar CL; Tempo sin Laborum como portal; sin PII de candidato.
+
 ## Cómo citar desde un issue
 
 ```markdown

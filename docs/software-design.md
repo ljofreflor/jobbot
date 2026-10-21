@@ -34,9 +34,9 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
 `public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
 `laborum-sitemap-terms`, `hiringroom-discover`, `reliefweb-discover`,
-`taleo-careersection-discover`, `successfactors-csb-discover`. Issues that grow
-the domain cite an anchor and update the diagram in the closing PR. Map:
-[sdd-issue-map.md](sdd-issue-map.md).
+`taleo-careersection-discover`, `successfactors-csb-discover`,
+`latam-master-table`. Issues that grow the domain cite an anchor and update the
+diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -559,6 +559,12 @@ SuccessFactors CSB discovery chooses classic HTML search vs Unify sitemap (never
 `/services/`, never JS) and omits filled postings — see
 [#230](https://github.com/ljofreflor/jobbot/issues/230) and
 [uml.md#successfactors-csb-discover](uml.md#successfactors-csb-discover).
+
+The LATAM company↔career map grows by tracked seed batches through
+discover → HITL promote → shared export, never inventing ATS or treating job
+boards as employer portals — see
+[#298](https://github.com/ljofreflor/jobbot/issues/298) and
+[uml.md#latam-master-table](uml.md#latam-master-table).
 
 ## 9. Related documents
 

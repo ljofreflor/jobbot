@@ -66,7 +66,7 @@ issue ya cita UML y el diagrama está al día.
 | #247 | ReliefWeb discover (API v2) | [reliefweb-discover](uml.md#reliefweb-discover) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [247](sdd-issue-patches/247.md) |
 | #245 | Taleo careersection discover | [taleo-careersection-discover](uml.md#taleo-careersection-discover) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [245](sdd-issue-patches/245.md) |
 | #230 | SuccessFactors CSB discover | [successfactors-csb-discover](uml.md#successfactors-csb-discover) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [230](sdd-issue-patches/230.md) |
-| #298 | LATAM master table seed→promote | [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | pending | — |
+| #298 | LATAM master table seed→promote | [latam-master-table](uml.md#latam-master-table) · [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | body_ready | [298](sdd-issue-patches/298.md) |
 | #251 | WhatsApp HITL question queue | [plan-apply](uml.md#plan-apply) · [hitl-pause](uml.md#hitl-pause) | pending | — |
 
 ## Cómo aplicar un patch (HITL, token con write)
