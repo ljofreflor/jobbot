@@ -402,6 +402,31 @@ flowchart LR
   D -->|missing / error| Unread[status unread]
 ```
 
+## JD LLM extract — anclado al texto {#jd-llm-extract}
+
+Patrones: **Optional LLM** (`nlp/gateway`) + **Validator** (grounding). Issue: #384 (#85 chrome).
+
+```mermaid
+sequenceDiagram
+  participant CLI as jobs add --file --llm
+  participant Det as Deterministic parser
+  participant GW as run_optional_llm
+  participant Val as Grounding validator
+  CLI->>Det: parse JD text
+  alt no OPENAI_API_KEY
+    CLI-->>CLI: keep Det (no network)
+  else key present
+    CLI->>GW: redacted JD text only
+    GW-->>Val: proposed fields
+    alt every field substring of JD
+      Val-->>CLI: accept → JobPosting
+    else invents employer/skill
+      Val-->>CLI: discard → keep Det
+    end
+  end
+  Note over CLI: profile.yaml never written
+```
+
 ## Cómo citar desde un issue
 
 ```markdown
