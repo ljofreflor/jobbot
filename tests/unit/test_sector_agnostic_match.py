@@ -138,6 +138,28 @@ def test_profile_evidence_never_lowers_a_score() -> None:
     assert richer.score >= base.score
 
 
+def test_posting_chrome_and_hashtags_are_not_skills() -> None:
+    job = parse_job_text(
+        "\n".join(
+            [
+                "Cargo: Coordinador",
+                "Empresa: Servicio Neutro",
+                "",
+                "Publicado",
+                "Publicado en el tablero",
+                "Principales desafíos",
+                "#Empleo #Contratacion",
+                "ana@example.com",
+                "",
+                "- Ventilación mecánica",
+            ]
+        ),
+        job_id="J0800",
+    )
+
+    assert job.skills == ["Ventilación mecánica"]
+
+
 def test_page_metadata_is_not_a_skill() -> None:
     job = _job("zoonosis_roster_page_en.txt", "J0708")
 

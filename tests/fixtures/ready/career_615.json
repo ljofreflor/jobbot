@@ -1,0 +1,11 @@
+{
+  "idVacante": 615,
+  "nombreVacante": "Data Scientist",
+  "paisVacante": "Chile",
+  "modalidadVacante": "Remoto",
+  "seniorityVacante": "Semi-Senior",
+  "tipoContratoVacante": "Contractor",
+  "stackTecnologicoVacante": ["Python", "Kedro"],
+  "descripcionVacante": "<p>Build data pipelines for the team.</p>",
+  "preguntasVacante": [{"pregunta": "Why this role?"}]
+}

@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-128 commands, 202 modules, 1152 public symbols.
+148 commands, 247 modules, 1356 public symbols.
 
 ## Commands
 
@@ -16,22 +16,30 @@ writing it again — the promotion rule lives in
 - `jobbot advisor status` — One line per sandbox: fingerprint, counts, proposal, retention. No profile PII.
 - `jobbot application apply` — Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
 - `jobbot application check-answer` — Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
+- `jobbot application cover-letter` — Write a cover letter that only restates profile facts. Nothing is sent.
+- `jobbot application interview` — Preguntas de entrevista desde lo enviado, sin inventar un logro.
 - `jobbot application open` — Open the job URL (or ATS URL) in the default browser (does not apply).
 - `jobbot application prepare` — Prepare application package for a job (does not invent answers).
 - `jobbot application show` — Show application package path and status for a job.
+- `jobbot application status` — Show or set one job's pipeline status. A new job is saved.
+- `jobbot application tracker` — List stored jobs by pipeline status. Order is the job id.
+- `jobbot applications feedback` — Classify a pasted employer message and record it on the application.
+- `jobbot applications followup` — Print a silence follow-up draft. Never sends, and two is the cap.
 - `jobbot applications list` — List tracked applications.
+- `jobbot applications report` — Funnel per stored posting: responses, interviews and rejections.
 - `jobbot applications status` — Alias for applications list.
 - `jobbot browser chrome-debug` — Open a Chromium browser (Chrome/Edge/Brave) with CDP for manual challenges.
 - `jobbot browser login` — List permanent, active and candidate portals that still need you to sign in.
 - `jobbot browser sessions` — Report which browser sessions JobBot can reach (read-only; never attaches).
 - `jobbot capture` — Keep a share URL as a candidate — no fetch, no CAPTCHA (phone-friendly).
+- `jobbot companies auto-promote` — List candidate sites technical evidence can promote. Dry-run writes nothing.
 - `jobbot companies detect` — Classify a URL (posting / career portal / ATS / redirect). Writes nothing.
 - `jobbot companies discover` — One-shot: seed candidate career portals for a company list (never canonical).
 - `jobbot companies export` — Write a shareable snapshot: active entries only, no candidate PII.
 - `jobbot companies import` — Merge oneshot candidates into the registry (still candidate, never active).
 - `jobbot companies learn` — Register a company/portal relation you found yourself (candidate by default).
 - `jobbot companies list` — List known companies and their career platforms.
-- `jobbot companies promote` — Promote candidate knowledge to active (the only way it becomes truth).
+- `jobbot companies promote` — Promote one company's candidate sites to active.
 - `jobbot companies recheck` — Re-run offline detectors on saved sites. Dry-run writes nothing.
 - `jobbot companies recon` — Learn ATS markers and form questions from a page you entered (issue #45).
 - `jobbot companies reject` — Mark a discovered portal as wrong so it stops coming back.
@@ -40,10 +48,15 @@ writing it again — the promotion rule lives in
 - `jobbot companies sites` — Career portals reusable by later job discovery.
 - `jobbot cv advise` — Suggest how the CV presents what you already did. Adds no facts, deletes none.
 - `jobbot cv build` — Build CV from profile.yaml (base or job-specific).
+- `jobbot cv check` — Print a structural CV checklist. Never rewrites the profile.
+- `jobbot cv gap` — Show which posting terms the profile already evidences.
+- `jobbot cv layout` — Report overfull boxes in a LaTeX log. Does not compile.
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
+- `jobbot cv translate` — Check a derived translation keeps the source numbers, names, and skills.
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
+- `jobbot cv update` — List active portals this workspace has not integrated. Does not write the profile.
 - `jobbot empleospublicos search` — Search open Empleos Públicos concursos (Servicio Civil open data) and store leads.
 - `jobbot get` — Ingest a hard job link: know the portal → JD → CV → package (HITL apply).
 - `jobbot getonboard open-cvs` — Open Get on Board 'Tus CVs' (HITL fallback if upload-cv is not enough).
@@ -68,15 +81,18 @@ writing it again — the promotion rule lives in
 - `jobbot jobs backfill-dates` — Date already-stored posts from the activity id in their URL (offline).
 - `jobbot jobs check-open` — Re-check online whether stored postings are still open (read-only; unknown if unsure).
 - `jobbot jobs conditions` — Review a posting's special conditions against you before applying (exit 1: dealbreaker).
+- `jobbot jobs describe` — Replace one stored posting's description. The id, URL, note and application stay.
 - `jobbot jobs digest` — Shareable summary of new open postings (WhatsApp or Markdown). Sends nothing.
 - `jobbot jobs discover` — Discover postings through a public source; --dry-run previews without writing.
 - `jobbot jobs match` — Match a job against the local profile (decision aid).
 - `jobbot jobs note` — Attach a free-text note to a job.
 - `jobbot jobs queries` — Print web-search queries for ATS hosts (Ashby/Greenhouse/Lever). Does not search.
+- `jobbot jobs reparse` — Re-read a stored posting's text and keep its id (offline).
 - `jobbot jobs search` — Search Indeed and store job postings locally (small volumes).
-- `jobbot jobs shortlist` — Rank stored jobs by match score; hides postings verified closed (jobs check-open).
+- `jobbot jobs shortlist` — Rank stored jobs by match score; flag a close and a finished posting.
 - `jobbot jobs show` — Show a stored job posting.
-- `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot (read-only audit).
+- `jobbot linkedin diff` — Diff local profile vs LinkedIn snapshot. Mismatches are warnings; exit 0.
+- `jobbot linkedin import` — Merge a stored LinkedIn snapshot into profile.yaml. Dry-run writes nothing.
 - `jobbot linkedin inspect` — Inspect LinkedIn page for selector development.
 - `jobbot linkedin jobs` — Save LinkedIn job cards from a search page; --dry-run writes nothing.
 - `jobbot linkedin login` — Open LinkedIn login with persistent browser profile.
@@ -107,14 +123,18 @@ writing it again — the promotion rule lives in
 - `jobbot portals profile seed` — Register the known career portals (UN, UNICEF, FAO, ADP, Devex, Impactpool, and the rest).
 - `jobbot portals profile sheet` — Fill sheet from the source of truth. Does not open a browser.
 - `jobbot portals profile status` — Coverage of tracked portals. Numbers and labels only; nothing is opened.
+- `jobbot postulate` — Classify a post as email, portal, or unknown. Does not write portals.yaml.
 - `jobbot profile answers set` — Set one application answer. Refuses a national id. Writes only with --yes.
 - `jobbot profile answers show` — Show which application-answer blocks are filled, without values.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
+- `jobbot profile import-folder` — List role ids a folder would add or replace. Does not write profile.yaml.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
 - `jobbot profile queries` — Job searches from your experience; --check measures them, --apply saves them.
+- `jobbot profile rejection` — Classify a rejection. A preference or a condition does not edit the profile.
 - `jobbot profile show` — Show a summary of the local profile.
+- `jobbot profile skills-map` — Map each declared skill to the role or degree that already shows it.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
 - `jobbot profile validate` — Validate data/profile.yaml and application_answers.yaml.
@@ -149,7 +169,7 @@ writing it again — the promotion rule lives in
 - `branding.py` — One closing mark on texts Jobbot publishes. · `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
-- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
+- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `ConfigError`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `pdf_text.py` — Text layer of a PDF, shared by postings. The CV importer keeps its own path reader. · `PdfTextError`, `text_from_pdf_bytes`
 - `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `CheckResult`, `InstallInfo`, `update_jobbot`, `docker_hint`, `parse_direct_url`, `read_direct_url`, `installed_info`, `parse_ls_remote`, `latest_commit`, `short_commit`, `check_for_update`
@@ -160,19 +180,24 @@ writing it again — the promotion rule lives in
 ### `adapters`
 
 - `base.py` — Shared portal adapter protocols. · `ProfileDiff`, `ProfileAdapter`, `WritableProfileAdapter`, `ApplyMethod`, `PrefillResult`, `ApplicationPackage`, `ApplicationPortalAdapter`
-- `diff_engine.py` — Diff Candidate vs ExternalProfile. · `load_snapshot`, `save_snapshot`, `build_diff_operations`, `build_sync_plan`, `render_profile_diff`, `dump_json`
+- `diff_engine.py` — Diff Candidate vs ExternalProfile. · `snapshot_unread`, `load_snapshot`, `save_snapshot`, `build_diff_operations`, `build_sync_plan`, `render_profile_diff`, `dump_json`, `ConsistencyFinding`, `consistency_findings`
 - `html_parse.py` — Parse ExternalProfile from HTML fixtures or live pages. · `parse_indeed_profile_html`, `parse_linkedin_profile_html`, `load_external_from_file`
 - `portal_status.py` — Profile consistency status across local / Indeed / LinkedIn snapshots. · `build_profile_status`
 
+### `adapters/alta_direccion`
+
+- `parse.py` — Saved Alta Dirección Pública ficha. The site's robots.txt forbids fetching it. · `AdpParseError`, `parse_ficha`
+
 ### `adapters/ats`
 
+- `advance.py` — An advance label may be pressed later. A submit label never is. · `button_role`, `pressable_advance`
 - `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `split_personal_name`, `prefill_field_map`, `prefill_sheet_fields`, `describe_prefill`
 - `apply_fill.py` — Fill an external ATS form in your own Chrome (CDP) and stop before submit. · `ApplyFillError`, `FieldFill`, `ApplyFillPlan`, `ApplyFillResult`, `profile_key_for`, `plan_apply_fill`, `looks_like_login`, `has_captcha`, `fill_open_page`, `acquire_fill_page`, `open_and_fill_over_cdp`
 - `ashby.py` — Ashby ATS adapter — open + known-field map only (HITL submit). · `AshbyAdapter`
 - `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`
 - `getonboard.py` — Get on Board adapter — open job page + known-field map (HITL submit). · `GetOnBoardAdapter`
 - `greenhouse.py` — Greenhouse ATS adapter stub — open + known-field map only (HITL submit). · `GreenhouseAdapter`
-- `indeed_apply.py` — Indeed apply handoff — open the right page and stop before submit. · `IndeedApplyAdapter`, `apply_target`
+- `indeed_apply.py` — Indeed apply handoff — open the right page and stop before submit. · `IndeedApplyAdapter`, `apply_route`, `apply_target`, `page_asks_for_cv`, `tailored_cv_path`, `missing_tailored_cv`
 - `lever.py` — Lever ATS adapter — open + known-field map only (HITL submit). · `LeverAdapter`
 - `registry.py` — Dispatch ApplicationPortalAdapter by ATS kind. · `supported_kinds`, `adapter_for_kind`, `adapter_for_job`
 - `signup_fill.py` — Fill known signup fields from profile.yaml (HITL; no irreversible actions). · `SignupFillPlan`, `SignupFillResult`, `build_fill_plan`, `fill_signup_form`, `fill_signup_with_session`
@@ -183,10 +208,20 @@ writing it again — the promotion rule lives in
 - `discover.py` — `jobs discover --source avature` reads a public SearchJobs list. `unops` is one site. · `pause`, `fetch_public`, `search_url`, `AvatureDiscover`, `UnopsDiscover`, `blocked_qtvc`
 - `parse.py` — Read an Avature SearchJobs page and a JobDetail page. No network. · `SearchPage`, `site_key`, `canonical_job_url`, `source_job_id`, `company_name`, `parse_search`, `apply_detail`
 
+### `adapters/bne`
+
+- `discover.py` — `jobs discover --source bne` reads the public list and does not retry it empty. · `pause`, `fetch_public`, `BneDiscover`
+- `parse.py` — Map one `buscarListas` page. No network. · `SearchPage`, `search_url`, `parse_page`, `job_from_row`
+
 ### `adapters/buk`
 
 - `discover.py` — `jobs discover --source buk` reads robots.txt and then stops. · `fetch_robots`, `disallows_all`, `BukDiscover`
 - `listings.py` — Saved Buk list HTML into postings. The live site stays unread. · `BukShapeError`, `tenant_from_url`, `jobs_from_list_html`
+
+### `adapters/chiletrabajos`
+
+- `discover.py` — `jobs discover --source chiletrabajos` reads the public HTML search. · `pause`, `fetch_public`, `ChiletrabajosDiscover`
+- `parse.py` — Map a Chiletrabajos listing and detail. No network. · `ListingItem`, `search_url`, `blocked`, `parse_listing`, `canonical`, `job_from_detail`, `job_from_listing`
 
 ### `adapters/cornerstone`
 
@@ -217,6 +252,10 @@ writing it again — the promotion rule lives in
 - `discover.py` — `jobs discover --source greenhouse` reads the public Job Board API. · `pause`, `fetch_public`, `jobs_url`, `detail_url`, `GreenhouseDiscover`
 - `parse.py` — Map one Greenhouse job. No network. · `board_token`, `public_job_url`, `parse_board`, `job_from_item`
 
+### `adapters/hiringroom`
+
+- `parse.py` — Saved HiringRoom vacancy. The listing's second page has no known endpoint. · `HiringRoomParseError`, `listing_links`, `parse_vacancy`
+
 ### `adapters/impactpool`
 
 - `discover.py` — `jobs discover --source impactpool` refuses without reading the board. · `ImpactpoolDiscover`
@@ -225,16 +264,23 @@ writing it again — the promotion rule lives in
 
 - `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `indeed_session_authenticated`, `normalize_indeed_continue_url`
 - `cv_upload.py` — Decide whether an Indeed PDF upload is needed. The portal write stays HITL. · `receipt_path`, `file_sha256`, `load_receipt_sha`, `icon_glyph_message`
-- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `IndeedJobClosed`, `IndeedJobSource`, `parse_indeed_search_html`, `posting_is_closed`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
+- `external.py` — An Indeed posting whose apply step leaves Indeed. · `IndeedVerificationRequired`, `read_apply_entry`, `gate_indeed_entry`, `external_apply_url`, `remember_external_landing`, `strip_indeed_tracking`
+- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `posting_is_closed`, `IndeedJobClosed`, `IndeedChallengePending`, `IndeedJobSource`, `parse_indeed_search_html`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
+- `owner.py` — The open Indeed resume must name this workspace before anything is typed. · `IndeedOwnerMismatch`, `cv_name_verdict`, `refuse_indeed_write`, `write_allowed`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `preferences.py` — Project local preferences onto Indeed's Preferencias tab. Sends nothing. · `PreferencePlan`, `desired_titles`, `plan_preferences`, `save_preferences`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
 - `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `IndeedUiChanged`, `resume_editor_state`, `preferences_tab_missing`, `editor_state_path`, `record_editor_state`, `load_editor_state`, `ensure_structured_editor`, `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `apply_resume_sections`, `parse_resume_page_text`, `clamp_portal_ym`, `role_identity`, `roles_already_listed`, `add_missing_experiences`, `headline_visible_in_contact`
 - `selectors.py` — Indeed selector hints (prefer role/label over obfuscated CSS). · `indeed_jobs_base`, `select_list_testid`
 
+### `adapters/laborum`
+
+- `discover.py` — `jobs discover --source laborum` refuses without fetching the sitemap. · `LaborumDiscover`
+
 ### `adapters/linkedin`
 
 - `client.py` — LinkedIn adapter — read-only audit + publications sync (HITL). · `LinkedInAdapter`
+- `importer.py` — Merge a stored LinkedIn snapshot into an existing profile. · `LinkedInImportError`, `ImportChange`, `ImportPlan`, `import_plan`, `render_change`, `apply_import`
 - `job_search.py` — LinkedIn job-search cards, read from saved HTML. Sends nothing. · `jobs_from_search_html`
 - `package.py` — LinkedIn publications sync package from Candidate (facts only). · `LinkedInPublicationItem`, `doi_url`, `build_linkedin_publication_items`, `publications_missing_from_remote`
 - `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
@@ -246,6 +292,11 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source lumesse` refuses without calling the front-office API. · `forbids_fo_rest`, `refusal`, `LumesseDiscover`
 
+### `adapters/oracle_orc`
+
+- `discover.py` — `jobs discover --source oracle_orc` reads the public requisition search. · `pause`, `fetch_public`, `search_url`, `detail_url`, `OracleOrcDiscover`
+- `parse.py` — Map an Oracle Recruiting Cloud requisition. No network. · `parse_site`, `job_url`, `parse_list`, `job_from_row`, `apply_detail`
+
 ### `adapters/pageup`
 
 - `discover.py` — `jobs discover --source pageup` reads a public listing. `unicef` is one host. · `pause`, `fetch_public`, `listing_url`, `PageupDiscover`, `UnicefDiscover`
@@ -255,6 +306,11 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source pjud` reads the public contest grid. No login. · `pause`, `fetch_public`, `PjudDiscover`
 - `parse.py` — Read the embedded GeneXus grid. No network. · `GridPage`, `parse_grid`
+
+### `adapters/ready`
+
+- `fetch.py` — Fetch one Ready careers JSON document. Tests replace `fetch_public`. · `fetch_public`, `fetch_ready_posting`
+- `parse.py` — Map one Ready careers JSON payload. No network. · `career_slug`, `canonical_url`, `api_url`, `job_from_payload`
 
 ### `adapters/smartrecruiters`
 
@@ -272,6 +328,11 @@ writing it again — the promotion rule lives in
 - `feed.py` — UN Careers' public RSS feed and, on request, one posting's public JSON detail. · `UnCareersError`, `UnCareersRobotsDisallowed`, `UnCareersRefused`, `UnCareersShapeChanged`, `Answer`, `pause`, `UnCareersClient`, `FeedItem`, `canonical_url`, `job_id_from_url`, `parse_meta`, `parse_feed`, `parse_stamp`, `is_home_based`, `employment_type`, `organization`, `job_from_item`, `with_detail`
 - `jobs.py` — UN Careers as a job source: filter the public feed locally, map postings. · `UnCareersDiscover`, `UnCareersJobSource`
 
+### `adapters/vacantes`
+
+- `discover.py` — `jobs discover --source vacantes` reads a landing or the vacancy sitemap. · `pause`, `fetch_public`, `VacantesDiscover`
+- `parse.py` — Vacantes.com landing links, sitemap locs, robots rules and JSON-LD jobs. · `ListingLink`, `canonical_job_url`, `link_from_url`, `listing_links`, `xml_locs`, `disallowed`, `path_blocked`, `job_from_html`
+
 ### `adapters/workday`
 
 - `cxs.py` — Workday's public candidate API (CXS): search one career site, read one posting. · `WorkdayError`, `WorkdayRobotsDisallowed`, `WorkdayRefused`, `WorkdayShapeChanged`, `WorkdayPostingClosed`, `HttpResponse`, `HttpRunner`, `urllib_runner`, `pause`, `WorkdaySite`, `WorkdayRef`, `parse_site_url`, `parse_workday_url`, `req_id_from_path`, `source_job_id`, `posted_on_date`, `html_to_text`, `SearchResult`, `CxsClient`, `job_from_search_item`, `job_from_detail`, `fetch_workday_job`
@@ -281,13 +342,20 @@ writing it again — the promotion rule lives in
 
 - `answer_check.py` — Check a free-text application answer against the profile and the posting. · `QuestionKind`, `Verdict`, `Evidence`, `SentenceTrace`, `AnswerCheck`, `classify_question`, `check_answer`, `render_answer_check`
 - `batch.py` — Queue of jobs for assisted apply — one at a time, human submits. · `BatchApplyItem`, `select_batch_apply_jobs`
+- `checklist.py` — Each stored requirement is backed by the profile, or left for the person. · `requirement_checklist`, `render_requirement_checklist`
+- `cover_letter.py` — A short cover letter that only restates profile facts and names the role. · `CoverLetterError`, `fact_blob`, `unsupported_tokens`, `draft_cover_letter`, `choose_draft`, `record_manifest`
+- `feedback.py` — Pasted employer messages become application events. No inbox, no invented motive. · `FeedbackKind`, `FeedbackError`, `FeedbackReading`, `FunnelRow`, `classify`, `read_feedback`, `store_feedback`, `funnel`, `report_lines`, `interview_reminders`
+- `followup.py` — A silence follow-up is a draft. It is never sent, and two is the cap. · `followup_draft`
+- `interview.py` — Interview questions from the package that was sent (#203). · `InterviewCard`, `sent_selection_path`, `load_sent_selection`, `cards_for`, `format_cards`
 - `login_gate.py` — Say, before a portal opens, that applying there needs a signed-in session. · `session_site`, `login_warning`
 - `manager.py` — Application package preparation and tracking. · `ApplicationRepository`, `FilesystemApplicationPackage`, `prepare_application_package`, `load_answers`
+- `preflight.py` — Warn before an assisted apply when the stored match is below a threshold. · `MatchThresholdError`, `threshold_percent`, `below_threshold`
+- `tracker.py` — Local pipeline labels. A job with no application row is ``saved``. · `TrackerError`, `status_label`, `parse_status`, `known_status`
 
 ### `browser`
 
 - `background.py` — Open pages in the background: the terminal keeps the focus. · `wants_focus`, `macos_open_argv`, `background_notice`, `open_url`, `background_launch_argv`, `launch_detached`, `new_background_page`
-- `cdp.py` — Helpers for attaching to a user-launched Chrome (CDP) — HITL, no CAPTCHA bypass. · `resolve_cdp_url`, `find_chrome_executable`, `chrome_debug_argv`, `cdp_http_url`
+- `cdp.py` — Helpers for attaching to a user-launched Chrome (CDP) — HITL, no CAPTCHA bypass. · `resolve_cdp_url`, `find_chrome_executable`, `chrome_debug_argv`, `cdp_http_url`, `cdp_endpoint`, `CdpAttachTimeout`, `CdpAttachInterrupted`, `connect_cdp`
 - `challenges.py` — Challenge / manual interaction helpers. · `pause_if_challenge`
 - `clipboard.py` — Clipboard helper for HITL Indeed edits (macOS pbcopy; no CAPTCHA bypass). · `copy_to_clipboard`
 - `debug.py` — Inspect page accessibility tree for selector discovery. · `inspect_page`
@@ -295,10 +363,11 @@ writing it again — the promotion rule lives in
 - `login_plan.py` — Login tour: which portals still need a human sign-in (issue #56). · `LoginBucket`, `LoginRow`, `LoginPlan`, `plan_logins`
 - `manual.py` — Human-in-the-loop pauses for CAPTCHA / consent (no bypass). · `wait_for_manual_clear`
 - `session.py` — Persistent Playwright browser session. · `BrowserTimeouts`, `launch_persistent_kwargs`, `BrowserSession`
-- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `judge_account`, `free_debug_port`
+- `sessions.py` — Preflight for browser sessions: what JobBot can actually reach right now. · `SessionStatus`, `CdpSessionStatus`, `session_blocks_open`, `refuse_to_open`, `SiteSpec`, `site_spec`, `AccountExpectation`, `CdpEndpoint`, `ChromeProcess`, `SessionState`, `ProfileBusyError`, `fetch_local_json`, `discover_endpoints`, `list_chrome_processes`, `profile_holders`, `ensure_profile_free`, `inspect_sessions`, `session_for`, `CdpSessionReport`, `cdp_base_url`, `probe_cdp_session`, `judge_account`, `free_debug_port`
 
 ### `companies`
 
+- `auto_promote.py` — Which candidate career sites technical evidence can promote. · `has_technical_evidence`, `auto_promote_eligible`, `auto_promote_plan`
 - `discovery.py` — Classify a URL as posting / corporate career portal / ATS instance / redirect. · `SiteClassification`, `classify_url`, `career_root_url`, `career_page_evidence`
 - `learn.py` — Turn URLs seen during normal use into candidate company knowledge. · `LearnResult`, `learn_from_url`, `company_name_for_job`, `learn_from_job`
 - `models.py` — Company ↔ career platform knowledge model (shareable; never candidate PII). · `utc_now`, `CareerSiteType`, `KnowledgeStatus`, `DiscoverySource`, `Observation`, `CareerSite`, `CompanyRecord`
@@ -306,6 +375,7 @@ writing it again — the promotion rule lives in
 - `recheck.py` — Re-run today's offline detectors on sites already stored in the registry. · `RecheckChange`, `plan_recheck`, `apply_recheck`
 - `recon.py` — Learn portal truth from a page you are already on (issue #45). · `ReconReport`, `ReconError`, `resolve_recon_site`, `recon_from_html`, `plan_recon`
 - `registry.py` — Local registry of company ↔ career platforms (candidate → promote → shareable). · `ObserveOutcome`, `CompanyRegistry`, `default_companies_path`, `generated_candidates_path`, `shared_export_path`, `load_companies`, `save_companies`, `active_career_sites`, `shareable_payload`
+- `share_gate.py` — A public catalog line that carries contact data or a home path is not shareable. · `share_refusal`
 - `signup.py` — Assemble what a portal registration will ask — and what the profile already answers. · `AccountNeed`, `SignupTarget`, `SignupItem`, `account_need`, `signup_target`, `signup_sheet`, `screening_to_prepare`
 - `urls.py` — URL normalization for shareable career-site knowledge (no personal tokens). · `PrivateRouteRejected`, `ReservedDomainRejected`, `public_url`, `request_url`, `canonical_key`, `host_of`, `display_url`, `is_reserved_host`, `ensure_not_reserved`, `registrable_domain`, `slugify`, `company_hint_from_url`
 
@@ -315,14 +385,22 @@ writing it again — the promotion rule lives in
 - `application_log.py` — Opt-in last page of a job CV: which posting it was built for, the match, and where · `LogText`, `ApplicationLogOptions`, `EvidenceLine`, `ApplicationLog`, `posting_url`, `build_application_log`, `strong_requirement_evidence`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
 - `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
+- `check.py` — Structural CV checks. A failure asks a question; it never adds a fact. · `CheckStatus`, `Check`, `CvCheckReport`, `check_cv`, `accepted_suggestion`, `write_cv_check`
 - `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `MissingAdaptedCvError`, `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `resolve_job_adapted_cv`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `has_receipt_for`, `write_company_receipt`
+- `gap.py` — Which posting terms the profile already evidences, and which stay questions. · `GapStatus`, `GapTerm`, `GapReport`, `gap_report`, `write_gap_report`
+- `highlights.py` — Quantified bullets already in the profile, surfaced as highlights. · `HighlightPlan`, `select_highlights`
 - `latex.py` — LaTeX escaping helpers. · `escape_latex`, `escape_latex_url`, `escape_latex_multiline`
+- `layout.py` — A LaTeX log names overfull boxes and how many pages were written. · `layout_findings`, `pages_written`
 - `llm_advice.py` — The optional LLM tiers of the CV advisor, with the cheap tier in charge. · `Tier`, `Budget`, `PlannedCall`, `ChatModelLike`, `plan_prompt`, `LlmRewriter`, `default_cache_dir`
+- `pages.py` — How many pages the PDF took, and what to shorten before deleting a fact. · `PageTrim`, `pages_from_xelatex_log`, `plan_page_trim`
+- `portal_update.py` — Active portals this workspace has not integrated yet. Nothing here writes the profile. · `integration_log_path`, `load_seen`, `unseen_active_portals`, `format_new_portals`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
-- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `url_label`, `render_cv_tex`, `render_cv_ats`
+- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `as_cv_language`, `resolve_ats_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `skills_for_selection`, `education_for_selection`, `render_cv_tex`, `render_cv_ats`
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
+- `text_layer.py` — The text an ATS reads from a CV. Icons and stuffed terms are findings, not facts. · `TextLayerIssue`, `check_text_layer`, `issues_in_text`, `issues_for_outputs`
+- `translate_check.py` — A derived translation may rephrase. It may not change a figure, a name, or add a skill. · `translation_problems`
 - `tune.py` — Bounded baseline tune from one job posting (#54). · `resolve_tune_ref`, `char_delta_label`, `prompt_advice_decision`, `backup_profile`
 
 ### `db`
@@ -335,7 +413,7 @@ writing it again — the promotion rule lives in
 - `admissibility.py` — Offline admissibility of a public contest against the local profile. · `AdmissibilityRule`, `AdmissibilityVerdict`, `contest_code`, `extract_rules`, `assess`, `shortlist_mark`
 - `ats_queries.py` — ATS host search-query templates — conditions of possibility for board discovery. · `AtsSearchQuery`, `build_ats_search_queries`, `format_queries_help`
 - `audit.py` — Offline audit of stored jobs (Indeed decoy keys and title/company dupes). · `AuditFinding`, `audit_indeed_jobs`
-- `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`
+- `backfill.py` — Fill in facts JobBot learned to read after some jobs were already stored. · `backfill_posted_at`, `reparse_stored`
 - `capture.py` — Capture share URLs as candidates (phone-friendly; no fetch, no CAPTCHA). · `CaptureKind`, `CaptureResult`, `unrecognized_path`, `list_unrecognized`, `capture_url`, `CaptureInventory`, `list_candidates`, `capture_paths`
 - `career_page.py` — Parse a saved career-site job page (Phenom-style or generic) into a JobPosting. · `CareerPageParseError`, `ClosedPostingError`, `job_from_career_html`, `looks_like_career_job_html`
 - `check_open.py` — Is a stored posting still open? Ask its source again, read-only — or say unknown. · `OpenCheck`, `PoliteHttp`, `posting_url`, `due_for_check`, `is_verified_closed`, `verification_label`, `OpenChecker`
@@ -344,38 +422,41 @@ writing it again — the promotion rule lives in
 - `conditions.py` — A stored posting's special conditions: closed, residency, language, contract, pay… · `ConditionKind`, `Condition`, `cefr_rank`, `level_from_text`, `language_code`, `language_mentions`, `posting_conditions`
 - `digest.py` — A shareable daily summary of new, still-open postings. Nothing is sent. · `DigestError`, `DigestEntry`, `resolve_timezone`, `parse_since`, `load_last_digest`, `save_last_digest`, `load_eligibility`, `select_entries`, `render_whatsapp`, `render_markdown`, `empty_line`, `public_url`, `refuse_pii`, `output_path`, `why_line`
 - `discover.py` — `jobs discover`: one command, one adapter per public source, a preview before storing. · `SiteStatus`, `SiteOutcome`, `SiteTarget`, `JobFilters`, `DiscoverAdapter`, `register_source`, `source_names`, `discover_adapter`, `registry_sites_for`, `Action`, `Decision`, `unique_jobs`, `decide`, `feed_summary`, `exit_code_for`
-- `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `IdentityAnswers`, `SalaryAnswers`, `AvailabilityAnswers`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `read_answers_mapping`, `answer_key_refused`, `filled_blocks`, `format_answers_show`, `salary_migration_hint`, `assign_answer`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
+- `eligibility.py` — Each posting condition against the candidate: meets, ask the candidate, or dealbreaker. · `VerdictStatus`, `Verdict`, `IdentityAnswers`, `SalaryAnswers`, `DrivingLicenseAnswers`, `AvailabilityAnswers`, `ApplicationAnswers`, `default_answers_path`, `job_answers_path`, `load_application_answers`, `read_answers_mapping`, `answer_key_refused`, `filled_blocks`, `format_answers_show`, `salary_migration_hint`, `assign_answer`, `assess_conditions`, `has_dealbreaker`, `format_conditions_report`
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `PortalDisallowedError`, `InvalidPostingUrlError`, `PortalShapeChangedError`, `GetFromUrlResult`, `ingest_hard_link`, `fetch_workday_posting`
-- `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `countries_in_text`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
+- `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `countries_in_text`, `leading_country`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`, `next_symptom_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `indeed_jk_rejection`, `validate_indeed_jk`, `canonical_indeed_job_url`, `extract_indeed_jk`
 - `language.py` — Spanish or English? Deterministic, from function words only — never a guess on a tie. · `detect_language`, `posting_language`
 - `normalization.py` — Skill / keyword normalization. · `fold_text`, `normalize_skill`, `skills_in_text`, `stem_word`, `cognate_key`, `concept_of`, `WordIndex`, `normalize_many`
-- `open_signals.py` — What a job board itself publishes about a posting still taking applicants. · `OpenStatus`, `Signal`, `trabajando_offer_id`, `read_trabajando`, `is_chiletrabajos`, `read_chiletrabajos`
+- `opacity.py` — How illegible a posting is, from evidence already on disk. No network. · `Opacity`, `closure_of`, `freshness_band`, `ats_identity`, `repost_ids`, `portal_known`, `silence_of`, `opacity_score`, `band_for`, `shortlist_key`, `assess`
+- `open_signals.py` — What a job board itself publishes about a posting still taking applicants. · `OpenStatus`, `Signal`, `trabajando_offer_id`, `trabajando_needs_slug`, `read_trabajando`, `is_chiletrabajos`, `read_chiletrabajos`
 - `parsing.py` — Parse free-text job descriptions into JobPosting fields. · `looks_like_page_metadata`, `degree_fields`, `parse_job_text`, `job_to_dict`, `extract_skills_from_text`
 - `pdf_index.py` — List PDF links on one public page. Same host only; nothing is downloaded. · `fetch_page`, `matching_pdfs`
 - `pdf_posting.py` — Turn a public bases PDF into one posting. No OCR, no stored bytes. · `NotAPdf`, `PdfAddError`, `PdfNoText`, `PdfClosed`, `PdfFetchError`, `PdfBlocked`, `PublicBody`, `PdfDraft`, `fetch_public`, `looks_like_pdf`, `posting_identity`, `job_from_public`, `job_from_body`
 - `repository.py` — Job persistence repository. · `JobRepository`, `StoredJobIndex`, `write_job_json`
 - `sources.py` — Job source adapter protocol (Indeed, LinkedIn posts, GetOnBoard, …). · `JobSearchQuery`, `JobSourceAdapter`, `get_job_source`
+- `untrusted.py` — A posting is someone else's text. A line that instructs the tool is not a fact. · `is_instruction`, `for_scoring`
 
 ### `matching`
 
-- `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`, `requirement_evidence`
+- `analyzer.py` — Rule-based job matching — never invents candidate skills. · `JobAnalyzer`, `RuleBasedJobAnalyzer`, `requirement_evidence`, `posting_word_index`, `achievement_echo_hits`
 - `scoring.py` — Scoring helpers (kept thin; core logic in analyzer). · `blind_matcher_warning`, `match_reasons`, `format_match_report`
 
 ### `models`
 
 - `application.py` — Application tracking models. · `ApplicationStatus`, `Application`, `ApplicationEvent`
 - `candidate.py` — Candidate domain model — single source of truth representation. · `orcid_is_valid`, `PersonalInfo`, `Candidate`
+- `credentials.py` — Languages and certifications the profile already states. · `Language`, `Certification`
 - `education.py` — Education model. · `Education`
 - `experience.py` — Experience and achievement models. · `Achievement`, `Experience`, `format_metric`, `metrics_as_display`
 - `external_profile.py` — External profile snapshot for portal diffs. · `ExternalExperience`, `ExternalEducation`, `ExternalProfile`
 - `job.py` — Job posting domain model. · `JobPosting`
 - `match.py` — Job match result models. · `MatchStrength`, `MatchItem`, `JobMatch`
 - `project.py` — Personal project model. · `Project`
-- `skill.py` — Skill groupings and publications. · `SkillGroups`, `Publication`
+- `skill.py` — Skill groupings and publications. · `SkillGroups`, `SkillEvidence`, `Publication`
 - `sync.py` — Sync plan models for writable portal adapters. · `SyncOpType`, `SyncOperation`, `SyncPlan`, `SyncResult`
 - `targets.py` — Shared types for target renderers and constraints. · `ProfileTarget`, `TargetConstraints`, `ExperienceRenderer`, `YearMonth`
 
@@ -384,6 +465,7 @@ writing it again — the promotion rule lives in
 - `gateway.py` — Optional LLM gateway — deterministic first; LLM only inside promoted functions. · `LlmOutcome`, `llm_extras_available`, `build_chat_model`, `run_optional_llm`
 - `langchain_refine.py` — Optional LangChain-backed cumulative refine (facts from Candidate only). · `LangChainProfileRefiner`
 - `refine.py` — Cumulative text refinement for portal profile blurbs. · `ProfileTextRefiner`, `RefineResult`, `refine_permanent_profile`, `CumulativeProfileRefiner`
+- `sentences.py` — Sentence boundaries that keep an abbreviation in the same sentence. · `is_abbreviation`, `split_sentences`
 
 ### `ops`
 
@@ -403,7 +485,7 @@ writing it again — the promotion rule lives in
 
 - `ats_lifecycle.py` — ATS portal lifecycle: knowledge, account/session, and form-field gaps. · `AccountSessionState`, `FieldGapState`, `PortalAction`, `account_session_state`, `next_portal_action`, `field_gap_state`
 - `chiletrabajos.py` — Chiletrabajos fill sheet projected from the source of truth. · `PortalField`, `experience_bucket`, `education_level`, `gender_label`, `experience_years`, `render_chiletrabajos_sheet`
-- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `aggregator_board`, `html_marker_kinds`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
+- `detect.py` — ATS / recruitment portal detection and kinds. · `AtsKind`, `detect_ats`, `is_white_label_tenant`, `job_board_host_review`, `aggregator_board`, `html_marker_kinds`, `detect_ats_in_html`, `sniff_ats`, `extract_http_urls`, `first_external_ats_url`
 - `email_apply.py` — Extract apply-to emails from free text (LinkedIn posts, JDs). Never invent addresses. · `is_valid_email`, `extract_emails`, `first_apply_email`, `mailto_url`
 - `field_diff.py` — Diff form fields vs profile.yaml schema to discover new fields. · `NewFieldCandidate`, `normalize_field_label`, `field_semantic_hash`, `extract_profile_schema_fields`, `diff_form_fields`, `has_semantic_match`
 - `field_gap_issue.py` — Draft (and optionally open) GitHub issues for novel / unanswered portal fields. · `FieldGapIssueDraft`, `draft_field_gap_issue`, `gaps_from_form`, `create_field_gap_issue`
@@ -413,10 +495,12 @@ writing it again — the promotion rule lives in
 - `knowledge.py` — Shared portal knowledge: local registry + tracked seed + built-in host rules. · `PortalKnowledgeSource`, `PortalKnowledge`, `seed_portals_path`, `lookup_portal`
 - `message_apply.py` — Detect apply-by-LinkedIn-message (DM / InMail). Never send. · `asks_for_linkedin_message`
 - `platform_map.py` — Which platforms one profile reaches, grouped by how each one takes a candidate. · `Platform`, `Flavour`, `platform_label`, `source_kinds`, `platform_flavours`, `featured_platforms`, `LearningStep`, `feedback_loop`, `render_figure`, `inject_figure`, `write_page`, `main`
+- `postulate.py` — Classify a post's apply route. A contribution is a host this checkout does not already know. · `PortalContribution`, `PostulatePlan`, `known_portal_domains`, `plan_postulate`, `render_plan`
 - `profile_sheet.py` — Fill sheet for one portal, projected from the source of truth. · `render_fill_sheet`
 - `profile_state.py` — Per-portal profile state, drift and coverage. No browser, no network. · `ProfileStateError`, `AccountState`, `Priority`, `EvidenceKind`, `Drift`, `UpdateRecord`, `PortalProfileState`, `SectionView`, `PortalView`, `CoverageReport`, `default_state_path`, `default_alias_path`, `cv_hashes_from_output`, `section_payload`, `section_hash`, `projection_hash`, `load_states`, `save_states`, `load_aliases`, `evaluate_portal`, `coverage_report`, `mark_updated`, `ImportPreview`, `preview_import`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
+- `selectors.py` — CSS for a learned form field. Shared by apply and signup fill. · `field_selector`
 - `sso.py` — Identity providers offered on a login or signup page. · `SsoProvider`, `detect_sso_providers`, `provider_label`
 
 ### `portals/detectors`
@@ -426,14 +510,19 @@ writing it again — the promotion rule lives in
 ### `profile`
 
 - `diff.py` — Lightweight structural diff helpers for profiles. · `summarize_profile`, `compare_summaries`
+- `folder_import.py` — A folder of CVs proposes role ids. It does not write the profile. · `classify_role_ids`, `role_ids_in_pdf`, `pdfs_in`, `folder_report`
 - `importer_common.py` — Pieces shared by the CV importers: result type, sections, dates, ids. · `ImportResult`, `write_generated_profile`, `empty_skills`, `section_match`, `section_kind`, `map_skill_group`, `parse_date_range`, `is_present`, `parse_one_date`, `month_key`, `normalize_key`, `slugify`, `unique_id`
 - `importer_latex.py` — Import a legacy moderncv-style LaTeX CV into a Candidate profile dict. · `LatexImportError`, `import_latex_cv`
 - `importer_pdf.py` — Import a CV exported to PDF (Word-style layout) into a Candidate profile dict. · `PdfImportError`, `extract_pdf_text`, `import_pdf_cv`, `parse_cv_text`
 - `loader.py` — Load Candidate from profile.yaml. · `ProfileLoadError`, `load_profile`, `load_profile_raw`
 - `market.py` — Market-language suggestions for baseline CV (no invention; no deletions). · `MarketGapQuestion`, `MarketSuggestion`, `suggest_from_market`, `render_suggestion_markdown`, `apply_confirmed_skills`, `merge_confirmed_skills_into_raw`
+- `overlay.py` — English texts keyed by the profile's own ids. Nothing here is written back. · `base_texts`, `read_overlay`, `overlay_problems`
 - `pdf_glyphs.py` — Recover the ligature glyphs a PDF's /ToUnicode map forgets. · `repair_missing_ligatures`
+- `presentations.py` — Presentation variants may rephrase. They may not change the headline or add a figure. · `presentation_problems`, `presentations_block`
 - `query_check.py` — Measure saved searches against title results before anything is stored. · `QueryCell`, `QueryWarning`, `QueryCheck`, `significant_stems`, `title_covers`, `dominant_words`, `measure_queries`, `format_cell`, `sources_or_reject`, `search_source_titles`
+- `rejection.py` — A rejection is a preference, a condition, or a missing fact. Only the last may edit. · `rejection_kind`, `may_edit_profile`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
+- `skill_map.py` — Which declared skills a role or a degree already shows. Never invents a skill. · `SkillUse`, `map_skills`, `unbacked_skills`, `unbacked_achievements`, `evidence_records`, `format_map`, `format_unbacked`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`, `unknown_profile_keys`
 
 ### `publications`

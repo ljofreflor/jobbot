@@ -2,9 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+WorkMode = Literal["remote", "onsite", "hybrid"]
+_WORK_MODES = ("remote", "onsite", "hybrid")
+_MODE_WORDS: dict[str, dict[str, str]] = {
+    "es": {"remote": "Remoto", "onsite": "Presencial", "hybrid": "Híbrido"},
+    "en": {"remote": "Remote", "onsite": "On-site", "hybrid": "Hybrid"},
+}
+_MODE_PARENS: dict[str, dict[str, str]] = {
+    "es": {"remote": "remoto", "onsite": "presencial", "hybrid": "híbrido"},
+    "en": {"remote": "remote", "onsite": "on-site", "hybrid": "hybrid"},
+}
 
 
 class Achievement(BaseModel):
@@ -18,13 +29,32 @@ class Experience(BaseModel):
     id: str = Field(min_length=1)
     company: str = Field(min_length=1)
     title: str = Field(min_length=1)
+    unit: str | None = None
     location: str | None = None
+    work_mode: WorkMode | None = None
     start_date: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     end_date: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     current: bool = False
     leadership: bool | None = None
     description: str | None = None
     achievements: list[Achievement] = Field(default_factory=list)
+
+    @field_validator("unit", mode="before")
+    @classmethod
+    def empty_unit_to_none(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
+
+    @field_validator("work_mode", mode="before")
+    @classmethod
+    def known_work_mode(cls, value: object) -> object:
+        if value is None or value == "":
+            return None
+        if value not in _WORK_MODES:
+            msg = f"work_mode must be one of: {', '.join(_WORK_MODES)}"
+            raise ValueError(msg)
+        return value
 
     @field_validator("end_date")
     @classmethod
@@ -50,6 +80,47 @@ class Experience(BaseModel):
         start = self.start_date
         end = "Present" if self.current else (self.end_date or "")
         return f"{start} – {end}"
+
+    def employer_line(self) -> str:
+        """Employer, with the unit beside it when the profile names one."""
+        if self.unit:
+            return f"{self.company} · {self.unit}"
+        return self.company
+
+    def place_line(self, language: str = "es") -> str:
+        """Location plus the work-mode word, or either one alone."""
+        mode = _mode_word(self.work_mode, language)
+        if self.location and mode:
+            return f"{self.location} · {mode}"
+        return mode or (self.location or "")
+
+    def ats_role_line(self, language: str = "es") -> str:
+        """One ATS line. Without a mode, the place stays on the date line."""
+        line = f"{self.title} — {self.employer_line()}"
+        paren = _mode_paren(self.work_mode, language)
+        if not paren:
+            return line
+        if self.location:
+            return f"{line} | {self.location} ({paren})"
+        return f"{line} ({paren})"
+
+    def ats_dates_show_location(self) -> bool:
+        """The date line keeps the place only when the role line did not take it."""
+        return bool(self.location) and self.work_mode is None
+
+
+def _mode_word(mode: str | None, language: str) -> str:
+    if mode is None:
+        return ""
+    words = _MODE_WORDS.get(language, _MODE_WORDS["es"])
+    return words[mode]
+
+
+def _mode_paren(mode: str | None, language: str) -> str:
+    if mode is None:
+        return ""
+    words = _MODE_PARENS.get(language, _MODE_PARENS["es"])
+    return words[mode]
 
 
 MetricValue = int | float | str

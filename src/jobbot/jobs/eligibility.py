@@ -109,6 +109,8 @@ _KNOWN_BLOCKS = (
     "salary",
     "availability",
     "relocation",
+    "driving_license",
+    "travel",
     "job_types",
     "desired_titles",
     "residence_country",
@@ -204,6 +206,28 @@ class SalaryAnswers(BaseModel):
         return value.strip().casefold()
 
 
+class DrivingLicenseAnswers(BaseModel):
+    """Whether the candidate holds a driving license, and which class if they said."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    has: bool | None = None
+    license_class: str | None = Field(default=None, alias="class")
+
+    @field_validator("has", mode="before")
+    @classmethod
+    def _has(cls, value: object) -> object:
+        return _to_bool(value) if value not in (None, "") else None
+
+    @field_validator("license_class", mode="before")
+    @classmethod
+    def _class(cls, value: object) -> object:
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text.upper() or None
+
+
 class AvailabilityAnswers(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -225,6 +249,8 @@ class ApplicationAnswers(BaseModel):
     languages: dict[str, str] = Field(default_factory=dict)
     accepts_contractor: bool | None = None
     relocation: bool | Literal["within_country", "international"] | None = None
+    driving_license: DrivingLicenseAnswers | None = None
+    travel: Literal["none", "domestic", "international"] | None = None
     remote_preference: str | None = None
     notice_period: str | None = None
     salary_expectation: str | None = None
@@ -288,6 +314,26 @@ class ApplicationAnswers(BaseModel):
     @classmethod
     def _yes_no(cls, value: object) -> object:
         return _to_bool(value)
+
+    @field_validator("driving_license", mode="before")
+    @classmethod
+    def _license_block(cls, value: object) -> object:
+        if value in (None, ""):
+            return None
+        return value
+
+    @field_validator("travel", mode="before")
+    @classmethod
+    def _travel_scope(cls, value: object) -> object:
+        if value is None:
+            return None
+        text = str(value).strip().casefold().replace("-", "_").replace(" ", "_")
+        if text in {"", "null"}:
+            return None
+        if text not in {"none", "domestic", "international"}:
+            msg = f"travel: {value}"
+            raise ValueError(msg)
+        return text
 
     @field_validator("relocation", mode="before")
     @classmethod
@@ -419,6 +465,13 @@ def filled_blocks(answers: ApplicationAnswers) -> list[str]:
         filled.append("availability")
     if answers.relocation is not None:
         filled.append("relocation")
+    license_answers = answers.driving_license
+    if license_answers is not None and (
+        license_answers.has is not None or license_answers.license_class
+    ):
+        filled.append("driving_license")
+    if answers.travel is not None:
+        filled.append("travel")
     if answers.job_types:
         filled.append("job_types")
     if answers.desired_titles:
@@ -708,26 +761,39 @@ def _salary(c: Condition, answers: ApplicationAnswers) -> Verdict:
 def _modality(c: Condition, candidate: Candidate, answers: ApplicationAnswers) -> Verdict:
     modality = c.modality or ""
     own, _ = _residence(candidate, answers)
-    if modality != "remote" and c.countries and own is not None and own not in c.countries:
+    scope = "international" if answers.relocation is True else answers.relocation
+    if modality != "remote" and c.countries and own is not None:
         place = c.detail or _names(c.countries)
-        if answers.relocation is True:
+        same_country = own in c.countries
+        if same_country and scope in {"within_country", "international"}:
             return Verdict(
-                c, VerdictStatus.MEETS, f"{modality} in {place}; you accept relocating"
+                c, VerdictStatus.MEETS, f"{modality} in {place}; you can relocate inside {own}"
             )
-        if answers.relocation is False:
+        if not same_country:
+            if scope == "international":
+                return Verdict(
+                    c, VerdictStatus.MEETS, f"{modality} in {place}; you accept relocating"
+                )
+            if scope == "within_country":
+                return Verdict(
+                    c,
+                    VerdictStatus.DEALBREAKER,
+                    f"{modality} in {place}; you relocate inside {own} only ({ANSWERS_FILE})",
+                )
+            if scope is False:
+                return Verdict(
+                    c,
+                    VerdictStatus.DEALBREAKER,
+                    f"{modality} in {place}; you reside in {own} and do not relocate "
+                    f"({ANSWERS_FILE})",
+                )
             return Verdict(
                 c,
-                VerdictStatus.DEALBREAKER,
-                f"{modality} in {place}; you reside in {own} and do not relocate "
-                f"({ANSWERS_FILE})",
+                VerdictStatus.ASK,
+                f"{modality} in {place}; you reside in {own}",
+                f"This role is {modality} in {place} and you reside in {own}. Would you "
+                f"relocate? Set relocation in {ANSWERS_FILE}.",
             )
-        return Verdict(
-            c,
-            VerdictStatus.ASK,
-            f"{modality} in {place}; you reside in {own}",
-            f"This role is {modality} in {place} and you reside in {own}. Would you "
-            f"relocate? Set relocation in {ANSWERS_FILE}.",
-        )
     preference = answers.remote_preference
     if preference in {"remote", "hybrid", "onsite"} and preference != modality:
         return Verdict(
@@ -738,6 +804,50 @@ def _modality(c: Condition, candidate: Candidate, answers: ApplicationAnswers) -
         )
     where = f" ({c.detail})" if c.detail else ""
     return Verdict(c, VerdictStatus.NOTE, f"modality: {modality}{where}")
+
+
+def _driving_license(c: Condition, answers: ApplicationAnswers) -> Verdict:
+    license_answers = answers.driving_license
+    if license_answers is None or license_answers.has is None:
+        return Verdict(
+            c,
+            VerdictStatus.ASK,
+            "the posting asks for a driving license",
+            f"Do you have a driving license? Set driving_license in {ANSWERS_FILE}.",
+        )
+    if license_answers.has:
+        held = f" class {license_answers.license_class}" if license_answers.license_class else ""
+        return Verdict(c, VerdictStatus.MEETS, f"you hold a driving license{held}")
+    return Verdict(
+        c,
+        VerdictStatus.DEALBREAKER,
+        f"the posting asks for a driving license and you do not have one ({ANSWERS_FILE})",
+    )
+
+
+def _travel(c: Condition, answers: ApplicationAnswers) -> Verdict:
+    needed = c.detail or "domestic"
+    if answers.travel is None:
+        return Verdict(
+            c,
+            VerdictStatus.ASK,
+            "the posting asks about travel",
+            f"Can you travel ({needed})? Set travel in {ANSWERS_FILE}.",
+        )
+    if answers.travel == "none":
+        return Verdict(
+            c,
+            VerdictStatus.DEALBREAKER,
+            f"the posting asks for {needed} travel and you do not travel ({ANSWERS_FILE})",
+        )
+    if answers.travel == "domestic" and needed == "international":
+        return Verdict(
+            c,
+            VerdictStatus.DEALBREAKER,
+            f"the posting asks for international travel; you travel inside the country "
+            f"({ANSWERS_FILE})",
+        )
+    return Verdict(c, VerdictStatus.MEETS, f"you can travel ({answers.travel})")
 
 
 def _availability(c: Condition, answers: ApplicationAnswers) -> Verdict:
@@ -780,6 +890,10 @@ def _assess(
         return _salary(c, answers)
     if kind is ConditionKind.MODALITY:
         return _modality(c, candidate, answers)
+    if kind is ConditionKind.DRIVING_LICENSE:
+        return _driving_license(c, answers)
+    if kind is ConditionKind.TRAVEL:
+        return _travel(c, answers)
     if kind is ConditionKind.AVAILABILITY:
         return _availability(c, answers)
     if kind is ConditionKind.SENIORITY:

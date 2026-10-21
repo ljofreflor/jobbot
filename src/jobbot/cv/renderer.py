@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from pathlib import Path
 
@@ -13,10 +13,10 @@ from jobbot.branding import CV_CREDIT, MARK, REPO_URL
 from jobbot.cv.application_log import ApplicationLog
 from jobbot.cv.latex import escape_latex, escape_latex_multiline, escape_latex_url
 from jobbot.cv.selection import SelectionResult, filter_experiences, select_for_base_cv
-from jobbot.jobs.language import Language
+from jobbot.jobs.language import Language, detect_language
 from jobbot.models.candidate import Candidate
 from jobbot.models.education import Education
-from jobbot.models.experience import format_metric
+from jobbot.models.experience import Experience, format_metric
 from jobbot.models.targets import ProfileTarget
 
 
@@ -41,6 +41,35 @@ _LANGUAGE_BY_STYLE: dict[CvStyle, Language] = {
 def cv_language(style: CvStyle) -> Language:
     """The language the template's own headings are written in."""
     return _LANGUAGE_BY_STYLE[style]
+
+
+def as_cv_language(value: str | None) -> Language | None:
+    """Keep only es or en. Anything else is 'not set'."""
+    if value == "es":
+        return "es"
+    if value == "en":
+        return "en"
+    return None
+
+
+def resolve_ats_language(
+    candidate: Candidate,
+    *,
+    explicit: Language | None = None,
+    configured: Language | None = None,
+) -> Language:
+    """`--lang`, then `[cv] language`, then the profile's own words, then English."""
+    if explicit in ("es", "en"):
+        return explicit
+    if configured in ("es", "en"):
+        return configured
+    blob = "\n".join(
+        [
+            candidate.summary or "",
+            *(ach.text for exp in candidate.experience for ach in exp.achievements),
+        ]
+    )
+    return detect_language(blob) or "en"
 
 
 def split_name(full_name: str) -> tuple[str, str]:
@@ -180,14 +209,91 @@ _GROUP_LABELS: dict[Language, dict[str, str]] = {
 }
 
 
-def _group_label(name: str, language: Language = "en") -> str:
-    return _GROUP_LABELS.get(language, {}).get(name) or name.replace("_", " ").title()
+def _group_label(name: str, language: Language = "en", *, ats: bool = False) -> str:
+    mapped = _GROUP_LABELS.get(language, {}).get(name)
+    if mapped:
+        return mapped
+    plain = name.replace("_", " ")
+    if ats and language == "es" and plain:
+        return plain[0].upper() + plain[1:]
+    return plain.title()
 
 
-def _edu_dates(edu: Education) -> str:
+def shown_education(candidate: Candidate) -> list[Education]:
+    """Degrees that belong on the CV. An abandoned one stays in the profile only."""
+    return [edu for edu in candidate.education if edu.resolved_status() != "abandoned"]
+
+
+def edu_label(edu: Education, language: Language = "es") -> str:
+    """How the degree reads. A candidacy is marked, never rewritten into a finished title."""
+    if edu.resolved_status() != "candidate":
+        return edu.degree
+    if language == "es":
+        if edu.degree.rstrip().endswith("(c)"):
+            return edu.degree
+        return f"{edu.degree} (c)"
+    return f"{edu.degree} — Candidate"
+
+
+def edu_when(edu: Education, *, language: Language = "es", years_only: bool = False) -> str:
+    """Dates a degree shows. In progress is named; a finished one without an end is not current."""
+    status = edu.resolved_status()
+    if status == "completed" and not edu.end_date:
+        if years_only:
+            parsed = _parse_ym(edu.start_date)
+            return str(parsed[0]) if parsed else ""
+        return edu.start_date or ""
+    if status == "in_progress":
+        if years_only:
+            parsed = _parse_ym(edu.start_date)
+            start = str(parsed[0]) if parsed else ""
+        else:
+            start = edu.start_date or ""
+        word = "en curso" if language == "es" else "in progress"
+        line = f"{start} – {word}" if start else word
+        if edu.expected_end:
+            extra = "egreso esperado" if language == "es" else "expected"
+            line += f" ({extra} {edu.expected_end[:4]})"
+        return line
+    if years_only:
+        return es_year_range(edu.start_date, edu.end_date)
     if edu.start_date and edu.end_date:
         return f"{edu.start_date} – {edu.end_date}"
     return edu.end_date or edu.start_date or ""
+
+
+_ATS_LABELS: dict[Language, dict[str, str]] = {
+    "en": {
+        "email": "Email:",
+        "phone": "Phone:",
+        "summary": "SUMMARY",
+        "specialties": "SPECIALTIES",
+        "experience": "EXPERIENCE",
+        "projects": "PROJECTS",
+        "education": "EDUCATION",
+        "skills": "SKILLS",
+        "publications": "PUBLICATIONS",
+        "languages": "LANGUAGES",
+        "certifications": "CERTIFICATIONS",
+    },
+    "es": {
+        "email": "Correo:",
+        "phone": "Teléfono:",
+        "summary": "RESUMEN",
+        "specialties": "ESPECIALIDADES",
+        "experience": "EXPERIENCIA",
+        "projects": "PROYECTOS",
+        "education": "FORMACIÓN",
+        "skills": "HABILIDADES",
+        "publications": "PUBLICACIONES",
+        "languages": "IDIOMAS",
+        "certifications": "CERTIFICACIONES",
+    },
+}
+
+
+def _edu_dates(edu: Education) -> str:
+    return edu_when(edu, language="en")
 
 
 def _metrics_line(metrics: Mapping[str, int | float | str]) -> str:
@@ -231,6 +337,41 @@ def _href_latex(url: str) -> str:
     return rf"\href{{{escape_latex_url(url)}}}{{{escape_latex(url_label(url))}}}"
 
 
+def skills_for_selection(candidate: Candidate, selection: SelectionResult) -> dict[str, list[str]]:
+    """Job builds keep the skills the selection named. Empty groups disappear."""
+    allowed = set(selection.skill_names)
+    grouped: dict[str, list[str]] = {}
+    for group, items in candidate.skills.as_dict().items():
+        kept = [item for item in items if item in allowed]
+        if kept:
+            grouped[group] = kept
+    return grouped
+
+
+def education_for_selection(candidate: Candidate, selection: SelectionResult) -> list[Education]:
+    """None keeps every shown degree. A list is the job CV's education."""
+    shown = shown_education(candidate)
+    if selection.education_ids is None:
+        return shown
+    allowed = set(selection.education_ids)
+    return [edu for edu in shown if edu.id in allowed]
+
+
+def _exp_compact(
+    selection: SelectionResult, compact_before: str | None
+) -> Callable[[Experience], bool]:
+    extra = set(selection.compact_ids)
+
+    def exp_compact(exp: Experience) -> bool:
+        if exp.id in extra:
+            return True
+        if not compact_before or exp.current or not exp.end_date:
+            return False
+        return exp.end_date < compact_before
+
+    return exp_compact
+
+
 def render_cv_tex(
     candidate: Candidate,
     templates_dir: Path,
@@ -239,6 +380,8 @@ def render_cv_tex(
     style: CvStyle = CvStyle.MODERNCV,
     application_log: ApplicationLog | None = None,
     credit: bool = False,
+    compact_before: str | None = None,
+    highlights: tuple[str, ...] = (),
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
@@ -249,27 +392,33 @@ def render_cv_tex(
         candidate=candidate,
         personal=candidate.personal,
         experiences=experiences,
-        skills=candidate.skills.as_dict(),
+        skills=skills_for_selection(candidate, selection),
         publications=candidate.publications if selection.include_publications else [],
         projects=candidate.projects,
+        education=education_for_selection(candidate, selection),
         href=_href_latex,
         application_log=application_log,
         contact_line=_contact_line_latex(candidate),
         specialties_line=_specialties_line_latex(candidate),
         metrics_line=_metrics_line_latex,
-        edu_dates=_edu_dates,
+        edu_dates=lambda edu: edu_when(edu, language=cv_language(style)),
+        edu_label=lambda edu: edu_label(edu, cv_language(style)),
         group_label=lambda name: _group_label(name, cv_language(style)),
         bold=_bold_latex,
         name_first=name_first,
         name_last=name_last,
         exp_dates=lambda exp: es_date_range(exp.start_date, exp.end_date),
-        edu_years=lambda edu: es_year_range(edu.start_date, edu.end_date),
+        exp_employer=lambda exp: exp.employer_line(),
+        exp_place=lambda exp: exp.place_line(cv_language(style)),
+        edu_years=lambda edu: edu_when(edu, language="es", years_only=True),
         linkedin_handle=social_handle(candidate.personal.linkedin),
         github_handle=social_handle(candidate.personal.github),
         repo_url=REPO_URL,
         mark=MARK,
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.CV,
+        exp_compact=_exp_compact(selection, compact_before),
+        highlights=highlights,
     )
 
 
@@ -279,21 +428,42 @@ def render_cv_ats(
     selection: SelectionResult | None = None,
     *,
     credit: bool = False,
+    language: Language | None = None,
+    configured: Language | None = None,
+    compact_before: str | None = None,
 ) -> str:
     selection = selection or select_for_base_cv(candidate)
     env = _build_env(templates_dir)
     template = env.get_template("cv_ats.txt.j2")
     experiences = filter_experiences(candidate, selection)
+    resolved = resolve_ats_language(candidate, explicit=language, configured=configured)
+
+    def exp_dates(exp: Experience) -> str:
+        if resolved == "es":
+            return es_date_range(exp.start_date, None if exp.current else exp.end_date)
+        return exp.format_date_range()
+
+    def edu_dates(edu: Education) -> str:
+        if resolved == "es":
+            return es_year_range(edu.start_date, edu.end_date)
+        return _edu_dates(edu)
+
     return template.render(
         candidate=candidate,
         personal=candidate.personal,
         experiences=experiences,
-        skills=candidate.skills.as_dict(),
+        skills=skills_for_selection(candidate, selection),
         publications=candidate.publications if selection.include_publications else [],
         projects=candidate.projects,
+        education=education_for_selection(candidate, selection),
         metrics_line=_metrics_line,
-        edu_dates=_edu_dates,
-        group_label=_group_label,
+        edu_dates=edu_dates,
+        edu_label=lambda edu: edu_label(edu, resolved),
+        group_label=lambda name: _group_label(name, resolved, ats=True),
+        ats_role=lambda exp: exp.ats_role_line(resolved),
+        exp_dates=exp_dates,
+        labels=_ATS_LABELS[resolved],
         cv_credit=CV_CREDIT if credit else None,
         target=ProfileTarget.ATS,
+        exp_compact=_exp_compact(selection, compact_before),
     )

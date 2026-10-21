@@ -22,6 +22,42 @@ def test_add_and_get_job(tmp_path: Path) -> None:
     assert job2.id == "J0002"
 
 
+def test_reparse_keeps_the_id_and_drops_the_chrome_title(tmp_path: Path) -> None:
+    from jobbot.jobs.backfill import reparse_stored
+    from jobbot.models.job import JobPosting
+
+    engine = make_engine(tmp_path / "test.sqlite")
+    session = make_session_factory(engine)()
+    repo = JobRepository(session)
+    text = (
+        "Volver a resultados\n"
+        "Analista de operaciones\n"
+        "Acerca de Servicio Neutro\n"
+        "\n"
+        "Perfil del cargo\n"
+        "- Coordinar los equipos regionales\n"
+    )
+    repo.save(
+        JobPosting(
+            id="J0001",
+            title="Volver a resultados",
+            company="Unknown",
+            description=text,
+            raw_description=text,
+        )
+    )
+
+    updated = reparse_stored(repo, "J0001")
+
+    assert updated.id == "J0001"
+    assert updated.title == "Analista de operaciones"
+    assert updated.company == "Servicio Neutro"
+    assert updated.requirements == ["Coordinar los equipos regionales"]
+    loaded = repo.get("J0001")
+    assert loaded is not None
+    assert loaded.title == "Analista de operaciones"
+
+
 def test_posted_at_survives_the_roundtrip(tmp_path: Path) -> None:
     """The sweep learns when a post was published; the DB must keep it."""
     from datetime import UTC, datetime

@@ -34,6 +34,8 @@ class ConditionKind(StrEnum):
     MODALITY = "modality"
     SENIORITY = "seniority"
     AVAILABILITY = "availability"
+    DRIVING_LICENSE = "driving_license"
+    TRAVEL = "travel"
     INSTRUCTION = "instruction"
 
 
@@ -160,6 +162,15 @@ _INSTRUCTION = re.compile(
     r"recognition of (your )?degree|periodo de prueba|probation period|"
     r"only shortlisted candidates will be contacted"
 )
+_DRIVING = re.compile(
+    r"licencia de conducir|licencia clase [a-z0-9]|driver'?s licen[cs]e|driving licen[cs]e"
+)
+_LICENSE_CLASS = re.compile(r"(?:clase|class) ([a-z0-9]+)")
+_TRAVEL = re.compile(
+    r"disponibilidad para viajar|viajes a regiones|willing(?:ness)? to travel|"
+    r"travel required|must be willing to travel"
+)
+_TRAVEL_INTERNATIONAL = re.compile(r"internacional|international")
 _YEARS = re.compile(r"(\d{1,2})\s*\+?\s*(?:anos|years?|yrs)\b")
 _YEARS_RANGE = re.compile(
     r"(\d{1,2})\s*(?:to|–|-|—|a|hasta)\s*(\d{1,2})\s*(?:anos|years?|yrs)\b"
@@ -474,6 +485,12 @@ def _line_conditions(
     modality = _modality_value(folded)
     if modality is not None and residency is None:
         out.append(Condition(kind=ConditionKind.MODALITY, source=line, modality=modality))
+    driving = _driving(line, folded)
+    if driving is not None:
+        out.append(driving)
+    travel = _travel(line, folded)
+    if travel is not None:
+        out.append(travel)
     if _AVAILABILITY.search(folded):
         out.append(Condition(kind=ConditionKind.AVAILABILITY, source=line))
     seniority = _seniority(line, folded, in_requirements=in_requirements)
@@ -489,6 +506,25 @@ def _line_conditions(
             )
         )
     return out
+
+
+def _driving(line: str, folded: str) -> Condition | None:
+    if _DRIVING.search(folded) is None:
+        return None
+    found = _LICENSE_CLASS.search(folded)
+    return Condition(
+        kind=ConditionKind.DRIVING_LICENSE,
+        source=line,
+        mandatory=True,
+        detail=found.group(1).upper() if found else "",
+    )
+
+
+def _travel(line: str, folded: str) -> Condition | None:
+    if _TRAVEL.search(folded) is None:
+        return None
+    scope = "international" if _TRAVEL_INTERNATIONAL.search(folded) else "domestic"
+    return Condition(kind=ConditionKind.TRAVEL, source=line, mandatory=True, detail=scope)
 
 
 def _heading_flag(line: str, folded: str) -> tuple[bool, bool | None]:

@@ -38,10 +38,11 @@ jobbot update --schedule status
 
 | Comando | Qué hace |
 |---------|----------|
-| `profile validate` | Valida el perfil y `application_answers.yaml`. Una clave desconocida (por ejemplo `rut:`) sale con 2 y la nombra. Si `salary_expectation` se lee sin ambigüedad, sugiere la migración y no escribe. |
+| `profile validate` | Valida el perfil y `application_answers.yaml`. Una clave desconocida (por ejemplo `rut:`) sale con 2 y la nombra. Un título de grado que el perfil no respalda, o un grado `completed` sin `end_date`, avisa y sale 0. Si `salary_expectation` se lee sin ambigüedad, sugiere la migración y no escribe. |
 | `profile answers show [--reveal]` | Muestra qué bloques de respuestas tienen datos. Sin `--reveal` no imprime valores. |
 | `profile answers set CLAVE VALOR [--yes]` | Escribe una clave (por ejemplo `salary.amount`). Sin `--yes` no escribe. Se niega a guardar un RUN. |
-| `profile show` | Resumen del perfil local. |
+| `profile show` | Resumen del perfil local, incluidos los grados abandonados que el CV omite. |
+| `profile skills-map` | Asocia cada aptitud declarada al cargo o grado que ya la muestra. `--unbacked` lista las que no tienen evidencia. `--apply` escribe el vínculo tras confirmar y deja un respaldo. |
 | `profile import-pdf RUTA` | Importa un CV PDF (capa de texto) a `profile.generated.yaml`. `--promote` lo copia a `profile.yaml` tras validar. |
 | `profile import-latex [RUTA]` | Importa un CV LaTeX legado a `profile.generated.yaml`. |
 | `profile promote-generated` | Copia `profile.generated.yaml` → `profile.yaml` tras confirmación. |
@@ -54,7 +55,9 @@ jobbot update --schedule status
 
 | Comando | Qué hace |
 |---------|----------|
-| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. Con `--job`, `--full` conserva todos los roles y logros y ordena primero, dentro de cada rol, los que el aviso nombra. |
+| `cv build` | Construye el CV desde `profile.yaml`. `--target cv\|ats`, `--job Jxxxx`, `--style moderncv\|plain`. `--highlights` abre con los logros que ya traen una cifra, copiados tal cual; un aviso solo desempata. Con `--job`, `--full` conserva todos los roles y logros. Sin términos extraídos, elige por el eco del aviso y avisa para revisar `selection.json`. Un término del aviso que el perfil no tiene queda como brecha y no se escribe en el CV. `--strict` sale 2 si la capa de texto tiene un ícono, una viñeta rara o un término metido. |
+| `cv gap --job Jxxxx` | Tabla de términos del aviso: cuáles respalda el perfil y cuáles quedan como pregunta. `--json` imprime el esquema. No reescribe `profile.yaml` ni el aviso. |
+| `cv check` | Lista de chequeo estructural. `quantified_bullets` falla si ningún logro tiene una cifra. Con `--job`, `hard_skills_missing` nombra los términos duros que el perfil no respalda. Sale 0 con el informe; sale 2 si el aviso no existe. No reescribe `profile.yaml`. |
 | `cv propagate` | Reconstruye el CV base y lo propaga a los perfiles permanentes (HITL, dry-run por defecto). |
 
 ```bash
@@ -65,13 +68,15 @@ jobbot cv propagate                 # solo plan
 jobbot cv propagate --apply         # confirma destino por destino
 ```
 
+Una experiencia puede separar `unit` del empleador y anotar `work_mode` (`remote`, `onsite`, `hybrid`). Sin esos campos el CV sale igual que antes. `cv build --target ats --lang es` pone los encabezados y las fechas en español; sin `--lang` manda `[cv] language` y, si no está, el idioma del resumen y los logros. Un texto ambiguo queda en inglés. Idiomas (`A1`–`C2` o `native`) y certificaciones van en secciones propias; `profile validate` avisa si una certificación ya venció y sale 0. `[cv] compact_before` (YYYY-MM) deja en una línea los roles ya cerrados antes de esa fecha; `[cv] max_pages` registra en `selection.json` qué compactar y qué cursos sacar cuando el PDF se pasa, sin borrar hechos del perfil.
+
 ## Vacantes
 
 | Comando | Qué hace |
 |---------|----------|
-| `get URL` | Aviso puntual: conoce el portal, descarga el aviso, arma CV y paquete. Descarga en vivo Get on Board, Indeed y Workday (vía CXS); `--fixture` lee HTML guardado. |
+| `get URL` | Aviso puntual: conoce el portal, descarga el aviso, arma CV y paquete. Descarga en vivo Get on Board, Indeed, Workday (vía CXS) y Ready ATS (`ready-ats-*.web.app`, JSON). `--fixture` lee HTML guardado o, en Ready, el JSON de careers. |
 | `jobs add` | Agrega una vacante desde un archivo de texto o stdin (`--file`). Una URL de Workday sola (`--url`, sin `--file`) se descarga vía CXS. Una URL de PDF lee la capa de texto (sin OCR) y guarda el cierre en hora de Santiago. |
-| `jobs search QUERY` | Busca en Indeed y guarda las vacantes localmente. `--location`, `--limit`, `--remote`, `--cdp`. |
+| `jobs search QUERY` | Busca en Indeed y guarda las vacantes. `--location`, `--limit`, `--remote`, `--cdp`. Si `--cdp` no engancha dentro de `--cdp-timeout` (15 s), sale con error y no dice "No jobs found". |
 | `jobs discover --source workday --site URL` | Descubre avisos en career sites por API pública. `--query`, `--limit` (1–200), `--dry-run` (no escribe nada: ni DB, ni JSON, ni `companies.yaml`). Sin `--site`, usa los sitios Workday del registro de empresas. |
 | `jobs discover --source un-careers` | Lee el feed RSS público de UN Careers (Secretaría de la ONU) y filtra en local. `--query`, `--location` (`remote` incluye «home-based»), `--level CON,P-3`, `--limit`, `--details`, `--dry-run`. No necesita `--site`. |
 | `jobs discover --source buk --site URL` | Pide solo `robots.txt`. Si prohíbe `/`, no recorre el portal y sugiere `jobs add --file`. |
@@ -84,14 +89,19 @@ jobbot cv propagate --apply         # confirma destino por destino
 | `jobs discover --source pjud` | Lee los concursos en postulación del Poder Judicial (una página, sin login). Sin `--query` trae todos; `--query` filtra por cargo y tribunal. `--dry-run` no escribe. Una grilla de otra forma sale 5. |
 | `jobs discover --source smartrecruiters --company ID` | Lee la Posting API pública. Sin `--company` recorre los tableros del registro. `--country` (por defecto el de la búsqueda) filtra también en local. `--limit` puede llegar a 300. Un 404 se informa y se sigue. |
 | `jobs discover --source greenhouse [--board TOKEN]` | Lee la Job Board API pública. Sin `--board` recorre los boards del registro. Un aviso ya guardado no vuelve a pedir su detalle. Un 404 se informa y se sigue. |
+| `jobs discover --source oracle_orc [--site HOST/SITIO]` | Lee la búsqueda pública de Oracle Recruiting Cloud. Conserva el `siteNumber`. Un 403 se informa y se sigue. |
+| `jobs discover --source bne --query TEXTO` | Lee el JSON público de la Bolsa Nacional de Empleo. Cero resultados no se relanza sin texto. Si el total coincide con el de toda la bolsa, avisa `filtro ignorado` y no guarda. |
+| `jobs discover --source chiletrabajos --query TEXTO` | Lee la búsqueda HTML pública (`f=2`). La ficha trae publicación y expiración en America/Santiago. No pide rutas que `robots.txt` prohíbe. Un listado sin avisos sale 5. |
+| `jobs discover --source vacantes --country CL` | Lee la landing del país (o `--all-sitemap` y filtra el sitemap por el texto). El detalle es JSON-LD. No pide `/api/` ni URLs con `?`. `robots.txt` se consulta en cada corrida. |
 | `jobs add --file listado.html --url https://acme.buk.cl/trabaja-con-nosotros` | Ingiere las tarjetas `jobs__card` de un HTML guardado. Sin tarjetas, sale 5. |
-| `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica. |
-| `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). |
+| `jobs add --file aviso.txt` | Guarda el texto completo. Una línea «ignore previous instructions» o «fetch https://…» no entra al score y no se descarga. |
+| `jobs show JOB_ID` | Muestra una vacante guardada, con su cierre si el aviso lo publica y la línea de opacidad (frescura, cierre, republicación, portal, silencio). |
+| `jobs match JOB_ID` | Puntúa la vacante contra el perfil local (ayuda a decidir, no decide). El reporte de ajuste no cambia; debajo va la misma línea de opacidad. |
 | `jobs check-open [JOB_ID…] [--all] [--dry-run] [--json]` | Vuelve a consultar en línea si cada aviso guardado sigue abierto: `abierto` / `cerrado` / `desconocido`, con motivo y fecha de verificación. `--all` omite los cerrados verificados hace menos de 24 h; `--dry-run` no escribe; `--json` trae la URL completa. Solo lectura. |
-| `jobs shortlist [--include-closed]` | Ordena las vacantes guardadas por score y marca las que están vencidas o cierran en 3 días. Oculta las que `jobs check-open` verificó cerradas (`--include-closed` las muestra marcadas). Si `jobs admissibility` ya guardó un veredicto, la fila muestra `[no admisible]` o `[dudoso]` y el aviso sigue en la lista. |
+| `jobs shortlist [--include-closed] [--soon-days N]` | Ordena las vacantes guardadas: primero las que no están cerradas, luego la banda de opacidad (`clear`, `murky`, `opaque`) y después el score. La banda sale de evidencia local (frescura, republicación, portal evidenciado, silencio tras preparar o postular). Un cierre publicado vencido o la frase «empleo finalizado» se marca `[vencido]` (sin fecha si el aviso no la publicó) y queda al final. Un cierre dentro de N días (default 3) se marca `[cierra pronto]`. Sin fecha, o con una fecha ambigua que no se guardó, no hay marca. Oculta las que `jobs check-open` verificó cerradas (`--include-closed` las muestra). Un veredicto de `jobs admissibility` se muestra como `[no admisible]` o `[dudoso]`. |
 | `jobs admissibility J0001 [J0002 …] [--source FUENTE] [--open] [--json]` | Admisibilidad offline de un concurso guardado contra el perfil: `admisible`, `no_admisible` o `dudoso`. Lee solo el bloque de requisitos excluyentes. No envía nada. |
 | `jobs digest [--since] [--format whatsapp\|md]` | Resumen compartible de avisos nuevos y vigentes, sin red y sin notas internas. Parte el texto de WhatsApp en mensajes de hasta 4.096 caracteres. |
-| `jobs conditions JOB_ID… [--all-prepared]` | Lee las condiciones del aviso (cerrado, residencia, idioma, excluyentes, contrato, renta, modalidad) contra tu perfil y `data/application_answers.yaml`: ✅ cumple, ⚠️ pregunta exacta, ❌ impedimento (exit 1). Offline. |
+| `jobs conditions JOB_ID… [--all-prepared]` | Lee las condiciones del aviso (cerrado, residencia, idioma, excluyentes, contrato, renta, modalidad, licencia de conducir, viajes) contra tu perfil y `data/application_answers.yaml`: ✅ cumple, ⚠️ pregunta exacta, ❌ impedimento (exit 1). `relocation: within_country` no cruza de país. Offline. |
 | `jobs backfill-dates` | Data vacantes ya guardadas usando el activity id de la URL (offline). |
 | `jobs note JOB_ID TEXTO` | Adjunta una nota libre a una vacante. |
 
@@ -173,11 +183,18 @@ espera de ese `appname`.
 | Comando | Qué hace |
 |---------|----------|
 | `application prepare JOB_ID` | Arma el paquete de postulación (no inventa respuestas). |
+| `application interview JOB_ID` | Preguntas desde el aviso archivado y la evidencia de `selection.json`. Un requisito sin eco es un puente, no un logro nuevo. |
 | `application show JOB_ID` | Ruta y estado del paquete. |
+| `application status JOB_ID` | Etiqueta del pipeline (`saved` si no hay fila). `--set applied` confirma; `--yes` la salta. |
+| `application tracker` | Avisos por estado, ordenados por id. `--status interview`. |
+| `application cover-letter JOB_ID` | Carta local con hechos del perfil y el cargo. `--apply` anota la ruta en el manifiesto del paquete si existe; no envía nada. |
 | `application open JOB_ID` | Abre la URL de la vacante o del ATS en el navegador (no postula). |
-| `application apply JOB_ID` | Plan de prellenado ATS/Gmail. `--apply` abre; el envío lo haces tú. |
-| `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso: cifras, nombres, pares título–institución y lo dicho de la empresa. La motivación queda para ti (no pega nada). |
+| `application apply JOB_ID` | Plan de prellenado. `--apply` con un match guardado bajo 70% (o `--min-match 0.7`) avisa y pide confirmación; `--yes` avisa y sigue; el dry-run no pregunta. En un paso de Workday visible, nombre y teléfono se eligen por `data-automation-id` (una contraseña oculta no bloquea). Indeed que sale a otro portal no usa Indeed Apply. Con `--cdp` la sesión se consulta en ese host (`[::1]` sigue siendo `[::1]`); un adjunto que no vuelve no abre otro navegador. Sin `--cdp` un perfil ajeno no se lee y se abre el navegador por defecto. `--apply` abre; el envío lo haces tú. Un banner «Este empleo caducó en Indeed» (o cualquier frase de cierre) no abre y no marca `applied`. |
+| `application check-answer JOB_ID -q PREGUNTA --text/--file` | Revisa una respuesta libre contra el perfil y el aviso. Sale 0 si todo está respaldado y 2 si una afirmación no lo está. Una carta o una pregunta de motivación sale 4: si las afirmaciones están respaldadas lo dice, y la motivación la confirma la persona. |
+| `jobs describe JOB_ID --file aviso.txt` | Reemplaza la descripción de un aviso ya guardado. Conserva el id, la URL, la nota y la postulación. |
 | `applications list` | Lista las postulaciones registradas (alias: `applications status`). |
+| `applications feedback --file MSG` | Clasifica un mensaje pegado del empleador (dry-run). `--apply` registra el evento; un rechazo no pisa una `offer` sin `--yes`. El texto queda en `.local/`, con el contacto redactado. |
+| `applications report` | Embudo por aviso guardado: respuestas, entrevistas y rechazos. |
 
 ## Portales
 
@@ -185,13 +202,14 @@ espera de ese `appname`.
 
 `indeed login`, `indeed status`, `indeed inspect`, `indeed prepare`, `indeed pull`,
 `indeed diff`, `indeed sync` (dry-run por defecto; `--section preferences` planifica
-cargos y sueldo; `--apply` escribe), `indeed upload-cv` (no sube si el hash ya está
+cargos y sueldo; `--apply` escribe solo si el CV abierto nombra al dueño del workspace;
+`127.0.0.1` y `::1` son destinos distintos; sin nombre visible no escribe y no imprime la otra cuenta), `indeed upload-cv` (no sube si el hash ya está
 en el recibo; niega un PDF de glyphs de íconos).
 
 ### LinkedIn
 
-`linkedin login`, `linkedin status`, `linkedin inspect`, `linkedin pull`,
-`linkedin diff`, `linkedin sync` (Publications, con DOI y coautores),
+`linkedin login`, `linkedin status` (`valid`, `not authenticated` o `unreachable`), `linkedin inspect`, `linkedin pull`,
+`linkedin diff` (un empleador distinto con el mismo cargo es `experience.company_mismatch`, aviso, sale 0; sin snapshot pide `linkedin pull`), `linkedin import` (mezcla el snapshot en `profile.yaml`; no crea el perfil y no borra cargos que el snapshot omite), `linkedin sync` (Publications, con DOI y coautores),
 `linkedin sweep [QUERY]` (barrido de posts de reclutadores → vacantes + detección de ATS;
 descarta "19 de ago." fuera de `--max-age-days` y un texto que nombra Madrid cuando el país es CL).
 Sin `QUERY`, corre las `search_queries` del perfil (o las deriva). `--max-queries N` limita cuántas.
@@ -245,10 +263,11 @@ desafíos que aparezcan. No hay resolución automática de CAPTCHAs.
 | `portals detect URL` | Detecta el tipo de ATS de una URL. |
 | `portals add` | Agrega o actualiza un portal en el registro de portales. |
 | `companies detect URL` | Clasifica una URL (aviso / portal / ATS / redirección). No escribe nada. |
-| `companies learn URL` | Registra una relación empresa↔portal como conocimiento *candidate*. |
-| `companies list` | Lista empresas y sus plataformas de carreras. |
+| `companies learn URL` | Registra una relación empresa↔portal como conocimiento *candidate*. Una bolsa compartida (trabajando.cl, laborum, computrabajo, bumeran, chiletrabajos, empleos públicos) no se guarda; un subdominio de empresa en trabajando.cl sí, con ese ATS. |
+| `companies list` | Lista empresas y sus plataformas de carreras. Un sitio cuyo host es una bolsa queda marcado «host de bolsa: revisar» y sugiere `companies reject`. |
 | `companies show EMPRESA` | Una empresa con todos sus portales, observaciones y contradicciones. |
-| `companies promote EMPRESA` | Candidate → active. Es la única forma de volverlo verdad. |
+| `companies promote EMPRESA` | Candidate → active, un sitio a la vez. |
+| `companies auto-promote` | Lista candidatos con ATS conocido o evidencia que no sea solo HTTP 200. `--apply` los marca active. Rechazados, stale y bolsas no entran. |
 | `companies reject EMPRESA --site URL` | Marca un portal descubierto como incorrecto. |
 | `companies discover SEEDS.yaml` | One-shot: siembra portales candidatos para una lista de empresas. |
 | `companies import CANDIDATES.yaml` | Fusiona candidatos del one-shot al registro (siguen siendo candidate). |
@@ -305,7 +324,7 @@ el nombre para que la lista esté completa.
 | `portals profile status` / `sheet` / `mark-updated` / `import` / `seed` / `push` | Cobertura, hoja de llenado y seguimiento. `push` no tipea en el portal. |
 | `companies recon NOMBRE` | Aprende ATS y preguntas desde HTML. |
 | `companies signup NOMBRE` | Alta asistida. Crear la cuenta queda en tus manos. |
-| `browser sessions` | Estado de sesión por evidencia. No se adjunta solo. |
+| `browser sessions` | Estado de sesión por evidencia. Sin `--cdp` no lee un perfil ajeno. No se adjunta solo. |
 | `browser login` | Portales sin sesión probada. `--apply` abre el siguiente. |
 | `ops failure show` / `triage` / `issue` / `work` | Una falla local. `issue` y `work --apply` son HITL; no hay commit ni push automáticos. |
 | `ops symptom note` / `list` / `show` / `plan` / `triage` / `issue` | Síntomas locales, redactados al guardar. |

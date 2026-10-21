@@ -7,6 +7,8 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+
 from jobbot.workspace import DEFAULT_LABEL, repo_root, resolve_root, verify_owner
 
 DEFAULT_PROFILE = Path("data/profile.yaml")
@@ -37,13 +39,37 @@ class PathsConfig:
     legacy_cv: Path | None = None
 
 
-@dataclass(frozen=True)
-class SearchConfig:
+class ConfigError(ValueError):
+    """One line naming the field. The path and the value stay out of the message."""
+
+
+class SearchConfig(BaseModel):
     """Where we want to work; overridable per command with --country."""
 
+    model_config = ConfigDict(frozen=True, extra="ignore")
     countries: tuple[str, ...] = DEFAULT_COUNTRIES
     allow_remote: bool = True
     max_age_days: int = DEFAULT_MAX_AGE_DAYS
+
+    @field_validator("allow_remote", mode="before")
+    @classmethod
+    def _remote_flag(cls, value: object) -> object:
+        if isinstance(value, str):
+            folded = value.strip().casefold()
+            if folded in {"1", "true", "yes", "on"}:
+                return True
+            if folded in {"0", "false", "no", "off"}:
+                return False
+        return value
+
+    @field_validator("max_age_days", mode="before")
+    @classmethod
+    def _age_days(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("must be a number")
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        return value
 
 
 @dataclass(frozen=True)
@@ -52,6 +78,9 @@ class CvConfig:
 
     jobbot_signature: bool = False
     jobbot_project_url: str | None = None
+    language: str | None = None
+    compact_before: str | None = None
+    max_pages: int | None = None
 
 
 @dataclass(frozen=True)
@@ -200,9 +229,15 @@ def _load_cv(raw: dict[str, object]) -> CvConfig:
     section = raw.get("cv")
     cv_raw: dict[str, object] = section if isinstance(section, dict) else {}
     url = cv_raw.get("jobbot_project_url")
+    language = cv_raw.get("language")
+    compact = cv_raw.get("compact_before")
+    pages = cv_raw.get("max_pages")
     return CvConfig(
         jobbot_signature=cv_raw.get("jobbot_signature") is True,
         jobbot_project_url=url if isinstance(url, str) and url.strip() else None,
+        language=language if language in ("es", "en") else None,
+        compact_before=compact if isinstance(compact, str) and len(compact) == 7 else None,
+        max_pages=pages if isinstance(pages, int) and pages > 0 else None,
     )
 
 
@@ -229,11 +264,21 @@ def _load_search(raw: dict[str, object]) -> SearchConfig:
         legacy_country = indeed_raw.get("country")
         countries_raw = [legacy_country] if isinstance(legacy_country, str) else []
     countries = normalize_countries([str(c) for c in countries_raw]) or DEFAULT_COUNTRIES
-    allow_remote = search_raw.get("allow_remote", True)
-    raw_age = search_raw.get("max_age_days", DEFAULT_MAX_AGE_DAYS)
-    max_age = int(raw_age) if isinstance(raw_age, int | float | str) else DEFAULT_MAX_AGE_DAYS
-    return SearchConfig(
-        countries=countries,
-        allow_remote=bool(allow_remote),
-        max_age_days=max_age,
-    )
+    try:
+        return SearchConfig.model_validate(
+            {
+                "countries": countries,
+                "allow_remote": search_raw.get("allow_remote", True),
+                "max_age_days": search_raw.get("max_age_days", DEFAULT_MAX_AGE_DAYS),
+            }
+        )
+    except ValidationError as exc:
+        raise _invalid_config("search", exc) from None
+
+
+def _invalid_config(section: str, exc: ValidationError) -> ConfigError:
+    fields: list[str] = []
+    for err in exc.errors():
+        loc = ".".join(str(part) for part in err["loc"])
+        fields.append(f"{section}.{loc}" if loc else section)
+    return ConfigError(f"invalid config: {', '.join(fields)}")

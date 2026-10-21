@@ -103,6 +103,27 @@ def test_nested_itemize_does_not_leak_the_environment_name(tmp_path: Path) -> No
     assert any("Documenté el proceso" in text for text in bullets)
 
 
+def test_escaped_brace_does_not_end_the_cventry_argument(tmp_path: Path) -> None:
+    """A literal \\} inside a title is not the end of that \\cventry argument."""
+    tex = tmp_path / "cv.tex"
+    tex.write_text(
+        r"""
+\documentclass{moderncv}
+\begin{document}
+\section{Experiencia}
+\cventry{2020--2022}{Nota \}}{Bolsa Neutra}{Ciudad}{}{}
+\end{document}
+""",
+        encoding="utf-8",
+    )
+
+    result = import_latex_cv(tex)
+    experience = result.data["experience"]
+    assert len(experience) == 1
+    assert experience[0]["company"] == "Bolsa Neutra"
+    assert "Nota" in experience[0]["title"]
+
+
 def test_spanish_skill_section_labels_are_kept(tmp_path: Path) -> None:
     """A Spanish CV must not be rewritten into English group keys on import."""
     tex = tmp_path / "cv.tex"

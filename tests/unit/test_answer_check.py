@@ -19,6 +19,7 @@ from jobbot.exit_codes import MANUAL_CHALLENGE, SUCCESS, VALIDATION_FAILURE
 from jobbot.jobs.parsing import parse_job_text
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
+from jobbot.nlp.sentences import split_sentences
 from tests.fixtures.profile import two_degrees_profile_dict
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "jobs" / (
@@ -319,3 +320,119 @@ def test_cli_motivation_needs_the_candidate(
     )
 
     assert code == MANUAL_CHALLENGE
+
+
+def test_abbreviations_do_not_split_a_sentence() -> None:
+    assert split_sentences("Vi a la Sra. Pérez en EE.UU. con la Ltda. y el N° 5.") == [
+        "Vi a la Sra. Pérez en EE.UU. con la Ltda. y el N° 5."
+    ]
+    assert split_sentences("Fin. Otra frase.") == ["Fin.", "Otra frase."]
+
+
+def test_an_employer_with_s_a_stays_one_backed_sentence() -> None:
+    raw = two_degrees_profile_dict()
+    raw["experience"][0]["company"] = "Empresa Ejemplo S.A."
+    candidate = Candidate.model_validate(raw)
+    job = JobPosting(
+        id="J0701",
+        title="Analista",
+        company="Otra Firma",
+        description="Un aviso distinto.",
+        url="https://acme.example/jobs/1",
+    )
+    answer = "Trabajé como analista en Empresa Ejemplo S.A. durante tres años."
+
+    check = check_answer(FACTUAL_ES, answer, candidate, job)
+
+    assert len(check.sentences) == 1
+    assert check.sentences[0].text.startswith("Trabajé como analista en Empresa Ejemplo S.A.")
+    assert check.verdict is Verdict.OK, _problems(check)
+
+
+def test_an_empty_posting_asks_for_the_description_and_still_checks_the_profile(
+    candidate: Candidate,
+) -> None:
+    job = JobPosting(id="J0702", title="Analista", company="Fabrikam Logística", description="")
+    answer = (
+        "El cargo en Fabrikam Logística coordina turnos semanales. "
+        "En Northwind Analítica, como Analista de Datos, reduje en 18% el quiebre de stock."
+    )
+
+    check = check_answer(FACTUAL_ES, answer, candidate, job)
+    rendered = "\n".join(render_answer_check(check, job))
+
+    assert "sin descripción guardada para J0702" in rendered
+    assert "no respaldado" not in rendered
+    assert "posting does not" not in rendered
+    backed = check.sentences[1]
+    assert any(item.source == "profile" for item in backed.evidence)
+
+
+def test_a_backed_cover_letter_says_so_and_stays_with_the_person(
+    candidate: Candidate, job: JobPosting
+) -> None:
+    answer = (
+        "En Northwind Analítica, como Analista de Datos, reduje en 18% el quiebre de stock "
+        "con un modelo de pronóstico semanal."
+    )
+
+    check = check_answer("Carta de presentación", answer, candidate, job)
+    rendered = "\n".join(render_answer_check(check, job))
+
+    assert check.kind is QuestionKind.MOTIVATION
+    assert check.verdict is Verdict.NEEDS_CANDIDATE
+    assert "Afirmaciones: todas respaldadas." in rendered
+    assert "Motivación: la confirma la persona." in rendered
+
+
+def test_describe_replaces_the_text_and_keeps_the_record(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    job_id = _workspace(tmp_path, project_root, monkeypatch)
+    from jobbot.applications.manager import ApplicationRepository
+    from jobbot.cli import run_cli
+    from jobbot.config import load_config
+    from jobbot.db.engine import make_engine, make_session_factory
+    from jobbot.jobs.repository import JobRepository
+    from jobbot.models.application import ApplicationStatus
+
+    config = load_config()
+    session = make_session_factory(make_engine(config.database_path))()
+    repo = JobRepository(session)
+    before = repo.get(job_id)
+    assert before is not None
+    repo.set_note(job_id, "keep this note")
+    ApplicationRepository(session).upsert_for_job(job_id, status=ApplicationStatus.PREPARED)
+    notice = tmp_path / "aviso.txt"
+    notice.write_text(
+        "El equipo de Fabrikam Logística coordina turnos semanales en la bodega.\n",
+        encoding="utf-8",
+    )
+
+    code = run_cli(["jobs", "describe", job_id, "--file", str(notice)], standalone_mode=False)
+
+    assert code == SUCCESS
+    session = make_session_factory(make_engine(config.database_path))()
+    repo = JobRepository(session)
+    after = repo.get(job_id)
+    assert after is not None
+    assert len(repo.list_all()) == 1
+    assert after.id == job_id
+    assert after.url == before.url
+    assert after.note == "keep this note"
+    assert "turnos semanales" in after.description
+    app = ApplicationRepository(session).list_all()[0]
+    assert app.status is ApplicationStatus.PREPARED
+    captured = capsys.readouterr()
+    answer = (
+        "El equipo de Fabrikam Logística coordina turnos semanales en la bodega."
+    )
+    checked = run_cli(
+        ["application", "check-answer", job_id, "-q", "¿Qué hace el cargo?", "--text", answer],
+        standalone_mode=False,
+    )
+    assert checked == SUCCESS
+    assert "posting" in captured.out or "posting" in capsys.readouterr().out

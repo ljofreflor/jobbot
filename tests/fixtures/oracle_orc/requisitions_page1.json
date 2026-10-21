@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "TotalJobsCount": 2,
+      "requisitionList": [
+        {
+          "Id": "100",
+          "Title": "Health advisor",
+          "PostedDate": "2026-10-06",
+          "PrimaryLocation": "Santiago",
+          "WorkplaceTypeCode": "ORA_REMOTE",
+          "ShortDescriptionStr": "Summary",
+          "Organization": "Acme"
+        },
+        {
+          "Id": "101",
+          "Title": "Office analyst",
+          "PostedDate": "2026-10-06",
+          "PrimaryLocation": "Madrid",
+          "WorkplaceTypeCode": "ORA_ONSITE",
+          "ShortDescriptionStr": "Summary",
+          "Organization": "Acme"
+        }
+      ]
+    }
+  ]
+}

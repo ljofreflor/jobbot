@@ -30,6 +30,8 @@ def test_permanent_profile_within_limits_and_no_invention() -> None:
         fields.experiencia_y_perfil + fields.headline
     )
     assert "…" not in fields.experiencia_y_perfil
+    assert "Stack habitual" not in fields.experiencia_y_perfil
+    assert "Habilidades:" in fields.experiencia_y_perfil
     # Sample fixture includes Mercado Libre experience — must survive GoB length fit.
     assert "Mercado Libre" in fields.experiencia_y_perfil or "Data Scientist" in fields.headline
 

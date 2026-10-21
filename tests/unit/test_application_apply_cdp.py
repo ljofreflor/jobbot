@@ -94,7 +94,15 @@ def test_cdp_fills_in_your_chrome_instead_of_the_default_browser(
 
     assert code == SUCCESS
     assert opened == [], "with --cdp the default browser is not used"
-    assert calls == [{"cdp": CDP, "url": ATS_URL, "cv_path": cv, "focus": False}]
+    assert calls == [
+        {
+            "cdp": CDP,
+            "url": ATS_URL,
+            "cv_path": cv,
+            "focus": False,
+            "attach_timeout_s": 15.0,
+        }
+    ]
     out = capsys.readouterr().out
     assert "First Name" in out and "Expected salary" in out
     assert cv.name in out
@@ -124,10 +132,18 @@ def test_foreground_is_the_only_way_to_ask_for_a_front_tab(
     )
 
     assert code == SUCCESS
-    assert calls == [{"cdp": CDP, "url": ATS_URL, "cv_path": cv, "focus": True}]
+    assert calls == [
+        {
+            "cdp": CDP,
+            "url": ATS_URL,
+            "cv_path": cv,
+            "focus": True,
+            "attach_timeout_s": 15.0,
+        }
+    ]
 
 
-def test_cdp_failure_falls_back_to_the_default_browser(
+def test_cdp_failure_does_not_open_another_browser(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -136,6 +152,7 @@ def test_cdp_failure_falls_back_to_the_default_browser(
     stored, _cv = _workspace(tmp_path, project_root, monkeypatch)
     from jobbot.adapters.ats.apply_fill import ApplyFillError
     from jobbot.cli import run_cli
+    from jobbot.exit_codes import GENERIC_FAILURE
 
     opened: list[str] = []
     monkeypatch.setattr(
@@ -152,10 +169,11 @@ def test_cdp_failure_falls_back_to_the_default_browser(
         standalone_mode=False,
     )
 
-    assert code == SUCCESS
-    assert opened == [ATS_URL]
+    assert code == GENERIC_FAILURE
+    assert opened == []
     err = capsys.readouterr().err
     assert "Could not attach" in err
+    assert "Falling back" not in err
 
 
 def test_without_cdp_the_default_browser_is_used_as_before(

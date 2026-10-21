@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 
 from rich.console import Console
@@ -90,11 +89,15 @@ class LinkedInAdapter:
                 )
 
     def session_valid(self) -> bool:
+        from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout
+
         try:
             with self._session() as browser:
                 browser.page.goto(selectors.LINKEDIN_FEED, wait_until="domcontentloaded")
                 url = browser.page.url.lower()
                 return "login" not in url and "authwall" not in url
+        except (CdpAttachTimeout, CdpAttachInterrupted):
+            raise
         except Exception as exc:  # noqa: BLE001
             logger.warning("session check failed: %s", exc)
             return False
@@ -115,12 +118,6 @@ class LinkedInAdapter:
             if not profile.headline:
                 console.print(
                     "[yellow]LinkedIn DOM lacked stable markers; sparse snapshot saved.[/yellow]"
-                )
-                profile = ExternalProfile(
-                    source="linkedin",
-                    headline=None,
-                    summary=None,
-                    captured_at=datetime.now(UTC),
                 )
             return profile
 

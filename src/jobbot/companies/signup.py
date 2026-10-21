@@ -40,6 +40,7 @@ _ACCOUNT_BY_ATS: dict[AtsKind, AccountNeed] = {
     AtsKind.ORACLE: AccountNeed.NEEDED,
     AtsKind.TEAMTAILOR: AccountNeed.NOT_NEEDED,
     AtsKind.TORRE: AccountNeed.NEEDED,
+    AtsKind.HIRINGROOM: AccountNeed.NEEDED,
     AtsKind.GETONBOARD: AccountNeed.NEEDED,
     AtsKind.INDEED: AccountNeed.NEEDED,
     AtsKind.LINKEDIN: AccountNeed.NEEDED,

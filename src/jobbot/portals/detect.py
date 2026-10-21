@@ -34,10 +34,20 @@ class AtsKind(StrEnum):
     EMPLEOS_PUBLICOS = "empleos_publicos"
     ALTA_DIRECCION_PUBLICA = "alta_direccion_publica"
     BUK = "buk"
+    HIRINGROOM = "hiringroom"
     LUMESSE = "lumesse"
     UN_CAREERS = "un_careers"
     IMPACTPOOL = "impactpool"
     PAGEUP = "pageup"
+    TALEO = "taleo"
+    PEOPLESOFT = "peoplesoft"
+    BNE = "bne"
+    CHILETRABAJOS = "chiletrabajos"
+    TRABAJANDO = "trabajando"
+    LABORUM = "laborum"
+    COMPUTRABAJO = "computrabajo"
+    BUMERAN = "bumeran"
+    READY = "ready"
     INDEED = "indeed"
     LINKEDIN = "linkedin"
     EMAIL = "email"
@@ -60,6 +70,12 @@ JOB_BOARD_KINDS: frozenset[AtsKind] = frozenset(
         AtsKind.ALTA_DIRECCION_PUBLICA,
         AtsKind.UN_CAREERS,
         AtsKind.IMPACTPOOL,
+        AtsKind.BNE,
+        AtsKind.CHILETRABAJOS,
+        AtsKind.TRABAJANDO,
+        AtsKind.LABORUM,
+        AtsKind.COMPUTRABAJO,
+        AtsKind.BUMERAN,
     }
 )
 
@@ -120,7 +136,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("successfactors.eu", AtsKind.SUCCESSFACTORS),
     ("sapsf.com", AtsKind.SUCCESSFACTORS),
     ("sapsf.eu", AtsKind.SUCCESSFACTORS),
-    ("taleo.net", AtsKind.ORACLE),
+    ("taleo.net", AtsKind.TALEO),
     ("oraclecloud.com", AtsKind.ORACLE),
     ("teamtailor.com", AtsKind.TEAMTAILOR),
     ("workable.com", AtsKind.WORKABLE),
@@ -138,6 +154,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("vacantes.com", AtsKind.VACANTES),
     ("empleospublicos.cl", AtsKind.EMPLEOS_PUBLICOS),
     # Servicio Civil's ADP concursos (and its mirror); adp.cl is an unrelated payroll firm.
+    ("hiringroom.com", AtsKind.HIRINGROOM),
     ("buk.cl", AtsKind.BUK),
     ("buk.co", AtsKind.BUK),
     ("buk.pe", AtsKind.BUK),
@@ -147,6 +164,14 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("careers.un.org", AtsKind.UN_CAREERS),
     ("impactpool.org", AtsKind.IMPACTPOOL),
+    ("bne.cl", AtsKind.BNE),
+    ("chiletrabajos.cl", AtsKind.CHILETRABAJOS),
+    ("trabajando.cl", AtsKind.TRABAJANDO),
+    ("laborum.cl", AtsKind.LABORUM),
+    ("computrabajo.com", AtsKind.COMPUTRABAJO),
+    ("computrabajo.cl", AtsKind.COMPUTRABAJO),
+    ("bumeran.com", AtsKind.BUMERAN),
+    ("bumeran.cl", AtsKind.BUMERAN),
     ("pageuppeople.com", AtsKind.PAGEUP),
     ("indeed.com", AtsKind.INDEED),
     ("linkedin.com", AtsKind.LINKEDIN),
@@ -165,6 +190,11 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "greenhouse board link",
     ),
     (re.compile(r"jobs\.lever\.co/[a-z0-9_-]+", re.I), AtsKind.LEVER, "lever board link"),
+    (
+        re.compile(r"HiringRoom-logo_footer\.png", re.I),
+        AtsKind.HIRINGROOM,
+        "hiringroom footer logo",
+    ),
     (
         re.compile(r"[a-z0-9_-]+\.wd\d+\.myworkdayjobs\.com", re.I),
         AtsKind.WORKDAY,
@@ -206,9 +236,19 @@ _HTML_MARKERS: tuple[tuple[re.Pattern[str], AtsKind, str], ...] = (
         "successfactors host",
     ),
     (
-        re.compile(r"[a-z0-9_-]+\.(?:taleo\.net|fa\.oraclecloud\.com)", re.I),
+        re.compile(r"[a-z0-9_-]+\.taleo\.net|/careersection/", re.I),
+        AtsKind.TALEO,
+        "taleo careersection",
+    ),
+    (
+        re.compile(r"[a-z0-9_-]+\.fa\.oraclecloud\.com", re.I),
         AtsKind.ORACLE,
-        "oracle/taleo host",
+        "oracle recruiting host",
+    ),
+    (
+        re.compile(r"/psc/.+/hrms/", re.I),
+        AtsKind.PEOPLESOFT,
+        "peoplesoft hrms path",
     ),
     (re.compile(r"[a-z0-9_-]+\.bamboohr\.com", re.I), AtsKind.BAMBOOHR, "bamboohr host"),
     (
@@ -259,10 +299,43 @@ def detect_ats(url: str) -> AtsKind:
     host = (urlparse(raw).hostname or "").lower()
     if not host:
         return AtsKind.UNKNOWN
+    # Firebase apps are not all Ready. Only the product's own career hosts.
+    label = host.split(".")[0]
+    if host.endswith(".web.app") and label.startswith("ready-ats-"):
+        return AtsKind.READY
     for needle, kind in _HOST_RULES:
         if host == needle or host.endswith("." + needle) or needle in host:
             return kind
-    return AtsKind.UNKNOWN
+    return _kind_from_path(urlparse(raw).path)
+
+
+# Subdomains a board shares across employers. A company tenant is any other label.
+_SHARED_BOARD_LABELS = frozenset(
+    {"www", "www2", "m", "mobile", "empleo", "empleos", "jobs", "trabajo"}
+)
+
+
+def is_white_label_tenant(url: str) -> bool:
+    """True when the host is one employer's tenant on trabajando.cl, not the shared board."""
+    if detect_ats(url) is not AtsKind.TRABAJANDO:
+        return False
+    raw = url.strip()
+    if not re.match(r"^https?://", raw, re.I):
+        raw = "https://" + raw
+    host = (urlparse(raw).hostname or "").lower()
+    labels = host.split(".")
+    if len(labels) < 3 or labels[0] in _SHARED_BOARD_LABELS:
+        return False
+    return host.endswith(".trabajando.cl")
+
+
+def job_board_host_review(url: str) -> str:
+    """Mark a saved site whose host is a shared board. A company tenant is not one."""
+    if is_white_label_tenant(url):
+        return ""
+    if detect_ats(url) in JOB_BOARD_KINDS:
+        return "host de bolsa: revisar"
+    return ""
 
 
 def aggregator_board(url: str) -> AtsKind | None:
@@ -279,6 +352,19 @@ def aggregator_board(url: str) -> AtsKind | None:
         if board is not None:
             return board
     return None
+
+
+_CAREERSECTION = re.compile(r"/careersection/", re.I)
+_PEOPLESOFT_PATH = re.compile(r"/psc/.+/hrms/", re.I)
+
+
+def _kind_from_path(path: str) -> AtsKind:
+    """Taleo and PeopleSoft on an employer's own host, recognised by the path."""
+    if _CAREERSECTION.search(path):
+        return AtsKind.TALEO
+    if _PEOPLESOFT_PATH.search(path):
+        return AtsKind.PEOPLESOFT
+    return AtsKind.UNKNOWN
 
 
 def html_marker_kinds() -> tuple[AtsKind, ...]:
