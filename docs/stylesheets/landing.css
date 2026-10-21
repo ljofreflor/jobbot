@@ -15660,13 +15660,17 @@ html.jb-pin-presence:has(
   opacity: 1;
 }
 
-/* Presence: a jump to a get, match, build, conditions, or apply catalog row
-   restores the other softened Postular steps. The matching step already
-   restores from that hash; hovering that row already restores the others. */
+/* Presence: a jump to a get, match, build, advise, sync, conditions, or apply
+   catalog row restores the other softened Postular steps. The matching step
+   already restores from that hash; hovering that row already restores the
+   others. Advise/sync complete the CV set (build already; dedicated
+   advise/sync steps block already). */
 html.jb-pin-presence:has(
     #cmd-get:target,
     #cmd-match:target,
     #cmd-build:target,
+    #cmd-advise:target,
+    #cmd-sync:target,
     #cmd-conditions:target,
     #cmd-apply:target
   )
@@ -15675,6 +15679,8 @@ html.jb-pin-presence:has(
     #cmd-get:target,
     #cmd-match:target,
     #cmd-build:target,
+    #cmd-advise:target,
+    #cmd-sync:target,
     #cmd-conditions:target,
     #cmd-apply:target
   )
@@ -15683,6 +15689,8 @@ html.jb-pin-presence:has(
     #cmd-get:target,
     #cmd-match:target,
     #cmd-build:target,
+    #cmd-advise:target,
+    #cmd-sync:target,
     #cmd-conditions:target,
     #cmd-apply:target
   )
@@ -15691,6 +15699,8 @@ html.jb-pin-presence:has(
     #cmd-get:target,
     #cmd-match:target,
     #cmd-build:target,
+    #cmd-advise:target,
+    #cmd-sync:target,
     #cmd-conditions:target,
     #cmd-apply:target
   )
@@ -15699,6 +15709,8 @@ html.jb-pin-presence:has(
     #cmd-get:target,
     #cmd-match:target,
     #cmd-build:target,
+    #cmd-advise:target,
+    #cmd-sync:target,
     #cmd-conditions:target,
     #cmd-apply:target
   )
