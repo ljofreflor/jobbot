@@ -467,6 +467,11 @@ rewrite `profile.yaml` — see
 [#408](https://github.com/ljofreflor/jobbot/issues/408) and
 [uml.md#cv-derived-translation](uml.md#cv-derived-translation).
 
+Docs and root help name the entry door (`profile`, `cv`, `get`, `capture`) before
+portal groups; portal commands stay callable under advanced — see
+[#420](https://github.com/ljofreflor/jobbot/issues/420) (no UML; complements
+[#108](https://github.com/ljofreflor/jobbot/issues/108)).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
