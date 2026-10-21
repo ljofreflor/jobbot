@@ -437,6 +437,11 @@ Patterns to prefer while doing this: Specification (conditions), anti-corruption
 homologation (#94), i18n overlay (#221), plan-then-apply Commands. Do not grow a
 second SoT or invent culture-fit.
 
+`JobSourceAdapter.search_jobs` must not collapse transport failure, off-topic
+rows, or a challenge page into an empty list that the CLI prints as
+“No jobs found” — see [#390](https://github.com/ljofreflor/jobbot/issues/390) and
+[uml.md#search-outcome](uml.md#search-outcome).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas

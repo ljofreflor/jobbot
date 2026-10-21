@@ -296,6 +296,44 @@ sequenceDiagram
 
 Reglas: nunca resolver CAPTCHA; nunca informar el desafío como lista vacía (#184); sin TTY no se bloquea el proceso 5 minutos.
 
+## Search outcome — vacío ≠ falla ≠ off-topic {#search-outcome}
+
+Patrones: **Result object**, **discriminated union**. Issues: #390 #176 #184.
+
+```mermaid
+classDiagram
+  direction TB
+  class JobSourceAdapter {
+    <<Protocol>>
+    +search_jobs(JobSearchQuery) list~JobPosting~
+  }
+  class SearchOutcome {
+    <<Result>>
+    +ok|source_failed|off_topic|challenge kind
+    +list~JobPosting~ jobs
+    +str|None detail
+  }
+  class TorreJobSource
+  class GetOnBoardJobSource
+  JobSourceAdapter <|.. TorreJobSource
+  JobSourceAdapter <|.. GetOnBoardJobSource
+  TorreJobSource ..> SearchOutcome : HTTP 400 → source_failed
+  GetOnBoardJobSource ..> SearchOutcome : title≠query → off_topic
+  note for SearchOutcome "empty ok ≠ source_failed\nnever CAPTCHA solve"
+```
+
+```mermaid
+flowchart TD
+  Q[search_jobs query] --> R{HTTP / page}
+  R -->|200 + relevant rows| Ok[kind ok]
+  R -->|200 + empty| Empty[kind ok jobs empty]
+  R -->|4xx/5xx / down| Fail[kind source_failed]
+  R -->|rows other trade| Off[kind off_topic]
+  R -->|challenge page| Ch[kind challenge one pass]
+  Fail --> Msg[print failure not No jobs found]
+  Empty --> MsgOk[may print No jobs found]
+```
+
 ## Cómo citar desde un issue
 
 ```markdown
