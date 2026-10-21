@@ -16871,6 +16871,21 @@ html.jb-pin-presence:has(
 }
 
 /* Presence: a jump to a Vacantes or Postulaciones heading restores the
+   softened Postular lede commands. Cut, pin chapter, and lede name already
+   restore from that hash; other-group and build lede commands already;
+   advise/sync catalog :target already restores these; pin-off apply→Presence
+   lede commands already. */
+html.jb-pin-presence:has(
+    #cmd-vacantes:target,
+    #cmd-vacancies:target,
+    #cmd-postulaciones:target,
+    #cmd-applications:target
+  )
+  a.jb-scrolly__lede-cmd:not(.jb-scrolly__lede-cmd--presence) {
+  opacity: 1;
+}
+
+/* Presence: a jump to a Vacantes or Postulaciones heading restores the
    softened build row. The CV heading already restores it; hovering this
    heading already restores this row. build stays in CV. */
 html.jb-pin-presence:has(
