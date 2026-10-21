@@ -16755,16 +16755,17 @@ html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:
   opacity: 1;
 }
 
-/* Presence: a jump to the build step restores the other softened Postular
-   steps. The build step of that jump stays full; hovering that inactive step
-   already restores these steps (mirror of item 270). */
-html.jb-pin-presence:has(#story-build:target)
+/* Presence: a jump to a CV story step restores the other softened Postular
+   steps. Build already restored here; advise/sync complete the set. The CV
+   step of that jump stays full; hovering that inactive step already restores
+   these steps (mirror of item 270). */
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   #story-get.jb-scrolly__step:not(.is-active),
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   #story-match.jb-scrolly__step:not(.is-active),
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   #story-conditions.jb-scrolly__step:not(.is-active),
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   #story-apply.jb-scrolly__step:not(.is-active) {
   opacity: 1;
 }
