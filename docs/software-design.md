@@ -33,9 +33,9 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
 `public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
-`laborum-sitemap-terms`, `hiringroom-discover`, `reliefweb-discover`. Issues that
-grow the domain cite an anchor and update the diagram in the closing PR. Map:
-[sdd-issue-map.md](sdd-issue-map.md).
+`laborum-sitemap-terms`, `hiringroom-discover`, `reliefweb-discover`,
+`taleo-careersection-discover`. Issues that grow the domain cite an anchor and
+update the diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -547,6 +547,12 @@ ReliefWeb discovery uses API v2 with a locally configured approved `appname`
 website — see
 [#247](https://github.com/ljofreflor/jobbot/issues/247) and
 [uml.md#reliefweb-discover](uml.md#reliefweb-discover).
+
+Taleo careersection discovery uses public `searchjobs` REST with a per-site
+column ACL (closing vs posting date differ by portal) and never invents ORC
+shapes — see
+[#245](https://github.com/ljofreflor/jobbot/issues/245) and
+[uml.md#taleo-careersection-discover](uml.md#taleo-careersection-discover).
 
 ## 9. Related documents
 

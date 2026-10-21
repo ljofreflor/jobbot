@@ -1217,6 +1217,51 @@ flowchart TD
 
 Reglas: ≤1 req/s; UA identificable; appname nunca en el repo; aplicar en el ATS del organismo, no en ReliefWeb.
 
+## Taleo careersection — searchjobs + columnas por sitio {#taleo-careersection-discover}
+
+Patrones: **JobSourceAdapter**, **ACL** (column map per site), multi-site isolation. Issue: #245 (#151 AtsKind.TALEO; ≠ ORC).
+
+```mermaid
+classDiagram
+  direction TB
+  class TaleoDiscover {
+    <<JobSourceAdapter>>
+    +discover_site() SiteOutcome
+  }
+  class CareerSectionSite {
+    +str host
+    +str section
+    +str|None portal
+    +list column_roles
+  }
+  class ColumnACL {
+    <<ACL>>
+    +map(columns) title|locations|posted|closes
+  }
+  TaleoDiscover --> CareerSectionSite
+  TaleoDiscover --> ColumnACL : per site
+  note for ColumnACL "FAO closes_at col ≠ WHO posted_at col\ninfer from jobsearch.ftl labels"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as jobs discover --source taleo
+  participant Ad as TaleoDiscover
+  participant FTL as jobsearch.ftl
+  participant API as POST searchjobs
+  CLI->>Ad: site host/section or registry
+  alt portal missing
+    Ad->>FTL: GET extract portal=
+  end
+  loop pageNo until total or --limit
+    Ad->>API: KEYWORD + portal
+    API-->>Ad: requisitionList + pagingData
+  end
+  Note over Ad: peer unavailable → continue; bad --site → exit 2
+```
+
+Reglas: sin sesión/cookies de candidato; URL pública `jobdetail.ftl?job={contestNo}`; postular fuera de alcance.
+
 ## Cómo citar desde un issue
 
 ```markdown
