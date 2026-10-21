@@ -16620,47 +16620,47 @@ html.jb-pin-presence:has(#story-advise:target, #story-sync:target)
   box-shadow: inset 3px 0 0 rgba(0, 88, 248, 0.22);
 }
 
-/* Presence: a jump to the build step restores both softened apply-only groups
-   (bar, heading, and table). The build row jump already restores them; hovering
-   that inactive step already restores these groups (mirror of item 248).
-   CV itself is not dimmed. */
-html.jb-pin-presence:has(#story-build:target)
+/* Presence: a jump to a CV story step restores both softened apply-only
+   groups (bar, heading, and table). Build already restored here; advise/sync
+   complete the set. Catalog-row jumps and inactive-step hover already restore
+   these groups (mirror of item 248). CV itself is not dimmed. */
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-cmdnav
   a[href="#cmd-vacantes"],
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-cmdnav
   a[href="#cmd-vacancies"],
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-cmdnav
   a[href="#cmd-postulaciones"],
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-cmdnav
   a[href="#cmd-applications"],
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-vacantes,
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-vacancies,
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-postulaciones,
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-applications,
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-vacantes
   + table,
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-vacancies
   + table,
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-postulaciones
   + table,
-html.jb-pin-presence:has(#story-build:target)
+html.jb-pin-presence:has(#story-build:target, #story-advise:target, #story-sync:target)
   .jb-section--cmds
   h3#cmd-applications
   + table {
