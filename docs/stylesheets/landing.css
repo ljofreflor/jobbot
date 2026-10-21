@@ -6262,6 +6262,22 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when an apply catalog row is :target
+   (pill+heading navy above; blue cross-wash table uses :not(.is-pin-step) so
+   it does not cover the pin-marked heading; mirrors apply heading :target
+   navy table inset). */
+html.jb-pin-presence:has(
+    #cmd-get:target,
+    #cmd-match:target,
+    #cmd-conditions:target,
+    #cmd-apply:target
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash on CV catalog chrome when hovering an apply catalog row
    without requiring the Presence pin (same cue as catalog-row :target → CV
    above; mirrors Vacantes/Postulaciones chrome scan → CV). */
