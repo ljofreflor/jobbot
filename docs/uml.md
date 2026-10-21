@@ -1052,6 +1052,48 @@ flowchart TD
 
 Reglas: titular no es la única query; chrome de página no es requisito faltante; lado perfil solo añade; domain-agnostic (#118).
 
+## Workday session — un tenant, un host {#workday-session-tenant}
+
+Patrones: **Value Object** (site = career host), **Port** `inspect_sessions` con puertos extensibles. Issue: #394 (#216 aviso de login; #56 tour).
+
+```mermaid
+classDiagram
+  direction TB
+  class SessionState {
+    +str site
+    +ready|needs_login|unknown|profile_busy status
+    +int|None port
+  }
+  class inspect_sessions {
+    <<Port>>
+    +run(ports) list~SessionState~
+  }
+  class WorkdayTenant {
+    <<Value Object>>
+    +str host
+  }
+  inspect_sessions --> SessionState
+  SessionState --> WorkdayTenant : site == host
+  note for WorkdayTenant "acme.wd5… ≠ other.wd5…\nno generic workday id\nextra ports e.g. 9225"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as browser sessions
+  participant Insp as inspect_sessions
+  participant CDP as Chrome CDP ports
+  CLI->>Insp: ports = DEFAULT ∪ extras
+  Insp->>CDP: probe each port
+  CDP-->>Insp: tab URL host
+  alt host is Workday tenant + signed-in evidence
+    Insp-->>CLI: ready site=that host
+  else other tenant
+    Insp-->>CLI: no ready for that other host
+  end
+```
+
+Reglas: no login ni fill aquí; company tab sigue sin ser `ready` genérico salvo evidencia de ese host.
+
 ## Cómo citar desde un issue
 
 ```markdown

@@ -60,6 +60,14 @@ issue ya cita UML y el diagrama está al día.
 | #215 | Workday CXS detail ACL + ClosingInstant | [workday-cxs-detail](uml.md#workday-cxs-detail) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [215](sdd-issue-patches/215.md) |
 | #56 | Command browser login tour + session Guard | [browser-login-tour](uml.md#browser-login-tour) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [56](sdd-issue-patches/56.md) |
 | #118 | Preference search_queries + experience matcher | [experience-first-search](uml.md#experience-first-search) · [fact-preference](uml.md#fact-preference) · [ports](uml.md#ports) | body_ready | [118](sdd-issue-patches/118.md) |
+| #394 | Workday tenant session + extra CDP port | [workday-session-tenant](uml.md#workday-session-tenant) · [browser-login-tour](uml.md#browser-login-tour) · [ports](uml.md#ports) | body_ready | [394](sdd-issue-patches/394.md) |
+| #396 | Laborum sitemap JobSource | [ports](uml.md#ports) | pending | — |
+| #377 | HiringRoom discover paginator | [ports](uml.md#ports) | pending | — |
+| #247 | ReliefWeb discover (API v2) | [ports](uml.md#ports) | pending | — |
+| #245 | Taleo careersection discover | [ports](uml.md#ports) | pending | — |
+| #230 | SuccessFactors CSB discover | [ports](uml.md#ports) | pending | — |
+| #298 | LATAM master table seed→promote | [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | pending | — |
+| #251 | WhatsApp HITL question queue | [plan-apply](uml.md#plan-apply) · [hitl-pause](uml.md#hitl-pause) | pending | — |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

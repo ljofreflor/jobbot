@@ -32,8 +32,8 @@ UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `po
 `plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
 `posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
 `indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
-`public-queue-sync`, `capability-gap-map`. Issues that grow the domain cite an
-anchor and update the diagram in the closing PR. Map:
+`public-queue-sync`, `capability-gap-map`, `workday-session-tenant`. Issues that
+grow the domain cite an anchor and update the diagram in the closing PR. Map:
 [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
@@ -524,6 +524,11 @@ Search queries and matching come from experience evidence, not an occupation
 default or page chrome misread as skills — see
 [#118](https://github.com/ljofreflor/jobbot/issues/118) and
 [uml.md#experience-first-search](uml.md#experience-first-search).
+
+`browser sessions` keys Workday evidence by career-site **host** (one tenant ≠
+another) and may probe CDP ports beyond 9222–9224 — see
+[#394](https://github.com/ljofreflor/jobbot/issues/394) and
+[uml.md#workday-session-tenant](uml.md#workday-session-tenant).
 
 ## 9. Related documents
 
