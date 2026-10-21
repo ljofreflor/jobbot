@@ -29,8 +29,10 @@ engineering map.
 Direction of dependency: **domain → adapters**, never the reverse.
 
 UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `ports`,
-`plan-apply`, `specification`, `acl`. Issues that grow the domain cite an anchor
-and update the diagram in the closing PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
+`plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
+`posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`.
+Issues that grow the domain cite an anchor and update the diagram in the closing
+PR. Map: [sdd-issue-map.md](sdd-issue-map.md).
 
 ## 2. Layered structure
 
@@ -441,6 +443,11 @@ second SoT or invent culture-fit.
 rows, or a challenge page into an empty list that the CLI prints as
 “No jobs found” — see [#390](https://github.com/ljofreflor/jobbot/issues/390) and
 [uml.md#search-outcome](uml.md#search-outcome).
+
+`jobbot update` / `-U` must take a local pid lock before `uv tool install
+--force` so two concurrent upgrades cannot clobber the executable — see
+[#398](https://github.com/ljofreflor/jobbot/issues/398) and
+[uml.md#update-mutex](uml.md#update-mutex).
 
 ## 9. Related documents
 

@@ -427,6 +427,44 @@ sequenceDiagram
   Note over CLI: profile.yaml never written
 ```
 
+## Update mutex — un solo `jobbot update` a la vez {#update-mutex}
+
+Patrones: **Mutex** / exclusive lock file (pid + stale reclaim). Issue: #398 (#189 dejó el lock fuera).
+
+```mermaid
+classDiagram
+  direction TB
+  class UpdateLock {
+    <<Value Object>>
+    +Path path
+    +int pid
+  }
+  class update_jobbot {
+    <<Command>>
+    +run() UpdateResult
+  }
+  update_jobbot --> UpdateLock : acquire before uv
+  note for UpdateLock "path under workspace data/\nlive pid → refuse\ndead pid → reclaim\nfinally → release"
+```
+
+```mermaid
+sequenceDiagram
+  participant CLI as jobbot update / -U
+  participant Lock as UpdateLock
+  participant UV as uv tool install --force
+  CLI->>Lock: try acquire (pid file)
+  alt lock held by live pid
+    Lock-->>CLI: busy → exit 1 (no uv)
+  else missing or stale pid
+    Lock->>Lock: write own pid
+    CLI->>UV: reinstall (mockable)
+    UV-->>CLI: ok | fail
+    CLI->>Lock: release (finally)
+  end
+```
+
+Reglas: el lock vive junto al data del workspace (no en un checkout compartido sin workspace); nunca inventar el lock en el repo; tests mockean el instalador — sin `uv` real.
+
 ## Cómo citar desde un issue
 
 ```markdown

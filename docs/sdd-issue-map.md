@@ -45,7 +45,7 @@ issue ya cita UML y el diagrama está al día.
 | #388 | Command `jobs add --url` / `jobs verify` | [posting-url-verify](uml.md#posting-url-verify) · [ports](uml.md#ports) | body_ready | [388](sdd-issue-patches/388.md) |
 | #386 | ProfileAdapter LinkedIn /details/ | [linkedin-details-pull](uml.md#linkedin-details-pull) · [ports](uml.md#ports) | body_ready | [386](sdd-issue-patches/386.md) |
 | #384 | LLM extract JD (never invent) | [jd-llm-extract](uml.md#jd-llm-extract) · [ports](uml.md#ports) | body_ready | [384](sdd-issue-patches/384.md) |
-| #398 | Mutex `jobbot update` | [plan-apply](uml.md#plan-apply) | pending | — |
+| #398 | Mutex `jobbot update` | [update-mutex](uml.md#update-mutex) · [plan-apply](uml.md#plan-apply) | body_ready | [398](sdd-issue-patches/398.md) |
 | #412 | Indeed Apply advance, no Submit | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | pending | — |
 | #410 | postulate --apply + promote aparte | [plan-apply](uml.md#plan-apply) · [ports](uml.md#ports) | pending | — |
 | #408 | cv build derived translation | [ports](uml.md#ports) · [fact-preference](uml.md#fact-preference) | pending | — |
