@@ -17106,6 +17106,16 @@ body:has(.jb-hero) .md-typeset .jb-section--cmds td:first-child code {
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when a catalog in-story landing is
+   :target (heading navy above; blue table uses :not(.is-pin-step) so it does
+   not cover the pin-marked heading; mirrors CV story-row :target table inset;
+   chrome-scan body:has omits .jb-in-story:target). */
+.jb-section--cmds
+  h3.is-pin-step.is-pin-presence:has(+ table .jb-in-story:target)
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Presence catalog landings keep the navy ring (advise / sync). */
 .jb-section--cmds .jb-in-story:has(.jb-in-story__tag--presence):focus-visible {
   outline-color: var(--jb-navy);
