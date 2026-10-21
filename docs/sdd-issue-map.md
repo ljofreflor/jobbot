@@ -36,6 +36,10 @@ issue ya cita UML y el diagrama está al día.
 | #284 | WritableProfileAdapter (LinkedIn sections) | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [284](sdd-issue-patches/284.md) |
 | #207 | Strategy check-open + Verdict | [ports](uml.md#ports) · [specification](uml.md#specification) | body_ready | [207](sdd-issue-patches/207.md) |
 | #140 | presentations VO + Strategy | [ports](uml.md#ports) · [fact-preference](uml.md#fact-preference) | body_ready | [140](sdd-issue-patches/140.md) |
+| #416 | Command rejection proposal | [plan-apply](uml.md#plan-apply) | body_ready | [416](sdd-issue-patches/416.md) |
+| #406 | ACL form gap + HITL | [acl](uml.md#acl) · [plan-apply](uml.md#plan-apply) | body_ready | [406](sdd-issue-patches/406.md) |
+| #220 | Apply port step-by-step | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [220](sdd-issue-patches/220.md) |
+| #157 | Local vault (not Candidate) | [ports](uml.md#ports) | body_ready | [157](sdd-issue-patches/157.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 
