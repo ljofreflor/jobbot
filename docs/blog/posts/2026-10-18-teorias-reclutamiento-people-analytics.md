@@ -2,7 +2,7 @@
 date: 2026-10-18
 slug: teorias-reclutamiento-people-analytics
 categories:
-  - Diseño
+  - Ensayos
 title: Teorías de reclutamiento y people analytics que el diseño todavía no tipa
 description: >-
   Qué dice la literatura de selección de personal y people analytics que JobBot
