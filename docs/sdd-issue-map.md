@@ -72,6 +72,10 @@ issue ya cita UML y el diagrama está al día.
 | #241 | Trabajando white-label idDominio | [trabajando-white-label-discover](uml.md#trabajando-white-label-discover) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [241](sdd-issue-patches/241.md) |
 | #240 | Empleos Públicos live feeds + CDP | [empleos-publicos-live](uml.md#empleos-publicos-live) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [240](sdd-issue-patches/240.md) |
 | #269 | Promote policy + share opt-in + one model | [companies-promote-policy](uml.md#companies-promote-policy) · [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | body_ready | [269](sdd-issue-patches/269.md) |
+| #268 | Catalog unknown recon + technical evidence | [catalog-unknown-recon](uml.md#catalog-unknown-recon) · [ports](uml.md#ports) · [companies-promote-policy](uml.md#companies-promote-policy) | body_ready | [268](sdd-issue-patches/268.md) |
+| #249 | BCI seed + Cornerstone CSOD evidence | [bci-cornerstone-recon](uml.md#bci-cornerstone-recon) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [249](sdd-issue-patches/249.md) |
+| #224 | Non-tech sources epic (registry + blocked) | [nontech-source-epic](uml.md#nontech-source-epic) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [224](sdd-issue-patches/224.md) |
+| #214 | Workday E2E epic Facade | [workday-e2e-epic](uml.md#workday-e2e-epic) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [214](sdd-issue-patches/214.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

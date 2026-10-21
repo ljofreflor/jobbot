@@ -593,6 +593,27 @@ workspace opt-in with a revisable queue; the Chile catalog merges into
 `companies` (one model) — see [#269](https://github.com/ljofreflor/jobbot/issues/269) and
 [uml.md#companies-promote-policy](uml.md#companies-promote-policy).
 
+Catalog channels still `ats_family=unknown` are recon'd by employer impact with
+technical evidence only; refused reads do not shrink `unknown`, and identify ≠
+enable — see [#268](https://github.com/ljofreflor/jobbot/issues/268) and
+[uml.md#catalog-unknown-recon](uml.md#catalog-unknown-recon).
+
+BCI's career portal is seeded with a canonical hint; Cornerstone is observed via
+CSOD/CSP evidence, never invented as Workday from an unverified host — see
+[#249](https://github.com/ljofreflor/jobbot/issues/249) and
+[uml.md#bci-cornerstone-recon](uml.md#bci-cornerstone-recon).
+
+Non-technical / international posting sources (UN Careers, PageUp, Impactpool,
+Avature, Cornerstone, Lumesse, municipal PDFs) register as adapters or typed
+`discovery: blocked` under one epic contract — see
+[#224](https://github.com/ljofreflor/jobbot/issues/224) and
+[uml.md#nontech-source-epic](uml.md#nontech-source-epic).
+
+Workday end-to-end (CXS discover, check-open, profile diff/push, assisted apply)
+is one Facade over tenant-scoped ports with a transversal no-Submit guard — see
+[#214](https://github.com/ljofreflor/jobbot/issues/214) and
+[uml.md#workday-e2e-epic](uml.md#workday-e2e-epic).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas

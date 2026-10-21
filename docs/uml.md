@@ -1563,6 +1563,181 @@ flowchart TD
 
 Reglas: uso local solo no promueve; contradicción → `stale`; catálogo #265 se fusiona en `companies` (canal = CareerSite); sin telemetría.
 
+## Catalog unknown recon — evidencia, no inventar ATS {#catalog-unknown-recon}
+
+Patrones: **Command** recon por impacto, **Specification** evidencia técnica, **Observation** stale-safe. Issue: #268 (cobertura #265; recon #45; promote #269).
+
+```mermaid
+classDiagram
+  direction TB
+  class UnknownChannel {
+    <<Registry row>>
+    +ats_family unknown
+    +employer_count
+  }
+  class TechnicalAtsEvidence {
+    <<Specification>>
+    +host_rule|redirect|html_marker
+  }
+  class CatalogUnknownRecon {
+    <<Command>>
+    +list_by_impact()
+    +observe(html|cdp)
+  }
+  class AtsObservation {
+    +family
+    +evidence_url
+    +observed_at
+  }
+  CatalogUnknownRecon --> UnknownChannel : prioritizes
+  CatalogUnknownRecon --> TechnicalAtsEvidence : requires
+  CatalogUnknownRecon --> AtsObservation : writes
+  note for CatalogUnknownRecon "403/robots = unread\nidentify ≠ enable"
+```
+
+```mermaid
+flowchart TD
+  List[list unknown by employer impact] --> Recon[recon fixture|CDP]
+  Recon --> Ev{technical evidence?}
+  Ev -->|yes| Obs[write family + observation]
+  Ev -->|no| Keep[stay unknown]
+  Recon --> Refused[403 / timeout / robots]
+  Refused --> Keep
+  Obs --> Cov[coverage reorder unlock ranking]
+  Obs --> Pend[pending adapter — not auto-active]
+```
+
+Reglas: hostname solo no basta; contradicción → `stale`; denominador de canales no cambia; sin cuentas ni postulación.
+
+## BCI Cornerstone — seed + evidencia CSOD {#bci-cornerstone-recon}
+
+Patrones: **Seed hint**, **ACL/detect** CSOD, **Guard** no inventar Workday. Issue: #249 (#151 Cornerstone; #45 recon).
+
+```mermaid
+classDiagram
+  direction LR
+  class CareerUrlHint {
+    +url trabajaenbci.cl/
+  }
+  class CsodEvidence {
+    <<ACL>>
+    +host *.csod.com
+    +csp frame-src|form-action
+  }
+  class AtsKind {
+    <<enumeration>>
+    cornerstone
+    unknown
+  }
+  CareerUrlHint --> CompanyRegistry : seed
+  CsodEvidence --> AtsKind : observe
+  note for AtsKind "never workday without\nWorkday marker on own portal"
+```
+
+```mermaid
+flowchart TD
+  Seed[career_url_hints BCI] --> Learn[companies learn]
+  Learn --> Recon[recon fixture HTML/CSP]
+  Recon --> CSOD{csod.com evidence?}
+  CSOD -->|yes| CS[cornerstone or unknown+cited]
+  CSOD -->|no| U[unknown]
+  Recon --> WD{workday marker on portal?}
+  WD -->|no| Skip[do not invent workday ATS]
+```
+
+Reglas: SPA listado fuera de alcance live; reCAPTCHA HITL; promote → recon → sync humanos.
+
+## Non-tech sources epic — registry + blocked {#nontech-source-epic}
+
+Patrones: **Epic Facade**, **JobSourceAdapter** registry, **Guard** blocked. Issue: #224 (hijos #233–#239; hermana #180; bolsas #191).
+
+```mermaid
+classDiagram
+  direction TB
+  class NonTechSourceEpic {
+    <<Facade>>
+  }
+  class JobSourceAdapter {
+    <<Protocol>>
+  }
+  class DiscoveryBlocked {
+    <<Value Object>>
+    +reason
+    +reviewed_at
+  }
+  class SourceId {
+    <<enumeration>>
+    un_careers
+    pageup
+    impactpool
+    avature
+    cornerstone
+    lumesse
+    pdf_index
+  }
+  NonTechSourceEpic --> SourceId : registers
+  SourceId --> JobSourceAdapter : enabled
+  SourceId --> DiscoveryBlocked : refused
+  JobSourceAdapter ..> JobPosting : ACL map
+```
+
+```mermaid
+flowchart TD
+  Discover[jobs discover --source X] --> Gate{robots / terms / token?}
+  Gate -->|blocked| Exit2[exit 2 — zero sockets]
+  Gate -->|ok| Adapt[JobSourceAdapter + fake fetch]
+  Adapt --> Map[ACL → JobPosting]
+  Adapt --> Outcome{empty | refused | rows}
+  Map --> Dedupe[source + source_job_id]
+  Map --> Close[closure — no expired as open]
+```
+
+Reglas: queries del perfil; UA + ≤1 req/s; sin login/CAPTCHA bypass; OCR fuera; hijos implementan o declaran blocked.
+
+## Workday E2E epic — discover → profile → apply HITL {#workday-e2e-epic}
+
+Patrones: **Epic Facade**, puertos Workday, **Command** plan-apply, **Guard** no Submit. Issue: #214 (hijos #215–#220 #225; sesión #216/#394; vigencia #207).
+
+```mermaid
+classDiagram
+  direction TB
+  class WorkdayE2E {
+    <<Facade>>
+  }
+  class WorkdayCxsSource {
+    <<JobSourceAdapter>>
+  }
+  class WorkdayProfilePort {
+    <<ProfileAdapter>>
+  }
+  class WorkdayApplyPort {
+    <<ApplicationPortalAdapter>>
+  }
+  class TenantSession {
+    <<Guard>>
+    +host keyed evidence
+  }
+  WorkdayE2E --> WorkdayCxsSource : discover/get
+  WorkdayE2E --> WorkdayProfilePort : diff/push
+  WorkdayE2E --> WorkdayApplyPort : prefill HITL
+  WorkdayE2E --> TenantSession : one account/tenant
+```
+
+```mermaid
+flowchart TD
+  Learn[companies learn tenant] --> Disc[jobs discover CXS]
+  Disc --> Get[get / add --url CXS]
+  Get --> Open[check-open signals]
+  Learn --> Signup[signup HITL — no password]
+  Signup --> Sess[browser sessions per host]
+  Sess --> Diff[profile diff]
+  Diff --> Push[profile push --apply]
+  Push --> Apply[application apply --apply]
+  Apply --> Stop[stop before Submit]
+```
+
+Reglas: CXS público sin login para discover/detalle; perfil = proyección SST; nunca password/términos/autoidentificación/Submit; UI_CHANGED=5.
+
 ## Cómo citar desde un issue
 
 ```markdown
