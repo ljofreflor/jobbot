@@ -40,6 +40,18 @@ issue ya cita UML y el diagrama está al día.
 | #406 | ACL form gap + HITL | [acl](uml.md#acl) · [plan-apply](uml.md#plan-apply) | done | [406](sdd-issue-patches/406.md) |
 | #220 | Apply port step-by-step | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [220](sdd-issue-patches/220.md) |
 | #157 | Local vault (not Candidate) | [ports](uml.md#ports) | done | [157](sdd-issue-patches/157.md) |
+| #392 | Guard TTY + HITL pause (Indeed challenge) | [hitl-pause](uml.md#hitl-pause) · [plan-apply](uml.md#plan-apply) | body_ready | [392](sdd-issue-patches/392.md) |
+| #390 | Explicit failure vs empty search | [ports](uml.md#ports) · [specification](uml.md#specification) | pending | — |
+| #388 | Command `jobs add --url` verify | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | pending | — |
+| #386 | ProfileAdapter LinkedIn /details/ | [ports](uml.md#ports) · [acl](uml.md#acl) | pending | — |
+| #384 | LLM extract JD (never invent) | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | pending | — |
+| #398 | Mutex `jobbot update` | [plan-apply](uml.md#plan-apply) | pending | — |
+| #412 | Indeed Apply advance, no Submit | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | pending | — |
+| #410 | postulate --apply + promote aparte | [plan-apply](uml.md#plan-apply) · [ports](uml.md#ports) | pending | — |
+| #408 | cv build derived translation | [ports](uml.md#ports) · [fact-preference](uml.md#fact-preference) | pending | — |
+| #420 | Tutorial entry door only | docs (no UML) | pending | — |
+| #418 | Public queue sync PR + `-U` | [ports](uml.md#ports) | pending | — |
+| #424 | ai-job-search gaps → contracts | [ports](uml.md#ports) | pending | — |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

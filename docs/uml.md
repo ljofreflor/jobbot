@@ -273,6 +273,29 @@ flowchart LR
   Path --> Candidate
 ```
 
+## HITL pause — desafío / CAPTCHA (sin bypass) {#hitl-pause}
+
+Patrones: **Guard** (TTY), **Template Method** (`pause_for_manual`). Issue: #392.
+
+```mermaid
+sequenceDiagram
+  participant Adapter as Indeed JobSource
+  participant Session as BrowserSession
+  participant Human
+  Adapter->>Session: pause_for_manual(is_clear, 300s)
+  alt stdin is TTY
+    Session->>Human: Enter / poll until clear
+    Human-->>Session: cleared or timeout
+    Session-->>Adapter: True | False
+  else no TTY (agent / pipe)
+    Note over Session: no 300s wait (#392)
+    Session-->>Adapter: False (fail fast)
+    Adapter-->>Adapter: exit 4 + ops failure
+  end
+```
+
+Reglas: nunca resolver CAPTCHA; nunca informar el desafío como lista vacía (#184); sin TTY no se bloquea el proceso 5 minutos.
+
 ## Cómo citar desde un issue
 
 ```markdown
