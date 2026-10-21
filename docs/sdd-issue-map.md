@@ -52,6 +52,10 @@ issue ya cita UML y el diagrama está al día.
 | #420 | Tutorial entry door only | docs (no UML) | body_ready | [420](sdd-issue-patches/420.md) |
 | #418 | Public queue sync PR + `-U` | [public-queue-sync](uml.md#public-queue-sync) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [418](sdd-issue-patches/418.md) |
 | #424 | ai-job-search gaps → contracts | [capability-gap-map](uml.md#capability-gap-map) · [ports](uml.md#ports) | body_ready | [424](sdd-issue-patches/424.md) |
+| #402 | Strategy attach_cv + no Submit | [indeed-apply-attach](uml.md#indeed-apply-attach) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [402](sdd-issue-patches/402.md) |
+| #374 | Preference SearchFilters + dry-run | [search-filters](uml.md#search-filters) · [fact-preference](uml.md#fact-preference) · [plan-apply](uml.md#plan-apply) | body_ready | [374](sdd-issue-patches/374.md) |
+| #54 | Command cv tune-for (budget + HITL) | [cv-tune-for](uml.md#cv-tune-for) · [plan-apply](uml.md#plan-apply) · [fact-preference](uml.md#fact-preference) | body_ready | [54](sdd-issue-patches/54.md) |
+| #285 | WritableProfileAdapter + field limits | [trabajando-profile-push](uml.md#trabajando-profile-push) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [285](sdd-issue-patches/285.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

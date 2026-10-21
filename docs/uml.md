@@ -691,6 +691,186 @@ classDiagram
 
 Reglas: #424 se cumple documentando contratos, no shippeando las seis features en un solo PR.
 
+## Indeed Apply — adjuntar PDF del aviso, nunca Enviar {#indeed-apply-attach}
+
+Patrones: **Strategy** (`attach_cv`), **Command** (solo `set_input_files`). Issue: #402. Complementa [#412](uml.md#indeed-apply-advance) (avance). Fuera: Siguiente, CAPTCHA, 2FA, términos, Submit.
+
+```mermaid
+classDiagram
+  direction TB
+  class IndeedApplyAdapter {
+    <<ApplicationPortalAdapter>>
+    +page_asks_for_cv() bool
+    +tailored_cv_path() Path|None
+    +attach_cv(page)
+  }
+  class TailoredCv {
+    <<Artifact>>
+    +Path job_package_pdf
+  }
+  IndeedApplyAdapter --> TailoredCv : set_input_files if asks
+  note for IndeedApplyAdapter "null path → missing_tailored_cv\ncover-letter input ignored\nno Submit click"
+```
+
+```mermaid
+sequenceDiagram
+  participant Ad as IndeedApplyAdapter
+  participant Page
+  Ad->>Ad: page_asks_for_cv?
+  alt false
+    Ad-->>Ad: no set_input_files
+  else true + tailored path
+    Ad->>Page: set_input_files(cv.pdf)
+  else true + missing path
+    Ad-->>Ad: print missing_tailored_cv
+  end
+  Note over Ad,Page: never click Enviar / Postular / Submit
+```
+
+Reglas: solo el PDF del paquete del aviso; input de carta no recibe CV; envío final = HITL (#402).
+
+## Search filters — preferencia antes de upsert {#search-filters}
+
+Patrones: **Preference** (`SearchFilters`), **Specification** (`apply_search_filters`), **Command** dry-run / confirm / `--store`. Issue: #374. Relacionado: [`search-outcome`](uml.md#search-outcome), [`fact-preference`](uml.md#fact-preference).
+
+```mermaid
+classDiagram
+  direction TB
+  class SearchFilters {
+    <<Preference VO>>
+    +list~str~ exclude_title_terms
+    +list locations
+    +Relocation|None relocation
+    +Money|None min_salary
+  }
+  class FilterDecision {
+    <<Result>>
+    +keep|drop verdict
+    +str reason
+  }
+  class apply_search_filters {
+    <<Specification>>
+    +decide(JobPosting, SearchFilters) FilterDecision
+  }
+  SearchFilters --> apply_search_filters
+  apply_search_filters --> FilterDecision
+  note for SearchFilters "not a Fact; profile validate\nunknown currency → reject"
+```
+
+```mermaid
+flowchart TD
+  S[search / torre / getonboard] --> D{--dry-run?}
+  D -->|yes| T[table: keep/drop + reason]
+  T --> Z[no DB / companies write]
+  D -->|no + TTY| C{confirm?}
+  C -->|no| X[exit 130]
+  C -->|yes| F[apply_search_filters]
+  D -->|--store| F
+  F --> U[upsert keep rows only]
+```
+
+Reglas: sin filtros = comportamiento actual; `--dry-run --store` = exit 2; motivos estables («título excluido», «renta no publicada», …). Fuera: label Torre Remote (#181), check-open (#207).
+
+## CV tune-for — mejora acotada desde un aviso {#cv-tune-for}
+
+Patrones: **Command** (`cv tune-for`), budget, HITL `--apply`. Issue: #54. Reusa gates de `cv advise` (never invent / no-drop).
+
+```mermaid
+sequenceDiagram
+  participant CLI as cv tune-for
+  participant Get as hard-link ingest
+  participant Adv as cv advise --job
+  participant Hum as Human
+  participant SoT as profile.yaml
+  alt URL
+    CLI->>Get: store JobPosting
+  else Jxxxx
+    CLI->>CLI: load stored
+  end
+  CLI->>Adv: scope=that job; budget 3..5
+  Adv-->>CLI: suggestions (invention dropped)
+  alt --apply
+    loop each suggestion
+      CLI->>Hum: y / N / skip-all
+      Hum-->>CLI: yes
+      CLI->>SoT: backup then write
+    end
+  else dry-run
+    CLI-->>CLI: print only
+  end
+```
+
+```mermaid
+classDiagram
+  direction TB
+  class TuneForCommand {
+    <<Command>>
+    +url_or_job_id
+    +budget int
+    +apply bool
+  }
+  class AdviceBudget {
+    <<Value Object>>
+    +int max_suggestions
+  }
+  TuneForCommand --> AdviceBudget
+  TuneForCommand --> JobPosting : scopes
+  note for TuneForCommand "~5% product metaphor\nnot a percentage calc\ncv build --job stays derived"
+```
+
+Reglas: no reescribe el baseline entero; tailored CV sigue en `cv build --job`; LLM opcional queda en advise.
+
+## Trabajando.cl — perfil por sección + límites {#trabajando-profile-push}
+
+Patrones: **WritableProfileAdapter**, **Validator** de límites (SST + legacy), **ACL** CEFR→nivel, plan-then-apply. Issues: #285 (#150 fila 7).
+
+```mermaid
+classDiagram
+  direction TB
+  class TrabajandoProfileAdapter {
+    <<WritableProfileAdapter>>
+    +diff()
+    +sync_plan(section)
+    +apply(section)
+  }
+  class FieldLimit {
+    <<Value Object>>
+    +str field
+    +int max_len
+  }
+  class LegacyViolation {
+    <<Result>>
+    +str entry_id
+    +str field
+    +int length
+  }
+  class SectionPlan {
+    <<Command plan>>
+    +full section payload
+    +list~LegacyViolation~ blockers
+    +list needs_human
+  }
+  TrabajandoProfileAdapter --> FieldLimit
+  TrabajandoProfileAdapter --> SectionPlan
+  SectionPlan *-- LegacyViolation
+  note for SectionPlan "portal re-POSTs whole section\nlegacy over-limit → refuse push\nno RUN / DOB / invented jornada"
+```
+
+```mermaid
+flowchart TD
+  Diff[portals profile diff trabajando] --> L{legacy over limit?}
+  L -->|yes| Warn[mark blocker on entry]
+  Push[push --section --apply] --> V{SST or legacy invalid?}
+  V -->|yes| E2[exit 2; no HTTP]
+  V -->|no| HITL[confirm section]
+  HITL -->|no| E130[exit 130]
+  HITL -->|yes| POST[save section]
+  POST -->|400| E1[exit 1; state unchanged]
+  POST -->|ok| Reread[re-read; mark updated]
+```
+
+Reglas: `--fix-legacy` propone recorte con confirm por entrada; `needs_human` para renta/jornada sin hecho; fixtures sin PII.
+
 ## Cómo citar desde un issue
 
 ```markdown

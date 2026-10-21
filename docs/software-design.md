@@ -483,6 +483,27 @@ row has its own test contract — see
 [#424](https://github.com/ljofreflor/jobbot/issues/424) and
 [uml.md#capability-gap-map](uml.md#capability-gap-map).
 
+Indeed Apply may `set_input_files` with the tailored PDF when the step asks for
+a CV, and must never click Enviar/Submit — see
+[#402](https://github.com/ljofreflor/jobbot/issues/402) and
+[uml.md#indeed-apply-attach](uml.md#indeed-apply-attach).
+
+`search_filters` (preference, not Fact) and `--dry-run` decide keep/drop before
+`upsert_external` — see
+[#374](https://github.com/ljofreflor/jobbot/issues/374) and
+[uml.md#search-filters](uml.md#search-filters).
+
+`cv tune-for` scopes advise to one posting with a small suggestion budget and
+HITL `--apply` — see
+[#54](https://github.com/ljofreflor/jobbot/issues/54) and
+[uml.md#cv-tune-for](uml.md#cv-tune-for).
+
+Trabajando.cl `portals profile diff|push` validates field limits (including
+legacy rows that would HTTP 400 the whole section) and never invents
+RUN/jornada/salary — see
+[#285](https://github.com/ljofreflor/jobbot/issues/285) and
+[uml.md#trabajando-profile-push](uml.md#trabajando-profile-push).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
