@@ -6464,6 +6464,26 @@ html.jb-pin-presence:has(
   background: rgba(0, 24, 56, 0.05);
 }
 
+/* Presence pin on CV: navy table inset when hovering an apply lede command
+   (pill+heading navy above; blue cross-wash table uses :not(.is-pin-step) so
+   it does not cover the pin-marked heading; mirrors apply catalog-row hover
+   navy table inset). */
+html.jb-pin-presence:has(
+    a.jb-scrolly__lede-cmd[href="#story-get"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-get"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-match"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-conditions"]:focus-visible,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:hover,
+    a.jb-scrolly__lede-cmd[href="#story-apply"]:focus-visible
+  )
+  .jb-section--cmds
+  h3#cmd-cv.is-pin-presence
+  + table {
+  box-shadow: inset 3px 0 0 rgba(0, 24, 56, 0.22);
+}
+
 /* Soft wash on CV catalog chrome when scanning an inactive apply story
    step without requiring the Presence pin (same cue as apply lede → CV
    above; mirrors inactive CV step → CV chrome). */
