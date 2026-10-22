@@ -29,7 +29,9 @@ def test_build_pdf(project_root: Path, tmp_path: Path) -> None:
     names = {p.name for p in outputs}
     assert "cv.tex" in names
     assert "cv.pdf" in names
+    assert "Ana_Ejemplo_CV.pdf" in names
     assert (tmp_path / "output" / "base" / "cv.pdf").is_file()
+    assert (tmp_path / "output" / "base" / "Ana_Ejemplo_CV.pdf").is_file()
 
 
 @pytest.mark.skipif(shutil.which("xelatex") is None, reason="xelatex not installed")
