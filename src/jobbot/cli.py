@@ -7349,6 +7349,7 @@ def portals_profile_status(
     from datetime import UTC, datetime
 
     from jobbot.portals.profile_state import (
+        account_coverage,
         coverage_report,
         cv_hashes_from_output,
         default_state_path,
@@ -7386,6 +7387,8 @@ def portals_profile_status(
     if as_json:
         console.print_json(data=report.to_public_dict())
         return
+    ready, counted = account_coverage(states)
+    console.print(f"accounts {ready}/{counted}")
     console.print(
         f"KPI {report.kpi_num}/{report.kpi_den}  "
         f"automation {report.automation:.0%}  "

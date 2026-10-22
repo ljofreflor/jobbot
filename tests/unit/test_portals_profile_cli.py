@@ -60,6 +60,29 @@ def test_status_without_a_state_file_lists_the_registry_as_unknown(
     assert "Marta Soto Vera" not in out
 
 
+def test_status_prints_the_account_ratio(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+    (tmp_path / "data" / "portals.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "portals": [
+                    {"domain": "alpha.example", "ats_kind": "unknown"},
+                    {"domain": "beta.example", "ats_kind": "unknown"},
+                    {"domain": "gamma.example", "ats_kind": "unknown"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert run_cli(["portals", "profile", "status"], standalone_mode=False) == SUCCESS
+    assert "accounts 0/3" in capsys.readouterr().out
+
+
 def test_status_json_matches_the_three_portal_fixture(
     tmp_path: Path,
     project_root: Path,
