@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-154 commands, 252 modules, 1363 public symbols.
+154 commands, 253 modules, 1371 public symbols.
 
 ## Commands
 
@@ -193,6 +193,7 @@ writing it again — the promotion rule lives in
 ### `adapters/alta_direccion`
 
 - `parse.py` — Saved Alta Dirección Pública ficha. The site's robots.txt forbids fetching it. · `AdpParseError`, `parse_ficha`
+- `signup.py` — Alta Dirección Pública (ADP) account signup — identity_bound sheet (no browser). · `SignupRecognize`, `AdpPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `render_adp_sheet`
 
 ### `adapters/ats`
 
