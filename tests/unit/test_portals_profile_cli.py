@@ -467,6 +467,32 @@ def test_world_bank_sheet_does_not_type(
     assert "Nothing was typed" in err
 
 
+def test_undp_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "pnud_undp"], standalone_mode=False) == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "UNDP Careers" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `oracle_orc`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "pnud_undp", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "oracle_orc" in err
+    assert "Nothing was typed" in err
+
+
 def test_seed_names_the_portals_that_need_a_fill_sheet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
