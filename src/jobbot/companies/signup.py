@@ -44,8 +44,8 @@ _ACCOUNT_BY_ATS: dict[AtsKind, AccountNeed] = {
     AtsKind.GETONBOARD: AccountNeed.NEEDED,
     AtsKind.INDEED: AccountNeed.NEEDED,
     AtsKind.LINKEDIN: AccountNeed.NEEDED,
-    # Chilean public boards: account before apply; sheet is identity_bound (#435).
-    AtsKind.EMPLEOS_PUBLICOS: AccountNeed.NEEDED,
+    # Chilean public boards: account before apply; sheet is identity_bound (#436).
+    AtsKind.ALTA_DIRECCION_PUBLICA: AccountNeed.NEEDED,
 }
 
 _NOTES: dict[AccountNeed, str] = {
@@ -95,8 +95,8 @@ def account_need(ats: AtsKind) -> AccountNeed:
 def signup_target(site: CareerSite) -> SignupTarget:
     need = account_need(site.ats)
     url = site.url
-    if site.ats is AtsKind.EMPLEOS_PUBLICOS:
-        from jobbot.adapters.empleospublicos.signup import registration_url
+    if site.ats is AtsKind.ALTA_DIRECCION_PUBLICA:
+        from jobbot.adapters.alta_direccion.signup import registration_url
 
         url = registration_url(site.url)
     return SignupTarget(url=url, need=need, note=_NOTES[need])
