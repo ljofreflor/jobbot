@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-153 commands, 251 modules, 1361 public symbols.
+154 commands, 252 modules, 1362 public symbols.
 
 ## Commands
 
@@ -134,6 +134,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile import-folder` — List role ids a folder would add or replace. Does not write profile.yaml.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
+- `jobbot profile interview` — Ask one question about a gap. Does not invent the answer.
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
 - `jobbot profile queries` — Job searches from your experience; --check measures them, --apply saves them.
 - `jobbot profile rejection` — Classify a rejection. A preference or a condition does not edit the profile.
@@ -521,6 +522,7 @@ writing it again — the promotion rule lives in
 - `importer_common.py` — Pieces shared by the CV importers: result type, sections, dates, ids. · `ImportResult`, `write_generated_profile`, `empty_skills`, `section_match`, `section_kind`, `map_skill_group`, `parse_date_range`, `is_present`, `parse_one_date`, `month_key`, `normalize_key`, `slugify`, `unique_id`
 - `importer_latex.py` — Import a legacy moderncv-style LaTeX CV into a Candidate profile dict. · `LatexImportError`, `import_latex_cv`
 - `importer_pdf.py` — Import a CV exported to PDF (Word-style layout) into a Candidate profile dict. · `PdfImportError`, `extract_pdf_text`, `import_pdf_cv`, `parse_cv_text`
+- `interview.py` — One interview question about a gap. The answer is not invented. · `gap_question`
 - `loader.py` — Load Candidate from profile.yaml. · `ProfileLoadError`, `load_profile`, `load_profile_raw`
 - `market.py` — Market-language suggestions for baseline CV (no invention; no deletions). · `MarketGapQuestion`, `MarketSuggestion`, `suggest_from_market`, `render_suggestion_markdown`, `apply_confirmed_skills`, `merge_confirmed_skills_into_raw`
 - `overlay.py` — English texts keyed by the profile's own ids. Nothing here is written back. · `base_texts`, `read_overlay`, `overlay_problems`
