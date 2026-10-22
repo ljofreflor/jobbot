@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-151 commands, 249 modules, 1359 public symbols.
+152 commands, 250 modules, 1360 public symbols.
 
 ## Commands
 
@@ -129,6 +129,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile answers set` — Set one application answer. Refuses a national id. Writes only with --yes.
 - `jobbot profile answers show` — Show which application-answer blocks are filled, without values.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
+- `jobbot profile expand` — Confirm a fact from a declared source. Does not write the profile.
 - `jobbot profile import-folder` — List role ids a folder would add or replace. Does not write profile.yaml.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
@@ -527,6 +528,7 @@ writing it again — the promotion rule lives in
 - `rejection.py` — A rejection is a preference, a condition, or a missing fact. Only the last may edit. · `rejection_kind`, `may_edit_profile`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
 - `skill_map.py` — Which declared skills a role or a degree already shows. Never invents a skill. · `SkillUse`, `map_skills`, `unbacked_skills`, `unbacked_achievements`, `evidence_records`, `format_map`, `format_unbacked`
+- `sourced.py` — A fact from a declared source waits for confirmation. It is not written. · `confirm_sourced_fact`
 - `study.py` — A repeated market term the profile lacks is a study question, not a new skill. · `study_question`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`, `unknown_profile_keys`
 

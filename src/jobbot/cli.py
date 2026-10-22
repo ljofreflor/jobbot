@@ -1778,6 +1778,25 @@ def profile_import_folder(
     raise typer.Exit(SUCCESS)
 
 
+@profile_app.command("expand")
+def profile_expand(
+    text: Annotated[str, typer.Option("--text", help="Fact already read from the source.")],
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Declared source: github, portfolio or scholar."),
+    ],
+) -> None:
+    """Confirm a fact from a declared source. Does not write the profile."""
+    from jobbot.profile.sourced import confirm_sourced_fact
+
+    try:
+        line = confirm_sourced_fact(text, source)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
 @profile_app.command("study")
 def profile_study(
     term: Annotated[str, typer.Option("--term", help="Term repeated in stored postings.")],
