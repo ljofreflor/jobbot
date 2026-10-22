@@ -38,6 +38,11 @@ _LANGUAGE_BY_STYLE: dict[CvStyle, Language] = {
 }
 
 
+def registered_styles() -> list[tuple[str, str]]:
+    """Each style name and the template it compiles, in enum order."""
+    return [(style.value, _TEMPLATE_BY_STYLE[style]) for style in CvStyle]
+
+
 def cv_language(style: CvStyle) -> Language:
     """The language the template's own headings are written in."""
     return _LANGUAGE_BY_STYLE[style]

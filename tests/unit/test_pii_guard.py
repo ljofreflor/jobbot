@@ -28,6 +28,14 @@ def test_blocked_paths_cover_profile_db_and_private_latex() -> None:
     assert is_blocked_path(".jobbot.toml")
     assert is_blocked_path("output/jobs/J0001/application/cv.pdf")
     assert is_blocked_path(".cursor/rules/jobbot.mdc")
+    assert is_blocked_path(".cursor/mcp.json")
+
+
+def test_cursor_project_skills_are_not_blocked() -> None:
+    """Shared Agent Skills under .cursor/skills/ are tracked; rules stay local."""
+    assert is_blocked_path(".cursor/skills/README.md") is None
+    assert is_blocked_path(".cursor/skills/jobbot-cargo/SKILL.md") is None
+    assert is_blocked_path(".cursor/rules/jobbot.mdc") == "local editor/agent config"
 
 
 def test_workspaces_of_other_candidates_are_blocked() -> None:

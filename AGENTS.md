@@ -551,7 +551,9 @@ So, when working on an issue without the local machine:
 - If closing the issue needs real data (legacy CV import, a stored post, a logged-in browser),
   ship the code plus fixture tests and say in the PR which check the human has to run locally.
 - Never add a fixture with real PII. `*.example.yaml` and `latex/cv.tex.demo` are the templates.
-- `.cursor/` is local, so this file is the whole policy: read it before touching anything.
+- `.cursor/rules/` and most of `.cursor/` stay local. Shared Agent Skills live under
+  `.cursor/skills/` (tracked). This file remains the product policy; skills are
+  procedural shortcuts. Read this file before touching anything.
 - Product and ops issues are Cursor-owned: assignee `cursoragent` (fallback label `cursor`).
   Do not open or leave an issue without that ownership signal.
 

@@ -1778,6 +1778,60 @@ def profile_import_folder(
     raise typer.Exit(SUCCESS)
 
 
+@profile_app.command("interview")
+def profile_interview(
+    gap: Annotated[str, typer.Option("--gap", help="A gap already named. Nothing is answered.")],
+) -> None:
+    """Ask one question about a gap. Does not invent the answer."""
+    from jobbot.profile.interview import gap_question
+
+    try:
+        line = gap_question(gap)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
+@profile_app.command("expand")
+def profile_expand(
+    text: Annotated[str, typer.Option("--text", help="Fact already read from the source.")],
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Declared source: github, portfolio or scholar."),
+    ],
+) -> None:
+    """Confirm a fact from a declared source. Does not write the profile."""
+    from jobbot.profile.sourced import confirm_sourced_fact
+
+    try:
+        line = confirm_sourced_fact(text, source)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
+@profile_app.command("study")
+def profile_study(
+    term: Annotated[str, typer.Option("--term", help="Term repeated in stored postings.")],
+    repeats: Annotated[int, typer.Option("--repeats", help="How many postings name it.")],
+    known: Annotated[
+        bool,
+        typer.Option("--known", help="The profile already states this term."),
+    ] = False,
+) -> None:
+    """Ask whether to study a repeated term. Does not write the profile."""
+    from jobbot.profile.study import study_question
+
+    try:
+        line = study_question(term, repeats=repeats, known=known)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
 @profile_app.command("rejection")
 def profile_rejection(
     text: Annotated[str, typer.Option("--text", help="Why the suggestion does not fit")],
@@ -2217,6 +2271,15 @@ def cv_check(
     err_console.print(f"[dim]{path}[/dim]")
 
 
+@cv_app.command("styles")
+def cv_styles() -> None:
+    """List the CV styles and their templates. Does not compile."""
+    from jobbot.cv.renderer import registered_styles
+
+    for name, template in registered_styles():
+        console.print(f"{name} {template}")
+
+
 @cv_app.command("layout")
 def cv_layout(
     log_path: Annotated[Path, typer.Argument(help="LaTeX log. Nothing is compiled.")],
@@ -2368,6 +2431,22 @@ def cv_build(
         err_console.print(f"text layer: {finding.kind}: {finding.detail}")
     if strict and layer:
         raise typer.Exit(VALIDATION_FAILURE)
+
+
+@cv_app.command("review")
+def cv_review(
+    current: Annotated[str, typer.Option("--current", help="The sentence as it is now.")],
+    proposed: Annotated[str, typer.Option("--proposed", help="The sentence to judge.")],
+) -> None:
+    """Keep or reject one change. Does not propose another sentence."""
+    from jobbot.cv.review import review_change
+
+    try:
+        verdict = review_change(current, proposed)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(verdict)
 
 
 @cv_app.command("advise")
@@ -7270,6 +7349,7 @@ def portals_profile_status(
     from datetime import UTC, datetime
 
     from jobbot.portals.profile_state import (
+        account_coverage,
         coverage_report,
         cv_hashes_from_output,
         default_state_path,
@@ -7307,6 +7387,8 @@ def portals_profile_status(
     if as_json:
         console.print_json(data=report.to_public_dict())
         return
+    ready, counted = account_coverage(states)
+    console.print(f"accounts {ready}/{counted}")
     console.print(
         f"KPI {report.kpi_num}/{report.kpi_den}  "
         f"automation {report.automation:.0%}  "
@@ -7728,6 +7810,26 @@ def _learn_company_knowledge(
     )
     if result.conflict:
         err_console.print(f"[yellow]Contradiction:[/yellow] {result.conflict}")
+
+
+@companies_app.command("health")
+def companies_health(
+    status: Annotated[
+        int | None,
+        typer.Option("--status", help="HTTP status already observed. Nothing is fetched."),
+    ] = None,
+    robots: Annotated[
+        bool,
+        typer.Option("--robots", help="robots.txt disallows this page."),
+    ] = False,
+) -> None:
+    """Classify one portal read. Does not search or fetch."""
+    from jobbot.companies.health import portal_health
+
+    if status is None and not robots:
+        err_console.print("nothing observed")
+        raise _QuietExit(VALIDATION_FAILURE)
+    console.print(portal_health(status=status, robots_disallow=robots))
 
 
 @companies_app.command("detect")

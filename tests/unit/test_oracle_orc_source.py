@@ -17,7 +17,7 @@ from jobbot.companies.discovery import career_root_url
 from jobbot.portals.detect import AtsKind
 
 FIXTURES = Path("tests/fixtures/oracle_orc")
-END = datetime(2027, 12, 31, 23, 59, tzinfo=UTC)
+END = datetime(2099, 10, 21, 3, 59, tzinfo=UTC)
 JOB_URL = (
     "https://acme.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/es/sites/CX_1/job/123"
 )

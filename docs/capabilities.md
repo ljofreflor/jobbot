@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-148 commands, 247 modules, 1356 public symbols.
+154 commands, 252 modules, 1363 public symbols.
 
 ## Commands
 
@@ -36,6 +36,7 @@ writing it again — the promotion rule lives in
 - `jobbot companies detect` — Classify a URL (posting / career portal / ATS / redirect). Writes nothing.
 - `jobbot companies discover` — One-shot: seed candidate career portals for a company list (never canonical).
 - `jobbot companies export` — Write a shareable snapshot: active entries only, no candidate PII.
+- `jobbot companies health` — Classify one portal read. Does not search or fetch.
 - `jobbot companies import` — Merge oneshot candidates into the registry (still candidate, never active).
 - `jobbot companies learn` — Register a company/portal relation you found yourself (candidate by default).
 - `jobbot companies list` — List known companies and their career platforms.
@@ -52,7 +53,9 @@ writing it again — the promotion rule lives in
 - `jobbot cv gap` — Show which posting terms the profile already evidences.
 - `jobbot cv layout` — Report overfull boxes in a LaTeX log. Does not compile.
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
+- `jobbot cv review` — Keep or reject one change. Does not propose another sentence.
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
+- `jobbot cv styles` — List the CV styles and their templates. Does not compile.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
 - `jobbot cv translate` — Check a derived translation keeps the source numbers, names, and skills.
 - `jobbot cv tune-for` — Bounded baseline improvement from one posting (~5% delta; #54).
@@ -127,15 +130,18 @@ writing it again — the promotion rule lives in
 - `jobbot profile answers set` — Set one application answer. Refuses a national id. Writes only with --yes.
 - `jobbot profile answers show` — Show which application-answer blocks are filled, without values.
 - `jobbot profile diff` — Diff local profile against portal snapshots.
+- `jobbot profile expand` — Confirm a fact from a declared source. Does not write the profile.
 - `jobbot profile import-folder` — List role ids a folder would add or replace. Does not write profile.yaml.
 - `jobbot profile import-latex` — Import a legacy LaTeX CV into profile.generated.yaml.
 - `jobbot profile import-pdf` — Import a PDF CV into profile.generated.yaml (and optionally profile.yaml).
+- `jobbot profile interview` — Ask one question about a gap. Does not invent the answer.
 - `jobbot profile promote-generated` — Copy profile.generated.yaml → profile.yaml after confirmation.
 - `jobbot profile queries` — Job searches from your experience; --check measures them, --apply saves them.
 - `jobbot profile rejection` — Classify a rejection. A preference or a condition does not edit the profile.
 - `jobbot profile show` — Show a summary of the local profile.
 - `jobbot profile skills-map` — Map each declared skill to the role or degree that already shows it.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
+- `jobbot profile study` — Ask whether to study a repeated term. Does not write the profile.
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
 - `jobbot profile validate` — Validate data/profile.yaml and application_answers.yaml.
 - `jobbot recruiters discover` — Read public pages about hiring and store what they teach as candidates.
@@ -369,6 +375,7 @@ writing it again — the promotion rule lives in
 
 - `auto_promote.py` — Which candidate career sites technical evidence can promote. · `has_technical_evidence`, `auto_promote_eligible`, `auto_promote_plan`
 - `discovery.py` — Classify a URL as posting / corporate career portal / ATS instance / redirect. · `SiteClassification`, `classify_url`, `career_root_url`, `career_page_evidence`
+- `health.py` — A portal health check names reachability. It does not search for postings. · `portal_health`
 - `learn.py` — Turn URLs seen during normal use into candidate company knowledge. · `LearnResult`, `learn_from_url`, `company_name_for_job`, `learn_from_job`
 - `models.py` — Company ↔ career platform knowledge model (shareable; never candidate PII). · `utc_now`, `CareerSiteType`, `KnowledgeStatus`, `DiscoverySource`, `Observation`, `CareerSite`, `CompanyRecord`
 - `oneshot.py` — One-shot seeding of company career portals from public sources (not a crawler). · `CompanySeed`, `CompanyPortalCandidate`, `FetchResult`, `Fetcher`, `UrllibFetcher`, `OneshotReport`, `CandidateGroups`, `group_candidates`, `RobotsVerdict`, `RobotsPolicy`, `load_seeds`, `load_search_hits`, `candidate_urls`, `is_refusal`, `www_variant`, `CompanyProbe`, `discover_company`, `run_oneshot`, `write_candidates`, `load_candidates`, `import_candidates`
@@ -395,7 +402,8 @@ writing it again — the promotion rule lives in
 - `pages.py` — How many pages the PDF took, and what to shorten before deleting a fact. · `PageTrim`, `pages_from_xelatex_log`, `plan_page_trim`
 - `portal_update.py` — Active portals this workspace has not integrated yet. Nothing here writes the profile. · `integration_log_path`, `load_seen`, `unseen_active_portals`, `format_new_portals`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
-- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `cv_language`, `as_cv_language`, `resolve_ats_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `skills_for_selection`, `education_for_selection`, `render_cv_tex`, `render_cv_ats`
+- `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `registered_styles`, `cv_language`, `as_cv_language`, `resolve_ats_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `skills_for_selection`, `education_for_selection`, `render_cv_tex`, `render_cv_ats`
+- `review.py` — A reviewer only keeps or rejects a change. It does not propose a new sentence. · `review_change`
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
@@ -497,7 +505,7 @@ writing it again — the promotion rule lives in
 - `platform_map.py` — Which platforms one profile reaches, grouped by how each one takes a candidate. · `Platform`, `Flavour`, `platform_label`, `source_kinds`, `platform_flavours`, `featured_platforms`, `LearningStep`, `feedback_loop`, `render_figure`, `inject_figure`, `write_page`, `main`
 - `postulate.py` — Classify a post's apply route. A contribution is a host this checkout does not already know. · `PortalContribution`, `PostulatePlan`, `known_portal_domains`, `plan_postulate`, `render_plan`
 - `profile_sheet.py` — Fill sheet for one portal, projected from the source of truth. · `render_fill_sheet`
-- `profile_state.py` — Per-portal profile state, drift and coverage. No browser, no network. · `ProfileStateError`, `AccountState`, `Priority`, `EvidenceKind`, `Drift`, `UpdateRecord`, `PortalProfileState`, `SectionView`, `PortalView`, `CoverageReport`, `default_state_path`, `default_alias_path`, `cv_hashes_from_output`, `section_payload`, `section_hash`, `projection_hash`, `load_states`, `save_states`, `load_aliases`, `evaluate_portal`, `coverage_report`, `mark_updated`, `ImportPreview`, `preview_import`
+- `profile_state.py` — Per-portal profile state, drift and coverage. No browser, no network. · `ProfileStateError`, `AccountState`, `Priority`, `EvidenceKind`, `Drift`, `UpdateRecord`, `PortalProfileState`, `SectionView`, `PortalView`, `CoverageReport`, `default_state_path`, `default_alias_path`, `cv_hashes_from_output`, `section_payload`, `section_hash`, `projection_hash`, `load_states`, `save_states`, `load_aliases`, `evaluate_portal`, `account_coverage`, `coverage_report`, `mark_updated`, `ImportPreview`, `preview_import`
 - `redirect.py` — Follow HTTP redirects to resolve short links (lnkd.in, etc.) — no stealth. · `read_interstitial_destination`, `follow_redirect_url`, `expand_url_map`, `expand_urls`
 - `registry.py` — Local registry of recruitment portals (where the user applies / is registered). · `PortalEntry`, `PortalRegistry`, `default_portals_path`, `load_registry`, `save_registry`, `domain_from_url`
 - `selectors.py` — CSS for a learned form field. Shared by apply and signup fill. · `field_selector`
@@ -514,6 +522,7 @@ writing it again — the promotion rule lives in
 - `importer_common.py` — Pieces shared by the CV importers: result type, sections, dates, ids. · `ImportResult`, `write_generated_profile`, `empty_skills`, `section_match`, `section_kind`, `map_skill_group`, `parse_date_range`, `is_present`, `parse_one_date`, `month_key`, `normalize_key`, `slugify`, `unique_id`
 - `importer_latex.py` — Import a legacy moderncv-style LaTeX CV into a Candidate profile dict. · `LatexImportError`, `import_latex_cv`
 - `importer_pdf.py` — Import a CV exported to PDF (Word-style layout) into a Candidate profile dict. · `PdfImportError`, `extract_pdf_text`, `import_pdf_cv`, `parse_cv_text`
+- `interview.py` — One interview question about a gap. The answer is not invented. · `gap_question`
 - `loader.py` — Load Candidate from profile.yaml. · `ProfileLoadError`, `load_profile`, `load_profile_raw`
 - `market.py` — Market-language suggestions for baseline CV (no invention; no deletions). · `MarketGapQuestion`, `MarketSuggestion`, `suggest_from_market`, `render_suggestion_markdown`, `apply_confirmed_skills`, `merge_confirmed_skills_into_raw`
 - `overlay.py` — English texts keyed by the profile's own ids. Nothing here is written back. · `base_texts`, `read_overlay`, `overlay_problems`
@@ -523,6 +532,8 @@ writing it again — the promotion rule lives in
 - `rejection.py` — A rejection is a preference, a condition, or a missing fact. Only the last may edit. · `rejection_kind`, `may_edit_profile`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
 - `skill_map.py` — Which declared skills a role or a degree already shows. Never invents a skill. · `SkillUse`, `map_skills`, `unbacked_skills`, `unbacked_achievements`, `evidence_records`, `format_map`, `format_unbacked`
+- `sourced.py` — A fact from a declared source waits for confirmation. It is not written. · `confirm_sourced_fact`
+- `study.py` — A repeated market term the profile lacks is a study question, not a new skill. · `study_question`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`, `unknown_profile_keys`
 
 ### `publications`
