@@ -112,7 +112,10 @@ htmlcov/
 *.swp
 # Editor-specific agent config stays local; AGENTS.md is tracked so remote
 # agents working on an issue read the same policy as the local ones.
-.cursor/
+# Project Agent Skills under .cursor/skills/ are shared (see that folder's README).
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**/
 
 # ── Temporary scaffolding (never version) ───────────────────────────────────
 tmp/
