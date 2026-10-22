@@ -2116,6 +2116,167 @@ flowchart LR
 
 Reglas: no pelear la marca; huecos en issues ya abiertos; ESCO no decide el oficio; detector de invención intacto.
 
+## Three miniagents surface — Arcon/Luma {#three-miniagents-surface}
+
+Patrones: **Stolen-Outcome Map**, **Facade** de puerta, **HITL Command**. Issue: #168 (puerta #108; asesoria #130; filtro #105 / #155).
+
+```mermaid
+classDiagram
+  direction TB
+  class MiniagentRole {
+    <<Row>>
+    +str claim
+    +str jobbot_form
+    +str|None issue
+  }
+  class ThreeMiniagentsMap {
+    <<Inventory>>
+  }
+  class LumaForbidden {
+    <<Anti-pattern>>
+    ia_por_ti
+    cloud_24_7
+    auto_submit
+    n8n_claude_workshop
+  }
+  ThreeMiniagentsMap *-- MiniagentRole
+  ThreeMiniagentsMap ..> LumaForbidden : never ship
+  MiniagentRole --> CargoLoop : advise / match / prefill
+  ThreeMiniagentsMap --> Door108 : 2–3 command surface
+```
+
+```mermaid
+flowchart LR
+  Class[Luma three miniagents] --> F{HITL + local?}
+  F -->|por ti / cloud| Drop[#105 anti-pattern]
+  F -->|equipo local| Map[CV / vacantes / postulaciones]
+  Map --> Advise[cv advise / tune-for]
+  Map --> Track[queries → search / match]
+  Map --> Prefill[application apply HITL]
+  Map --> Door[#108 door copy]
+```
+
+Reglas: robar el reparto de trabajo, no el título «por ti»; envío y CAPTCHA humanos; prior-art cita el evento.
+
+## LATAM presence positioning {#latam-presence-positioning}
+
+Patrones: **Decision Record**, **Stolen-Outcome Map**, **Bounded Context**. Issue: #266 (peers OSS; copy #130; marca #261; mapa #265; presencia #150).
+
+```mermaid
+classDiagram
+  direction TB
+  class PositioningChoice {
+    <<Decision Record>>
+    +alt_oss_ai_apply
+    +latam_map_plus_presence
+  }
+  class OssPeer {
+    <<Row>>
+    +str project
+    +str license
+    +str submit_posture
+  }
+  class StealableCase {
+    <<Row>>
+    +str case
+    +str jobbot_form
+    +str issue
+  }
+  PositioningChoice --> PublicCopy : before #130
+  PositioningChoice ..> OssPeer : compare not identity
+  StealableCase --> ExistingIssues : #75 #159 #154 …
+```
+
+```mermaid
+flowchart TD
+  Ask[Open-source AI Apply?] --> No[reject autopilot identity]
+  No --> Peers[document OSS peers in prior-art]
+  Peers --> Own[LATAM map + permanent presence]
+  Own --> Compare[compare page optional]
+  Own -.->|forbidden| Credits[credit-per-submit / Auto mode]
+```
+
+Reglas: Review mode de ellos ≈ único modo nuestro; diferenciador = mapa colaborativo + `cv sync`, no throughput local.
+
+## Dual brand — engine vs public face {#dual-brand}
+
+Patrones: **Value Object** Brand, **Facade** de presentación, **Decision Record**. Issue: #261 (namesakes #164; copy #130).
+
+```mermaid
+classDiagram
+  direction TB
+  class Brand {
+    <<Value Object>>
+    +str engine_name
+    +str product_name
+  }
+  class EngineSurface {
+    <<Stable>>
+    PyPI
+    CLI entrypoint
+    import path
+  }
+  class PublicFace {
+    <<Configurable>>
+    CV credit
+    home copy
+    firma
+  }
+  Brand --> EngineSurface : jobbot
+  Brand --> PublicFace : HITL choice
+  note for EngineSurface "rename out of scope"
+```
+
+```mermaid
+flowchart LR
+  Namesake[crowded JobBot name] --> Dual[Brand VO]
+  Dual --> Engine[keep jobbot motor]
+  Dual --> Face[product_name via config/env]
+  Face --> HITL[human picks public name]
+  Face -.->|never silent invent| NoGuess[no default marketing rename]
+```
+
+Reglas: motor estable; cara pública configurable; no pelear homónimos con rename de paquete.
+
+## Dissolve vs throughput — thesis control negative {#dissolve-vs-throughput}
+
+Patrones: **Control negative**, **Priority policy**, **Anti-pattern table**. Issue: #105 (federate #106; opacity #107; puerta #108; parked clones).
+
+```mermaid
+classDiagram
+  direction TB
+  class DissolvePriority {
+    <<Policy>>
+    federate_commons
+    employer_opacity
+    three_command_door
+  }
+  class ThroughputClone {
+    <<Parked / wontfix>>
+    teal_tracker
+    cover_letter_kpi
+    jobscan_gap
+    enhancv_checker
+    apply_all_as_volume
+  }
+  class ThesisFilter {
+    <<Control negative>>
+  }
+  ThesisFilter --> DissolvePriority : prefer
+  ThesisFilter ..> ThroughputClone : park unless personal utility
+```
+
+```mermaid
+flowchart TD
+  Issue[backlog item] --> Q{dissolves employer-side conditions?}
+  Q -->|yes| Sprint[thesis milestone]
+  Q -->|apply faster only| Park[personal-utility / parked]
+  Park --> Pointer[pointer to #105]
+  Sprint --> Commons[#106 / #107 / #108]
+```
+
+Reglas: éxito = eliminar condiciones (opacidad, fantasmas, redescubrimiento); throughput no es progreso de tesis.
+
 ## Cómo citar desde un issue
 
 ```markdown

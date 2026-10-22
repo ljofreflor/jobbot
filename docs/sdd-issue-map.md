@@ -84,6 +84,10 @@ issue ya cita UML y el diagrama está al día.
 | #155 | Stolen AI Apply outcomes (HITL map) | [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [capability-gap-map](uml.md#capability-gap-map) · [plan-apply](uml.md#plan-apply) | body_ready | [155](sdd-issue-patches/155.md) |
 | #162 | Bounded Context commons vs traveller | [commons-vs-traveller](uml.md#commons-vs-traveller) · [public-queue-sync](uml.md#public-queue-sync) | body_ready | [162](sdd-issue-patches/162.md) |
 | #164 | Namesake JobBot use-case map | [namesake-usecase-map](uml.md#namesake-usecase-map) · [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [capability-gap-map](uml.md#capability-gap-map) | body_ready | [164](sdd-issue-patches/164.md) |
+| #168 | Three miniagents surface (Arcon/Luma) | [three-miniagents-surface](uml.md#three-miniagents-surface) · [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [plan-apply](uml.md#plan-apply) | body_ready | [168](sdd-issue-patches/168.md) |
+| #266 | LATAM map + presence positioning | [latam-presence-positioning](uml.md#latam-presence-positioning) · [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [commons-vs-traveller](uml.md#commons-vs-traveller) | body_ready | [266](sdd-issue-patches/266.md) |
+| #261 | Dual brand (engine vs public face) | [dual-brand](uml.md#dual-brand) · [namesake-usecase-map](uml.md#namesake-usecase-map) | body_ready | [261](sdd-issue-patches/261.md) |
+| #105 | Dissolve vs throughput (control negative) | [dissolve-vs-throughput](uml.md#dissolve-vs-throughput) · [three-miniagents-surface](uml.md#three-miniagents-surface) · [latam-presence-positioning](uml.md#latam-presence-positioning) | body_ready | [105](sdd-issue-patches/105.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

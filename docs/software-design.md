@@ -655,6 +655,26 @@ not a parallel tracker or autopilot clone — see
 [#164](https://github.com/ljofreflor/jobbot/issues/164) and
 [uml.md#namesake-usecase-map](uml.md#namesake-usecase-map).
 
+Arcon/Luma «tres miniagentes» maps to the cargo loop and the 2–3 command door;
+steal the team split, reject «IA por ti» / auto-submit — see
+[#168](https://github.com/ljofreflor/jobbot/issues/168) and
+[uml.md#three-miniagents-surface](uml.md#three-miniagents-surface).
+
+Do not clone AI Apply: OSS peers already cover local+HITL; our category is
+LATAM collaborative map + permanent presence — see
+[#266](https://github.com/ljofreflor/jobbot/issues/266) and
+[uml.md#latam-presence-positioning](uml.md#latam-presence-positioning).
+
+Public face may differ from the `jobbot` engine name (dual brand VO; HITL
+picks `product_name`) — see
+[#261](https://github.com/ljofreflor/jobbot/issues/261) and
+[uml.md#dual-brand](uml.md#dual-brand).
+
+Prefer dissolve features over throughput clones (control negative of the
+thesis) — see
+[#105](https://github.com/ljofreflor/jobbot/issues/105) and
+[uml.md#dissolve-vs-throughput](uml.md#dissolve-vs-throughput).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
