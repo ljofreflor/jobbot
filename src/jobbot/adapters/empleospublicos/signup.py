@@ -255,7 +255,7 @@ def render_empleos_publicos_sheet(
         f"Registro: `{portal.signup_url}`",
         "",
         "Este portal pide identidad estatal (RUN / ClaveÚnica). jobbot no abre el "
-        "navegador ni escribe. Copiar esta hoja a mano. Password, términos, "
+        "navegador ni escribe. Copiar esta hoja a mano. Contraseña, términos, "
         "ClaveÚnica y Crear quedan en HITL.",
         "",
     ]
@@ -274,5 +274,14 @@ def render_empleos_publicos_sheet(
             continue
         shown = item.value.strip() if item.value else f"[falta en el SST: {item.label}]"
         lines.append(f"- {item.label}: {shown}")
-    lines.append("")
+    # Catalog gaps (#435 / fill_catalog._ID_GAPS): RUN is HITL above; name the SST slot.
+    lines.extend(
+        [
+            "",
+            "## Datos que el portal pide y el SST no tiene",
+            "",
+            "- [falta en el SST: national_id]",
+            "",
+        ]
+    )
     return "\n".join(lines)
