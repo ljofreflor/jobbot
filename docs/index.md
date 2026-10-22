@@ -183,18 +183,18 @@ evidencia, y foco en Chile / Latam en búsquedas y roundups.
 
 Cada comando público de `src/jobbot/cli.py`, en una línea. Las banderas están en la
 [referencia](comandos.md). `jobbot <comando> --help` imprime el resto. Nada de esta
-lista postula solo ni inventa un hecho. Los que llevan la marca **relato** son los siete pasos de arriba.
+lista postula solo ni inventa un hecho. Los que llevan **postular** (cobalto) o **presencia** (navy) son los siete pasos de arriba; la marca vuelve a ese paso del bucle. En la barra, **CV**, **Vacantes** y **Postulaciones** van subrayados: ahí viven esos siete. Los demás grupos (y sus tablas) se atenúan; el que estás leyendo vuelve a pleno. Un salto `#cmd-*`, o hover o foco en el título, la tabla o el enlace de la barra, recupera título, tabla y enlace juntos. Con el pin en Presencia, Vacantes y Postulaciones también se atenúan, salvo el grupo que lees. Las filas del relato del otro bucle se atenúan; hover, foco o un salto `#cmd-*` las recuperan (en Presencia, también su grupo en la barra). Un salto `#story-*` (lede, punto del pin o la marca) también recupera esa fila. Un salto `#cmd-*` («En el catálogo» o el comando del stage) también recupera el paso del relato de esa fila cuando está inactivo.
 
-<nav class="jb-cmdnav" aria-label="Grupos de comandos">
-  <a href="#cmd-maquina">Máquina local</a>
-  <a href="#cmd-perfil">Perfil</a>
-  <a href="#cmd-cv">CV</a>
-  <a href="#cmd-vacantes">Vacantes</a>
-  <a href="#cmd-postulaciones">Postulaciones</a>
-  <a href="#cmd-portales">Portales</a>
-  <a href="#cmd-navegador">Navegador</a>
-  <a href="#cmd-empresas">Empresas</a>
-  <a href="#cmd-operacion">Operación</a>
+<nav class="jb-cmdnav" aria-label="Grupos de comandos. Tab cae en el grupo actual; las flechas mueven entre grupos" aria-keyshortcuts="ArrowLeft ArrowRight Home End">
+  <a href="#cmd-maquina" aria-controls="cmd-maquina">Máquina local</a>
+  <a href="#cmd-perfil" aria-controls="cmd-perfil">Perfil</a>
+  <a href="#cmd-cv" aria-controls="cmd-cv" class="jb-cmdnav__story" data-story-cmds="build advise sync" title="Pasos postular y presencia">CV</a>
+  <a href="#cmd-vacantes" aria-controls="cmd-vacantes" class="jb-cmdnav__story is-pin-step" data-story-cmds="get match conditions" title="Pasos postular">Vacantes</a>
+  <a href="#cmd-postulaciones" aria-controls="cmd-postulaciones" class="jb-cmdnav__story" data-story-cmds="apply" title="Pasos postular">Postulaciones</a>
+  <a href="#cmd-portales" aria-controls="cmd-portales">Portales</a>
+  <a href="#cmd-navegador" aria-controls="cmd-navegador">Navegador</a>
+  <a href="#cmd-empresas" aria-controls="cmd-empresas">Empresas</a>
+  <a href="#cmd-operacion" aria-controls="cmd-operacion">Operación</a>
 </nav>
 
 ### Máquina local {#cmd-maquina}
@@ -229,25 +229,25 @@ lista postula solo ni inventa un hecho. Los que llevan la marca **relato** son l
 
 | Comando | Qué hace |
 |---------|----------|
-| <span class="jb-in-story"><code>jobbot cv build</code> <span class="jb-in-story__tag">relato</span></span> | Arma el CV desde el perfil. `--job` lo ordena para un aviso; `--full` no descarta roles. `--target cv` o `ats`. |
-| <span class="jb-in-story"><code>jobbot cv advise</code> <span class="jb-in-story__tag">relato</span></span> | Pocas mejoras de presentación. `--apply` confirma una por una. |
+| <span id="cmd-build" class="jb-in-story"><code>jobbot cv build</code> <a class="jb-in-story__tag" href="#story-build" aria-controls="story-build" aria-label="Paso 3, postular, build">postular</a></span> | Arma el CV desde el perfil. `--job` lo ordena para un aviso; `--full` no descarta roles. `--target cv` o `ats`. |
+| <span id="cmd-advise" class="jb-in-story"><code>jobbot cv advise</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-advise" aria-controls="story-advise" aria-label="Paso 6, presencia, advise">presencia</a></span> | Pocas mejoras de presentación. `--apply` confirma una por una. |
 | `jobbot cv tune-for Jxxxx` | El mismo advise, acotado a un aviso o a un enlace. |
 | `jobbot cv propagate` | Plan de perfiles permanentes. `--apply` confirma destino por destino. |
-| <span class="jb-in-story"><code>jobbot cv sync</code> <span class="jb-in-story__tag">relato</span></span> | Presencia: permanentes y empresas activas. `--apply` espera tu confirmación. |
+| <span id="cmd-sync" class="jb-in-story"><code>jobbot cv sync</code> <a class="jb-in-story__tag jb-in-story__tag--presence" href="#story-sync" aria-controls="story-sync" aria-label="Paso 7, presencia, sync">presencia</a></span> | Presencia: permanentes y empresas activas. `--apply` espera tu confirmación. |
 | `jobbot cv status` | Alias de `jobbot status`. |
 
-### Vacantes {#cmd-vacantes}
+### Vacantes {#cmd-vacantes .is-pin-step}
 
 | Comando | Qué hace |
 |---------|----------|
-| <span class="jb-in-story"><code>jobbot get URL</code> <span class="jb-in-story__tag">relato</span></span> | Descarga un aviso puntual (Get on Board, Indeed, Workday), arma CV y paquete. No envía. |
+| <span id="cmd-get" class="jb-in-story"><code>jobbot get URL</code> <a class="jb-in-story__tag" href="#story-get" aria-controls="story-get" aria-current="step" aria-label="Paso 1, postular, get">postular</a></span> | Descarga un aviso puntual (Get on Board, Indeed, Workday), arma CV y paquete. No envía. |
 | `jobbot jobs add` | Guarda una vacante desde un archivo o stdin. |
 | `jobbot jobs search CONSULTA` | Busca en Indeed y guarda en local. |
 | `jobbot jobs discover` | Descubre por API pública: `--source workday` o `--source un-careers`. `--dry-run` no escribe. |
 | `jobbot jobs queries` | Imprime búsquedas web para hosts ATS. No busca. |
 | `jobbot jobs show Jxxxx` | Muestra un aviso guardado, con su cierre si lo publica. |
-| <span class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Puntúa contra el perfil. Ayuda a decidir; no decide. |
-| <span class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Condiciones del aviso: cumple, pregunta o impedimento. Offline. |
+| <span id="cmd-match" class="jb-in-story"><code>jobbot jobs match Jxxxx</code> <a class="jb-in-story__tag" href="#story-match" aria-controls="story-match" aria-label="Paso 2, postular, match">postular</a></span> | Puntúa contra el perfil. Ayuda a decidir; no decide. |
+| <span id="cmd-conditions" class="jb-in-story"><code>jobbot jobs conditions Jxxxx</code> <a class="jb-in-story__tag" href="#story-conditions" aria-controls="story-conditions" aria-label="Paso 4, postular, conditions">postular</a></span> | Condiciones del aviso: cumple, pregunta o impedimento. Offline. |
 | `jobbot jobs check-open` | Vuelve a mirar si el aviso sigue abierto. Solo lectura del estado. |
 | `jobbot jobs shortlist` | Ordena por score y marca vencidos o por cerrar. |
 | `jobbot jobs backfill-dates` | Fecha avisos ya guardados con el id de la URL. Offline. |
@@ -261,7 +261,7 @@ lista postula solo ni inventa un hecho. Los que llevan la marca **relato** son l
 | `jobbot application prepare Jxxxx` | Arma el paquete. No inventa respuestas. |
 | `jobbot application show Jxxxx` | Ruta y estado del paquete. |
 | `jobbot application open Jxxxx` | Abre la URL del aviso o del ATS. No postula. |
-| <span class="jb-in-story"><code>jobbot application apply Jxxxx</code> <span class="jb-in-story__tag">relato</span></span> | Plan de prellenado. `--apply` abre; el envío es tuyo. `--all` recorre la cola, con pausa entre avisos. |
+| <span id="cmd-apply" class="jb-in-story"><code>jobbot application apply Jxxxx</code> <a class="jb-in-story__tag" href="#story-apply" aria-controls="story-apply" aria-label="Paso 5, postular, apply">postular</a></span> | Plan de prellenado. `--apply` abre; el envío es tuyo. `--all` recorre la cola, con pausa entre avisos. |
 | `jobbot application check-answer Jxxxx` | Revisa una respuesta libre contra perfil y aviso. La motivación queda para ti. |
 | `jobbot applications list` | Lista las postulaciones registradas. Alias: `applications status`. |
 
