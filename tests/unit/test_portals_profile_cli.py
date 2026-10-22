@@ -440,6 +440,33 @@ def test_idb_sheet_does_not_type(
     assert "Nothing was typed" in err
 
 
+def test_world_bank_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "banco_mundial"], standalone_mode=False)
+        == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "World Bank Group (Cornerstone)" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `cornerstone`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "banco_mundial", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "cornerstone" in err
+    assert "Nothing was typed" in err
+
+
 def test_seed_names_the_portals_that_need_a_fill_sheet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
