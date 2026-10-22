@@ -1,4 +1,4 @@
-"""LinkedIn selector hints."""
+"""LinkedIn selector hints. The Easy Apply submit control is named and never clicked."""
 
 LINKEDIN_FEED = "https://www.linkedin.com/feed/"
 LINKEDIN_LOGIN = "https://www.linkedin.com/login"
@@ -13,3 +13,14 @@ POST_CONTROL_MENU = (
 )
 POST_MENU_ITEM = '[role="menuitem"], [role="menu"] [role="button"]'
 COPY_LINK_LABELS = ("copiar enlace", "copy link")
+
+# Last step of Easy Apply. Present so a writer can refuse it; this module never clicks.
+EASY_APPLY_SUBMIT = (
+    '[aria-label="Submit application"], [aria-label="Enviar solicitud"]'
+)
+_EASY_APPLY_SUBMIT_LABELS = frozenset({"submit application", "enviar solicitud"})
+
+
+def is_easy_apply_submit(label: str) -> bool:
+    """True only for the control that sends the application."""
+    return " ".join(label.casefold().split()) in _EASY_APPLY_SUBMIT_LABELS
