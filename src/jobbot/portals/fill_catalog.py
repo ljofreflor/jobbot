@@ -102,7 +102,7 @@ FILL_PORTALS: tuple[FillPortal, ...] = (
         "FAO Jobs (Taleo)",
         "taleo",
         Priority.medium,
-        "https://jobs.fao.org/careersection/fao_external/jobsearch.ftl?lang=es",
+        "https://jobs.fao.org/careersection/fao_external/accesscontrol.ftl?lang=es",
         profile_url="https://jobs.fao.org/",
         cv_variant="base_es",
     ),
