@@ -2217,6 +2217,15 @@ def cv_check(
     err_console.print(f"[dim]{path}[/dim]")
 
 
+@cv_app.command("styles")
+def cv_styles() -> None:
+    """List the CV styles and their templates. Does not compile."""
+    from jobbot.cv.renderer import registered_styles
+
+    for name, template in registered_styles():
+        console.print(f"{name} {template}")
+
+
 @cv_app.command("layout")
 def cv_layout(
     log_path: Annotated[Path, typer.Argument(help="LaTeX log. Nothing is compiled.")],
