@@ -677,6 +677,27 @@ def test_computrabajo_sheet_does_not_type(
     assert "Nothing was typed" in err
 
 
+def test_bne_sheet_does_not_type_or_attach(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "bne"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "Bolsa Nacional de Empleo" in sheet
+    assert "identidad estatal" in sheet
+    assert "[falta en el SST: national_id]" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "bne", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "identity_bound" in err
+    assert "does not attach" in err
+
+
 def test_seed_names_the_portals_that_need_a_fill_sheet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
