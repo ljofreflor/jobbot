@@ -163,6 +163,7 @@ _HOST_RULES: list[tuple[str, AtsKind]] = [
     ("adp.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("antares.serviciocivil.cl", AtsKind.ALTA_DIRECCION_PUBLICA),
     ("careers.un.org", AtsKind.UN_CAREERS),
+    ("inspira.un.org", AtsKind.UN_CAREERS),
     ("impactpool.org", AtsKind.IMPACTPOOL),
     ("bne.cl", AtsKind.BNE),
     ("chiletrabajos.cl", AtsKind.CHILETRABAJOS),

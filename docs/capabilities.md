@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-154 commands, 252 modules, 1363 public symbols.
+154 commands, 253 modules, 1371 public symbols.
 
 ## Commands
 
@@ -278,6 +278,10 @@ writing it again — the promotion rule lives in
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
 - `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `IndeedUiChanged`, `resume_editor_state`, `preferences_tab_missing`, `editor_state_path`, `record_editor_state`, `load_editor_state`, `ensure_structured_editor`, `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `apply_resume_sections`, `parse_resume_page_text`, `clamp_portal_ym`, `role_identity`, `roles_already_listed`, `add_missing_experiences`, `headline_visible_in_contact`
 - `selectors.py` — Indeed selector hints (prefer role/label over obfuscated CSS). · `indeed_jobs_base`, `select_list_testid`
+
+### `adapters/inspira`
+
+- `signup.py` — UN Careers / Inspira Talent Pool signup — sheet + recognition (no auto-submit). · `SignupRecognize`, `InspiraPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `render_inspira_sheet`
 
 ### `adapters/laborum`
 
