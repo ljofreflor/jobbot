@@ -7759,6 +7759,26 @@ def _learn_company_knowledge(
         err_console.print(f"[yellow]Contradiction:[/yellow] {result.conflict}")
 
 
+@companies_app.command("health")
+def companies_health(
+    status: Annotated[
+        int | None,
+        typer.Option("--status", help="HTTP status already observed. Nothing is fetched."),
+    ] = None,
+    robots: Annotated[
+        bool,
+        typer.Option("--robots", help="robots.txt disallows this page."),
+    ] = False,
+) -> None:
+    """Classify one portal read. Does not search or fetch."""
+    from jobbot.companies.health import portal_health
+
+    if status is None and not robots:
+        err_console.print("nothing observed")
+        raise _QuietExit(VALIDATION_FAILURE)
+    console.print(portal_health(status=status, robots_disallow=robots))
+
+
 @companies_app.command("detect")
 def companies_detect(
     url: Annotated[str, typer.Argument(help="Career page, ATS or job URL")],
