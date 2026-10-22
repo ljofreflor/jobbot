@@ -38,6 +38,7 @@ _ACCOUNT_BY_ATS: dict[AtsKind, AccountNeed] = {
     AtsKind.WORKDAY: AccountNeed.NEEDED,
     AtsKind.SUCCESSFACTORS: AccountNeed.NEEDED,
     AtsKind.ORACLE: AccountNeed.NEEDED,
+    AtsKind.TALEO: AccountNeed.NEEDED,
     AtsKind.TEAMTAILOR: AccountNeed.NOT_NEEDED,
     AtsKind.TORRE: AccountNeed.NEEDED,
     AtsKind.HIRINGROOM: AccountNeed.NEEDED,
@@ -92,7 +93,12 @@ def account_need(ats: AtsKind) -> AccountNeed:
 
 def signup_target(site: CareerSite) -> SignupTarget:
     need = account_need(site.ats)
-    return SignupTarget(url=site.url, need=need, note=_NOTES[need])
+    url = site.url
+    if site.ats is AtsKind.TALEO:
+        from jobbot.adapters.taleo.signup import registration_url
+
+        url = registration_url(site.url)
+    return SignupTarget(url=url, need=need, note=_NOTES[need])
 
 
 def signup_sheet(

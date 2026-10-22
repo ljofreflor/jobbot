@@ -40,6 +40,7 @@ _LABELS: dict[str, str] = {
     "bamboohr": "BambooHR",
     "successfactors": "SuccessFactors",
     "oracle": "Oracle Taleo",
+    "taleo": "Taleo",
     "teamtailor": "Teamtailor",
     "workable": "Workable",
     "recruitee": "Recruitee",

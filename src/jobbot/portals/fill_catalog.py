@@ -138,7 +138,7 @@ FILL_PORTALS: tuple[FillPortal, ...] = (
         "WHO Careers (Taleo)",
         "taleo",
         Priority.high,
-        "https://careers.who.int/careersection/ex/jobsearch.ftl",
+        "https://careers.who.int/careersection/ex/accesscontrol.ftl?lang=en",
         profile_url="https://careers.who.int/",
     ),
     _row(
