@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><title>Crear nueva cuenta | Empleos Públicos (fixture)</title></head>
+<body>
+  <!-- Fictional registration page for example-careers.example.org. No PII. -->
+  <h1>Crear una nueva cuenta</h1>
+  <p>Los datos deben coincidir con la cédula. Alternativa de ingreso: ClaveÚnica (HITL).</p>
+  <form id="formRegistro" action="/pub/usuarios/usrPostulanteAgregar.aspx" method="post">
+    <label for="tbNombres">Nombres</label>
+    <input id="tbNombres" name="tbNombres" type="text" maxlength="80">
+
+    <label for="tbApellidoP">Apellido Paterno</label>
+    <input id="tbApellidoP" name="tbApellidoP" type="text" maxlength="80">
+
+    <label for="tbApellidoM">Apellido Materno</label>
+    <input id="tbApellidoM" name="tbApellidoM" type="text" maxlength="80">
+
+    <label for="tbEmail">Correo electrónico</label>
+    <input id="tbEmail" name="tbEmail" type="email" maxlength="120">
+
+    <label for="tbFonoCelular">Celular</label>
+    <input id="tbFonoCelular" name="tbFonoCelular" type="tel" maxlength="40">
+
+    <label for="tbRUN">RUN</label>
+    <input id="tbRUN" name="tbRUN" type="text" maxlength="12">
+
+    <label for="tbPassword">Contraseña</label>
+    <input id="tbPassword" name="tbPassword" type="password" maxlength="64">
+
+    <label for="tbPassword2">Confirmación de contraseña</label>
+    <input id="tbPassword2" name="tbPassword2" type="password" maxlength="64">
+
+    <label for="chkCondiciones">Condiciones de uso</label>
+    <input id="chkCondiciones" name="chkCondiciones" type="checkbox">
+
+    <button type="submit" name="crear">Crear cuenta</button>
+  </form>
+</body>
+</html>
