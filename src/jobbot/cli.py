@@ -2418,6 +2418,22 @@ def cv_build(
         raise typer.Exit(VALIDATION_FAILURE)
 
 
+@cv_app.command("review")
+def cv_review(
+    current: Annotated[str, typer.Option("--current", help="The sentence as it is now.")],
+    proposed: Annotated[str, typer.Option("--proposed", help="The sentence to judge.")],
+) -> None:
+    """Keep or reject one change. Does not propose another sentence."""
+    from jobbot.cv.review import review_change
+
+    try:
+        verdict = review_change(current, proposed)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(verdict)
+
+
 @cv_app.command("advise")
 def cv_advise(
     limit: Annotated[

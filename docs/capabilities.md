@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-152 commands, 250 modules, 1360 public symbols.
+153 commands, 251 modules, 1361 public symbols.
 
 ## Commands
 
@@ -53,6 +53,7 @@ writing it again — the promotion rule lives in
 - `jobbot cv gap` — Show which posting terms the profile already evidences.
 - `jobbot cv layout` — Report overfull boxes in a LaTeX log. Does not compile.
 - `jobbot cv propagate` — Rebuild the base CV and propagate it to your permanent portal profiles (HITL).
+- `jobbot cv review` — Keep or reject one change. Does not propose another sentence.
 - `jobbot cv status` — Alias for `jobbot status`: permanent + active company presence.
 - `jobbot cv styles` — List the CV styles and their templates. Does not compile.
 - `jobbot cv sync` — Standing presence: permanent profiles + active company portals (issue #43).
@@ -401,6 +402,7 @@ writing it again — the promotion rule lives in
 - `portal_update.py` — Active portals this workspace has not integrated yet. Nothing here writes the profile. · `integration_log_path`, `load_seen`, `unseen_active_portals`, `format_new_portals`
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
 - `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `registered_styles`, `cv_language`, `as_cv_language`, `resolve_ats_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `skills_for_selection`, `education_for_selection`, `render_cv_tex`, `render_cv_ats`
+- `review.py` — A reviewer only keeps or rejects a change. It does not propose a new sentence. · `review_change`
 - `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
