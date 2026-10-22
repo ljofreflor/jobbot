@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-150 commands, 248 modules, 1358 public symbols.
+151 commands, 249 modules, 1359 public symbols.
 
 ## Commands
 
@@ -36,6 +36,7 @@ writing it again — the promotion rule lives in
 - `jobbot companies detect` — Classify a URL (posting / career portal / ATS / redirect). Writes nothing.
 - `jobbot companies discover` — One-shot: seed candidate career portals for a company list (never canonical).
 - `jobbot companies export` — Write a shareable snapshot: active entries only, no candidate PII.
+- `jobbot companies health` — Classify one portal read. Does not search or fetch.
 - `jobbot companies import` — Merge oneshot candidates into the registry (still candidate, never active).
 - `jobbot companies learn` — Register a company/portal relation you found yourself (candidate by default).
 - `jobbot companies list` — List known companies and their career platforms.
@@ -371,6 +372,7 @@ writing it again — the promotion rule lives in
 
 - `auto_promote.py` — Which candidate career sites technical evidence can promote. · `has_technical_evidence`, `auto_promote_eligible`, `auto_promote_plan`
 - `discovery.py` — Classify a URL as posting / corporate career portal / ATS instance / redirect. · `SiteClassification`, `classify_url`, `career_root_url`, `career_page_evidence`
+- `health.py` — A portal health check names reachability. It does not search for postings. · `portal_health`
 - `learn.py` — Turn URLs seen during normal use into candidate company knowledge. · `LearnResult`, `learn_from_url`, `company_name_for_job`, `learn_from_job`
 - `models.py` — Company ↔ career platform knowledge model (shareable; never candidate PII). · `utc_now`, `CareerSiteType`, `KnowledgeStatus`, `DiscoverySource`, `Observation`, `CareerSite`, `CompanyRecord`
 - `oneshot.py` — One-shot seeding of company career portals from public sources (not a crawler). · `CompanySeed`, `CompanyPortalCandidate`, `FetchResult`, `Fetcher`, `UrllibFetcher`, `OneshotReport`, `CandidateGroups`, `group_candidates`, `RobotsVerdict`, `RobotsPolicy`, `load_seeds`, `load_search_hits`, `candidate_urls`, `is_refusal`, `www_variant`, `CompanyProbe`, `discover_company`, `run_oneshot`, `write_candidates`, `load_candidates`, `import_candidates`
