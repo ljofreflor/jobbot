@@ -86,7 +86,11 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
 
@@ -127,6 +131,9 @@ not_in_nav: |
   portal-learning.md
   sdk.md
   software-design.md
+  sdd-issue-map.md
+  sdd-issue-patches/*
+  uml.md
   tutorial.md
 
 validation:
