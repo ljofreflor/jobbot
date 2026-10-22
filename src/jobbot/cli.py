@@ -7448,6 +7448,30 @@ def portals_profile_sheet(
             return
         console.print(text, markup=False)
         return
+    from jobbot.adapters.empleospublicos.signup import (
+        portal_for_id as empleos_portal_for_id,
+        render_empleos_publicos_sheet,
+    )
+
+    empleos_portal = empleos_portal_for_id(portal)
+    if empleos_portal is not None:
+        aliases = load_aliases(default_alias_path(config.root))
+        text = render_empleos_publicos_sheet(
+            candidate,
+            aliases,
+            email_alias=state.email_alias,
+            portal=empleos_portal,
+        )
+        if out is not None:
+            destination = out.expanduser()
+            if not destination.is_absolute():
+                destination = config.root / destination
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
+            console.print(f"Wrote {destination}")
+            return
+        console.print(text, markup=False)
+        return
     try:
         text = render_fill_sheet(
             state,

@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-154 commands, 252 modules, 1363 public symbols.
+154 commands, 253 modules, 1371 public symbols.
 
 ## Commands
 
@@ -237,6 +237,7 @@ writing it again — the promotion rule lives in
 
 - `jobs.py` — Empleos Públicos (Chile) — public concurso board. · `EmpleosPublicosParseError`, `canonical_ficha_url`, `job_from_ficha_html`, `jobs_from_search_payload`, `load_search_fixture`, `EmpleosPublicosJobSource`
 - `open_data.py` — Empleos Públicos convocatorias from the Servicio Civil open-data file. · `OpenDataError`, `Convocatoria`, `OpenDataFetcher`, `download_open_data`, `parse_open_data_csv`, `search_convocatorias`, `job_from_convocatoria`, `data_as_of`, `staleness_warning`, `OpenDataCache`, `format_salary`
+- `signup.py` — Empleos Públicos account signup — identity_bound sheet (no browser). · `SignupRecognize`, `EmpleosPublicosPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `render_empleos_publicos_sheet`
 
 ### `adapters/getonboard`
 
