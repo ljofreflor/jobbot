@@ -323,6 +323,10 @@ writing it again — the promotion rule lives in
 - `discover.py` — `jobs discover --source smartrecruiters` reads the public Posting API. · `pause`, `fetch_public`, `postings_url`, `SmartRecruitersDiscover`
 - `parse.py` — Map one SmartRecruiters posting. No network. · `company_identifier`, `parse_postings`
 
+### `adapters/taleo`
+
+- `signup.py` — Taleo careersection account signup — sheet + recognition (no browser driver). · `SignupRecognize`, `TaleoPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `portal_registration_url`, `render_taleo_sheet`
+
 ### `adapters/torre`
 
 - `apply.py` — Torre application adapter - delegates to external ATS or manual Torre profile. · `TorreApplicationAdapter`

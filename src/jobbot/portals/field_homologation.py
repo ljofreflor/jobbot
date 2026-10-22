@@ -78,6 +78,8 @@ _HOMOLOGATION: dict[ProfileFact, tuple[str, ...]] = {
         "correo",
         "correo electrónico",
         "correo electronico",
+        "correo electrónico personal",
+        "correo electronico personal",
     ),
     ProfileFact.PHONE: (
         "phone",
