@@ -76,6 +76,10 @@ issue ya cita UML y el diagrama está al día.
 | #249 | BCI seed + Cornerstone CSOD evidence | [bci-cornerstone-recon](uml.md#bci-cornerstone-recon) · [ports](uml.md#ports) · [acl](uml.md#acl) | body_ready | [249](sdd-issue-patches/249.md) |
 | #224 | Non-tech sources epic (registry + blocked) | [nontech-source-epic](uml.md#nontech-source-epic) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [224](sdd-issue-patches/224.md) |
 | #214 | Workday E2E epic Facade | [workday-e2e-epic](uml.md#workday-e2e-epic) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | body_ready | [214](sdd-issue-patches/214.md) |
+| #191 | Legal/admin portals epic | [legal-admin-portals](uml.md#legal-admin-portals) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | body_ready | [191](sdd-issue-patches/191.md) |
+| #180 | jobs discover + greedy coverage | [jobs-discover-epic](uml.md#jobs-discover-epic) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) · [plan-apply](uml.md#plan-apply) | body_ready | [180](sdd-issue-patches/180.md) |
+| #129 | Advisor mode (multi-workspace) | [advisor-mode](uml.md#advisor-mode) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) · [browser-login-tour](uml.md#browser-login-tour) | body_ready | [129](sdd-issue-patches/129.md) |
+| #274 | Isolated client VM (Decision Record) | [isolated-client-vm](uml.md#isolated-client-vm) | body_ready | [274](sdd-issue-patches/274.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

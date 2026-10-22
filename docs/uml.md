@@ -1738,6 +1738,206 @@ flowchart TD
 
 Reglas: CXS público sin login para discover/detalle; perfil = proyección SST; nunca password/términos/autoidentificación/Submit; UI_CHANGED=5.
 
+## Legal/admin portals epic — learned boards + ATS {#legal-admin-portals}
+
+Patrones: **Epic Facade**, **JobSourceAdapter** registry, **Guard** robots/términos, bolsas. Issue: #191 (hijos #226–#232; hermana #180; no-tech #224).
+
+```mermaid
+classDiagram
+  direction TB
+  class LegalAdminPortals {
+    <<Facade>>
+  }
+  class JobSourceAdapter {
+    <<Protocol>>
+  }
+  class DiscoveryBlocked {
+    <<Value Object>>
+    +reason
+    +reviewed_at
+  }
+  class SourceId {
+    <<enumeration>>
+    chiletrabajos
+    laborum
+    adp
+    bne
+    successfactors
+    smartrecruiters
+    pjud
+  }
+  class JobBoardKind {
+    <<enumeration>>
+    bolsa
+    employer_ats
+  }
+  LegalAdminPortals --> SourceId : registers
+  SourceId --> JobSourceAdapter : enabled
+  SourceId --> DiscoveryBlocked : refused / import-only
+  SourceId --> JobBoardKind : classify
+  JobSourceAdapter ..> JobPosting : ACL map
+```
+
+```mermaid
+flowchart TD
+  Discover[jobs discover --source X] --> Gate{robots / terms?}
+  Gate -->|ADP Disallow| Import[import saved fichas only]
+  Gate -->|Laborum terms open| Decide[record decision #227]
+  Gate -->|ok| Adapt[JobSourceAdapter + fake fetch]
+  Adapt --> Board{bolsa?}
+  Board -->|yes| NoLearn[companies learn skips employer]
+  Board -->|no| Learn[optional companies candidate]
+  Adapt --> Map[ACL → JobPosting]
+  Map --> Close[closure — no expired as open]
+```
+
+Reglas: queries del perfil; UA + ≤1 req/s; sin login/CAPTCHA bypass; Laborum misma decisión que #180; export sin PII.
+
+## Jobs discover epic — public APIs + greedy coverage {#jobs-discover-epic}
+
+Patrones: **Epic Facade**, **Factory** de fuentes, **Command** dry-run, **Greedy Coverage**, **SearchOutcome**. Issue: #180 (hijos #225 #240–#248; hermanas #191 #224; Workday #214; cola #106/#418).
+
+```mermaid
+classDiagram
+  direction TB
+  class JobsDiscover {
+    <<Facade>>
+  }
+  class JobSourceAdapter {
+    <<Protocol>>
+  }
+  class CoverageReport {
+    <<Value Object>>
+    +origin repo|perfil
+    +status
+    +share_state
+  }
+  class ClosingInstant {
+    <<Value Object>>
+    +closes_at
+    +tz
+  }
+  JobsDiscover --> JobSourceAdapter : --source / --greedy
+  JobsDiscover --> CoverageReport : one row per portal
+  JobSourceAdapter ..> JobPosting : ACL
+  JobPosting --> ClosingInstant : optional
+```
+
+```mermaid
+flowchart TD
+  Cmd[jobs discover] --> Mode{--source | --greedy}
+  Mode -->|source| One[Factory → adapter]
+  Mode -->|greedy| Uni[repo ∪ perfil hosts]
+  Uni --> Row[CoverageReport row each]
+  One --> Dry{--dry-run?}
+  Dry -->|yes| Preview[no DB / no companies.yaml]
+  Dry -->|no| Upsert[dedupe source+id]
+  Row --> Share[perfil → public queue #106]
+  One --> Out{empty | refused | rows}
+```
+
+Reglas: sitios desde `companies sites` / catálogo; sin query fija de oficio; robots/términos tipados; `salary_text` tal cual; nunca bypass anti-bot.
+
+## Advisor mode — multi-candidate checkout {#advisor-mode}
+
+Patrones: **Aggregate** sandbox, **Projection** advisor, **Consent** VO, **Guard** wrong_account. Issue: #129 (tracker #35; tune-for #54; login tour #56).
+
+```mermaid
+classDiagram
+  direction TB
+  class AdvisorMode {
+    <<Facade>>
+  }
+  class Workspace {
+    <<Aggregate>>
+    +name
+    +OwnerStamp
+  }
+  class Consent {
+    <<Value Object>>
+    +granted_at
+    +scope
+    +retain_until
+  }
+  class AdvisorStatus {
+    <<Projection>>
+    +fingerprint
+    +job_count
+    +prepared
+    +proposal_today
+  }
+  class SessionGuard {
+    <<Guard>>
+    ready
+    wrong_account
+    unknown
+    profile_busy
+  }
+  AdvisorMode --> Workspace : list/status
+  Workspace --> Consent : local gitignored
+  AdvisorMode --> AdvisorStatus : no PII names
+  Workspace --> SessionGuard : preflight
+```
+
+```mermaid
+flowchart TD
+  List[advisor status] --> Rows[one row per sandbox]
+  Rows --> Redact[fingerprint only]
+  Report[advisor report --workspace] --> Scope[that sandbox only]
+  Scope --> PII[pii_guard.redact]
+  CDP[browser sessions / --cdp] --> Match{page identity = owner?}
+  Match -->|no| Wrong[wrong_account — block]
+  Match -->|yes| Ready[ready]
+  Match -->|no evidence| Unknown[unknown]
+  Delete[workspace delete] --> Confirm{HITL confirm?}
+  Confirm -->|no| Stop[no write]
+  Confirm -->|yes| Rm[only that sandbox]
+```
+
+Reglas: nunca imprimir nombre del dueño ni identidad ajena; delete no toca `data/` raíz; HITL de envío intacto; datacenter browser fuera de alcance.
+
+## Isolated client VM — before identity mailbox {#isolated-client-vm}
+
+Patrones: **Isolation Boundary**, **Decision Record**. Issue: #274 (bloquea #272; mapa #162; advisor #129; posicionamiento #266).
+
+```mermaid
+classDiagram
+  direction TB
+  class IsolatedClientVm {
+    <<Boundary>>
+    +one machine per paying client
+  }
+  class LocalCliSegment {
+    <<Context>>
+    +workspace sandboxes
+    +gift use
+  }
+  class HostedSegment {
+    <<Context>>
+    +pays for VM
+  }
+  class ProfileYaml {
+    <<SoT>>
+    +on that machine only
+  }
+  IsolatedClientVm --> HostedSegment : hosts
+  LocalCliSegment --> Workspace : already shipped
+  IsolatedClientVm --> ProfileYaml : never shared store
+  IsolatedClientVm ..> IdentityMailbox : blocks design #272
+```
+
+```mermaid
+flowchart TD
+  Pay[paying client] --> VM[EC2 or GCE — provider undecided]
+  VM --> PII[profile.yaml + vault on VM]
+  VM --> Limit[datacenter IP — measured 403s]
+  Limit --> NoProxy[no proxies / stealth]
+  OpenQ[open questions] --> Close[written answers]
+  Close --> Mail[#272 mailbox design may start]
+```
+
+Reglas: issue = registro de decisión, no Terraform; PII por máquina; OTP/CAPTCHA humanos; no JobBot Cloud multi-tenant ni telemetría.
+
 ## Cómo citar desde un issue
 
 ```markdown

@@ -614,6 +614,27 @@ is one Facade over tenant-scoped ports with a transversal no-Submit guard — se
 [#214](https://github.com/ljofreflor/jobbot/issues/214) and
 [uml.md#workday-e2e-epic](uml.md#workday-e2e-epic).
 
+Legal/admin learned portals (Chiletrabajos, Laborum, ADP, BNE, SuccessFactors,
+SmartRecruiters, Poder Judicial) share one epic registry with bolsa classification
+and robots/terms guards — see
+[#191](https://github.com/ljofreflor/jobbot/issues/191) and
+[uml.md#legal-admin-portals](uml.md#legal-admin-portals).
+
+`jobs discover` (public APIs) plus `--greedy` coverage over `repo` ∪ `perfil`
+hosts is one Facade with dry-run Command and typed SearchOutcome — see
+[#180](https://github.com/ljofreflor/jobbot/issues/180) and
+[uml.md#jobs-discover-epic](uml.md#jobs-discover-epic).
+
+Advisor mode projects sandboxes by owner fingerprint, records local consent /
+retention, and guards sessions with `wrong_account` — see
+[#129](https://github.com/ljofreflor/jobbot/issues/129) and
+[uml.md#advisor-mode](uml.md#advisor-mode).
+
+A paying client gets an isolated VM (EC2/GCE undecided) before any identity
+mailbox; no shared CV store, no stealth — see
+[#274](https://github.com/ljofreflor/jobbot/issues/274) and
+[uml.md#isolated-client-vm](uml.md#isolated-client-vm).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
