@@ -698,6 +698,27 @@ def test_bne_sheet_does_not_type_or_attach(
     assert "does not attach" in err
 
 
+def test_randstad_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "randstad"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "# Randstad" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "randstad", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
 def test_seed_names_the_portals_that_need_a_fill_sheet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
