@@ -17,6 +17,7 @@ from pypdf.errors import PyPdfError
 from jobbot.jobs.geo import country_name, detect_country, normalize_country
 from jobbot.jobs.normalization import fold_text
 from jobbot.profile.importer_common import (
+    SECTION_KINDS,
     ImportResult,
     empty_skills,
     is_present,
@@ -854,6 +855,28 @@ def _achievements(exp_id: str, texts: list[str]) -> list[dict[str, Any]]:
     return out
 
 
+# Same education bucket as a degree, but these headings are not a title held.
+_COURSE_SECTION_ALIASES = frozenset(
+    {
+        "cursos",
+        "certificaciones",
+        "capacitacion",
+        "conocimiento complementario",
+        "conocimientos complementarios",
+    }
+)
+
+
+def _is_course_section(title: str) -> bool:
+    norm = normalize_key(title)
+    best = ""
+    for alias in SECTION_KINDS["education"]:
+        alias_norm = normalize_key(alias)
+        if alias_norm and alias_norm in norm and len(alias_norm) > len(best):
+            best = alias_norm
+    return best in _COURSE_SECTION_ALIASES
+
+
 def _parse_education(blocks: list[_Block], warnings: list[str]) -> list[dict[str, Any]]:
     education: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
@@ -861,10 +884,14 @@ def _parse_education(blocks: list[_Block], warnings: list[str]) -> list[dict[str
     for block in blocks:
         if block.kind != "education":
             continue
+        course = _is_course_section(block.title)
         for record in _group_records(block.lines):
             item = _education_entry(record, seen_ids, warnings)
-            if item:
-                education.append(item)
+            if item is None:
+                continue
+            if course:
+                item["kind"] = "course"
+            education.append(item)
 
     return education
 
