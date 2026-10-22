@@ -129,13 +129,14 @@ def test_identity_bound_sheet_uses_the_alias_and_marks_sst_gaps(
     from jobbot.portals.profile_state import default_state_path, save_states
 
     _workspace(tmp_path, monkeypatch)
-    portal = fill_portal("adp")
+    # bne keeps the generic identity_bound fill sheet; adp has a dedicated signup sheet (#436).
+    portal = fill_portal("bne")
     assert portal is not None
     state = catalog_state(portal)
     state.email_alias = "alias-01"
     save_states([state], default_state_path(tmp_path))
 
-    assert run_cli(["portals", "profile", "sheet", "adp"], standalone_mode=False) == SUCCESS
+    assert run_cli(["portals", "profile", "sheet", "bne"], standalone_mode=False) == SUCCESS
 
     sheet = capsys.readouterr().out
     assert "alias-01" in sheet
