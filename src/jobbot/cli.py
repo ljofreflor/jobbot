@@ -1778,6 +1778,21 @@ def profile_import_folder(
     raise typer.Exit(SUCCESS)
 
 
+@profile_app.command("interview")
+def profile_interview(
+    gap: Annotated[str, typer.Option("--gap", help="A gap already named. Nothing is answered.")],
+) -> None:
+    """Ask one question about a gap. Does not invent the answer."""
+    from jobbot.profile.interview import gap_question
+
+    try:
+        line = gap_question(gap)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
 @profile_app.command("expand")
 def profile_expand(
     text: Annotated[str, typer.Option("--text", help="Fact already read from the source.")],
