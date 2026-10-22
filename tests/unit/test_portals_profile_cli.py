@@ -761,6 +761,27 @@ def test_hays_sheet_does_not_type(
     assert "Nothing was typed" in err
 
 
+def test_iica_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "iica"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "IICA consultant roster" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "iica", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
 def test_seed_names_the_portals_that_need_a_fill_sheet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
