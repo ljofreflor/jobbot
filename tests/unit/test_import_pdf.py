@@ -85,6 +85,23 @@ def test_broken_end_date_warns_instead_of_inventing_a_year(sample_cv_pdf: Path) 
     assert any("end_date" in warning for warning in result.warnings)
 
 
+def test_a_course_section_is_not_stored_as_a_degree() -> None:
+    text = (
+        "Ana Prueba Ramos\n"
+        "PERIODISTA\n"
+        "FORMACION ACADEMICA\n"
+        "Universidad del Litoral, 09/2010 – 12/2015 Periodista\n"
+        "CURSOS\n"
+        "Instituto Neutro, 01/2022 – 06/2022 Redaccion de cierre\n"
+    )
+
+    education = parse_cv_text(text, Path("memo.pdf")).data["education"]
+    by_degree = {item["degree"]: item for item in education}
+
+    assert by_degree["Periodista"].get("kind", "degree") == "degree"
+    assert by_degree["Redaccion de cierre"]["kind"] == "course"
+
+
 def test_education_reads_dates_inside_the_line(sample_cv_pdf: Path) -> None:
     education = import_pdf_cv(sample_cv_pdf).data["education"]
 
