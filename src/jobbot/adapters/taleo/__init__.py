@@ -7,10 +7,12 @@ solves CAPTCHA/OAuth, never clicks create/submit.
 """
 
 from jobbot.adapters.taleo.signup import (
+    FAO,
     OMS_WHO,
     TaleoPortal,
     account_evidence,
     portal_for_id,
+    portal_registration_url,
     recognize_signup_html,
     registration_url,
     render_taleo_sheet,
@@ -18,10 +20,12 @@ from jobbot.adapters.taleo.signup import (
 )
 
 __all__ = [
+    "FAO",
     "OMS_WHO",
     "TaleoPortal",
     "account_evidence",
     "portal_for_id",
+    "portal_registration_url",
     "recognize_signup_html",
     "registration_url",
     "render_taleo_sheet",

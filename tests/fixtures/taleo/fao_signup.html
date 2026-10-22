@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><title>FAO Jobs — Registro de nuevo usuario (fixture)</title></head>
+<body>
+  <!-- Fictional Taleo-like registration page for jobs.example.org. No PII. -->
+  <h1>Registro de nuevo usuario</h1>
+  <form id="dialogTemplate-dialogForm" action="/careersection/fao_external/selfservice/createaccount.ftl" method="post">
+    <label for="firstName">Nombre</label>
+    <input id="firstName" name="firstName" type="text" maxlength="80">
+
+    <label for="lastName">Apellido</label>
+    <input id="lastName" name="lastName" type="text" maxlength="80">
+
+    <label for="email">Correo Electrónico Personal</label>
+    <input id="email" name="email" type="email" maxlength="120">
+
+    <label for="phone">Teléfono</label>
+    <input id="phone" name="phone" type="tel" maxlength="40">
+
+    <label for="country">País</label>
+    <input id="country" name="country" type="text" maxlength="80">
+
+    <label for="city">Ciudad</label>
+    <input id="city" name="city" type="text" maxlength="80">
+
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" maxlength="64">
+
+    <label for="confirmPassword">Vuelva a introducir contraseña</label>
+    <input id="confirmPassword" name="confirmPassword" type="password" maxlength="64">
+
+    <label for="terms">Términos y condiciones</label>
+    <input id="terms" name="terms" type="checkbox">
+
+    <button type="submit" name="register">Registrar</button>
+  </form>
+</body>
+</html>
