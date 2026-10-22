@@ -635,6 +635,26 @@ mailbox; no shared CV store, no stealth — see
 [#274](https://github.com/ljofreflor/jobbot/issues/274) and
 [uml.md#isolated-client-vm](uml.md#isolated-client-vm).
 
+Identity mailbox (postulation address ≠ program-read inbox) and optional thin
+Flutter client wait on written Decision Record answers after #274 — see
+[#272](https://github.com/ljofreflor/jobbot/issues/272) and
+[uml.md#identity-mailbox-client](uml.md#identity-mailbox-client).
+
+AI Apply reel outcomes (cycle time, feedback funnel, presence) map to HITL
+issues; autopilot / Gmail OAuth / spray stay anti-patterns — see
+[#155](https://github.com/ljofreflor/jobbot/issues/155) and
+[uml.md#stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes).
+
+GCP, if ever, hosts only the commons map (export snapshots), never JobBot
+apply against boards — see
+[#162](https://github.com/ljofreflor/jobbot/issues/162) and
+[uml.md#commons-vs-traveller](uml.md#commons-vs-traveller).
+
+Other products named JobBot contribute stolen outcomes into existing issues,
+not a parallel tracker or autopilot clone — see
+[#164](https://github.com/ljofreflor/jobbot/issues/164) and
+[uml.md#namesake-usecase-map](uml.md#namesake-usecase-map).
+
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas

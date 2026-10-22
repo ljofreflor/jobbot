@@ -80,6 +80,10 @@ issue ya cita UML y el diagrama está al día.
 | #180 | jobs discover + greedy coverage | [jobs-discover-epic](uml.md#jobs-discover-epic) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) · [plan-apply](uml.md#plan-apply) | body_ready | [180](sdd-issue-patches/180.md) |
 | #129 | Advisor mode (multi-workspace) | [advisor-mode](uml.md#advisor-mode) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) · [browser-login-tour](uml.md#browser-login-tour) | body_ready | [129](sdd-issue-patches/129.md) |
 | #274 | Isolated client VM (Decision Record) | [isolated-client-vm](uml.md#isolated-client-vm) | body_ready | [274](sdd-issue-patches/274.md) |
+| #272 | Identity mailbox + Thin Client (Flutter) | [identity-mailbox-client](uml.md#identity-mailbox-client) · [isolated-client-vm](uml.md#isolated-client-vm) | body_ready | [272](sdd-issue-patches/272.md) |
+| #155 | Stolen AI Apply outcomes (HITL map) | [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [capability-gap-map](uml.md#capability-gap-map) · [plan-apply](uml.md#plan-apply) | body_ready | [155](sdd-issue-patches/155.md) |
+| #162 | Bounded Context commons vs traveller | [commons-vs-traveller](uml.md#commons-vs-traveller) · [public-queue-sync](uml.md#public-queue-sync) | body_ready | [162](sdd-issue-patches/162.md) |
+| #164 | Namesake JobBot use-case map | [namesake-usecase-map](uml.md#namesake-usecase-map) · [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [capability-gap-map](uml.md#capability-gap-map) | body_ready | [164](sdd-issue-patches/164.md) |
 
 ## Cómo aplicar un patch (HITL, token con write)
 

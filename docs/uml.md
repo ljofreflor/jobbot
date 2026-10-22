@@ -1938,6 +1938,184 @@ flowchart TD
 
 Reglas: issue = registro de decisión, no Terraform; PII por máquina; OTP/CAPTCHA humanos; no JobBot Cloud multi-tenant ni telemetría.
 
+## Identity mailbox + thin mobile client {#identity-mailbox-client}
+
+Patrones: **Decision Record**, **Identity Mailbox**, **Thin Client**. Issue: #272 (bloqueado por #274; feedback #154; WhatsApp hacia persona #251; posicionamiento #266).
+
+```mermaid
+classDiagram
+  direction TB
+  class IdentityMailbox {
+    <<Decision>>
+    +owner workspace|person|discarded
+    +form_address VM|profile.yaml
+  }
+  class ThinFlutterClient {
+    <<Client>>
+    +capture URL
+    +status
+    +confirm HITL
+  }
+  class IsolatedClientVm {
+    <<Boundary>>
+  }
+  class PastedFeedback {
+    <<Command>>
+    +#154 funnel
+  }
+  IsolatedClientVm ..> IdentityMailbox : blocks design until answered
+  IdentityMailbox --> PastedFeedback : paste still valid if no mailbox
+  ThinFlutterClient --> LocalCli : same loop, not second product
+  note for IdentityMailbox "JobBot never reads OTP\nno OAuth personal Gmail\nno auto-send"
+```
+
+```mermaid
+flowchart TD
+  Q1[mailbox owner?] --> A1[written answer]
+  Q2[form address?] --> A2[written answer]
+  Q3[Flutter in or out?] --> A3[written answer]
+  A1 --> Close[issue closed]
+  A2 --> Close
+  A3 --> Close
+  Close -->|mailbox kept| Design[design after #274]
+  Close -->|Flutter thin| Proto[prototype later]
+  Close -.->|forbidden| No[OAuth inbox / OTP bot / dashboard twin]
+```
+
+Reglas: correo = domicilio de postulación, no agente que lea bandeja; Flutter no reemplaza la terminal; CAPTCHA/2FA/OTP humanos.
+
+## Stolen AI Apply outcomes — HITL map {#stolen-ai-apply-outcomes}
+
+Patrones: **Stolen-Outcome Map**, **Anti-pattern table**, **HITL Command**. Issue: #155 (ciclo #154; cola #75; asesoria #130; presencia #150; no clonar #266).
+
+```mermaid
+classDiagram
+  direction TB
+  class StolenOutcome {
+    <<Row>>
+    +str outcome
+    +str jobbot_form
+    +str|None issue
+  }
+  class AiApplyOutcomeMap {
+    <<Inventory>>
+  }
+  class AntiPattern {
+    <<Forbidden>>
+    autopilot
+    spray_cv
+    gmail_oauth_inbox
+    cloud_agent_while_asleep
+  }
+  AiApplyOutcomeMap *-- StolenOutcome
+  AiApplyOutcomeMap ..> AntiPattern : never ship
+  StolenOutcome --> PlanApply : prefill / queue HITL
+  StolenOutcome --> CapabilityGapMap : when contract missing
+```
+
+```mermaid
+flowchart LR
+  Reel[AI Apply reel claim] --> Filter{HITL + local?}
+  Filter -->|no| Drop[anti-pattern #105]
+  Filter -->|yes| Row[outcome → JobBot form → issue]
+  Row --> Close154[#154 feedback + report]
+  Row --> Msg130[#130 hard-way message]
+  Row --> Erg75[#75 HITL queue ≠ volume KPI]
+```
+
+Reglas: robar resultados medibles, no el medio de créditos-por-envío; Review mode de ellos ≈ único modo nuestro.
+
+## Commons vs traveller — GCP if ever {#commons-vs-traveller}
+
+Patrones: **Bounded Context**, **Anti-corruption** del nombre, **Decision Record**. Issue: #162 (federación #106; advisor #129; vault #157; VM #274).
+
+```mermaid
+classDiagram
+  direction TB
+  class Traveller {
+    <<Bounded Context>>
+    +profile.yaml
+    +vault
+    +browser
+    +apply
+  }
+  class Commons {
+    <<Bounded Context>>
+    +companies export
+    +portals
+    +zero candidate PII
+  }
+  class JobBotName {
+    <<Brand>>
+  }
+  class OptionalGcpBucket {
+    <<Later>>
+    +public snapshots
+  }
+  JobBotName --> Traveller : this name only
+  Commons --> GitMerge : #106 first
+  Commons ..> OptionalGcpBucket : after merge hurts
+  Traveller ..> OptionalGcpBucket : never hosts apply
+  note for OptionalGcpBucket "no Cloud Run Playwright\nno Cloud SQL profiles\nno Secret Manager vault"
+```
+
+```mermaid
+flowchart TD
+  Ask[GCP under JobBot?] --> No[keep name on local CLI]
+  No --> Map[commons / el mapa]
+  Map --> File[#106 file merge HITL]
+  File -->|enough| Stay[git is commons]
+  File -->|not enough| Bucket[public export bucket]
+  Bucket --> Guard[pii_guard at edge]
+```
+
+Reglas: colaboración = el mapa, no el viajero; datacenter IP descalifica JobBot en GCE/Cloud Run contra portales.
+
+## Namesake JobBot use-cases {#namesake-usecase-map}
+
+Patrones: **Stolen-Outcome Map**, **Anti-pattern table**, **Never invent**. Issue: #164 (filtro #155 / #105; marca dual #261; gaps #32 #34 #84 #154).
+
+```mermaid
+classDiagram
+  direction TB
+  class NamesakeRow {
+    <<Row>>
+    +str source
+    +str outcome
+    +str jobbot_form
+    +str|None issue
+  }
+  class NamesakeUsecaseMap {
+    <<Inventory>>
+  }
+  class NamesakeForbidden {
+    <<Anti-pattern>>
+    auto_submit
+    hosted_cv
+    datacenter_cron
+    cold_email
+    sheets_tracker
+    llm_vision_extension
+    esco_as_gate
+    invent_bullets
+  }
+  NamesakeUsecaseMap *-- NamesakeRow
+  NamesakeUsecaseMap ..> NamesakeForbidden : never ship
+  NamesakeRow --> ExistingIssues : #33 #34 #84 #154 …
+  NamesakeUsecaseMap --> CapabilityGapMap : falsifiable contracts
+```
+
+```mermaid
+flowchart LR
+  Hom[jobbot.io / Devpost / …] --> F{same filter as #155?}
+  F -->|throughput medium| Out[drop]
+  F -->|honest outcome| Map[row → shipped or open issue]
+  Map --> Prior[prior-art.md one-liner]
+  Map --> NoParallel[no parallel tracker]
+```
+
+Reglas: no pelear la marca; huecos en issues ya abiertos; ESCO no decide el oficio; detector de invención intacto.
+
 ## Cómo citar desde un issue
 
 ```markdown
