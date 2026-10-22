@@ -56,7 +56,7 @@ _CODE_CHALLENGE_MARKERS: tuple[str, ...] = (
 )
 
 # Inventory of the new-user / access-control form. Password and terms stay HITL.
-_FIELDS: tuple[tuple[str, str | None], ...] = (
+_FIELDS_EN: tuple[tuple[str, str | None], ...] = (
     ("First Name", "personal.name"),
     ("Last Name", "personal.name"),
     ("Email Address", "personal.email"),
@@ -71,6 +71,22 @@ _FIELDS: tuple[tuple[str, str | None], ...] = (
     ("Create Account", None),
 )
 
+# FAO careersection often serves the registration UI in Spanish (#447).
+_FIELDS_ES: tuple[tuple[str, str | None], ...] = (
+    ("Nombre", "personal.name"),
+    ("Apellido", "personal.name"),
+    ("Correo Electrónico Personal", "personal.email"),
+    ("Teléfono", "personal.phone"),
+    ("País", "personal.country"),
+    ("Ciudad", "personal.city"),
+    ("Contraseña", None),
+    ("Vuelva a introducir contraseña", None),
+    ("Términos y condiciones", None),
+    ("Acuerdo de privacidad", None),
+    ("CAPTCHA", None),
+    ("Registrar", None),
+)
+
 _ALWAYS_HITL: frozenset[str] = frozenset(
     {
         "Password",
@@ -79,7 +95,18 @@ _ALWAYS_HITL: frozenset[str] = frozenset(
         "Privacy Agreement",
         "CAPTCHA",
         "Create Account",
+        "Contraseña",
+        "Vuelva a introducir contraseña",
+        "Términos y condiciones",
+        "Acuerdo de privacidad",
+        "Registrar",
     }
+)
+
+# Path tokens on the Privacy Agreement *gate* (before the form). Not checkbox labels.
+_PRIVACY_WALL_PATHS: tuple[str, ...] = (
+    "statementbeforeauthentification",
+    "/privacyagreement/",
 )
 
 
@@ -101,6 +128,8 @@ class TaleoPortal:
     # Public jobsearch URL (host is the real careers host; fixtures use example.org).
     jobsearch_url: str
     lang: str = "en"
+    # When set, used as the sheet registration URL instead of deriving accesscontrol.
+    signup_url: str | None = None
 
 
 OMS_WHO = TaleoPortal(
@@ -111,7 +140,23 @@ OMS_WHO = TaleoPortal(
     lang="en",
 )
 
-_BY_ID: dict[str, TaleoPortal] = {OMS_WHO.portal_id: OMS_WHO}
+FAO = TaleoPortal(
+    portal_id="fao",
+    name="FAO Jobs (Taleo)",
+    section="fao_external",
+    jobsearch_url=(
+        "https://jobs.fao.org/careersection/fao_external/jobsearch.ftl?lang=es"
+    ),
+    lang="es",
+    signup_url=(
+        "https://jobs.fao.org/careersection/fao_external/accesscontrol.ftl?lang=es"
+    ),
+)
+
+_BY_ID: dict[str, TaleoPortal] = {
+    OMS_WHO.portal_id: OMS_WHO,
+    FAO.portal_id: FAO,
+}
 
 
 def portal_for_id(portal_id: str) -> TaleoPortal | None:
@@ -159,6 +204,12 @@ def _has_code_challenge(html: str) -> bool:
     return any(marker in lowered for marker in _CODE_CHALLENGE_MARKERS)
 
 
+def _is_privacy_wall(html: str, url: str) -> bool:
+    """True for the FAO/Taleo privacy gate page, not a privacy checkbox on the form."""
+    haystack = f"{url}\n{html}".casefold()
+    return any(marker in haystack for marker in _PRIVACY_WALL_PATHS)
+
+
 def recognize_signup_html(
     html: str,
     *,
@@ -166,14 +217,22 @@ def recognize_signup_html(
 ) -> tuple[SignupRecognize, FormKnowledge | None]:
     """Offline recognition of a Taleo-like registration form.
 
-    Returns ``MANUAL_CHALLENGE`` when CAPTCHA or a verification-code wall blocks,
-    ``UI_CHANGED`` when no readable signup fields are found, otherwise ``OK``
-    with a learned form (password/terms stay unfilled by ``signup_fill``).
-    Terms/Privacy *checkboxes* on the form are HITL fields, not a challenge wall.
+    Returns ``MANUAL_CHALLENGE`` when CAPTCHA, a verification-code wall, or a
+    Privacy Agreement gate blocks, ``UI_CHANGED`` when no readable signup fields
+    are found, otherwise ``OK`` with a learned form (password/terms stay
+    unfilled by ``signup_fill``). Terms/Privacy *checkboxes* on the form are
+    HITL fields, not a challenge wall — unless the page itself is the privacy
+    gate (FAO ``privacyagreement`` path).
     """
     if _has_captcha(html) or _has_code_challenge(html):
         return SignupRecognize.MANUAL_CHALLENGE, None
-    form = learn_form_html(html, url=url or "https://careers.example.org/careersection/ex/accesscontrol.ftl")
+    if _is_privacy_wall(html, url):
+        # Gate before the form: human must accept; JobBot never clicks I Accept.
+        return SignupRecognize.MANUAL_CHALLENGE, None
+    form = learn_form_html(
+        html,
+        url=url or "https://careers.example.org/careersection/ex/accesscontrol.ftl",
+    )
     if not form.readable:
         return SignupRecognize.UI_CHANGED, None
     labels = {field.label.casefold() for field in form.fields}
@@ -189,9 +248,11 @@ def recognize_signup_html(
     return SignupRecognize.OK, form
 
 
-def account_evidence(html: str) -> AccountState:
+def account_evidence(html: str, *, url: str = "") -> AccountState:
     """Local evidence from saved HTML only — never invents a session."""
     if _has_captcha(html) or _has_code_challenge(html):
+        return AccountState.needs_human
+    if _is_privacy_wall(html, url):
         return AccountState.needs_human
     lowered = (html or "").casefold()
     if any(marker in lowered for marker in _EVIDENCE_MARKERS):
@@ -199,10 +260,20 @@ def account_evidence(html: str) -> AccountState:
     return AccountState.unknown
 
 
-def signup_items(candidate: Candidate) -> list[SignupItem]:
+def _fields_for(portal: TaleoPortal | None) -> tuple[tuple[str, str | None], ...]:
+    if portal is not None and portal.lang.startswith("es"):
+        return _FIELDS_ES
+    return _FIELDS_EN
+
+
+def signup_items(
+    candidate: Candidate,
+    *,
+    portal: TaleoPortal | None = None,
+) -> list[SignupItem]:
     """Sheet rows for Taleo registration. Password / terms / create stay empty."""
     items: list[SignupItem] = []
-    for label, _home in _FIELDS:
+    for label, _home in _fields_for(portal):
         if label in _ALWAYS_HITL:
             items.append(
                 SignupItem(
@@ -217,6 +288,13 @@ def signup_items(candidate: Candidate) -> list[SignupItem]:
     return items
 
 
+def portal_registration_url(portal: TaleoPortal) -> str:
+    """Public registration entry for the sheet and companies signup."""
+    if portal.signup_url:
+        return portal.signup_url
+    return registration_url(portal.jobsearch_url, lang=portal.lang)
+
+
 def render_taleo_sheet(
     portal: TaleoPortal,
     candidate: Candidate,
@@ -225,19 +303,20 @@ def render_taleo_sheet(
     email_alias: str | None = None,
 ) -> str:
     """Markdown the person can copy. Contact email uses the portal alias when set."""
+    email_labels = {"Email Address", "Correo Electrónico Personal"}
     lines = [
         f"# {portal.name}",
         "",
         f"Portal: `{portal.portal_id}` · adapter: `taleo` · section: `{portal.section}`",
         "",
-        f"Registro: `{registration_url(portal.jobsearch_url, lang=portal.lang)}`",
+        f"Registro: `{portal_registration_url(portal)}`",
         "",
         "Hoja de alta. JobBot rellena solo campos que el SST ya responde (`companies signup "
         "--apply`); password, términos, CAPTCHA y Create quedan en HITL.",
         "",
     ]
-    for item in signup_items(candidate):
-        if item.label == "Email Address" and email_alias:
+    for item in signup_items(candidate, portal=portal):
+        if item.label in email_labels and email_alias:
             resolved = aliases.get(email_alias)
             shown = (
                 f"{email_alias} → {resolved}"
