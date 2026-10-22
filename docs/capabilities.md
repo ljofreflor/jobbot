@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-154 commands, 252 modules, 1363 public symbols.
+154 commands, 252 modules, 1364 public symbols.
 
 ## Commands
 
@@ -291,7 +291,7 @@ writing it again — the promotion rule lives in
 - `package.py` — LinkedIn publications sync package from Candidate (facts only). · `LinkedInPublicationItem`, `doi_url`, `build_linkedin_publication_items`, `publications_missing_from_remote`
 - `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
 - `publications.py` — Playwright helpers for LinkedIn Publications (Spanish UI; HITL; no CAPTCHA bypass). · `profile_publications_new_url`, `profile_publications_details_url`, `vanity_from_linkedin_url`, `list_remote_publication_titles`, `open_new_publication_form`, `open_edit_publication_form`, `fill_publication_form`, `save_publication`
-- `selectors.py` — LinkedIn selector hints.
+- `selectors.py` — LinkedIn selector hints. The Easy Apply submit control is named and never clicked. · `is_easy_apply_submit`
 - `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `looks_like_job_post`, `PostVacancy`, `LinkedInPostCandidate`, `posted_at_from_url`, `current_time`, `posted_at_from_text`, `strip_engagement_chrome`, `strip_feed_chrome`, `labelled_vacancy_links`, `split_vacancy_links`, `post_offers_wanted_country`, `parse_post_blob`, `parse_posts_fixture`, `post_to_jobs`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`, `employer_from_post`
 
 ### `adapters/lumesse`
