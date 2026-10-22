@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-154 commands, 252 modules, 1362 public symbols.
+154 commands, 253 modules, 1370 public symbols.
 
 ## Commands
 
@@ -322,6 +322,10 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source smartrecruiters` reads the public Posting API. · `pause`, `fetch_public`, `postings_url`, `SmartRecruitersDiscover`
 - `parse.py` — Map one SmartRecruiters posting. No network. · `company_identifier`, `parse_postings`
+
+### `adapters/taleo`
+
+- `signup.py` — Taleo careersection account signup — sheet + recognition (no browser driver). · `SignupRecognize`, `TaleoPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `render_taleo_sheet`
 
 ### `adapters/torre`
 
