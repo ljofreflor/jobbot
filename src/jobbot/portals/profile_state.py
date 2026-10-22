@@ -64,6 +64,9 @@ class AccountState(StrEnum):
     unknown = "unknown"
 
 
+_READY_ACCOUNTS = frozenset({AccountState.evidenced, AccountState.identity_bound})
+
+
 class Priority(StrEnum):
     high = "high"
     medium = "medium"
@@ -522,6 +525,23 @@ def _level(
     if cv_current:
         return 2
     return 1
+
+
+def account_coverage(
+    states: list[PortalProfileState],
+    *,
+    excluded: frozenset[str] = frozenset(),
+    out_of_scope: frozenset[str] = frozenset(),
+) -> tuple[int, int]:
+    """``(ready, counted)``. Ready is evidenced or identity_bound.
+
+    ``unknown`` and ``needs_human`` stay in the denominator. Named exclusions
+    leave both sides. An empty count is ``(0, 0)``.
+    """
+    skip = excluded | out_of_scope
+    counted = [state for state in states if state.portal not in skip]
+    ready = sum(1 for state in counted if state.account in _READY_ACCOUNTS)
+    return ready, len(counted)
 
 
 def coverage_report(
