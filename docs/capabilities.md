@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-149 commands, 247 modules, 1357 public symbols.
+150 commands, 248 modules, 1358 public symbols.
 
 ## Commands
 
@@ -137,6 +137,7 @@ writing it again — the promotion rule lives in
 - `jobbot profile show` — Show a summary of the local profile.
 - `jobbot profile skills-map` — Map each declared skill to the role or degree that already shows it.
 - `jobbot profile status` — Show local vs portal consistency (snapshots if available).
+- `jobbot profile study` — Ask whether to study a repeated term. Does not write the profile.
 - `jobbot profile suggest-from-market` — Write market suggestions. Asks on stdin only with --ask or when promoting.
 - `jobbot profile validate` — Validate data/profile.yaml and application_answers.yaml.
 - `jobbot recruiters discover` — Read public pages about hiring and store what they teach as candidates.
@@ -524,6 +525,7 @@ writing it again — the promotion rule lives in
 - `rejection.py` — A rejection is a preference, a condition, or a missing fact. Only the last may edit. · `rejection_kind`, `may_edit_profile`
 - `search_queries.py` — Job-board searches derived from what the candidate has done, not from a job title. · `QueryOrigin`, `DerivedQuery`, `ChosenQueries`, `search_queries_for`, `derive_search_queries`
 - `skill_map.py` — Which declared skills a role or a degree already shows. Never invents a skill. · `SkillUse`, `map_skills`, `unbacked_skills`, `unbacked_achievements`, `evidence_records`, `format_map`, `format_unbacked`
+- `study.py` — A repeated market term the profile lacks is a study question, not a new skill. · `study_question`
 - `validator.py` — Validate Candidate profiles beyond Pydantic field checks. · `ValidationIssue`, `ValidationResult`, `validate_candidate`, `unknown_profile_keys`
 
 ### `publications`

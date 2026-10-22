@@ -1778,6 +1778,26 @@ def profile_import_folder(
     raise typer.Exit(SUCCESS)
 
 
+@profile_app.command("study")
+def profile_study(
+    term: Annotated[str, typer.Option("--term", help="Term repeated in stored postings.")],
+    repeats: Annotated[int, typer.Option("--repeats", help="How many postings name it.")],
+    known: Annotated[
+        bool,
+        typer.Option("--known", help="The profile already states this term."),
+    ] = False,
+) -> None:
+    """Ask whether to study a repeated term. Does not write the profile."""
+    from jobbot.profile.study import study_question
+
+    try:
+        line = study_question(term, repeats=repeats, known=known)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
 @profile_app.command("rejection")
 def profile_rejection(
     text: Annotated[str, typer.Option("--text", help="Why the suggestion does not fit")],
