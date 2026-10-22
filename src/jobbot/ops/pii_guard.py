@@ -65,7 +65,8 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
     (r"\.sqlite3?$", "local database"),
     (r"\.db$", "local database"),
     (r"^(?!latex/).*\.pdf$", "PDF CV / attachment"),
-    (r"^\.cursor/", "local editor/agent config"),
+    # Rules / MCP stay local; project Agent Skills under .cursor/skills/ are tracked.
+    (r"^\.cursor/(?!skills(?:/|$))", "local editor/agent config"),
 )
 
 # Binary / non-text suffixes: never decode as UTF-8 for content scanning.
