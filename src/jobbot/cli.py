@@ -7448,19 +7448,19 @@ def portals_profile_sheet(
             return
         console.print(text, markup=False)
         return
-    from jobbot.adapters.alta_direccion.signup import (
-        portal_for_id as adp_portal_for_id,
-        render_adp_sheet,
+    from jobbot.adapters.inspira.signup import (
+        portal_for_id as inspira_portal_for_id,
+        render_inspira_sheet,
     )
 
-    adp_portal = adp_portal_for_id(portal)
-    if adp_portal is not None:
+    inspira_portal = inspira_portal_for_id(portal)
+    if inspira_portal is not None:
         aliases = load_aliases(default_alias_path(config.root))
-        text = render_adp_sheet(
+        text = render_inspira_sheet(
             candidate,
             aliases,
             email_alias=state.email_alias,
-            portal=adp_portal,
+            portal=inspira_portal,
         )
         if out is not None:
             destination = out.expanduser()

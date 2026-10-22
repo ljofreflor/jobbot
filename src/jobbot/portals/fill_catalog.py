@@ -86,7 +86,7 @@ FILL_PORTALS: tuple[FillPortal, ...] = (
         "UN Careers / Inspira",
         "inspira",
         Priority.high,
-        "https://careers.un.org/",
+        "https://inspira.un.org/psc/REGISTER/EMPLOYEE/HRMS/c/UN_SKILL_REG.UN_SKILL_REG.GBL&languagecd=ENG",
         profile_url="https://careers.un.org/",
         gaps=_UN_GAPS,
     ),
