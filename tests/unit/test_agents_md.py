@@ -78,6 +78,16 @@ def test_counts_quoted_from_the_index_are_current(project_root: Path) -> None:
     assert _stale_counts(_agents(project_root), index) == []
 
 
+def test_against_over_engineering_section_is_present(project_root: Path) -> None:
+    """Remote agents only have AGENTS.md — anti-speculation rules must stay in-file."""
+    text = _agents(project_root)
+    assert "## Against over-engineering" in text
+    assert "YAGNI" in text
+    assert "Fewest elements" in text
+    assert "#105" in text
+    assert "Smell checklist" in text
+
+
 def test_the_checks_catch_what_they_exist_for() -> None:
     paragraph = "Job descriptions are pulled from **Indeed** (`jobs search`), **LinkedIn** posts"
     pasted = (

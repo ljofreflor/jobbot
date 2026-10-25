@@ -479,6 +479,65 @@ This is not only about tokens. The deterministic path is the auditable one: neve
 experience, and stopping for HITL, are guarantees that live in code and its tests — not in the
 memory of a conversation.
 
+## Against over-engineering (keep the surface small)
+
+Promotion (above) fights *re-deriving*. This section fights the opposite waste: *speculative
+generality* — layers, patterns and knobs added “por si acaso” that raise carry cost without a
+current caller. JobBot prefers **dissolve** over throughput clones
+([#105](https://github.com/ljofreflor/jobbot/issues/105)): remove friction; do not clone a
+dashboard.
+
+Sources we reuse (not invent): XP / Beck **simple design**, YAGNI, KISS, and the rule of three
+already stated under Design economics. Priority order when judging a change:
+
+1. **Passes the tests** — untested or untestable behaviour is not “simple”; it is unknown.
+2. **Reveals intention** — names and structure say what the cargo loop is doing; a reader should
+   not need a tour guide.
+3. **No duplication of knowledge** — extract when the *same idea* repeats (rule of three), not
+   when two lines look alike. A wrong abstraction costs more than two similar functions
+   (carry + repair).
+4. **Fewest elements** — among designs that satisfy 1–3, delete classes, ports, flags and
+   indirection that do not earn their keep.
+
+**YAGNI / KISS in this repo.**
+
+- Implement what the open issue’s acceptance asks *now*. Do not add a second strategy,
+  plugin hook, config key or “future tenant” path unless a real caller exists in-tree.
+- Prefer one function in the owning module over a mini-framework. A CLI flag that needs a
+  registry, factory and base class for a single string is over-built.
+- Deterministic path first; `--llm` only when the cheap path cannot finish
+  ([manifesto](docs/manifesto.md) §3). Extra model knobs without a failing fixture are theatre.
+- Reuse ports/adapters already registered. A new `AtsKind` or `JobSource` needs a real host
+  + fixture evidence — not a hostname guess “por si aparece”.
+- Extend or close an existing issue before opening a parallel design that re-describes the
+  same endgame (see Planning).
+
+**Smell checklist (reject or shrink in review).**
+
+| Smell | Usually means |
+| --- | --- |
+| Interface / ABC with one implementor | Premature port — keep the concrete type until a second appears |
+| Factory / registry for a single type | Indirection with no fan-out |
+| Strategy with one strategy | Pattern costume on a function |
+| Flag / config “for later flexibility” | YAGNI debt; delete or gate behind a real issue |
+| Base class with one subclass | Collapse until a second variant is real |
+| More than two hops to reach logic | Unnecessary delegation |
+| New dependency when stdlib / audited lib fits | Check [library-audit.md](docs/library-audit.md) first |
+| Docs/diagrams for types that do not exist yet | SDD follows code + issue need, not the reverse |
+| Throughput clone of a SaaS feature | Prefer dissolve ([#105](https://github.com/ljofreflor/jobbot/issues/105)) |
+
+**Just-in-time structure.** Keep code *changeable* (tests, clear owners, small modules) so the
+right abstraction can land when the third use appears — that is not rework; it is deferred
+complexity with a cheap escape hatch. Degrading the design “to ship faster” only when you
+name the trade-off (HITL); never by accident.
+
+**Agent self-check before opening a PR.**
+
+- Can this PR drop a type, file or flag and still meet the issue? If yes, drop it.
+- Is every new public symbol called from production code or a test *in this change*?
+- Would explaining the design need a slide? If yes, it is probably over-built for JobBot’s
+  terminal surface.
+
 ## Planning (before a plan or feature branch)
 
 Product work is tracked in GitHub issues. Agents re-deriving the same endgame in chat while
