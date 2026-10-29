@@ -541,11 +541,12 @@ name the trade-off (HITL); never by accident.
 **Detect points of over-engineering (before inventing structure).**
 
 1. Walk the smell checklist above against the *diff*, not the whole thesis of the PR.
-2. Run the metric (offline, heuristic — **not** a CI gate):
+2. Run the metric and the PR gate:
 
    ```bash
    uv run jobbot ops overengineering
-   uv run jobbot ops overengineering --json   # score, density_per_kloc, findings
+   uv run jobbot ops overengineering --json
+   uv run jobbot ops overengineering --check   # must stay IN RANGE (CI runs this)
    ```
 
 3. Read findings that your change *introduced* or *worsened*. A pre-existing smell is not a
@@ -556,17 +557,24 @@ name the trade-off (HITL); never by accident.
    (Design economics / rule of three).
 5. Prefer dissolving a hop over documenting why the hop might help later.
 
+**Every PR keeps the metric in range.** CI fails when `score` or `density_per_kloc` exceeds
+[`docs/overengineering-budget.yaml`](docs/overengineering-budget.yaml). That is how we aim for
+**sublinear code growth**: new capability should call what exists, not add a second hierarchy.
+Raising `max_score` / `max_density_per_kloc` is HITL — say why in the PR; prefer shrinking.
+Allowlist edits need a one-line reason next to the symbol.
+
 **Metric (what the numbers mean).**
 
 | Field | Meaning |
 | --- | --- |
 | `score` | Sum of weighted smells in `src/jobbot` (ABC≤1 impl=3, lone Base/Strategy/Factory=2) |
-| `density_per_kloc` | `score` per 1000 lines scanned — compare PRs / over time, not to a magic threshold |
+| `density_per_kloc` | `score` per 1000 lines — budget caps this so size alone does not hide new smells |
 | `findings` | Concrete `path::name` to open; kinds match the checklist |
+| budget | Committed ceilings; `--check` / CI enforce them on every PR |
 
 False positives happen (AST cannot see cross-package intent). Fix the code or extend the
 small allowlist in `ops/overengineering.py` with a one-line reason — do not silence the
-metric by growing the detector.
+metric by growing the detector or quietly bumping the budget.
 
 ## Planning (before a plan or feature branch)
 
@@ -646,6 +654,7 @@ So, when working on an issue without the local machine:
 uv sync --group dev
 uv run ruff check .
 uv run mypy src
+uv run jobbot ops overengineering --check   # score/density ≤ docs/overengineering-budget.yaml
 uv run pytest
 make coverage   # unit suite + ≥80% line gate (see [tool.coverage] in pyproject.toml)
 ```
@@ -654,8 +663,8 @@ CI (`.github/workflows/ci.yml`) runs the same checks on `develop` / `main` and o
 
 Branch gates:
 
-- **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%.
-- **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%.
+- **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%, over-engineering budget in range.
+- **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%, over-engineering budget in range.
 
 Every feature, fix or docs PR targets **`develop`** (`gh pr create --base develop`), whoever
 opens it, cloud agents included. `main` only receives the `develop` → `main` release PR.
@@ -734,8 +743,9 @@ uv run jobbot getonboard search                 # queries del perfil (profile qu
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
 uv run jobbot empleospublicos search "jefe jurídico" --region Biobío  # datos abiertos Servicio Civil
 uv run jobbot ops failures
-uv run jobbot ops overengineering          # heuristic score + findings (not a CI gate)
+uv run jobbot ops overengineering          # score + findings
 uv run jobbot ops overengineering --json
+uv run jobbot ops overengineering --check  # PR/CI budget gate
 uv run jobbot ops failure show F0001
 uv run jobbot ops failure triage F0001 --status fixed
 uv run jobbot ops failure issue F0001          # HITL → gh issue

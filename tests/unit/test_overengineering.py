@@ -9,7 +9,10 @@ from jobbot.ops.overengineering import (
     KIND_LONE_STRATEGY,
     KIND_SINGLE_ABC,
     KIND_SINGLE_BASE,
+    Budget,
+    check_budget,
     format_report,
+    load_budget,
     report_json,
     scan,
 )
@@ -125,3 +128,53 @@ def test_format_and_json_round_trip(tmp_path: Path) -> None:
     payload = report_json(report)
     assert '"score"' in payload
     assert '"density_per_kloc"' in payload
+
+
+def test_budget_in_range_when_under_ceiling(tmp_path: Path) -> None:
+    _write(tmp_path, "empty.py", "x = 1\n")
+    report = scan(tmp_path)
+    verdict = check_budget(report, Budget(max_score=0, max_density_per_kloc=0.0))
+    assert verdict.ok
+    assert verdict.reasons == ()
+    assert "IN RANGE" in verdict.format()
+
+
+def test_budget_out_of_range_when_score_exceeds(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "ports.py",
+        """
+from abc import ABC, abstractmethod
+
+class OnlyOnce(ABC):
+    @abstractmethod
+    def run(self) -> None: ...
+
+class OnlyOnceImpl(OnlyOnce):
+    def run(self) -> None:
+        pass
+""",
+    )
+    report = scan(tmp_path)
+    verdict = check_budget(report, Budget(max_score=0, max_density_per_kloc=0.0))
+    assert not verdict.ok
+    assert any("score" in r for r in verdict.reasons)
+    assert "OUT OF RANGE" in verdict.format()
+
+
+def test_load_budget_from_yaml(tmp_path: Path) -> None:
+    path = tmp_path / "budget.yaml"
+    path.write_text("max_score: 3\nmax_density_per_kloc: 1.5\n", encoding="utf-8")
+    budget = load_budget(path)
+    assert budget == Budget(max_score=3, max_density_per_kloc=1.5)
+
+
+def test_committed_budget_holds_current_tree() -> None:
+    """CI --check must pass on the branch that ships the gate."""
+    from jobbot.ops.overengineering import BUDGET_RELPATH
+    from jobbot.workspace import repo_root
+
+    root = repo_root()
+    report = scan(root / "src" / "jobbot")
+    verdict = check_budget(report, load_budget(root / BUDGET_RELPATH))
+    assert verdict.ok, verdict.format()

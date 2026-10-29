@@ -9405,12 +9405,34 @@ def ops_overengineering(
         bool,
         typer.Option("--json", help="Machine-readable report (score, density, findings)"),
     ] = False,
+    check: Annotated[
+        bool,
+        typer.Option(
+            "--check",
+            help="Exit 1 if score/density exceed docs/overengineering-budget.yaml",
+        ),
+    ] = False,
 ) -> None:
-    """Heuristic over-engineering score for src/jobbot (local; not a CI gate)."""
-    from jobbot.ops.overengineering import format_report, report_json, scan
+    """Over-engineering score for src/jobbot; --check enforces the PR budget."""
+    from jobbot.ops.overengineering import (
+        BUDGET_RELPATH,
+        check_budget,
+        format_report,
+        load_budget,
+        report_json,
+        scan,
+    )
     from jobbot.workspace import repo_root
 
-    report = scan(repo_root() / "src" / "jobbot")
+    root = repo_root()
+    report = scan(root / "src" / "jobbot")
+    if check:
+        verdict = check_budget(report, load_budget(root / BUDGET_RELPATH))
+        typer.echo(verdict.format())
+        if not verdict.ok:
+            typer.echo(format_report(report))
+            raise typer.Exit(1)
+        return
     if as_json:
         typer.echo(report_json(report), nl=False)
         return

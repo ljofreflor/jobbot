@@ -1,8 +1,10 @@
 """Over-engineering metric — detect premature abstraction smells in ``src/jobbot``.
 
-Complements AGENTS.md *Against over-engineering*: findings are heuristic, not a
-gate. Score = weighted smell count; density = score per thousand lines scanned.
-Local only, no network. Prefer shrinking code over adding detector rules.
+Complements AGENTS.md *Against over-engineering*. Score = weighted smell count;
+density = score per thousand lines scanned. Every PR must keep the metric
+**in range** against ``docs/overengineering-budget.yaml`` (CI ``--check``).
+Raising the budget is HITL. Local scan, no network. Prefer shrinking code over
+adding detector rules.
 """
 
 from __future__ import annotations
@@ -12,6 +14,10 @@ import json
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+
+import yaml
+
+BUDGET_RELPATH = "docs/overengineering-budget.yaml"
 
 # Kinds mirror the AGENTS.md smell checklist (subset that AST can see cheaply).
 KIND_SINGLE_ABC = "single_implementor_abc"
@@ -285,17 +291,100 @@ def report_json(report: Report) -> str:
     return json.dumps(report.to_dict(), indent=2, ensure_ascii=False) + "\n"
 
 
+@dataclass(frozen=True)
+class Budget:
+    """Ceiling every PR must stay under (committed budget file)."""
+
+    max_score: int
+    max_density_per_kloc: float
+
+
+@dataclass(frozen=True)
+class BudgetVerdict:
+    ok: bool
+    report: Report
+    budget: Budget
+    reasons: tuple[str, ...]
+
+    def format(self) -> str:
+        status = "IN RANGE" if self.ok else "OUT OF RANGE"
+        lines = [
+            f"over-engineering budget: {status}",
+            f"  score {self.report.score} / max {self.budget.max_score}",
+            f"  density {self.report.density}/kloc / max {self.budget.max_density_per_kloc}",
+        ]
+        lines.extend(f"  ! {reason}" for reason in self.reasons)
+        if not self.ok:
+            lines.append(
+                "Shrink the smell (preferred) or raise docs/overengineering-budget.yaml "
+                "with HITL + reason in the PR."
+            )
+        return "\n".join(lines)
+
+
+def load_budget(path: Path) -> Budget:
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(raw, dict):
+        raise ValueError(f"budget must be a mapping: {path}")
+    try:
+        max_score = int(raw["max_score"])
+        max_density = float(raw["max_density_per_kloc"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(f"budget needs max_score + max_density_per_kloc: {path}") from exc
+    if max_score < 0 or max_density < 0:
+        raise ValueError(f"budget ceilings must be ≥ 0: {path}")
+    return Budget(max_score=max_score, max_density_per_kloc=max_density)
+
+
+def check_budget(report: Report, budget: Budget) -> BudgetVerdict:
+    reasons: list[str] = []
+    if report.score > budget.max_score:
+        reasons.append(
+            f"score {report.score} exceeds max_score {budget.max_score}"
+        )
+    if report.density > budget.max_density_per_kloc:
+        reasons.append(
+            f"density {report.density}/kloc exceeds "
+            f"max_density_per_kloc {budget.max_density_per_kloc}"
+        )
+    return BudgetVerdict(
+        ok=not reasons,
+        report=report,
+        budget=budget,
+        reasons=tuple(reasons),
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
-    """``python -m jobbot.ops.overengineering [--json] [src_root]``."""
+    """``python -m jobbot.ops.overengineering [--json|--check] [src_root]``."""
     import sys
 
     args = list(sys.argv[1:] if argv is None else argv)
     as_json = False
+    do_check = False
     if "--json" in args:
         as_json = True
         args.remove("--json")
-    root = Path(args[0]) if args else Path(__file__).resolve().parents[1]
+    if "--check" in args:
+        do_check = True
+        args.remove("--check")
+    # __file__ = …/src/jobbot/ops/overengineering.py → package=parents[1], repo=parents[3]
+    package_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[3]
+    root = Path(args[0]) if args else package_root
     report = scan(root)
+    if do_check:
+        budget_path = repo_root / BUDGET_RELPATH
+        if args:
+            # Alternate package tree: budget lives at <repo>/docs/… next to src/.
+            candidate = root.parent.parent / BUDGET_RELPATH
+            if candidate.is_file():
+                budget_path = candidate
+        verdict = check_budget(report, load_budget(budget_path))
+        sys.stdout.write(verdict.format() + "\n")
+        if not verdict.ok:
+            sys.stdout.write(format_report(report) + "\n")
+        return 0 if verdict.ok else 1
     sys.stdout.write(report_json(report) if as_json else format_report(report) + "\n")
     return 0
 

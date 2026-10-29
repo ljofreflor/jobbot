@@ -1,0 +1,6 @@
+# Over-engineering budget — every PR must keep the metric in range (CI --check).
+# Prefer shrinking smells over raising these ceilings. Raising is HITL: explain in
+# the PR why a new ABC/Base/Strategy/Factory with ≤1 variant is unavoidable.
+# See AGENTS.md "Against over-engineering" and `jobbot ops overengineering --check`.
+max_score: 0
+max_density_per_kloc: 0.0
