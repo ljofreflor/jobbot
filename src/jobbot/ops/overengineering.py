@@ -1,10 +1,11 @@
-"""Over-engineering metric — detect premature abstraction smells in ``src/jobbot``.
+"""Over-engineering metric — competing criteria for ``src/jobbot``.
 
-Complements AGENTS.md *Against over-engineering*. Score = weighted smell count;
-density = score per thousand lines scanned. Every PR must keep the metric
-**in range** against ``docs/overengineering-budget.yaml`` (CI ``--check``).
-Raising the budget is HITL. Local scan, no network. Prefer shrinking code over
-adding detector rules.
+Complements AGENTS.md *Against over-engineering*. Smells alone are not enough:
+every PR must keep a **vector** of criteria in range
+(``docs/overengineering-budget.yaml``, CI ``--check``). The criteria *compete*
+(Beck-style): fewer smells vs denser capability vs less module sprawl — you
+cannot max one by dumping the others. Raising a max_* or lowering a min_* is
+HITL. Local scan, no network. Prefer shrinking code over adding detector rules.
 """
 
 from __future__ import annotations
@@ -447,40 +448,124 @@ def report_json(report: Report) -> str:
 
 @dataclass(frozen=True)
 class Budget:
-    """Ceiling every PR must stay under (committed budget file)."""
+    """Competing bounds — every criterion must hold (committed budget file)."""
 
     max_score: int
     max_density_per_kloc: float
+    min_commands_per_kloc: float
+    max_modules_per_kloc: float
+
+
+@dataclass(frozen=True)
+class CriteriaSnapshot:
+    """Measured vector that the budget judges."""
+
+    report: Report
+    commands: int
+    modules: int
+
+    @property
+    def kloc(self) -> float:
+        return max(self.report.lines_scanned / 1000.0, 0.001)
+
+    @property
+    def commands_per_kloc(self) -> float:
+        return round(self.commands / self.kloc, 3)
+
+    @property
+    def modules_per_kloc(self) -> float:
+        return round(self.modules / self.kloc, 3)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            **self.report.to_dict(),
+            "commands": self.commands,
+            "modules": self.modules,
+            "commands_per_kloc": self.commands_per_kloc,
+            "modules_per_kloc": self.modules_per_kloc,
+        }
+
+
+@dataclass(frozen=True)
+class CriterionResult:
+    name: str
+    direction: str  # minimize | maximize
+    value: float
+    bound: float
+    ok: bool
+    detail: str
 
 
 @dataclass(frozen=True)
 class BudgetVerdict:
     ok: bool
-    report: Report
+    snapshot: CriteriaSnapshot
     budget: Budget
+    criteria: tuple[CriterionResult, ...]
     reasons: tuple[str, ...]
+
+    @property
+    def report(self) -> Report:
+        return self.snapshot.report
 
     def format(self) -> str:
         status = "IN RANGE" if self.ok else "OUT OF RANGE"
         lines = [
-            f"over-engineering budget: {status}",
-            f"  score {self.report.score} / max {self.budget.max_score}",
-            f"  density {self.report.density}/kloc / max {self.budget.max_density_per_kloc}",
+            f"over-engineering budget: {status}  (competing criteria — all must hold)",
         ]
+        for c in self.criteria:
+            mark = "ok" if c.ok else "FAIL"
+            lines.append(
+                f"  [{mark}] {c.name}: {c.value} ({c.direction} bound {c.bound}) — {c.detail}"
+            )
         lines.extend(f"  ! {reason}" for reason in self.reasons)
         if not self.ok:
-            deficit = max(0, self.report.score - self.budget.max_score)
+            deficit = max(0, self.snapshot.report.score - self.budget.max_score)
             lines.append(
-                "Shrink via quick wins (preferred) or raise "
-                "docs/overengineering-budget.yaml with HITL + reason in the PR."
+                "Rebalance competing criteria (quick wins for smells; delete dead LOC or "
+                "ship a real command for capability density; merge modules for sprawl) "
+                "or change the budget with HITL + reason in the PR."
             )
-            lines.append(
-                format_quick_wins(
-                    quick_wins(self.report),
-                    deficit=deficit,
+            if deficit > 0 or self.snapshot.report.findings:
+                lines.append(
+                    format_quick_wins(
+                        quick_wins(self.snapshot.report),
+                        deficit=deficit,
+                    )
                 )
-            )
+            if any(c.name == "commands_per_kloc" and not c.ok for c in self.criteria):
+                lines.append(
+                    "  capability tip: add user-facing command surface without cloning "
+                    "hierarchies, or remove unused lines so commands/kloc rises."
+                )
+            if any(c.name == "modules_per_kloc" and not c.ok for c in self.criteria):
+                lines.append(
+                    "  sprawl tip: merge thin modules or grow lines inside existing ones "
+                    "instead of new files for the same idea."
+                )
         return "\n".join(lines)
+
+
+def measure(src_root: Path, *, commands: int, modules: int) -> CriteriaSnapshot:
+    """Pair a smell scan with capability/surface counts (criteria compete)."""
+    return CriteriaSnapshot(
+        report=scan(src_root),
+        commands=commands,
+        modules=modules,
+    )
+
+
+def measure_repo(repo_root: Path) -> CriteriaSnapshot:
+    """Scan ``repo_root/src/jobbot`` using the live CLI command index."""
+    from jobbot.cli import app
+    from jobbot.ops.capabilities import collect_commands, collect_modules
+
+    src = repo_root / "src" / "jobbot"
+    return measure(
+        src,
+        commands=len(collect_commands(app)),
+        modules=len(collect_modules(src)),
+    )
 
 
 def load_budget(path: Path) -> Budget:
@@ -488,31 +573,77 @@ def load_budget(path: Path) -> Budget:
     if not isinstance(raw, dict):
         raise ValueError(f"budget must be a mapping: {path}")
     try:
-        max_score = int(raw["max_score"])
-        max_density = float(raw["max_density_per_kloc"])
+        budget = Budget(
+            max_score=int(raw["max_score"]),
+            max_density_per_kloc=float(raw["max_density_per_kloc"]),
+            min_commands_per_kloc=float(raw["min_commands_per_kloc"]),
+            max_modules_per_kloc=float(raw["max_modules_per_kloc"]),
+        )
     except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(f"budget needs max_score + max_density_per_kloc: {path}") from exc
-    if max_score < 0 or max_density < 0:
-        raise ValueError(f"budget ceilings must be ≥ 0: {path}")
-    return Budget(max_score=max_score, max_density_per_kloc=max_density)
+        raise ValueError(
+            f"budget needs max_score, max_density_per_kloc, "
+            f"min_commands_per_kloc, max_modules_per_kloc: {path}"
+        ) from exc
+    if (
+        budget.max_score < 0
+        or budget.max_density_per_kloc < 0
+        or budget.min_commands_per_kloc < 0
+        or budget.max_modules_per_kloc < 0
+    ):
+        raise ValueError(f"budget bounds must be ≥ 0: {path}")
+    return budget
 
 
-def check_budget(report: Report, budget: Budget) -> BudgetVerdict:
-    reasons: list[str] = []
-    if report.score > budget.max_score:
-        reasons.append(
-            f"score {report.score} exceeds max_score {budget.max_score}"
-        )
-    if report.density > budget.max_density_per_kloc:
-        reasons.append(
-            f"density {report.density}/kloc exceeds "
-            f"max_density_per_kloc {budget.max_density_per_kloc}"
-        )
+def check_budget(
+    snapshot: CriteriaSnapshot,
+    budget: Budget,
+) -> BudgetVerdict:
+    """All competing criteria must hold; any FAIL → OUT OF RANGE."""
+    criteria = (
+        CriterionResult(
+            name="score",
+            direction="minimize",
+            value=float(snapshot.report.score),
+            bound=float(budget.max_score),
+            ok=snapshot.report.score <= budget.max_score,
+            detail="weighted premature-abstraction smells",
+        ),
+        CriterionResult(
+            name="density_per_kloc",
+            direction="minimize",
+            value=snapshot.report.density,
+            bound=budget.max_density_per_kloc,
+            ok=snapshot.report.density <= budget.max_density_per_kloc,
+            detail="smells per 1000 lines (size must not hide new hierarchy)",
+        ),
+        CriterionResult(
+            name="commands_per_kloc",
+            direction="maximize",
+            value=snapshot.commands_per_kloc,
+            bound=budget.min_commands_per_kloc,
+            ok=snapshot.commands_per_kloc >= budget.min_commands_per_kloc,
+            detail="CLI capability density — sublinear growth / reuse signal",
+        ),
+        CriterionResult(
+            name="modules_per_kloc",
+            direction="minimize",
+            value=snapshot.modules_per_kloc,
+            bound=budget.max_modules_per_kloc,
+            ok=snapshot.modules_per_kloc <= budget.max_modules_per_kloc,
+            detail="module sprawl — new files for the same idea compete with reuse",
+        ),
+    )
+    reasons = tuple(
+        f"{c.name} {c.value} violates {c.direction} bound {c.bound}"
+        for c in criteria
+        if not c.ok
+    )
     return BudgetVerdict(
         ok=not reasons,
-        report=report,
+        snapshot=snapshot,
         budget=budget,
-        reasons=tuple(reasons),
+        criteria=criteria,
+        reasons=reasons,
     )
 
 
@@ -533,25 +664,27 @@ def main(argv: list[str] | None = None) -> int:
     if "--quick-wins" in args:
         show_wins = True
         args.remove("--quick-wins")
-    # __file__ = …/src/jobbot/ops/overengineering.py → package=parents[1], repo=parents[3]
-    package_root = Path(__file__).resolve().parents[1]
+    # __file__ = …/src/jobbot/ops/overengineering.py → repo = parents[3]
     repo_root = Path(__file__).resolve().parents[3]
-    root = Path(args[0]) if args else package_root
-    report = scan(root)
-    if do_check:
+    if args:
+        # Alternate package tree only (tests); full criteria need measure_repo.
+        report = scan(Path(args[0]))
+        snapshot = CriteriaSnapshot(report=report, commands=0, modules=0)
+        budget_path = Path(args[0]).parent.parent / BUDGET_RELPATH
+        if not budget_path.is_file():
+            budget_path = repo_root / BUDGET_RELPATH
+    else:
+        snapshot = measure_repo(repo_root)
         budget_path = repo_root / BUDGET_RELPATH
-        if args:
-            # Alternate package tree: budget lives at <repo>/docs/… next to src/.
-            candidate = root.parent.parent / BUDGET_RELPATH
-            if candidate.is_file():
-                budget_path = candidate
-        verdict = check_budget(report, load_budget(budget_path))
+    report = snapshot.report
+    if do_check:
+        verdict = check_budget(snapshot, load_budget(budget_path))
         sys.stdout.write(verdict.format() + "\n")
         if not verdict.ok:
             sys.stdout.write(format_report(report) + "\n")
         return 0 if verdict.ok else 1
     if as_json:
-        payload = report.to_dict()
+        payload = snapshot.to_dict()
         payload["quick_wins"] = [
             {
                 "effort": w.effort,
@@ -566,9 +699,13 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
         return 0
     sys.stdout.write(format_report(report) + "\n")
+    sys.stdout.write(
+        f"criteria: commands/kloc={snapshot.commands_per_kloc}  "
+        f"modules/kloc={snapshot.modules_per_kloc}  "
+        f"commands={snapshot.commands}  modules={snapshot.modules}\n"
+    )
     if show_wins or report.findings:
         deficit = 0
-        budget_path = repo_root / BUDGET_RELPATH
         if budget_path.is_file():
             budget = load_budget(budget_path)
             deficit = max(0, report.score - budget.max_score)

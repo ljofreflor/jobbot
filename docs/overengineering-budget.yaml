@@ -1,6 +1,14 @@
-# Over-engineering budget — every PR must keep the metric in range (CI --check).
-# Prefer shrinking smells over raising these ceilings. Raising is HITL: explain in
-# the PR why a new ABC/Base/Strategy/Factory with ≤1 variant is unavoidable.
-# See AGENTS.md "Against over-engineering" and `jobbot ops overengineering --check`.
+# Competing criteria — every PR must keep ALL of them in range (CI --check).
+# They pull in different directions (Beck / sublinear growth):
+#   - minimize smells without deleting capability
+#   - keep commands/kloc up (reuse) without inventing hierarchy
+#   - avoid module sprawl without stuffing unrelated code into one file
+# Prefer quick wins / dissolve over raising max_* or lowering min_*.
+# Changing any bound is HITL + reason in the PR.
+# See AGENTS.md "Against over-engineering".
 max_score: 0
 max_density_per_kloc: 0.0
+# Floor ~8% below current (~2.60): LOC without new commands fails the gate.
+min_commands_per_kloc: 2.4
+# Ceiling ~8% above current (~4.25): new thin modules without substance fail.
+max_modules_per_kloc: 4.6

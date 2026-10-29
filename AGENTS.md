@@ -561,27 +561,40 @@ name the trade-off (HITL); never by accident.
 **Compensate the range with quick wins.** When `--check` is OUT OF RANGE (or you are about
 to add a smell), run `--quick-wins`: easy same-file collapses and lone Strategy/Factory
 deletions are listed first, with `frees=` weight recovered. A `*` marks the minimum set
-whose freed score covers the deficit. Do those refactors in the same PR so the budget stays
-in range — do not raise the ceiling to paper over a new hierarchy.
+whose freed score covers the smell deficit. Do those refactors in the same PR — do not raise
+a `max_*` bound to paper over a new hierarchy. Capability/sprawl failures need different
+moves (real command, delete dead LOC, merge thin modules).
 
-**Every PR keeps the metric in range.** CI fails when `score` or `density_per_kloc` exceeds
-[`docs/overengineering-budget.yaml`](docs/overengineering-budget.yaml). That is how we aim for
-**sublinear code growth**: new capability should call what exists, not add a second hierarchy.
-Raising `max_score` / `max_density_per_kloc` is HITL — say why in the PR; prefer shrinking
-via quick wins. Allowlist edits need a one-line reason next to the symbol.
+**Every PR keeps competing criteria in range.** CI fails unless *all* bounds in
+[`docs/overengineering-budget.yaml`](docs/overengineering-budget.yaml) hold. They **compete**
+(you cannot optimise one by dumping the others):
 
-**Metric (what the numbers mean).**
+| Criterion | Direction | Competes with |
+| --- | --- | --- |
+| `score` | minimize | “just add a Strategy/ABC for flexibility” |
+| `density_per_kloc` | minimize | growing LOC to dilute smells |
+| `commands_per_kloc` | maximize (floor) | LOC without new user-facing capability (anti–sublinear) |
+| `modules_per_kloc` | minimize (ceiling) | new files for the same idea / thin wrappers |
+
+Beck’s simple-design rules are the same idea: tests, intention, duplication, and fewest
+elements pull against each other — the PR must leave the vector still in range. Changing
+any bound is HITL + reason; prefer quick wins / dissolve. Allowlist edits need a one-line
+reason next to the symbol.
+
+**Metric fields.**
 
 | Field | Meaning |
 | --- | --- |
-| `score` | Sum of weighted smells in `src/jobbot` (ABC≤1 impl=3, lone Base/Strategy/Factory=2) |
-| `density_per_kloc` | `score` per 1000 lines — budget caps this so size alone does not hide new smells |
-| `findings` | Concrete `path::name` to open; kinds match the checklist |
-| budget | Committed ceilings; `--check` / CI enforce them on every PR |
+| `score` | Weighted premature-abstraction smells (ABC≤1 impl=3, lone Base/Strategy/Factory=2) |
+| `density_per_kloc` | `score` / 1000 lines |
+| `commands_per_kloc` | CLI commands / kloc — reuse / sublinear-growth signal |
+| `modules_per_kloc` | modules / kloc — sprawl signal |
+| `findings` / quick wins | Concrete `path::name` and ranked refactors |
+| budget | Committed multi-criteria bounds; `--check` / CI enforce all of them |
 
 False positives happen (AST cannot see cross-package intent). Fix the code or extend the
 small allowlist in `ops/overengineering.py` with a one-line reason — do not silence the
-metric by growing the detector or quietly bumping the budget.
+gate by growing the detector or quietly relaxing a bound.
 
 ## Planning (before a plan or feature branch)
 
@@ -670,8 +683,10 @@ CI (`.github/workflows/ci.yml`) runs the same checks on `develop` / `main` and o
 
 Branch gates:
 
-- **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%, over-engineering budget in range.
-- **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%, over-engineering budget in range.
+- **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%, over-engineering
+  competing criteria in range (`ops overengineering --check`).
+- **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%, over-engineering
+  competing criteria in range.
 
 Every feature, fix or docs PR targets **`develop`** (`gh pr create --base develop`), whoever
 opens it, cloud agents included. `main` only receives the `develop` → `main` release PR.

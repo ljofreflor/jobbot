@@ -9420,7 +9420,7 @@ def ops_overengineering(
         ),
     ] = False,
 ) -> None:
-    """Over-engineering score for src/jobbot; --check enforces the PR budget."""
+    """Competing over-engineering criteria; --check enforces the PR budget."""
     import json
 
     from jobbot.ops.overengineering import (
@@ -9429,25 +9429,26 @@ def ops_overengineering(
         format_quick_wins,
         format_report,
         load_budget,
+        measure_repo,
         quick_wins,
-        scan,
     )
     from jobbot.workspace import repo_root
 
     root = repo_root()
-    report = scan(root / "src" / "jobbot")
+    snapshot = measure_repo(root)
+    report = snapshot.report
     budget = load_budget(root / BUDGET_RELPATH)
     deficit = max(0, report.score - budget.max_score)
     wins = quick_wins(report)
     if check:
-        verdict = check_budget(report, budget)
+        verdict = check_budget(snapshot, budget)
         typer.echo(verdict.format())
         if not verdict.ok:
             typer.echo(format_report(report))
             raise typer.Exit(1)
         return
     if as_json:
-        payload = report.to_dict()
+        payload = snapshot.to_dict()
         payload["quick_wins"] = [
             {
                 "effort": w.effort,
@@ -9460,10 +9461,21 @@ def ops_overengineering(
             for w in wins
         ]
         payload["score_deficit"] = deficit
+        payload["budget"] = {
+            "max_score": budget.max_score,
+            "max_density_per_kloc": budget.max_density_per_kloc,
+            "min_commands_per_kloc": budget.min_commands_per_kloc,
+            "max_modules_per_kloc": budget.max_modules_per_kloc,
+        }
         typer.echo(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", nl=False)
         return
     # Raw echo keeps the density line intact under rich wrapping.
     typer.echo(format_report(report))
+    typer.echo(
+        f"criteria: commands/kloc={snapshot.commands_per_kloc}  "
+        f"modules/kloc={snapshot.modules_per_kloc}  "
+        f"commands={snapshot.commands}  modules={snapshot.modules}"
+    )
     if show_quick_wins or report.findings:
         typer.echo(format_quick_wins(wins, deficit=deficit))
 

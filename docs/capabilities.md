@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-155 commands, 253 modules, 1378 public symbols.
+155 commands, 253 modules, 1382 public symbols.
 
 ## Commands
 
@@ -110,7 +110,7 @@ writing it again — the promotion rule lives in
 - `jobbot ops failure work` — Print (or open) the bash maintainer lane: issue → branch → PR → retry (#46).
 - `jobbot ops failures` — List stored failures (grouped by fingerprint).
 - `jobbot ops loop` — Run a maintainer step continuously; persist Fxxxx on crash and continue.
-- `jobbot ops overengineering` — Over-engineering score for src/jobbot; --check enforces the PR budget.
+- `jobbot ops overengineering` — Competing over-engineering criteria; --check enforces the PR budget.
 - `jobbot ops symptom issue` — Create a GitHub issue from a redacted symptom (HITL; uses gh). Never auto.
 - `jobbot ops symptom list` — List latent requirements (symptoms), newest first.
 - `jobbot ops symptom note` — Capture a latent requirement. Same fingerprint increments sightings.
@@ -484,7 +484,7 @@ writing it again — the promotion rule lives in
 - `failures.py` — Persist local CLI/loop failures for issue → hotfix planning. · `FailureRecord`, `normalize_message`, `failure_fingerprint`, `infer_component`, `normalize_command`, `record_failure`, `should_record_cli_failure`, `runtime_context`, `capture_cli_failure`, `list_failures`, `get_failure`, `mark_status`, `group_by_fingerprint`, `issue_title`, `issue_body`
 - `loop.py` — Minimal continuous runner that records failures and continues. · `LoopTickResult`, `run_loop_tick`, `run_loop`, `describe_loop_commands`
 - `narrate.py` — Phase narration for long JobBot loops (local stdout only; no telemetry). · `Phase`, `ExplorationOutcome`, `outcome_line`, `phase_line`, `Narrator`
-- `overengineering.py` — Over-engineering metric — detect premature abstraction smells in ``src/jobbot``. · `Finding`, `QuickWin`, `Report`, `scan`, `quick_wins`, `compensation_plan`, `format_quick_wins`, `format_report`, `report_json`, `Budget`, `BudgetVerdict`, `load_budget`, `check_budget`, `main`
+- `overengineering.py` — Over-engineering metric — competing criteria for ``src/jobbot``. · `Finding`, `QuickWin`, `Report`, `scan`, `quick_wins`, `compensation_plan`, `format_quick_wins`, `format_report`, `report_json`, `Budget`, `CriteriaSnapshot`, `CriterionResult`, `BudgetVerdict`, `measure`, `measure_repo`, `load_budget`, `check_budget`, `main`
 - `pii_guard.py` — Block real PII from entering git (pre-commit guard). Local only, no network. · `Finding`, `is_blocked_path`, `is_allowed_content_path`, `scan_text`, `redact`, `is_binary_path`, `looks_binary`, `staged_paths`, `staged_content`, `scan_staged`, `tracked_paths`, `scan_tracked`, `format_report`, `main`
 - `precommit.py` — Decide whether a commit has to run the unit suite. Local only, no network. · `tests_needed`, `staged_paths`, `main`
 - `redact.py` — Redact secrets and contact PII from failure payloads. · `redact_text`, `host_only_url`, `redact_context`
