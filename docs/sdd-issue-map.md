@@ -1,0 +1,111 @@
+---
+title: SDD ← issues map
+description: Which open issues advance which design patterns and UML anchors. Loop updates status.
+---
+
+# SDD ← issues map
+
+Cada issue de dominio debe mejorar el [SDD](software-design.md) y quedar
+reflejado en [UML](uml.md). Esta tabla es el backlog del loop: `pending` =
+falta sección `## SDD / patrones` en el issue (o el diagrama target aún no
+existe); `body_ready` = texto listo en `docs/sdd-issue-patches/`; `done` =
+issue ya cita UML y el diagrama está al día.
+
+| Issue | Patrón(es) | UML | Status | Patch |
+| --- | --- | --- | --- | --- |
+| #141 | Value Object | [fact-preference](uml.md#fact-preference) | done | [141](sdd-issue-patches/141.md) |
+| #144 | Value Object, Aggregate | [fact-preference](uml.md#fact-preference) | done | [144](sdd-issue-patches/144.md) |
+| #185 | Value Object | [fact-preference](uml.md#fact-preference) | done | [185](sdd-issue-patches/185.md) |
+| #195 | Association, EvidenceStrength | [fact-preference](uml.md#fact-preference) | done | [195](sdd-issue-patches/195.md) |
+| #206 | Aggregate (Preferences) | [fact-preference](uml.md#fact-preference) | done | [206](sdd-issue-patches/206.md) |
+| #221 | Overlay / Projection | [fact-preference](uml.md#fact-preference) | done | [221](sdd-issue-patches/221.md) |
+| #400 | Overlay / Projection | [fact-preference](uml.md#fact-preference) | done | [400](sdd-issue-patches/400.md) |
+| #166 | Specification | [specification](uml.md#specification) | done | [166](sdd-issue-patches/166.md) |
+| #186 | Specification + Command | [specification](uml.md#specification) · [plan-apply](uml.md#plan-apply) | done | [186](sdd-issue-patches/186.md) |
+| #94 | ACL | [acl](uml.md#acl) | done | [94](sdd-issue-patches/94.md) |
+| #203 | Specification + Command | [plan-apply](uml.md#plan-apply) | done | [203](sdd-issue-patches/203.md) |
+| #178 | PostingClarity (VO) | [specification](uml.md#specification) | done | [178](sdd-issue-patches/178.md) |
+| #404 | Strategy (CV variant) | [ports](uml.md#ports) | done | [404](sdd-issue-patches/404.md) |
+| #303 | Preferences aggregate + ACL | [fact-preference](uml.md#fact-preference) · [acl](uml.md#acl) | done | [303](sdd-issue-patches/303.md) |
+| #265 | Registry + Factory / DI | [ports](uml.md#ports) | done | [265](sdd-issue-patches/265.md) |
+| #218 | ProfileAdapter + Snapshot diff | [ports](uml.md#ports) · [acl](uml.md#acl) | done | [218](sdd-issue-patches/218.md) |
+| #414 | Command (import HITL) | [plan-apply](uml.md#plan-apply) | done | [414](sdd-issue-patches/414.md) |
+| #382 | VO deadline + selection plan | [specification](uml.md#specification) · [plan-apply](uml.md#plan-apply) | done | [382](sdd-issue-patches/382.md) |
+| #219 | WritableProfileAdapter + ACL | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) · [acl](uml.md#acl) | done | [219](sdd-issue-patches/219.md) |
+| #150 | Profile ports epic | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [150](sdd-issue-patches/150.md) |
+| #284 | WritableProfileAdapter (LinkedIn sections) | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [284](sdd-issue-patches/284.md) |
+| #207 | Strategy check-open + Verdict | [ports](uml.md#ports) · [specification](uml.md#specification) | done | [207](sdd-issue-patches/207.md) |
+| #140 | presentations VO + Strategy | [ports](uml.md#ports) · [fact-preference](uml.md#fact-preference) | done | [140](sdd-issue-patches/140.md) |
+| #416 | Command rejection proposal | [plan-apply](uml.md#plan-apply) | done | [416](sdd-issue-patches/416.md) |
+| #406 | ACL form gap + HITL | [acl](uml.md#acl) · [plan-apply](uml.md#plan-apply) | done | [406](sdd-issue-patches/406.md) |
+| #220 | Apply port step-by-step | [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [220](sdd-issue-patches/220.md) |
+| #157 | Local vault (not Candidate) | [ports](uml.md#ports) | done | [157](sdd-issue-patches/157.md) |
+| #392 | Guard TTY + HITL pause (Indeed challenge) | [hitl-pause](uml.md#hitl-pause) · [plan-apply](uml.md#plan-apply) | done | [392](sdd-issue-patches/392.md) |
+| #390 | SearchOutcome: empty ≠ failed ≠ off-topic | [search-outcome](uml.md#search-outcome) · [ports](uml.md#ports) | done | [390](sdd-issue-patches/390.md) |
+| #388 | Command `jobs add --url` / `jobs verify` | [posting-url-verify](uml.md#posting-url-verify) · [ports](uml.md#ports) | done | [388](sdd-issue-patches/388.md) |
+| #386 | ProfileAdapter LinkedIn /details/ | [linkedin-details-pull](uml.md#linkedin-details-pull) · [ports](uml.md#ports) | done | [386](sdd-issue-patches/386.md) |
+| #384 | LLM extract JD (never invent) | [jd-llm-extract](uml.md#jd-llm-extract) · [ports](uml.md#ports) | done | [384](sdd-issue-patches/384.md) |
+| #398 | Mutex `jobbot update` | [update-mutex](uml.md#update-mutex) · [plan-apply](uml.md#plan-apply) | done | [398](sdd-issue-patches/398.md) |
+| #412 | Indeed Apply advance, no Submit | [indeed-apply-advance](uml.md#indeed-apply-advance) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [412](sdd-issue-patches/412.md) |
+| #410 | postulate --apply + promote aparte | [postulate-route](uml.md#postulate-route) · [plan-apply](uml.md#plan-apply) · [ports](uml.md#ports) | done | [410](sdd-issue-patches/410.md) |
+| #408 | cv build derived translation | [cv-derived-translation](uml.md#cv-derived-translation) · [fact-preference](uml.md#fact-preference) · [ports](uml.md#ports) | done | [408](sdd-issue-patches/408.md) |
+| #420 | Tutorial entry door only | docs (no UML) | done | [420](sdd-issue-patches/420.md) |
+| #418 | Public queue sync PR + `-U` | [public-queue-sync](uml.md#public-queue-sync) · [ports](uml.md#ports) · [acl](uml.md#acl) | done | [418](sdd-issue-patches/418.md) |
+| #424 | ai-job-search gaps → contracts | [capability-gap-map](uml.md#capability-gap-map) · [ports](uml.md#ports) | done | [424](sdd-issue-patches/424.md) |
+| #402 | Strategy attach_cv + no Submit | [indeed-apply-attach](uml.md#indeed-apply-attach) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [402](sdd-issue-patches/402.md) |
+| #374 | Preference SearchFilters + dry-run | [search-filters](uml.md#search-filters) · [fact-preference](uml.md#fact-preference) · [plan-apply](uml.md#plan-apply) | done | [374](sdd-issue-patches/374.md) |
+| #54 | Command cv tune-for (budget + HITL) | [cv-tune-for](uml.md#cv-tune-for) · [plan-apply](uml.md#plan-apply) · [fact-preference](uml.md#fact-preference) | done | [54](sdd-issue-patches/54.md) |
+| #285 | WritableProfileAdapter + field limits | [trabajando-profile-push](uml.md#trabajando-profile-push) · [ports](uml.md#ports) · [acl](uml.md#acl) | done | [285](sdd-issue-patches/285.md) |
+| #296 | LinkedIn Easy Apply (Strategy + HITL evidence) | [linkedin-easy-apply](uml.md#linkedin-easy-apply) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [296](sdd-issue-patches/296.md) |
+| #215 | Workday CXS detail ACL + ClosingInstant | [workday-cxs-detail](uml.md#workday-cxs-detail) · [ports](uml.md#ports) · [acl](uml.md#acl) | done | [215](sdd-issue-patches/215.md) |
+| #56 | Command browser login tour + session Guard | [browser-login-tour](uml.md#browser-login-tour) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [56](sdd-issue-patches/56.md) |
+| #118 | Preference search_queries + experience matcher | [experience-first-search](uml.md#experience-first-search) · [fact-preference](uml.md#fact-preference) · [ports](uml.md#ports) | done | [118](sdd-issue-patches/118.md) |
+| #394 | Workday tenant session + extra CDP port | [workday-session-tenant](uml.md#workday-session-tenant) · [browser-login-tour](uml.md#browser-login-tour) · [ports](uml.md#ports) | done | [394](sdd-issue-patches/394.md) |
+| #396 | Laborum sitemap JobSource | [laborum-sitemap-terms](uml.md#laborum-sitemap-terms) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | done | [396](sdd-issue-patches/396.md) |
+| #377 | HiringRoom discover paginator | [hiringroom-discover](uml.md#hiringroom-discover) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [377](sdd-issue-patches/377.md) |
+| #247 | ReliefWeb discover (API v2) | [reliefweb-discover](uml.md#reliefweb-discover) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | done | [247](sdd-issue-patches/247.md) |
+| #245 | Taleo careersection discover | [taleo-careersection-discover](uml.md#taleo-careersection-discover) · [ports](uml.md#ports) · [acl](uml.md#acl) | done | [245](sdd-issue-patches/245.md) |
+| #230 | SuccessFactors CSB discover | [successfactors-csb-discover](uml.md#successfactors-csb-discover) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | done | [230](sdd-issue-patches/230.md) |
+| #298 | LATAM master table seed→promote | [latam-master-table](uml.md#latam-master-table) · [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | done | [298](sdd-issue-patches/298.md) |
+| #251 | WhatsApp HITL question queue | [whatsapp-question-queue](uml.md#whatsapp-question-queue) · [plan-apply](uml.md#plan-apply) · [hitl-pause](uml.md#hitl-pause) · [fact-preference](uml.md#fact-preference) | done | [251](sdd-issue-patches/251.md) |
+| #267 | Aira JobSource by catalog slug | [aira-slug-discover](uml.md#aira-slug-discover) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | done | [267](sdd-issue-patches/267.md) |
+| #241 | Trabajando white-label idDominio | [trabajando-white-label-discover](uml.md#trabajando-white-label-discover) · [ports](uml.md#ports) · [acl](uml.md#acl) | done | [241](sdd-issue-patches/241.md) |
+| #240 | Empleos Públicos live feeds + CDP | [empleos-publicos-live](uml.md#empleos-publicos-live) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | done | [240](sdd-issue-patches/240.md) |
+| #269 | Promote policy + share opt-in + one model | [companies-promote-policy](uml.md#companies-promote-policy) · [ports](uml.md#ports) · [public-queue-sync](uml.md#public-queue-sync) | done | [269](sdd-issue-patches/269.md) |
+| #268 | Catalog unknown recon + technical evidence | [catalog-unknown-recon](uml.md#catalog-unknown-recon) · [ports](uml.md#ports) · [companies-promote-policy](uml.md#companies-promote-policy) | done | [268](sdd-issue-patches/268.md) |
+| #249 | BCI seed + Cornerstone CSOD evidence | [bci-cornerstone-recon](uml.md#bci-cornerstone-recon) · [ports](uml.md#ports) · [acl](uml.md#acl) | done | [249](sdd-issue-patches/249.md) |
+| #224 | Non-tech sources epic (registry + blocked) | [nontech-source-epic](uml.md#nontech-source-epic) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | done | [224](sdd-issue-patches/224.md) |
+| #214 | Workday E2E epic Facade | [workday-e2e-epic](uml.md#workday-e2e-epic) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) | done | [214](sdd-issue-patches/214.md) |
+| #191 | Legal/admin portals epic | [legal-admin-portals](uml.md#legal-admin-portals) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) | done | [191](sdd-issue-patches/191.md) |
+| #180 | jobs discover + greedy coverage | [jobs-discover-epic](uml.md#jobs-discover-epic) · [ports](uml.md#ports) · [search-outcome](uml.md#search-outcome) · [plan-apply](uml.md#plan-apply) | done | [180](sdd-issue-patches/180.md) |
+| #129 | Advisor mode (multi-workspace) | [advisor-mode](uml.md#advisor-mode) · [ports](uml.md#ports) · [plan-apply](uml.md#plan-apply) · [browser-login-tour](uml.md#browser-login-tour) | done | [129](sdd-issue-patches/129.md) |
+| #274 | Isolated client VM (Decision Record) | [isolated-client-vm](uml.md#isolated-client-vm) | done | [274](sdd-issue-patches/274.md) |
+| #272 | Identity mailbox + Thin Client (Flutter) | [identity-mailbox-client](uml.md#identity-mailbox-client) · [isolated-client-vm](uml.md#isolated-client-vm) | done | [272](sdd-issue-patches/272.md) |
+| #155 | Stolen AI Apply outcomes (HITL map) | [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [capability-gap-map](uml.md#capability-gap-map) · [plan-apply](uml.md#plan-apply) | done | [155](sdd-issue-patches/155.md) |
+| #162 | Bounded Context commons vs traveller | [commons-vs-traveller](uml.md#commons-vs-traveller) · [public-queue-sync](uml.md#public-queue-sync) | done | [162](sdd-issue-patches/162.md) |
+| #164 | Namesake JobBot use-case map | [namesake-usecase-map](uml.md#namesake-usecase-map) · [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [capability-gap-map](uml.md#capability-gap-map) | done | [164](sdd-issue-patches/164.md) |
+| #168 | Three miniagents surface (Arcon/Luma) | [three-miniagents-surface](uml.md#three-miniagents-surface) · [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [plan-apply](uml.md#plan-apply) | done | [168](sdd-issue-patches/168.md) |
+| #266 | LATAM map + presence positioning | [latam-presence-positioning](uml.md#latam-presence-positioning) · [stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes) · [commons-vs-traveller](uml.md#commons-vs-traveller) | done | [266](sdd-issue-patches/266.md) |
+| #261 | Dual brand (engine vs public face) | [dual-brand](uml.md#dual-brand) · [namesake-usecase-map](uml.md#namesake-usecase-map) | done | [261](sdd-issue-patches/261.md) |
+| #105 | Dissolve vs throughput (control negative) | [dissolve-vs-throughput](uml.md#dissolve-vs-throughput) · [three-miniagents-surface](uml.md#three-miniagents-surface) · [latam-presence-positioning](uml.md#latam-presence-positioning) | done | [105](sdd-issue-patches/105.md) |
+
+## Cómo aplicar un patch (HITL, token con write)
+
+```bash
+# Una vez logueado como owner (gh auth login --web):
+BODY=$(gh issue view 141 --json body -q .body)
+PATCH=$(cat docs/sdd-issue-patches/141.md)
+gh issue edit 141 --body "${BODY}
+
+${PATCH}"
+```
+
+O pegar a mano la sección del patch bajo el cuerpo actual.
+
+## Contrato del loop
+
+1. Elegir la siguiente fila `pending`.
+2. Escribir `docs/sdd-issue-patches/N.md` con `## SDD / patrones` + criterio UML.
+3. Si hace falta un tipo nuevo, actualizar `docs/uml.md` y §8 del SDD.
+4. Marcar la fila `body_ready`.
+5. Si `gh issue edit` tiene permiso, aplicar y marcar `done`; si no, dejar patch.
