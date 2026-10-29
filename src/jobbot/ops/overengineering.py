@@ -60,6 +60,27 @@ class Finding:
     name: str
     detail: str
     weight: int = 1
+    child_path: str | None = None
+    child_name: str | None = None
+
+
+EFFORT_EASY = "easy"
+EFFORT_MEDIUM = "medium"
+
+
+@dataclass(frozen=True)
+class QuickWin:
+    """A concrete refactor that frees budget weight (compensate the range)."""
+
+    finding: Finding
+    effort: str  # easy | medium
+    action: str
+    frees: int  # score points recovered if done
+
+    @property
+    def same_file(self) -> bool:
+        child = self.finding.child_path
+        return child is not None and child == self.finding.path
 
 
 @dataclass
@@ -172,15 +193,22 @@ def _lines_and_files(root: Path) -> tuple[int, int]:
     return files, lines
 
 
-def _subclass_counts(classes: list[_ClassInfo]) -> dict[str, int]:
-    """Map simple base name → number of classes that list it as a direct base."""
-    counts: dict[str, int] = defaultdict(int)
+def _subclass_index(classes: list[_ClassInfo]) -> dict[str, list[_ClassInfo]]:
+    """Map simple base name → direct subclasses (may collide across modules)."""
+    index: dict[str, list[_ClassInfo]] = defaultdict(list)
     for info in classes:
         for base in info.bases:
             if base in _ABC_BASE_NAMES:
                 continue
-            counts[base] += 1
-    return counts
+            index[base].append(info)
+    return index
+
+
+def _child_ref(subs: list[_ClassInfo]) -> tuple[str | None, str | None]:
+    if len(subs) != 1:
+        return None, None
+    only = subs[0]
+    return only.path, only.name
 
 
 def scan(src_root: Path) -> Report:
@@ -188,14 +216,16 @@ def scan(src_root: Path) -> Report:
     root = src_root.resolve()
     files, lines = _lines_and_files(root)
     classes = _collect_classes(root)
-    children = _subclass_counts(classes)
+    by_base = _subclass_index(classes)
     findings: list[Finding] = []
 
     for info in classes:
         key = (info.path, info.name)
         if key in _ALLOW:
             continue
-        n_children = children.get(info.name, 0)
+        subs = by_base.get(info.name, [])
+        n_children = len(subs)
+        child_path, child_name = _child_ref(subs)
 
         is_protocol = "Protocol" in info.bases or info.name.endswith(_STRUCTURAL_SUFFIXES)
         if info.is_abc and not (is_protocol and n_children == 0):
@@ -214,6 +244,8 @@ def scan(src_root: Path) -> Report:
                         name=info.name,
                         detail=f"{n_children} concrete subclass(es) in tree",
                         weight=_WEIGHTS[KIND_SINGLE_ABC],
+                        child_path=child_path,
+                        child_name=child_name,
                     )
                 )
         elif (
@@ -232,6 +264,8 @@ def scan(src_root: Path) -> Report:
                     name=info.name,
                     detail="one subclass of a *Base/*Abstract type",
                     weight=_WEIGHTS[KIND_SINGLE_BASE],
+                    child_path=child_path,
+                    child_name=child_name,
                 )
             )
 
@@ -247,6 +281,8 @@ def scan(src_root: Path) -> Report:
                     name=info.name,
                     detail="Strategy with no sibling variants in tree",
                     weight=_WEIGHTS[KIND_LONE_STRATEGY],
+                    child_path=child_path,
+                    child_name=child_name,
                 )
             )
 
@@ -263,6 +299,124 @@ def scan(src_root: Path) -> Report:
 
     findings.sort(key=lambda f: (f.kind, f.path, f.name))
     return Report(findings=findings, files_scanned=files, lines_scanned=lines)
+
+
+def _action_for(finding: Finding) -> tuple[str, str]:
+    """Return (effort, action) for a finding."""
+    same = finding.child_path is not None and finding.child_path == finding.path
+    if finding.kind == KIND_SINGLE_ABC:
+        if finding.child_name and same:
+            return (
+                EFFORT_EASY,
+                f"collapse {finding.name} + {finding.child_name} into one concrete type "
+                f"in {finding.path}",
+            )
+        if finding.child_name:
+            return (
+                EFFORT_MEDIUM,
+                f"inline {finding.name} into {finding.child_path}::{finding.child_name} "
+                f"or drop the ABC until a second implementor exists",
+            )
+        return (
+            EFFORT_EASY,
+            f"delete unused extension point {finding.path}::{finding.name} "
+            f"(zero implementors)",
+        )
+    if finding.kind == KIND_SINGLE_BASE:
+        if finding.child_name and same:
+            return (
+                EFFORT_EASY,
+                f"merge {finding.name} into {finding.child_name} in {finding.path}",
+            )
+        return (
+            EFFORT_MEDIUM,
+            f"fold {finding.name} into its only subclass "
+            f"{finding.child_path}::{finding.child_name}",
+        )
+    if finding.kind == KIND_LONE_STRATEGY:
+        return (
+            EFFORT_EASY,
+            f"replace {finding.path}::{finding.name} with a function until a second "
+            f"strategy appears",
+        )
+    if finding.kind == KIND_LONE_FACTORY:
+        return (
+            EFFORT_EASY,
+            f"replace {finding.path}::{finding.name} with a constructor/helper "
+            f"(one product type)",
+        )
+    return (EFFORT_MEDIUM, f"remove or simplify {finding.path}::{finding.name}")
+
+
+def quick_wins(report: Report) -> list[QuickWin]:
+    """Rank refactors that free score — easy same-file collapses first."""
+    wins: list[QuickWin] = []
+    for finding in report.findings:
+        effort, action = _action_for(finding)
+        wins.append(
+            QuickWin(
+                finding=finding,
+                effort=effort,
+                action=action,
+                frees=finding.weight,
+            )
+        )
+    effort_rank = {EFFORT_EASY: 0, EFFORT_MEDIUM: 1}
+    wins.sort(
+        key=lambda w: (
+            effort_rank.get(w.effort, 9),
+            -w.frees,
+            w.finding.path,
+            w.finding.name,
+        )
+    )
+    return wins
+
+
+def compensation_plan(
+    wins: list[QuickWin], *, deficit: int
+) -> list[QuickWin]:
+    """Greedy easy-first set whose ``frees`` sum covers ``deficit`` (0 → empty)."""
+    if deficit <= 0:
+        return []
+    picked: list[QuickWin] = []
+    freed = 0
+    for win in wins:
+        picked.append(win)
+        freed += win.frees
+        if freed >= deficit:
+            break
+    return picked
+
+
+def format_quick_wins(
+    wins: list[QuickWin],
+    *,
+    deficit: int = 0,
+    limit: int = 20,
+) -> str:
+    if not wins:
+        return "quick wins: none (no smells to shrink — headroom is the budget itself)"
+    lines = ["quick wins (refactor to free budget / compensate the range):"]
+    plan = compensation_plan(wins, deficit=deficit) if deficit > 0 else []
+    plan_keys = {(w.finding.path, w.finding.name) for w in plan}
+    if deficit > 0 and plan:
+        freed = sum(w.frees for w in plan)
+        lines.append(
+            f"  compensation for deficit={deficit}: "
+            f"do {len(plan)} win(s) freeing ≥{freed}"
+        )
+    for win in wins[:limit]:
+        mark = "*" if (win.finding.path, win.finding.name) in plan_keys else " "
+        lines.append(
+            f"  {mark}[{win.effort} frees={win.frees}] "
+            f"{win.finding.path}::{win.finding.name} — {win.action}"
+        )
+    if len(wins) > limit:
+        lines.append(f"  … +{len(wins) - limit} more")
+    if plan_keys:
+        lines.append("  (* = minimum set to cover the score deficit)")
+    return "\n".join(lines)
 
 
 def format_report(report: Report, *, limit: int = 40) -> str:
@@ -315,9 +469,16 @@ class BudgetVerdict:
         ]
         lines.extend(f"  ! {reason}" for reason in self.reasons)
         if not self.ok:
+            deficit = max(0, self.report.score - self.budget.max_score)
             lines.append(
-                "Shrink the smell (preferred) or raise docs/overengineering-budget.yaml "
-                "with HITL + reason in the PR."
+                "Shrink via quick wins (preferred) or raise "
+                "docs/overengineering-budget.yaml with HITL + reason in the PR."
+            )
+            lines.append(
+                format_quick_wins(
+                    quick_wins(self.report),
+                    deficit=deficit,
+                )
             )
         return "\n".join(lines)
 
@@ -356,18 +517,22 @@ def check_budget(report: Report, budget: Budget) -> BudgetVerdict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """``python -m jobbot.ops.overengineering [--json|--check] [src_root]``."""
+    """``python -m jobbot.ops.overengineering [--json|--check|--quick-wins] [src_root]``."""
     import sys
 
     args = list(sys.argv[1:] if argv is None else argv)
     as_json = False
     do_check = False
+    show_wins = False
     if "--json" in args:
         as_json = True
         args.remove("--json")
     if "--check" in args:
         do_check = True
         args.remove("--check")
+    if "--quick-wins" in args:
+        show_wins = True
+        args.remove("--quick-wins")
     # __file__ = …/src/jobbot/ops/overengineering.py → package=parents[1], repo=parents[3]
     package_root = Path(__file__).resolve().parents[1]
     repo_root = Path(__file__).resolve().parents[3]
@@ -385,7 +550,31 @@ def main(argv: list[str] | None = None) -> int:
         if not verdict.ok:
             sys.stdout.write(format_report(report) + "\n")
         return 0 if verdict.ok else 1
-    sys.stdout.write(report_json(report) if as_json else format_report(report) + "\n")
+    if as_json:
+        payload = report.to_dict()
+        payload["quick_wins"] = [
+            {
+                "effort": w.effort,
+                "frees": w.frees,
+                "action": w.action,
+                "path": w.finding.path,
+                "name": w.finding.name,
+                "kind": w.finding.kind,
+            }
+            for w in quick_wins(report)
+        ]
+        sys.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+        return 0
+    sys.stdout.write(format_report(report) + "\n")
+    if show_wins or report.findings:
+        deficit = 0
+        budget_path = repo_root / BUDGET_RELPATH
+        if budget_path.is_file():
+            budget = load_budget(budget_path)
+            deficit = max(0, report.score - budget.max_score)
+        sys.stdout.write(
+            format_quick_wins(quick_wins(report), deficit=deficit) + "\n"
+        )
     return 0
 
 

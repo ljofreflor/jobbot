@@ -546,7 +546,8 @@ name the trade-off (HITL); never by accident.
    ```bash
    uv run jobbot ops overengineering
    uv run jobbot ops overengineering --json
-   uv run jobbot ops overengineering --check   # must stay IN RANGE (CI runs this)
+   uv run jobbot ops overengineering --quick-wins  # ranked refactors that free score
+   uv run jobbot ops overengineering --check       # must stay IN RANGE (CI runs this)
    ```
 
 3. Read findings that your change *introduced* or *worsened*. A pre-existing smell is not a
@@ -557,11 +558,17 @@ name the trade-off (HITL); never by accident.
    (Design economics / rule of three).
 5. Prefer dissolving a hop over documenting why the hop might help later.
 
+**Compensate the range with quick wins.** When `--check` is OUT OF RANGE (or you are about
+to add a smell), run `--quick-wins`: easy same-file collapses and lone Strategy/Factory
+deletions are listed first, with `frees=` weight recovered. A `*` marks the minimum set
+whose freed score covers the deficit. Do those refactors in the same PR so the budget stays
+in range — do not raise the ceiling to paper over a new hierarchy.
+
 **Every PR keeps the metric in range.** CI fails when `score` or `density_per_kloc` exceeds
 [`docs/overengineering-budget.yaml`](docs/overengineering-budget.yaml). That is how we aim for
 **sublinear code growth**: new capability should call what exists, not add a second hierarchy.
-Raising `max_score` / `max_density_per_kloc` is HITL — say why in the PR; prefer shrinking.
-Allowlist edits need a one-line reason next to the symbol.
+Raising `max_score` / `max_density_per_kloc` is HITL — say why in the PR; prefer shrinking
+via quick wins. Allowlist edits need a one-line reason next to the symbol.
 
 **Metric (what the numbers mean).**
 
@@ -743,8 +750,9 @@ uv run jobbot getonboard search                 # queries del perfil (profile qu
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
 uv run jobbot empleospublicos search "jefe jurídico" --region Biobío  # datos abiertos Servicio Civil
 uv run jobbot ops failures
-uv run jobbot ops overengineering          # score + findings
+uv run jobbot ops overengineering          # score + findings (+ quick wins if any)
 uv run jobbot ops overengineering --json
+uv run jobbot ops overengineering --quick-wins  # refactors that free budget
 uv run jobbot ops overengineering --check  # PR/CI budget gate
 uv run jobbot ops failure show F0001
 uv run jobbot ops failure triage F0001 --status fixed

@@ -92,6 +92,8 @@ def test_against_over_engineering_section_is_present(project_root: Path) -> None
     assert "Every PR keeps the metric in range" in text
     assert "overengineering-budget.yaml" in text
     assert "--check" in text
+    assert "Compensate the range with quick wins" in text
+    assert "--quick-wins" in text
 
 
 def test_the_checks_catch_what_they_exist_for() -> None:

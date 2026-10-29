@@ -5,14 +5,18 @@ from __future__ import annotations
 from pathlib import Path
 
 from jobbot.ops.overengineering import (
+    EFFORT_EASY,
     KIND_LONE_FACTORY,
     KIND_LONE_STRATEGY,
     KIND_SINGLE_ABC,
     KIND_SINGLE_BASE,
     Budget,
     check_budget,
+    compensation_plan,
+    format_quick_wins,
     format_report,
     load_budget,
+    quick_wins,
     report_json,
     scan,
 )
@@ -178,3 +182,93 @@ def test_committed_budget_holds_current_tree() -> None:
     report = scan(root / "src" / "jobbot")
     verdict = check_budget(report, load_budget(root / BUDGET_RELPATH))
     assert verdict.ok, verdict.format()
+
+
+def test_quick_wins_prefer_same_file_collapse(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "ports.py",
+        """
+from abc import ABC, abstractmethod
+
+class OnlyOnce(ABC):
+    @abstractmethod
+    def run(self) -> None: ...
+
+class OnlyOnceImpl(OnlyOnce):
+    def run(self) -> None:
+        pass
+""",
+    )
+    _write(
+        tmp_path,
+        "factory.py",
+        """
+class WidgetFactory:
+    def build(self) -> object:
+        return object()
+""",
+    )
+    wins = quick_wins(scan(tmp_path))
+    assert wins
+    assert wins[0].effort == EFFORT_EASY
+    assert wins[0].frees >= 2
+    text = format_quick_wins(wins, deficit=3)
+    assert "quick wins" in text
+    assert "frees=" in text
+    assert "*" in text  # compensation markers
+
+
+def test_compensation_plan_covers_deficit(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "a.py",
+        """
+from abc import ABC, abstractmethod
+
+class A(ABC):
+    @abstractmethod
+    def run(self) -> None: ...
+
+class AImpl(A):
+    def run(self) -> None:
+        pass
+""",
+    )
+    _write(
+        tmp_path,
+        "b.py",
+        """
+class WidgetFactory:
+    def build(self) -> object:
+        return object()
+""",
+    )
+    wins = quick_wins(scan(tmp_path))
+    plan = compensation_plan(wins, deficit=3)
+    assert plan
+    assert sum(w.frees for w in plan) >= 3
+
+
+def test_out_of_range_lists_quick_wins(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "ports.py",
+        """
+from abc import ABC, abstractmethod
+
+class OnlyOnce(ABC):
+    @abstractmethod
+    def run(self) -> None: ...
+
+class OnlyOnceImpl(OnlyOnce):
+    def run(self) -> None:
+        pass
+""",
+    )
+    report = scan(tmp_path)
+    verdict = check_budget(report, Budget(max_score=0, max_density_per_kloc=0.0))
+    text = verdict.format()
+    assert "OUT OF RANGE" in text
+    assert "quick wins" in text
+    assert "collapse" in text or "frees=" in text

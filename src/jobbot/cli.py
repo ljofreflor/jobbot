@@ -9412,32 +9412,60 @@ def ops_overengineering(
             help="Exit 1 if score/density exceed docs/overengineering-budget.yaml",
         ),
     ] = False,
+    show_quick_wins: Annotated[
+        bool,
+        typer.Option(
+            "--quick-wins",
+            help="List easy refactors that free score to compensate the budget",
+        ),
+    ] = False,
 ) -> None:
     """Over-engineering score for src/jobbot; --check enforces the PR budget."""
+    import json
+
     from jobbot.ops.overengineering import (
         BUDGET_RELPATH,
         check_budget,
+        format_quick_wins,
         format_report,
         load_budget,
-        report_json,
+        quick_wins,
         scan,
     )
     from jobbot.workspace import repo_root
 
     root = repo_root()
     report = scan(root / "src" / "jobbot")
+    budget = load_budget(root / BUDGET_RELPATH)
+    deficit = max(0, report.score - budget.max_score)
+    wins = quick_wins(report)
     if check:
-        verdict = check_budget(report, load_budget(root / BUDGET_RELPATH))
+        verdict = check_budget(report, budget)
         typer.echo(verdict.format())
         if not verdict.ok:
             typer.echo(format_report(report))
             raise typer.Exit(1)
         return
     if as_json:
-        typer.echo(report_json(report), nl=False)
+        payload = report.to_dict()
+        payload["quick_wins"] = [
+            {
+                "effort": w.effort,
+                "frees": w.frees,
+                "action": w.action,
+                "path": w.finding.path,
+                "name": w.finding.name,
+                "kind": w.finding.kind,
+            }
+            for w in wins
+        ]
+        payload["score_deficit"] = deficit
+        typer.echo(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", nl=False)
         return
     # Raw echo keeps the density line intact under rich wrapping.
     typer.echo(format_report(report))
+    if show_quick_wins or report.findings:
+        typer.echo(format_quick_wins(wins, deficit=deficit))
 
 
 @app.command("probe-exit", hidden=True)
