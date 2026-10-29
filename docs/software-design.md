@@ -416,7 +416,7 @@ When the user vibecodes recurring natural language (draft text, classify, advise
 ## 8. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
-- [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md) — agent policy; Design economics (System 2 → System 1)
+- [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md) — agent policy; Design economics (System 2 → System 1); Against over-engineering (Beck / YAGNI / dissolve)
 - [README.md](https://github.com/ljofreflor/jobbot/blob/main/README.md) — product overview and commands
 - [data/README.md](https://github.com/ljofreflor/jobbot/blob/main/data/README.md) — what is gitignored under `data/`
 - [library-audit.md](library-audit.md) — adopted vs kept-ours dependency decisions

@@ -479,6 +479,123 @@ This is not only about tokens. The deterministic path is the auditable one: neve
 experience, and stopping for HITL, are guarantees that live in code and its tests — not in the
 memory of a conversation.
 
+## Against over-engineering (keep the surface small)
+
+Promotion (above) fights *re-deriving*. This section fights the opposite waste: *speculative
+generality* — layers, patterns and knobs added “por si acaso” that raise carry cost without a
+current caller. JobBot prefers **dissolve** over throughput clones
+([#105](https://github.com/ljofreflor/jobbot/issues/105)): remove friction; do not clone a
+dashboard.
+
+Sources we reuse (not invent): XP / Beck **simple design**, YAGNI, KISS, and the rule of three
+already stated under Design economics. Priority order when judging a change:
+
+1. **Passes the tests** — untested or untestable behaviour is not “simple”; it is unknown.
+2. **Reveals intention** — names and structure say what the cargo loop is doing; a reader should
+   not need a tour guide.
+3. **No duplication of knowledge** — extract when the *same idea* repeats (rule of three), not
+   when two lines look alike. A wrong abstraction costs more than two similar functions
+   (carry + repair).
+4. **Fewest elements** — among designs that satisfy 1–3, delete classes, ports, flags and
+   indirection that do not earn their keep.
+
+**YAGNI / KISS in this repo.**
+
+- Implement what the open issue’s acceptance asks *now*. Do not add a second strategy,
+  plugin hook, config key or “future tenant” path unless a real caller exists in-tree.
+- Prefer one function in the owning module over a mini-framework. A CLI flag that needs a
+  registry, factory and base class for a single string is over-built.
+- Deterministic path first; `--llm` only when the cheap path cannot finish
+  ([manifesto](docs/manifesto.md) §3). Extra model knobs without a failing fixture are theatre.
+- Reuse ports/adapters already registered. A new `AtsKind` or `JobSource` needs a real host
+  + fixture evidence — not a hostname guess “por si aparece”.
+- Extend or close an existing issue before opening a parallel design that re-describes the
+  same endgame (see Planning).
+
+**Smell checklist (reject or shrink in review).**
+
+| Smell | Usually means |
+| --- | --- |
+| Interface / ABC with one implementor | Premature port — keep the concrete type until a second appears |
+| Factory / registry for a single type | Indirection with no fan-out |
+| Strategy with one strategy | Pattern costume on a function |
+| Flag / config “for later flexibility” | YAGNI debt; delete or gate behind a real issue |
+| Base class with one subclass | Collapse until a second variant is real |
+| More than two hops to reach logic | Unnecessary delegation |
+| New dependency when stdlib / audited lib fits | Check [library-audit.md](docs/library-audit.md) first |
+| Docs/diagrams for types that do not exist yet | SDD follows code + issue need, not the reverse |
+| Throughput clone of a SaaS feature | Prefer dissolve ([#105](https://github.com/ljofreflor/jobbot/issues/105)) |
+
+**Just-in-time structure.** Keep code *changeable* (tests, clear owners, small modules) so the
+right abstraction can land when the third use appears — that is not rework; it is deferred
+complexity with a cheap escape hatch. Degrading the design “to ship faster” only when you
+name the trade-off (HITL); never by accident.
+
+**Agent self-check before opening a PR.**
+
+- Can this PR drop a type, file or flag and still meet the issue? If yes, drop it.
+- Is every new public symbol called from production code or a test *in this change*?
+- Would explaining the design need a slide? If yes, it is probably over-built for JobBot’s
+  terminal surface.
+
+**Detect points of over-engineering (before inventing structure).**
+
+1. Walk the smell checklist above against the *diff*, not the whole thesis of the PR.
+2. Run the metric and the PR gate:
+
+   ```bash
+   uv run jobbot ops overengineering
+   uv run jobbot ops overengineering --json
+   uv run jobbot ops overengineering --quick-wins  # ranked refactors that free score
+   uv run jobbot ops overengineering --check       # must stay IN RANGE (CI runs this)
+   ```
+
+3. Read findings that your change *introduced* or *worsened*. A pre-existing smell is not a
+   license to add another. Hexagonal ports already allowlisted in
+   `jobbot.ops.overengineering` stay out of the score on purpose.
+4. If the score rises and the issue did not ask for a second variant, shrink: collapse the
+   ABC/Base/Factory/Strategy into a function or concrete type until the third use appears
+   (Design economics / rule of three).
+5. Prefer dissolving a hop over documenting why the hop might help later.
+
+**Compensate the range with quick wins.** When `--check` is OUT OF RANGE (or you are about
+to add a smell), run `--quick-wins`: easy same-file collapses and lone Strategy/Factory
+deletions are listed first, with `frees=` weight recovered. A `*` marks the minimum set
+whose freed score covers the smell deficit. Do those refactors in the same PR — do not raise
+a `max_*` bound to paper over a new hierarchy. Capability/sprawl failures need different
+moves (real command, delete dead LOC, merge thin modules).
+
+**Every PR keeps competing criteria in range.** CI fails unless *all* bounds in
+[`docs/overengineering-budget.yaml`](docs/overengineering-budget.yaml) hold. They **compete**
+(you cannot optimise one by dumping the others):
+
+| Criterion | Direction | Competes with |
+| --- | --- | --- |
+| `score` | minimize | “just add a Strategy/ABC for flexibility” |
+| `density_per_kloc` | minimize | growing LOC to dilute smells |
+| `commands_per_kloc` | maximize (floor) | LOC without new user-facing capability (anti–sublinear) |
+| `modules_per_kloc` | minimize (ceiling) | new files for the same idea / thin wrappers |
+
+Beck’s simple-design rules are the same idea: tests, intention, duplication, and fewest
+elements pull against each other — the PR must leave the vector still in range. Changing
+any bound is HITL + reason; prefer quick wins / dissolve. Allowlist edits need a one-line
+reason next to the symbol.
+
+**Metric fields.**
+
+| Field | Meaning |
+| --- | --- |
+| `score` | Weighted premature-abstraction smells (ABC≤1 impl=3, lone Base/Strategy/Factory=2) |
+| `density_per_kloc` | `score` / 1000 lines |
+| `commands_per_kloc` | CLI commands / kloc — reuse / sublinear-growth signal |
+| `modules_per_kloc` | modules / kloc — sprawl signal |
+| `findings` / quick wins | Concrete `path::name` and ranked refactors |
+| budget | Committed multi-criteria bounds; `--check` / CI enforce all of them |
+
+False positives happen (AST cannot see cross-package intent). Fix the code or extend the
+small allowlist in `ops/overengineering.py` with a one-line reason — do not silence the
+gate by growing the detector or quietly relaxing a bound.
+
 ## Planning (before a plan or feature branch)
 
 Product work is tracked in GitHub issues. Agents re-deriving the same endgame in chat while
@@ -557,6 +674,7 @@ So, when working on an issue without the local machine:
 uv sync --group dev
 uv run ruff check .
 uv run mypy src
+uv run jobbot ops overengineering --check   # score/density ≤ docs/overengineering-budget.yaml
 uv run pytest
 make coverage   # unit suite + ≥80% line gate (see [tool.coverage] in pyproject.toml)
 ```
@@ -565,8 +683,10 @@ CI (`.github/workflows/ci.yml`) runs the same checks on `develop` / `main` and o
 
 Branch gates:
 
-- **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%.
-- **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%.
+- **feature → `develop`:** 100% of unit tests must pass, coverage ≥80%, over-engineering
+  competing criteria in range (`ops overengineering --check`).
+- **`develop` → `main`:** at least **95%** of unit tests must pass, coverage ≥80%, over-engineering
+  competing criteria in range.
 
 Every feature, fix or docs PR targets **`develop`** (`gh pr create --base develop`), whoever
 opens it, cloud agents included. `main` only receives the `develop` → `main` release PR.
@@ -645,6 +765,10 @@ uv run jobbot getonboard search                 # queries del perfil (profile qu
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
 uv run jobbot empleospublicos search "jefe jurídico" --region Biobío  # datos abiertos Servicio Civil
 uv run jobbot ops failures
+uv run jobbot ops overengineering          # score + findings (+ quick wins if any)
+uv run jobbot ops overengineering --json
+uv run jobbot ops overengineering --quick-wins  # refactors that free budget
+uv run jobbot ops overengineering --check  # PR/CI budget gate
 uv run jobbot ops failure show F0001
 uv run jobbot ops failure triage F0001 --status fixed
 uv run jobbot ops failure issue F0001          # HITL → gh issue

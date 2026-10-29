@@ -1,4 +1,4 @@
-.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities site coverage coverage-main architecture docs-serve docs-build
+.PHONY: install test lint format typecheck cv run hooks pii-check pre-commit capabilities site coverage coverage-main architecture docs-serve docs-build overengineering
 
 install:
 	uv sync --group dev
@@ -18,6 +18,9 @@ pre-commit:
 
 capabilities:
 	uv run jobbot ops capabilities --write
+
+overengineering:
+	uv run jobbot ops overengineering --check
 
 site:
 	uv run python -m jobbot.portals.platform_map --write

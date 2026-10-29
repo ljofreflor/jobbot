@@ -9399,6 +9399,87 @@ def ops_capabilities(
     console.print(f"Wrote [bold]{target}[/bold]")
 
 
+@ops_app.command("overengineering")
+def ops_overengineering(
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Machine-readable report (score, density, findings)"),
+    ] = False,
+    check: Annotated[
+        bool,
+        typer.Option(
+            "--check",
+            help="Exit 1 if score/density exceed docs/overengineering-budget.yaml",
+        ),
+    ] = False,
+    show_quick_wins: Annotated[
+        bool,
+        typer.Option(
+            "--quick-wins",
+            help="List easy refactors that free score to compensate the budget",
+        ),
+    ] = False,
+) -> None:
+    """Competing over-engineering criteria; --check enforces the PR budget."""
+    import json
+
+    from jobbot.ops.overengineering import (
+        BUDGET_RELPATH,
+        check_budget,
+        format_quick_wins,
+        format_report,
+        load_budget,
+        measure_repo,
+        quick_wins,
+    )
+    from jobbot.workspace import repo_root
+
+    root = repo_root()
+    snapshot = measure_repo(root)
+    report = snapshot.report
+    budget = load_budget(root / BUDGET_RELPATH)
+    deficit = max(0, report.score - budget.max_score)
+    wins = quick_wins(report)
+    if check:
+        verdict = check_budget(snapshot, budget)
+        typer.echo(verdict.format())
+        if not verdict.ok:
+            typer.echo(format_report(report))
+            raise typer.Exit(1)
+        return
+    if as_json:
+        payload = snapshot.to_dict()
+        payload["quick_wins"] = [
+            {
+                "effort": w.effort,
+                "frees": w.frees,
+                "action": w.action,
+                "path": w.finding.path,
+                "name": w.finding.name,
+                "kind": w.finding.kind,
+            }
+            for w in wins
+        ]
+        payload["score_deficit"] = deficit
+        payload["budget"] = {
+            "max_score": budget.max_score,
+            "max_density_per_kloc": budget.max_density_per_kloc,
+            "min_commands_per_kloc": budget.min_commands_per_kloc,
+            "max_modules_per_kloc": budget.max_modules_per_kloc,
+        }
+        typer.echo(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", nl=False)
+        return
+    # Raw echo keeps the density line intact under rich wrapping.
+    typer.echo(format_report(report))
+    typer.echo(
+        f"criteria: commands/kloc={snapshot.commands_per_kloc}  "
+        f"modules/kloc={snapshot.modules_per_kloc}  "
+        f"commands={snapshot.commands}  modules={snapshot.modules}"
+    )
+    if show_quick_wins or report.findings:
+        typer.echo(format_quick_wins(wins, deficit=deficit))
+
+
 @app.command("probe-exit", hidden=True)
 def probe_exit(
     code: Annotated[
