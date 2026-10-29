@@ -86,6 +86,9 @@ def test_against_over_engineering_section_is_present(project_root: Path) -> None
     assert "Fewest elements" in text
     assert "#105" in text
     assert "Smell checklist" in text
+    assert "Detect points of over-engineering" in text
+    assert "ops overengineering" in text
+    assert "density_per_kloc" in text
 
 
 def test_the_checks_catch_what_they_exist_for() -> None:

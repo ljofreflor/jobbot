@@ -9399,6 +9399,25 @@ def ops_capabilities(
     console.print(f"Wrote [bold]{target}[/bold]")
 
 
+@ops_app.command("overengineering")
+def ops_overengineering(
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Machine-readable report (score, density, findings)"),
+    ] = False,
+) -> None:
+    """Heuristic over-engineering score for src/jobbot (local; not a CI gate)."""
+    from jobbot.ops.overengineering import format_report, report_json, scan
+    from jobbot.workspace import repo_root
+
+    report = scan(repo_root() / "src" / "jobbot")
+    if as_json:
+        typer.echo(report_json(report), nl=False)
+        return
+    # Raw echo keeps the density line intact under rich wrapping.
+    typer.echo(format_report(report))
+
+
 @app.command("probe-exit", hidden=True)
 def probe_exit(
     code: Annotated[

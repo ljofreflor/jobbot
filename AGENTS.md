@@ -538,6 +538,36 @@ name the trade-off (HITL); never by accident.
 - Would explaining the design need a slide? If yes, it is probably over-built for JobBot’s
   terminal surface.
 
+**Detect points of over-engineering (before inventing structure).**
+
+1. Walk the smell checklist above against the *diff*, not the whole thesis of the PR.
+2. Run the metric (offline, heuristic — **not** a CI gate):
+
+   ```bash
+   uv run jobbot ops overengineering
+   uv run jobbot ops overengineering --json   # score, density_per_kloc, findings
+   ```
+
+3. Read findings that your change *introduced* or *worsened*. A pre-existing smell is not a
+   license to add another. Hexagonal ports already allowlisted in
+   `jobbot.ops.overengineering` stay out of the score on purpose.
+4. If the score rises and the issue did not ask for a second variant, shrink: collapse the
+   ABC/Base/Factory/Strategy into a function or concrete type until the third use appears
+   (Design economics / rule of three).
+5. Prefer dissolving a hop over documenting why the hop might help later.
+
+**Metric (what the numbers mean).**
+
+| Field | Meaning |
+| --- | --- |
+| `score` | Sum of weighted smells in `src/jobbot` (ABC≤1 impl=3, lone Base/Strategy/Factory=2) |
+| `density_per_kloc` | `score` per 1000 lines scanned — compare PRs / over time, not to a magic threshold |
+| `findings` | Concrete `path::name` to open; kinds match the checklist |
+
+False positives happen (AST cannot see cross-package intent). Fix the code or extend the
+small allowlist in `ops/overengineering.py` with a one-line reason — do not silence the
+metric by growing the detector.
+
 ## Planning (before a plan or feature branch)
 
 Product work is tracked in GitHub issues. Agents re-deriving the same endgame in chat while
@@ -704,6 +734,8 @@ uv run jobbot getonboard search                 # queries del perfil (profile qu
 uv run jobbot torre search [--remote]           # Torre (LATAM/remoto), API pública
 uv run jobbot empleospublicos search "jefe jurídico" --region Biobío  # datos abiertos Servicio Civil
 uv run jobbot ops failures
+uv run jobbot ops overengineering          # heuristic score + findings (not a CI gate)
+uv run jobbot ops overengineering --json
 uv run jobbot ops failure show F0001
 uv run jobbot ops failure triage F0001 --status fixed
 uv run jobbot ops failure issue F0001          # HITL → gh issue

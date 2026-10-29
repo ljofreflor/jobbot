@@ -1,0 +1,127 @@
+"""Over-engineering metric: smells are weighted; allowlist skips hexagonal ports."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from jobbot.ops.overengineering import (
+    KIND_LONE_FACTORY,
+    KIND_LONE_STRATEGY,
+    KIND_SINGLE_ABC,
+    KIND_SINGLE_BASE,
+    format_report,
+    report_json,
+    scan,
+)
+
+
+def _write(root: Path, rel: str, source: str) -> None:
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source, encoding="utf-8")
+
+
+def test_single_implementor_abc_is_flagged(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "ports.py",
+        """
+from abc import ABC, abstractmethod
+
+class OnlyOnce(ABC):
+    @abstractmethod
+    def run(self) -> None: ...
+
+class OnlyOnceImpl(OnlyOnce):
+    def run(self) -> None:
+        pass
+""",
+    )
+    report = scan(tmp_path)
+    kinds = {(f.kind, f.name) for f in report.findings}
+    assert (KIND_SINGLE_ABC, "OnlyOnce") in kinds
+    assert report.score >= 3
+    assert report.density > 0
+
+
+def test_abc_with_two_implementors_is_clean(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "ports.py",
+        """
+from abc import ABC, abstractmethod
+
+class Port(ABC):
+    @abstractmethod
+    def run(self) -> None: ...
+
+class A(Port):
+    def run(self) -> None:
+        pass
+
+class B(Port):
+    def run(self) -> None:
+        pass
+""",
+    )
+    report = scan(tmp_path)
+    assert not any(f.name == "Port" for f in report.findings)
+
+
+def test_single_subclass_base_suffix(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "thing.py",
+        """
+class ThingBase:
+    pass
+
+class Thing(ThingBase):
+    pass
+""",
+    )
+    report = scan(tmp_path)
+    assert any(f.kind == KIND_SINGLE_BASE and f.name == "ThingBase" for f in report.findings)
+
+
+def test_lone_strategy_and_factory(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "patterns.py",
+        """
+from abc import ABC, abstractmethod
+
+class ApplyStrategy(ABC):
+    @abstractmethod
+    def apply(self) -> None: ...
+
+class WidgetFactory:
+    def build(self) -> object:
+        return object()
+""",
+    )
+    report = scan(tmp_path)
+    kinds = {f.kind for f in report.findings}
+    assert KIND_LONE_STRATEGY in kinds
+    assert KIND_LONE_FACTORY in kinds
+
+
+def test_allowlisted_adapter_ports_skipped() -> None:
+    """Real tree: hexagonal bases may have one local stub; they stay allowlisted."""
+    from jobbot.workspace import repo_root
+
+    src = repo_root() / "src" / "jobbot"
+    report = scan(src)
+    flagged = {(f.path, f.name) for f in report.findings}
+    assert ("adapters/base.py", "ApplicationPortalAdapter") not in flagged
+    assert ("adapters/base.py", "JobSourceAdapter") not in flagged
+
+
+def test_format_and_json_round_trip(tmp_path: Path) -> None:
+    _write(tmp_path, "empty.py", "x = 1\n")
+    report = scan(tmp_path)
+    text = format_report(report)
+    assert "over-engineering score=" in text
+    payload = report_json(report)
+    assert '"score"' in payload
+    assert '"density_per_kloc"' in payload
