@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import subprocess
+import unicodedata
 from enum import StrEnum
 from pathlib import Path
 
@@ -48,6 +50,32 @@ ATS text output does not require XeLaTeX:
 class BuildTarget(StrEnum):
     CV = "cv"
     ATS = "ats"
+
+
+def cv_pdf_person_stem(name: str) -> str:
+    """ASCII-safe Title_Case stem from ``personal.name`` for shareable PDF filenames.
+
+    Accents fold (Jofré → Jofre); path-hostile characters drop. Empty or
+    unusable input falls back to ``cv`` so callers always get a stem.
+    """
+    folded = unicodedata.normalize("NFKD", (name or "").strip())
+    ascii_text = "".join(char for char in folded if not unicodedata.combining(char))
+    parts = re.findall(r"[A-Za-z0-9]+", ascii_text)
+    if not parts:
+        return "cv"
+    return "_".join(part[:1].upper() + part[1:] for part in parts)
+
+
+def write_named_cv_pdf(stable_pdf: Path, person_name: str) -> Path:
+    """Copy ``cv.pdf`` to ``{Person_Name}_CV.pdf`` beside it for sharing/upload.
+
+    The stable ``cv.pdf`` path stays the internal artifact (adapters, freshness).
+    """
+    named = stable_pdf.with_name(f"{cv_pdf_person_stem(person_name)}_CV.pdf")
+    if named.resolve() != stable_pdf.resolve():
+        shutil.copy2(stable_pdf, named)
+    logger.info("Wrote named PDF CV: %s", named)
+    return named
 
 
 def build_cv(
@@ -161,6 +189,7 @@ def build_cv(
     logger.info("Wrote ATS CV: %s", ats_path)
 
     pdf_path = _compile_xelatex(tex_path, out_dir)
+    named_pdf = write_named_cv_pdf(pdf_path, candidate.personal.name)
     _record_page_trim(
         candidate,
         selection,
@@ -169,7 +198,7 @@ def build_cv(
         compact_before=compact_before,
         job=job,
     )
-    written.extend([pdf_path, ats_path])
+    written.extend([pdf_path, named_pdf, ats_path])
     return written
 
 
