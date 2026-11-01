@@ -674,7 +674,7 @@ So, when working on an issue without the local machine:
 uv sync --group dev
 uv run ruff check .
 uv run mypy src
-uv run jobbot ops overengineering --check   # score/density ≤ docs/overengineering-budget.yaml
+uv run jobbot ops overengineering --check   # all competing criteria in docs/overengineering-budget.yaml
 uv run pytest
 make coverage   # unit suite + ≥80% line gate (see [tool.coverage] in pyproject.toml)
 ```

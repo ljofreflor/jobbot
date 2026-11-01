@@ -9403,24 +9403,30 @@ def ops_capabilities(
 def ops_overengineering(
     as_json: Annotated[
         bool,
-        typer.Option("--json", help="Machine-readable report (score, density, findings)"),
+        typer.Option(
+            "--json",
+            help="Machine-readable vector (score, density, commands/kloc, modules/kloc, findings)",
+        ),
     ] = False,
     check: Annotated[
         bool,
         typer.Option(
             "--check",
-            help="Exit 1 if score/density exceed docs/overengineering-budget.yaml",
+            help=(
+                "Exit 1 unless all competing criteria in "
+                "docs/overengineering-budget.yaml hold"
+            ),
         ),
     ] = False,
     show_quick_wins: Annotated[
         bool,
         typer.Option(
             "--quick-wins",
-            help="List easy refactors that free score to compensate the budget",
+            help="List easy refactors that free score to rebalance competing criteria",
         ),
     ] = False,
 ) -> None:
-    """Competing over-engineering criteria; --check enforces the PR budget."""
+    """Competing over-engineering criteria; --check enforces the PR budget vector."""
     import json
 
     from jobbot.ops.overengineering import (
