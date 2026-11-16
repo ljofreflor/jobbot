@@ -28,6 +28,17 @@ engineering map.
 
 Direction of dependency: **domain → adapters**, never the reverse.
 
+UML (Mermaid): [docs/uml.md](uml.md) — `candidate-now`, `fact-preference`, `ports`,
+`plan-apply`, `specification`, `acl`, `hitl-pause`, `search-outcome`,
+`posting-url-verify`, `linkedin-details-pull`, `jd-llm-extract`, `update-mutex`,
+`indeed-apply-advance`, `postulate-route`, `cv-derived-translation`,
+`public-queue-sync`, `capability-gap-map`, `workday-session-tenant`,
+`laborum-sitemap-terms`, `hiringroom-discover`, `reliefweb-discover`,
+`taleo-careersection-discover`, `successfactors-csb-discover`,
+`latam-master-table`, `whatsapp-question-queue`. Issues that grow the domain cite
+an anchor and update the diagram in the closing PR. Map:
+[sdd-issue-map.md](sdd-issue-map.md).
+
 ## 2. Layered structure
 
 ```text
@@ -413,10 +424,262 @@ When the user vibecodes recurring natural language (draft text, classify, advise
 5. Failing-first test; `symptom triage --status resolved --feature …`.
 6. Next time: call the feature; do not re-derive in Cursor.
 
-## 8. Related documents
+## 8. Next steps (domain types ← recruitment / people analytics)
+
+Theory inventory and citations:
+[Teorías de reclutamiento y people analytics que el diseño todavía no tipa](blog/posts/2026-10-18-teorias-reclutamiento-people-analytics.md).
+
+| Step | Design move | Anchors |
+| --- | --- | --- |
+| 1 | Type must-have vs nice-to-have on `JobPosting` / conditions | Job analysis; #166 #186 |
+| 2 | Value objects: CEFR languages, `Education.status`, `unit`/`work_mode` | #141 #185 #144 |
+| 3 | `EvidenceStrength` + skill↔experience links | Signaling / evidence hierarchy; #195 |
+| 4 | Split Fact (`Candidate`) vs Preference (answers, eligibility) | P–J vs preferences; #206 |
+| 5 | STAR / structured-interview kit from posting + profile only | Campion / OPM; #203 |
+| 6 | `PostingClarity` when the JD cannot support P–J scoring | Policy-capturing under uncertainty; #178 |
+| 7 | Feed public I-O practice into `recruiters` → `cv advise` | Skills-first, structured interview guides |
+| 8 | Explicit non-goals: no auto P–O, no embedded GMA, no opaque “bias score” | Kristof-Brown; Schmidt–Hunter as *what not to fake* |
+
+Patterns to prefer while doing this: Specification (conditions), anti-corruption
+homologation (#94), i18n overlay (#221), plan-then-apply Commands. Do not grow a
+second SoT or invent culture-fit.
+
+`JobSourceAdapter.search_jobs` must not collapse transport failure, off-topic
+rows, or a challenge page into an empty list that the CLI prints as
+“No jobs found” — see [#390](https://github.com/ljofreflor/jobbot/issues/390) and
+[uml.md#search-outcome](uml.md#search-outcome).
+
+`jobbot update` / `-U` must take a local pid lock before `uv tool install
+--force` so two concurrent upgrades cannot clobber the executable — see
+[#398](https://github.com/ljofreflor/jobbot/issues/398) and
+[uml.md#update-mutex](uml.md#update-mutex).
+
+Indeed Apply may click a classified **advance** label (`pressable_advance`) and
+must never click a **submit** role — see
+[#412](https://github.com/ljofreflor/jobbot/issues/412) and
+[uml.md#indeed-apply-advance](uml.md#indeed-apply-advance).
+
+`postulate` classifies a posting route from a fixture (#41); `--apply` may open
+that route without submitting, and a separate promote copies the contribution
+into the local portal registry — see
+[#410](https://github.com/ljofreflor/jobbot/issues/410) and
+[uml.md#postulate-route](uml.md#postulate-route).
+
+`cv build --lang` may present phrases from `output/cv/{lang}.yaml` only when
+`cv translate` would accept them; missing entries keep the profile text and never
+rewrite `profile.yaml` — see
+[#408](https://github.com/ljofreflor/jobbot/issues/408) and
+[uml.md#cv-derived-translation](uml.md#cv-derived-translation).
+
+Docs and root help name the entry door (`profile`, `cv`, `get`, `capture`) before
+portal groups; portal commands stay callable under advanced — see
+[#420](https://github.com/ljofreflor/jobbot/issues/420) (no UML; complements
+[#108](https://github.com/ljofreflor/jobbot/issues/108)).
+
+Public portal observations that pass `share_refusal` enqueue, sync via a batched
+PR, and land locally through `jobbot -U` as candidates — see
+[#418](https://github.com/ljofreflor/jobbot/issues/418) and
+[uml.md#public-queue-sync](uml.md#public-queue-sync).
+
+Stolen use-cases without a falsifiable contract stay in the gap map until each
+row has its own test contract — see
+[#424](https://github.com/ljofreflor/jobbot/issues/424) and
+[uml.md#capability-gap-map](uml.md#capability-gap-map).
+
+Indeed Apply may `set_input_files` with the tailored PDF when the step asks for
+a CV, and must never click Enviar/Submit — see
+[#402](https://github.com/ljofreflor/jobbot/issues/402) and
+[uml.md#indeed-apply-attach](uml.md#indeed-apply-attach).
+
+`search_filters` (preference, not Fact) and `--dry-run` decide keep/drop before
+`upsert_external` — see
+[#374](https://github.com/ljofreflor/jobbot/issues/374) and
+[uml.md#search-filters](uml.md#search-filters).
+
+`cv tune-for` scopes advise to one posting with a small suggestion budget and
+HITL `--apply` — see
+[#54](https://github.com/ljofreflor/jobbot/issues/54) and
+[uml.md#cv-tune-for](uml.md#cv-tune-for).
+
+Trabajando.cl `portals profile diff|push` validates field limits (including
+legacy rows that would HTTP 400 the whole section) and never invents
+RUN/jornada/salary — see
+[#285](https://github.com/ljofreflor/jobbot/issues/285) and
+[uml.md#trabajando-profile-push](uml.md#trabajando-profile-push).
+
+LinkedIn Easy Apply prefills known SST fields, attaches the tailored PDF,
+pauses on employer questions, and records `submitted` only with UI evidence —
+see [#296](https://github.com/ljofreflor/jobbot/issues/296) and
+[uml.md#linkedin-easy-apply](uml.md#linkedin-easy-apply).
+
+`jobbot get` / `jobs add --url` for Workday download the posting via public
+CXS (no SPA scrape, no login); closed = 404/S22; `closes_at` keeps
+`time_unknown` when timezone is missing — see
+[#215](https://github.com/ljofreflor/jobbot/issues/215) and
+[uml.md#workday-cxs-detail](uml.md#workday-cxs-detail).
+
+`browser login` lists permanent → active → candidate session gaps; `--apply`
+opens one gap and stops; company tabs stay `unknown` — see
+[#56](https://github.com/ljofreflor/jobbot/issues/56) and
+[uml.md#browser-login-tour](uml.md#browser-login-tour).
+
+Search queries and matching come from experience evidence, not an occupation
+default or page chrome misread as skills — see
+[#118](https://github.com/ljofreflor/jobbot/issues/118) and
+[uml.md#experience-first-search](uml.md#experience-first-search).
+
+`browser sessions` keys Workday evidence by career-site **host** (one tenant ≠
+another) and may probe CDP ports beyond 9222–9224 — see
+[#394](https://github.com/ljofreflor/jobbot/issues/394) and
+[uml.md#workday-session-tenant](uml.md#workday-session-tenant).
+
+Laborum discovery stays behind an explicit terms gate (#227); when allowed, a
+sitemap fixture path can store title+URL jobs without live fetch — see
+[#396](https://github.com/ljofreflor/jobbot/issues/396) and
+[uml.md#laborum-sitemap-terms](uml.md#laborum-sitemap-terms).
+
+HiringRoom `jobs discover` walks `/jobs` and detail URLs only when page-2 is a
+known fixture (no guessed `?page=`), stops at list total or `--limit`, and keeps
+peer sites isolated on HTTP failure — see
+[#377](https://github.com/ljofreflor/jobbot/issues/377) and
+[uml.md#hiringroom-discover](uml.md#hiringroom-discover).
+
+ReliefWeb discovery uses API v2 with a locally configured approved `appname`
+(never logged or committed); missing/denied appname exits 3 without scraping the
+website — see
+[#247](https://github.com/ljofreflor/jobbot/issues/247) and
+[uml.md#reliefweb-discover](uml.md#reliefweb-discover).
+
+Taleo careersection discovery uses public `searchjobs` REST with a per-site
+column ACL (closing vs posting date differ by portal) and never invents ORC
+shapes — see
+[#245](https://github.com/ljofreflor/jobbot/issues/245) and
+[uml.md#taleo-careersection-discover](uml.md#taleo-careersection-discover).
+
+SuccessFactors CSB discovery chooses classic HTML search vs Unify sitemap (never
+`/services/`, never JS) and omits filled postings — see
+[#230](https://github.com/ljofreflor/jobbot/issues/230) and
+[uml.md#successfactors-csb-discover](uml.md#successfactors-csb-discover).
+
+The LATAM company↔career map grows by tracked seed batches through
+discover → HITL promote → shared export, never inventing ATS or treating job
+boards as employer portals — see
+[#298](https://github.com/ljofreflor/jobbot/issues/298) and
+[uml.md#latam-master-table](uml.md#latam-master-table).
+
+Candidate questions (conditions ask, blank answers, portal screens) enqueue
+locally and may be sent via WhatsApp deeplink/API only with operator HITL; apply
+writes the SST only after a confirmed diff — see
+[#251](https://github.com/ljofreflor/jobbot/issues/251) and
+[uml.md#whatsapp-question-queue](uml.md#whatsapp-question-queue).
+
+Aira `jobs discover` walks only catalog-observed slugs on
+`jobs.airavirtual.com` (employer = channel owner, never “Aira”); refused ≠ empty
+— see [#267](https://github.com/ljofreflor/jobbot/issues/267) and
+[uml.md#aira-slug-discover](uml.md#aira-slug-discover).
+
+Trabajando white-label discover resolves `idDominio` then paginates
+`/api/searchjob` on `{empresa}.trabajando.cl`; `www` stays a job board, not an
+employer portal — see [#241](https://github.com/ljofreflor/jobbot/issues/241) and
+[uml.md#trabajando-white-label-discover](uml.md#trabajando-white-label-discover).
+
+Empleos Públicos discover merges two public JSON feeds without a mandatory
+fixture; HTTP 403 without `--browser` is challenge exit 4, CDP same-origin
+fetch is HITL — see [#240](https://github.com/ljofreflor/jobbot/issues/240) and
+[uml.md#empleos-publicos-live](uml.md#empleos-publicos-live).
+
+Company career sites auto-promote only with technical ATS evidence; share is
+workspace opt-in with a revisable queue; the Chile catalog merges into
+`companies` (one model) — see [#269](https://github.com/ljofreflor/jobbot/issues/269) and
+[uml.md#companies-promote-policy](uml.md#companies-promote-policy).
+
+Catalog channels still `ats_family=unknown` are recon'd by employer impact with
+technical evidence only; refused reads do not shrink `unknown`, and identify ≠
+enable — see [#268](https://github.com/ljofreflor/jobbot/issues/268) and
+[uml.md#catalog-unknown-recon](uml.md#catalog-unknown-recon).
+
+BCI's career portal is seeded with a canonical hint; Cornerstone is observed via
+CSOD/CSP evidence, never invented as Workday from an unverified host — see
+[#249](https://github.com/ljofreflor/jobbot/issues/249) and
+[uml.md#bci-cornerstone-recon](uml.md#bci-cornerstone-recon).
+
+Non-technical / international posting sources (UN Careers, PageUp, Impactpool,
+Avature, Cornerstone, Lumesse, municipal PDFs) register as adapters or typed
+`discovery: blocked` under one epic contract — see
+[#224](https://github.com/ljofreflor/jobbot/issues/224) and
+[uml.md#nontech-source-epic](uml.md#nontech-source-epic).
+
+Workday end-to-end (CXS discover, check-open, profile diff/push, assisted apply)
+is one Facade over tenant-scoped ports with a transversal no-Submit guard — see
+[#214](https://github.com/ljofreflor/jobbot/issues/214) and
+[uml.md#workday-e2e-epic](uml.md#workday-e2e-epic).
+
+Legal/admin learned portals (Chiletrabajos, Laborum, ADP, BNE, SuccessFactors,
+SmartRecruiters, Poder Judicial) share one epic registry with bolsa classification
+and robots/terms guards — see
+[#191](https://github.com/ljofreflor/jobbot/issues/191) and
+[uml.md#legal-admin-portals](uml.md#legal-admin-portals).
+
+`jobs discover` (public APIs) plus `--greedy` coverage over `repo` ∪ `perfil`
+hosts is one Facade with dry-run Command and typed SearchOutcome — see
+[#180](https://github.com/ljofreflor/jobbot/issues/180) and
+[uml.md#jobs-discover-epic](uml.md#jobs-discover-epic).
+
+Advisor mode projects sandboxes by owner fingerprint, records local consent /
+retention, and guards sessions with `wrong_account` — see
+[#129](https://github.com/ljofreflor/jobbot/issues/129) and
+[uml.md#advisor-mode](uml.md#advisor-mode).
+
+A paying client gets an isolated VM (EC2/GCE undecided) before any identity
+mailbox; no shared CV store, no stealth — see
+[#274](https://github.com/ljofreflor/jobbot/issues/274) and
+[uml.md#isolated-client-vm](uml.md#isolated-client-vm).
+
+Identity mailbox (postulation address ≠ program-read inbox) and optional thin
+Flutter client wait on written Decision Record answers after #274 — see
+[#272](https://github.com/ljofreflor/jobbot/issues/272) and
+[uml.md#identity-mailbox-client](uml.md#identity-mailbox-client).
+
+AI Apply reel outcomes (cycle time, feedback funnel, presence) map to HITL
+issues; autopilot / Gmail OAuth / spray stay anti-patterns — see
+[#155](https://github.com/ljofreflor/jobbot/issues/155) and
+[uml.md#stolen-ai-apply-outcomes](uml.md#stolen-ai-apply-outcomes).
+
+GCP, if ever, hosts only the commons map (export snapshots), never JobBot
+apply against boards — see
+[#162](https://github.com/ljofreflor/jobbot/issues/162) and
+[uml.md#commons-vs-traveller](uml.md#commons-vs-traveller).
+
+Other products named JobBot contribute stolen outcomes into existing issues,
+not a parallel tracker or autopilot clone — see
+[#164](https://github.com/ljofreflor/jobbot/issues/164) and
+[uml.md#namesake-usecase-map](uml.md#namesake-usecase-map).
+
+Arcon/Luma «tres miniagentes» maps to the cargo loop and the 2–3 command door;
+steal the team split, reject «IA por ti» / auto-submit — see
+[#168](https://github.com/ljofreflor/jobbot/issues/168) and
+[uml.md#three-miniagents-surface](uml.md#three-miniagents-surface).
+
+Do not clone AI Apply: OSS peers already cover local+HITL; our category is
+LATAM collaborative map + permanent presence — see
+[#266](https://github.com/ljofreflor/jobbot/issues/266) and
+[uml.md#latam-presence-positioning](uml.md#latam-presence-positioning).
+
+Public face may differ from the `jobbot` engine name (dual brand VO; HITL
+picks `product_name`) — see
+[#261](https://github.com/ljofreflor/jobbot/issues/261) and
+[uml.md#dual-brand](uml.md#dual-brand).
+
+Prefer dissolve features over throughput clones (control negative of the
+thesis) — see
+[#105](https://github.com/ljofreflor/jobbot/issues/105) and
+[uml.md#dissolve-vs-throughput](uml.md#dissolve-vs-throughput).
+
+## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
 - [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md) — agent policy; Design economics (System 2 → System 1)
+- [blog: teorías de reclutamiento / people analytics](blog/posts/2026-10-18-teorias-reclutamiento-people-analytics.md) — theory → class next steps
 - [README.md](https://github.com/ljofreflor/jobbot/blob/main/README.md) — product overview and commands
 - [data/README.md](https://github.com/ljofreflor/jobbot/blob/main/data/README.md) — what is gitignored under `data/`
 - [library-audit.md](library-audit.md) — adopted vs kept-ours dependency decisions

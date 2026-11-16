@@ -503,6 +503,12 @@ an issue already holds acceptance tests wastes everyone's time.
    write collaborator is in place, apply the `cursor` label as the ownership signal and keep
    a write invite open — then retry `--add-assignee cursoragent`. Prefer the real assignee
    over the label alone.
+6. **SDD + UML on domain work.** Product issues that change `models/`, ports, or
+   aggregates must include a `## SDD / patrones` section (template
+   `.github/ISSUE_TEMPLATE/product_sdd.md`): link `docs/software-design.md`, name the
+   pattern(s), cite `docs/uml.md#…`, and require the closing PR to update the diagram if
+   a type or port is added. Track progress in `docs/sdd-issue-map.md` (patches under
+   `docs/sdd-issue-patches/` when `gh issue edit` is not available to the agent).
 
 ## Local branches (periodic cleanup)
 

@@ -25,5 +25,8 @@ HITL.
 | 5 | [Terminal y ejecución](posts/2026-10-23-tutoriales-05-terminal-shell-y-chat.md) — shell local vs copy-paste |
 
 Los posts en inglés están en la categoría *Measurements*; el resto está en español.
+La categoría *Diseño* ancla teorías de reclutamiento / people analytics a next steps
+del modelo de dominio:
+[Teorías que el diseño todavía no tipa](posts/2026-10-18-teorias-reclutamiento-people-analytics.md).
 
 Referencia larga en inglés (mismo producto, más garantías de tests): [tutorial.md](../tutorial.md).
