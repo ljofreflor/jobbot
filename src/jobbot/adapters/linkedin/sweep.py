@@ -661,7 +661,9 @@ def _guess_title(text: str) -> str | None:
             r"seguimos buscando|sigo buscando|"
             r"looking for|we(?:'re| are) looking for)\s+"
             r"(?:(?:a|an|un|una|un\(a\)|un/a)\s+)?([^\n.!?;]{8,160}?)"
-            r"(?=\s+para\s+empresa\b|[;.!?\n]|$)"
+            # Stop before "para empresa …" and before "para diseñar/desarrollar/…"
+            # (the mission, not the role).
+            r"(?=\s+para\s+empresa\b|\s+para\s+[a-záéíóúñü]+(?:ar|er|ir)\b|[;.!?\n]|$)"
         ),
         r"(?i)(?:role|puesto|cargo|posici[oó]n|vacante)\s*[:\-]\s*([^\n]{5,80})",
     ]

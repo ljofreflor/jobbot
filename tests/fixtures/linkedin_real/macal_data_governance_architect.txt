@@ -1,0 +1,9 @@
+author: Macal
+url: https://es.linkedin.com/posts/macal_hay-roles-que-llegan-a-mantener-un-modelo-activity-7508185215421272066-jTtH
+Hay roles que llegan a mantener un modelo heredado. Este no.
+
+Buscamos un/a Data Governance Architect para diseñar desde la base la arquitectura y el gobierno de datos de Macal: los estándares de calidad y trazabilidad sobre los que van a operar nuestra reportería, analítica, automatización e inteligencia artificial.
+
+Rol transversal, en la Gerencia de Operaciones (BizOps). Pedimos al menos 5 años de experiencia, mínimo 3 en datos, y haber diseñado arquitecturas antes.
+
+📧 talento@macal.cl · asunto "Data Governance Architect", con CV y expectativas de renta.

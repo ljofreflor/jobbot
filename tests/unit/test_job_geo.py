@@ -29,6 +29,8 @@ def test_detect_country_from_real_post_wording() -> None:
     assert detect_country("Phaxsi, startup peruana; prácticas en Lima") == "PE"
     assert detect_country("Buscamos analista en Buenos Aires, Argentina") == "AR"
     assert detect_country("Data Scientist for a global team") is None
+    assert detect_country("CV a talento@macal.cl") == "CL"
+    assert detect_country("Send CV to jobs@example.com") is None
 
 
 def test_mentions_remote() -> None:
