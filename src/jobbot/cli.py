@@ -3969,11 +3969,18 @@ def jobs_discover(
             adapter.country = chosen
             adapter.all_sitemap = all_sitemap
             if not dry_run:
-                adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for(
-                    "vacantes"
+                from jobbot.adapters.vacantes.parse import hex_ids
+
+                stored = StoredJobIndex.read_only(config.database_path)
+                adapter.known_ids = stored.ids_for("vacantes") | hex_ids(
+                    stored.urls_for("vacantes")
                 )
     if source in {"pjud", "greenhouse"} and query is None:
         queries = [""]
+    elif source == "vacantes" and not all_sitemap:
+        # The country landing ignores the text: one pass per profile search would
+        # recrawl the same board, one request a second, for the same snapshot.
+        queries = [query or ""]
     else:
         queries = _search_queries(config, query, max_queries)
     read_details = adapter.default_details if details is None else details
@@ -4980,7 +4987,7 @@ def _fill_ats_over_cdp(
     *,
     foreground: bool = False,
     attach_timeout_s: float = 15,
-) -> bool:
+) -> None:
     """Fill known fields in the requested Chrome. A failure does not open another browser."""
     from jobbot.adapters.ats import apply_fill
     from jobbot.adapters.ats.email_apply import resolve_cv_path
@@ -4995,9 +5002,14 @@ def _fill_ats_over_cdp(
             focus=foreground,
             attach_timeout_s=attach_timeout_s,
         )
-    except apply_fill.ApplyFillError as exc:
+    except apply_fill.ApplyFillAttachError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise _RecordedExit(GENERIC_FAILURE, error_class="CdpAttach", message=str(exc)) from exc
+    except apply_fill.ApplyFillError as exc:
+        # Chrome did attach: keep the package and the prefill sheet for the human.
+        err_console.print(f"[yellow]{exc}[/yellow]")
+        err_console.print("[yellow]No other browser was opened. Use the prefill sheet.[/yellow]")
+        return
     if result.opened:
         where = f"Chrome ({cdp})"
         if foreground:
@@ -5020,7 +5032,6 @@ def _fill_ats_over_cdp(
     for label in result.left_for_human:
         console.print(f"  • {label}")
     console.print("Tab left open. Review everything; you submit — JobBot never clicks it.")
-    return True
 
 
 @application_app.command("apply")
@@ -5903,6 +5914,7 @@ def _sync_indeed_preferences(
     adapter: IndeedAdapter, *, apply_changes: bool, yes: bool
 ) -> None:
     from jobbot.adapters.indeed.preferences import plan_preferences, save_preferences
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.jobs.eligibility import (
         ApplicationAnswers,
         default_answers_path,
@@ -5917,7 +5929,8 @@ def _sync_indeed_preferences(
         if answers_path.is_file()
         else ApplicationAnswers()
     )
-    for line in plan_preferences(candidate, answers).lines:
+    plan = plan_preferences(candidate, answers)
+    for line in plan.lines:
         console.print(line)
     if not apply_changes:
         return
@@ -5925,7 +5938,13 @@ def _sync_indeed_preferences(
         confirmed = yes or typer.confirm("¿Guardar preferencias en Indeed?", default=False)
         if not confirmed:
             raise typer.Exit(USER_CANCEL)
-        save_preferences(browser.page, confirmed=True)
+        try:
+            missing = save_preferences(browser.page, plan, confirmed=True)
+        except IndeedUiChanged as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(UI_CHANGED) from exc
+    for label in missing:
+        console.print(f"{label}  needs_human: no está en el formulario")
 
 
 @indeed_app.command("upload-cv")
@@ -5948,9 +5967,12 @@ def indeed_upload_cv(
     from jobbot.adapters.indeed.cv_upload import (
         ALREADY_CURRENT,
         KNOWN_VARIANTS,
+        IndeedCvUploadError,
         file_sha256,
         icon_glyph_message,
         load_receipt_sha,
+        upload_cv,
+        write_receipt,
     )
 
     config = load_config()
@@ -5977,7 +5999,14 @@ def indeed_upload_cv(
 
     adapter = IndeedAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
     with adapter._session() as browser:
-        browser.page.set_input_files('input[type="file"]', str(path))
+        try:
+            upload_cv(browser.page, path)
+        except IndeedCvUploadError as exc:
+            err_console.print(str(exc))
+            raise typer.Exit(UI_CHANGED) from exc
+    receipt = write_receipt(config.output_dir, path, sha256=digest, variant=variant)
+    console.print(f"[green]Subido[/green] {path.name}")
+    console.print(f"recibo: {receipt}")
 
 
 @indeed_app.command("sync")
@@ -7466,14 +7495,20 @@ def portals_profile_sheet(
         return
     from jobbot.adapters.alta_direccion.signup import (
         portal_for_id as adp_portal_for_id,
+    )
+    from jobbot.adapters.alta_direccion.signup import (
         render_adp_sheet,
     )
     from jobbot.adapters.empleospublicos.signup import (
         portal_for_id as empleos_portal_for_id,
+    )
+    from jobbot.adapters.empleospublicos.signup import (
         render_empleos_publicos_sheet,
     )
     from jobbot.adapters.inspira.signup import (
         portal_for_id as inspira_portal_for_id,
+    )
+    from jobbot.adapters.inspira.signup import (
         render_inspira_sheet,
     )
     from jobbot.adapters.taleo.signup import portal_for_id as taleo_portal_for_id

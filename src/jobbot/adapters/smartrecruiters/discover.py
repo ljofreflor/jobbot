@@ -7,7 +7,12 @@ import time
 import urllib.request
 from urllib.parse import quote, urlencode
 
-from jobbot.adapters.smartrecruiters.parse import PAGE_SIZE, company_identifier, parse_postings
+from jobbot.adapters.smartrecruiters.parse import (
+    PAGE_SIZE,
+    board_in_text,
+    company_identifier,
+    parse_postings,
+)
 from jobbot.companies.registry import CompanyRegistry
 from jobbot.jobs.discover import (
     JobFilters,
@@ -65,9 +70,11 @@ class SmartRecruitersDiscover:
 
     def registry_targets(self, registry: CompanyRegistry) -> list[SiteTarget]:
         found: list[SiteTarget] = []
+        seen: set[str] = set()
         for site in registry_sites_for(registry, "smartrecruiters"):
-            ident = company_identifier(site.url)
-            if ident:
+            ident = company_identifier(site.url) or _board_from_evidence(registry, site.url)
+            if ident and ident not in seen:
+                seen.add(ident)
                 found.append(
                     SiteTarget(url=f"https://jobs.smartrecruiters.com/{ident}", company=ident)
                 )
@@ -166,6 +173,18 @@ class SmartRecruitersDiscover:
             feed_size=total_found,
             kept_ids=tuple(job.source_job_id or "" for job in jobs),
         )
+
+
+def _board_from_evidence(registry: CompanyRegistry, url: str) -> str:
+    """A custom career host names no board; the embed marker that detected it does."""
+    row = registry.find_site(url)
+    if row is None:
+        return ""
+    for observation in row[1].observations:
+        ident = board_in_text(observation.evidence)
+        if ident:
+            return ident
+    return ""
 
 
 def _in_country(job: JobPosting, wanted: tuple[str, ...]) -> bool:

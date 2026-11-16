@@ -72,6 +72,68 @@ def test_contact_is_literal_text(tmp_path: Path) -> None:
     assert EMAIL.encode() in text or EMAIL in page
 
 
+def test_contact_at_the_start_of_a_line_is_not_glued(tmp_path: Path) -> None:
+    page = "\n".join(
+        [
+            "Persona Demo",
+            EMAIL,
+            PHONE,
+            "linkedin.com/in/persona-demo",
+        ]
+    )
+    path = tmp_path / "lines.pdf"
+    build_pdf([content_stream(page)], path)
+    assert check_text_layer(path, _candidate()) == []
+
+
+def test_a_handle_inside_the_email_is_not_the_linkedin_contact() -> None:
+    candidate = Candidate.model_validate(sample_profile_dict())
+    page = "\n".join(["Ana Ejemplo", "Email: ana@example.com", "- escribe informes"])
+    issues = issues_in_text(page, candidate)
+    assert "linkedin missing from the text layer" in {issue.detail for issue in issues}
+    assert "icon_glyph" not in {issue.kind for issue in issues}
+
+
+def test_a_project_tag_is_a_profile_fact_not_stuffing(
+    tmp_path: Path,
+    project_root: Path,
+) -> None:
+    raw = sample_profile_dict()
+    raw["projects"] = [
+        {
+            "id": "toolkit",
+            "name": "Forecast Toolkit",
+            "description": "Backtesting reproducible.",
+            "tags": ["Quimera"],
+        }
+    ]
+    candidate = Candidate.model_validate(raw)
+    job = JobPosting(
+        id="J0203",
+        source="manual",
+        title="Analyst",
+        company="Estudio Neutro",
+        description="Una descripcion de un aviso. " * 20,
+        skills=["Quimera"],
+    )
+    outputs = build_cv(
+        candidate,
+        project_root / "templates",
+        tmp_path / "output",
+        target=BuildTarget.ATS,
+        job=job,
+        match=RuleBasedJobAnalyzer().analyze(candidate, job),
+    )
+    ats = next(path for path in outputs if path.name == "cv_ats.txt").read_text(encoding="utf-8")
+    payload = json.loads(
+        (tmp_path / "output" / "jobs" / "J0203" / "selection.json").read_text(encoding="utf-8")
+    )
+    assert "Quimera" in ats
+    assert "Quimera" not in payload.get("gaps", [])
+    kinds = {issue.kind for issue in issues_in_text(ats, candidate, job=job)}
+    assert "unsupported_term" not in kinds
+
+
 def test_unknown_term_is_a_gap_and_stays_off_the_cv(tmp_path: Path, project_root: Path) -> None:
     candidate = _candidate()
     job = JobPosting(

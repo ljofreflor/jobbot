@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 import urllib.request
+from http.client import HTTPMessage
+from typing import IO
 from urllib.parse import quote, urlsplit
 
 from jobbot.adapters.avature.parse import apply_detail, parse_search
@@ -25,18 +27,54 @@ def pause() -> None:
     time.sleep(1)
 
 
+class QtvcDisallowed(ValueError):
+    """The URL carries the session parameter robots.txt disallows, so it is not requested."""
+
+
+class _NoQtvcRedirect(urllib.request.HTTPRedirectHandler):
+    """Avature 302s a clean link onto `qtvc=`; that hop is refused before it is requested."""
+
+    def redirect_request(  # noqa: PLR0913
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: HTTPMessage,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        if blocked_qtvc(newurl):
+            reason = f"refusing qtvc redirect: {newurl}"
+            raise QtvcDisallowed(reason)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def fetch_public(url: str) -> tuple[int, str, str]:
-    """GET one public page. Tests replace this. Never called with `qtvc`."""
-    if "qtvc=" in url.casefold():
+    """GET one public page. Tests replace this. Never requests a `qtvc` URL, redirects included."""
+    if blocked_qtvc(url):
         msg = f"refusing qtvc URL: {url}"
-        raise ValueError(msg)
+        raise QtvcDisallowed(msg)
     pause()
-    request = urllib.request.Request(url, headers={"User-Agent": "jobbot/0.1"})
-    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+    request = urllib.request.Request(url, headers={"User-Agent": "jobbot/0.1"})  # noqa: S310
+    with urllib.request.build_opener(_NoQtvcRedirect).open(request, timeout=30) as response:
         status = int(getattr(response, "status", 200))
         body = response.read().decode("utf-8", errors="replace")
         final = str(response.geturl())
+    if blocked_qtvc(final):
+        msg = f"refusing qtvc URL: {final}"
+        raise QtvcDisallowed(msg)
     return status, body, final
+
+
+def fetch_detail(job: JobPosting) -> JobPosting:
+    """Read one JobDetail page. A link or a hop into `qtvc` leaves the posting as it was."""
+    if not job.url or blocked_qtvc(job.url):
+        return job
+    try:
+        status, html, _final = fetch_public(job.url)
+    except QtvcDisallowed:
+        return job
+    return apply_detail(job, html) if status == 200 else job
 
 
 def search_url(site_url: str, query: str, offset: int) -> str:
@@ -85,11 +123,16 @@ class AvatureDiscover:
         seen: set[str] = set()
         offset = 0
         total: int | None = None
+        # A card carries title and link only: --location / --level live on the JobDetail page.
+        read_details = details or (filters is not None and filters.active)
         while len(jobs) < limit:
             url = search_url(target.url, query, offset)
-            status, html, final = fetch_public(url)
-            if "qtvc=" in final.casefold():
-                break
+            try:
+                status, html, _final = fetch_public(url)
+            except QtvcDisallowed as exc:
+                if jobs:
+                    break
+                return SiteOutcome(site=target.url, status=SiteStatus.ROBOTS, detail=str(exc))
             if status != 200:
                 if offset == 0:
                     return SiteOutcome(
@@ -107,20 +150,23 @@ class AvatureDiscover:
                 )
             if not page.jobs:
                 break
+            fresh = 0
             for job in page.jobs:
                 identity = job.source_job_id or ""
                 if identity in seen:
                     continue
-                if details and job.url and "qtvc=" not in job.url.casefold():
-                    detail_status, detail_html, _final = fetch_public(job.url)
-                    if detail_status == 200:
-                        job = apply_detail(job, detail_html)
+                seen.add(identity)
+                fresh += 1
+                if read_details:
+                    job = fetch_detail(job)
                 if filters is not None and not filters.keeps(job):
                     continue
-                seen.add(identity)
                 jobs.append(job)
                 if len(jobs) >= limit:
                     break
+            if not fresh:
+                # The host served a page we already read: `jobOffset` wrapped around.
+                break
             total = page.total if page.total is not None else total
             step = page.page_size or len(page.jobs)
             offset += step

@@ -80,8 +80,12 @@ class _Browser:
 
 
 class _Hang:
-    def connect_over_cdp(self, _url: str) -> None:
-        time.sleep(30)
+    """Chrome that never answers; respect the driver's timeout kwarg like Playwright."""
+
+    def connect_over_cdp(self, _url: str, **kwargs: object) -> None:
+        timeout_ms = float(kwargs.get("timeout", 30_000))  # type: ignore[arg-type]
+        time.sleep(timeout_ms / 1000)
+        raise TimeoutError(f"Timeout {timeout_ms:g}ms exceeded.")
 
 
 class _Playwright:
@@ -127,7 +131,7 @@ def test_attach_opens_its_own_tab_and_closes_it(
     browser = _Browser(context)
 
     class _Ready:
-        def connect_over_cdp(self, _url: str) -> _Browser:
+        def connect_over_cdp(self, _url: str, **_kwargs: object) -> _Browser:
             return browser
 
     monkeypatch.setattr("jobbot.browser.session.sync_playwright", lambda: _Manager(_Ready()))
