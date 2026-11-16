@@ -92,7 +92,7 @@ def test_canonical_url_drops_the_slug() -> None:
 def test_close_date_is_the_published_utc_instant(project_root: Path) -> None:
     html = (project_root / FIXTURES / "search_page1.html").read_text(encoding="utf-8")
     job = parse_listing(html, HOST, f"{HOST}/en-us/search/").jobs[0]
-    assert job.closes_at == datetime(2026, 10, 23, 5, 55, tzinfo=UTC)
+    assert job.closes_at == datetime(2027, 12, 31, 5, 55, tzinfo=UTC)
     assert job.source_job_id == "jobs.unicef.org:596184"
 
 
@@ -141,7 +141,7 @@ def test_the_same_id_with_another_slug_does_not_duplicate(
         html = (
             '<div class="list-view--item">'
             f'<a class="job-link" href="/en-us/job/596184/{slug}">Senior fundraising associate</a>'
-            '<span class="close-date"><time datetime="2026-10-23T05:55:00Z"></time></span>'
+            '<span class="close-date"><time datetime="2027-12-31T05:55:00Z"></time></span>'
             "</div>"
         )
         return 200, html, url
@@ -230,7 +230,7 @@ def test_a_disallowed_more_link_is_not_requested(
         html = (
             '<div class="list-view--item">'
             '<a class="job-link" href="/en-us/job/9/role">Role</a>'
-            '<span class="close-date"><time datetime="2026-11-01T00:00:00Z"></time></span>'
+            '<span class="close-date"><time datetime="2027-12-31T00:00:00Z"></time></span>'
             "</div>"
             '<a class="more-link" href="/admin/next">More</a>'
         )
