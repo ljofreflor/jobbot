@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-155 commands, 257 modules, 1430 public symbols.
+155 commands, 258 modules, 1435 public symbols.
 
 ## Commands
 
@@ -173,6 +173,7 @@ writing it again — the promotion rule lives in
 ### `jobbot`
 
 - `advisor.py` — Advisor view across workspaces: status, a client report, consent, deletion. · `WorkspaceDeleteRefused`, `Consent`, `WorkspaceActivity`, `consent_path`, `read_consent`, `write_consent`, `retention_due`, `retention_warning`, `workspace_activity`, `status_lines`, `write_report`, `parse_since`, `delete_workspace`
+- `advisor_inbox.py` — Inbound client messages (WhatsApp): questions and CV HITL, never submit, never secrets. · `InboundKind`, `PendingPrompt`, `InboundDecision`, `classify_inbound`
 - `branding.py` — One closing mark on texts Jobbot publishes. · `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
@@ -274,7 +275,7 @@ writing it again — the promotion rule lives in
 - `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `indeed_session_authenticated`, `normalize_indeed_continue_url`
 - `cv_upload.py` — Decide whether an Indeed PDF upload is needed. The portal write stays HITL. · `IndeedCvUploadError`, `receipt_path`, `file_sha256`, `load_receipt_sha`, `write_receipt`, `upload_cv`, `icon_glyph_message`
 - `external.py` — An Indeed posting whose apply step leaves Indeed. · `IndeedVerificationRequired`, `read_apply_entry`, `gate_indeed_entry`, `external_apply_url`, `remember_external_landing`, `strip_indeed_tracking`
-- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `posting_is_closed`, `IndeedJobClosed`, `IndeedChallengePending`, `IndeedJobSource`, `parse_indeed_search_html`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
+- `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `posting_is_closed`, `IndeedJobClosed`, `IndeedChallengePending`, `challenge_wait_seconds`, `IndeedJobSource`, `parse_indeed_search_html`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
 - `owner.py` — The open Indeed resume must name this workspace before anything is typed. · `IndeedOwnerMismatch`, `cv_name_verdict`, `refuse_indeed_write`, `write_allowed`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
 - `preferences.py` — Project local preferences onto Indeed's Preferencias tab and type them there. · `PreferencePlan`, `desired_titles`, `plan_preferences`, `open_preferences`, `fill_preferences`, `save_preferences`

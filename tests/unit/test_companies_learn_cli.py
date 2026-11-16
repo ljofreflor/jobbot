@@ -26,15 +26,9 @@ class FakeIndeedJobSource:
 
     base = "cl.indeed.com"
 
-    def __init__(
-        self,
-        _config: object,
-        *,
-        cdp_url: str | None = None,
-        cdp_attach_s: float = 15,
-    ) -> None:
-        self.cdp_url = cdp_url
-        self.cdp_attach_s = cdp_attach_s
+    def __init__(self, _config: object, **_kwargs: object) -> None:
+        self.cdp_url = _kwargs.get("cdp_url")
+        self.cdp_attach_s = _kwargs.get("cdp_attach_s", 15)
 
     def _jobs(self) -> list[JobPosting]:
         return [
