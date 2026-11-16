@@ -142,8 +142,8 @@ def test_job_search_saves_two_cards_and_drops_the_insight_panel(
     jobs = _stored_jobs(tmp_path)
     assert len(jobs) == 2
     assert {job["url"] for job in jobs} == {
-        "https://www.linkedin.com/jobs/view/43821001/",
-        "https://www.linkedin.com/jobs/view/43821002/",
+        "https://linkedin.com/jobs/view/43821001",
+        "https://linkedin.com/jobs/view/43821002",
     }
     assert all(job["location"] for job in jobs)
     assert all(job["posted_at"] for job in jobs)

@@ -40,3 +40,10 @@ read_only = true
 # Writes to external portals are dry-run unless --apply is passed.
 require_apply = true
 removal_policy = "ignore"
+
+# Dual brand: package/CLI stay `jobbot`; this is the public face (marks, credit).
+# Omit the section to keep the default Jobbot skin. Env: JOBBOT_PRODUCT_NAME.
+# [brand]
+# product_name = "YourProduct"
+# # mark = "powered by YourProduct sync CV"   # optional; derived from product_name
+# # project_url = "https://github.com/ljofreflor/jobbot"

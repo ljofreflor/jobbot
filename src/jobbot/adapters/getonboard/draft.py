@@ -7,12 +7,12 @@ into https://www.getonbrd.com/webpros/edit, never invent.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
 
-from jobbot.branding import MARK, stamp_description
+from jobbot.branding import DEFAULT_BRAND, get_brand, stamp_description
 from jobbot.models.candidate import Candidate
 from jobbot.models.education import Education
 from jobbot.models.experience import Experience
@@ -24,7 +24,8 @@ EDUCATION_MIN = 100
 EDUCATION_MAX = 2000
 EDUCATION_ITEM_DETAIL_MAX = 220
 
-JOBBOT_SIGNATURE = MARK
+# Default skin; runtime fields prefer ``get_brand().mark``.
+JOBBOT_SIGNATURE = DEFAULT_BRAND.mark
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,7 @@ class PermanentProfileFields:
     formacion_academica: str
     headline: str
     skills: list[str]
-    signature: str = JOBBOT_SIGNATURE
+    signature: str = field(default_factory=lambda: get_brand().mark)
     omitted_education: int = 0
     omitted_teaching: int = 0
     omitted_publications: int = 0
@@ -258,7 +259,7 @@ def load_permanent_profile(root_output: Path) -> PermanentProfileFields | None:
         formacion_academica=edu,
         headline=str(raw.get("headline") or ""),
         skills=[str(s) for s in skills][:10],
-        signature=str(raw.get("signature") or JOBBOT_SIGNATURE),
+        signature=str(raw.get("signature") or get_brand().mark),
         omitted_education=_nonnegative(raw.get("omitted_education")),
         omitted_teaching=_nonnegative(raw.get("omitted_teaching")),
         omitted_publications=_nonnegative(raw.get("omitted_publications")),

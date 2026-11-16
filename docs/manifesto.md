@@ -104,6 +104,12 @@ En posts y docs, el contrato es el mismo: lo que pedís en natural se vuelve un 
 - Iconos de app: avatar de marca; el producto sigue siendo **CLI**, no una promesa de “app store de empleo”.
 - Paleta: navy, azul vivo, blanco — cercanía y claridad, sin estética genérica de “AI startup”.
 
+**Marca dual.** El motor instalable sigue siendo `jobbot` (paquete, entrypoint, imports).
+La cara pública — firma en descripciones, crédito del CV, nombre en `jobbot version` —
+puede ser otra vía `[brand]` en `.jobbot.toml` o `JOBBOT_PRODUCT_NAME`. Mismo backend;
+distintas marcas. El nombre “JobBot” está trillado en el mercado ([prior-art](prior-art.md));
+la dualidad evita un rename del motor solo para cambiar la cara.
+
 El dibujo cuenta HITL. El copy debe decirlo: evitar “automatiza postulaciones” y “recomendaciones inteligentes” sin anclarlas a hechos + confirmación humana.
 
 ---

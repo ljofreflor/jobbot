@@ -71,8 +71,8 @@ def test_an_uncleared_search_challenge_is_not_an_empty_list(
     assert raised.value.context == "search results"
 
 
-def test_an_uncleared_detail_challenge_stops_the_run(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_an_uncleared_detail_challenge_keeps_cards_already_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.setattr(IndeedJobSource, "_session", lambda _self: _Session())
 
@@ -81,10 +81,12 @@ def test_an_uncleared_detail_challenge_stops_the_run(
 
     monkeypatch.setattr(IndeedJobSource, "_clear_challenge", clear)
 
-    with pytest.raises(IndeedChallengePending) as raised:
-        _source(tmp_path).search_jobs(JobSearchQuery(query="coordinador", limit=1))
+    found = _source(tmp_path).search_jobs(JobSearchQuery(query="coordinador", limit=1))
+    captured = capsys.readouterr()
 
-    assert raised.value.context == "job detail"
+    assert len(found) == 1
+    assert found[0].source_job_id == "8a5fab1a7c476a97"
+    assert "verificación en el detalle" in captured.out
 
 
 def test_jobs_search_exits_4_and_does_not_say_there_are_no_jobs(
@@ -111,6 +113,6 @@ def test_jobs_search_exits_4_and_does_not_say_there_are_no_jobs(
     captured = capsys.readouterr()
 
     assert code == MANUAL_CHALLENGE
-    assert "was not cleared" in captured.err
+    assert "verificación anti-bot" in captured.err
     assert "No jobs found" not in captured.err
     assert "No jobs found" not in captured.out

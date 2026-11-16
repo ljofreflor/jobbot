@@ -11,7 +11,8 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from jobbot.db.models import JobRow
+from jobbot.db.models import JobRow, JobUrlRow
+from jobbot.jobs.identity import canonical_job_key, display_url, share_code_for_key
 from jobbot.jobs.ids import next_job_id
 from jobbot.jobs.parsing import parse_job_text
 from jobbot.models.job import JobPosting
@@ -28,9 +29,18 @@ class JobRepository:
         source: str = "manual",
         url: str | None = None,
     ) -> JobPosting:
+        if url:
+            existing = self.find_by_canonical_url(url)
+            if existing is not None:
+                self.remember_url(existing.id, url)
+                # Body only: discovery metadata (source, closing, ATS, dates) stays.
+                return self.replace_description(existing.id, text)
         job_id = next_job_id(self._session)
         job = parse_job_text(text, job_id=job_id, source=source, url=url)
+        self._stamp_share_code(job)
         self.save(job)
+        if url:
+            self.remember_url(job.id, url)
         return job
 
     def save(self, job: JobPosting) -> None:
@@ -56,23 +66,77 @@ class JobRepository:
         row = self._session.scalars(select(JobRow).where(JobRow.url == url)).first()
         return _from_row(row) if row else None
 
+    def find_by_canonical_url(self, url: str) -> JobPosting | None:
+        """Exact URL, then any stored URL with the same public key."""
+        exact = self.find_by_url(url)
+        if exact is not None:
+            return exact
+        key = canonical_job_key(url)
+        if key is None:
+            return None
+        seen = self._session.scalars(
+            select(JobUrlRow).where(JobUrlRow.canonical_key == key)
+        ).first()
+        if seen is not None:
+            return self.get(seen.job_id)
+        for row in self._session.scalars(select(JobRow)).all():
+            if row.url and canonical_job_key(row.url) == key:
+                return _from_row(row)
+        return None
+
+    def find_by_share_code(self, code: str) -> list[JobPosting]:
+        """Every job with this code. Two entries means a hash collision, not a longer code."""
+        rows = self._session.scalars(select(JobRow).where(JobRow.share_code == code)).all()
+        return [_from_row(row) for row in rows]
+
+    def urls_for(self, job_id: str) -> list[str]:
+        rows = self._session.scalars(
+            select(JobUrlRow).where(JobUrlRow.job_id == job_id).order_by(JobUrlRow.id)
+        ).all()
+        return [row.url for row in rows]
+
+    def remember_url(self, job_id: str, url: str) -> None:
+        """Store the public URL only. Tracking that identifies the reader is dropped."""
+        shown = display_url(url)
+        key = canonical_job_key(url)
+        if shown is None or key is None:
+            return
+        already = self._session.scalars(
+            select(JobUrlRow).where(JobUrlRow.job_id == job_id, JobUrlRow.canonical_key == key)
+        ).first()
+        if already is not None:
+            return
+        self._session.add(JobUrlRow(job_id=job_id, url=shown, canonical_key=key))
+        self._session.commit()
+
     def upsert_external(self, job: JobPosting) -> JobPosting:
-        """Insert or update by source+source_job_id (or URL). Keeps existing internal id."""
+        """Insert or update by source+source_job_id, or by canonical public URL."""
         existing: JobPosting | None = None
         if job.source_job_id:
-            existing = self.find_by_source(job.source, job.source_job_id)
+            by_source = self.find_by_source(job.source, job.source_job_id)
+            if by_source is not None and _same_public_vacancy(by_source.url, job.url):
+                existing = by_source
         if existing is None and job.url:
-            existing = self.find_by_url(job.url)
+            existing = self.find_by_canonical_url(job.url)
         if existing is None:
             job.id = next_job_id(self._session)
+            raw = job.url
+            self._stamp_share_code(job)
             self.save(job)
+            if raw:
+                self.remember_url(job.id, raw)
+            if job.url and job.url != raw:
+                self.remember_url(job.id, job.url)
             return job
         job.id = existing.id
+        raw = job.url
         # Preserve note/score unless overwritten
         if job.note is None:
             job.note = existing.note
         if job.match_score is None:
             job.match_score = existing.match_score
+        if job.share_code is None:
+            job.share_code = existing.share_code
         if job.open_status is None:
             job.open_status = existing.open_status
             job.checked_at = existing.checked_at
@@ -82,8 +146,31 @@ class JobRepository:
             job.description = existing.description
         if not job.raw_description:
             job.raw_description = existing.raw_description
+        if (
+            raw
+            and existing.url
+            and canonical_job_key(raw) == canonical_job_key(existing.url)
+        ):
+            job.url = existing.url
+        self._stamp_share_code(job)
         self.save(job)
+        if raw:
+            self.remember_url(job.id, raw)
         return job
+
+    def _stamp_share_code(self, job: JobPosting) -> None:
+        if not job.url:
+            return
+        shown = display_url(job.url)
+        if shown is None:
+            job.share_code = None
+            return
+        job.url = shown
+        key = canonical_job_key(shown)
+        if key is None:
+            job.share_code = None
+            return
+        job.share_code = share_code_for_key(key)
 
     def get(self, job_id: str) -> JobPosting | None:
         row = self._session.get(JobRow, job_id)
@@ -162,22 +249,40 @@ class JobRepository:
         self._session.commit()
 
 
+def _same_public_vacancy(left: str | None, right: str | None) -> bool:
+    """Same external id is the same job only when the public paths agree.
+
+    A missing URL does not split the row. Two different paths do.
+    """
+    left_key = canonical_job_key(left or "")
+    right_key = canonical_job_key(right or "")
+    if left_key is None or right_key is None:
+        return True
+    return left_key == right_key
+
+
 class StoredJobIndex:
     """Which jobs are already stored, read without touching the database file.
 
     A preview (`--dry-run`) must not create the database or migrate it, so this
     opens SQLite read-only and asks for three columns every version has.
+    Lookup mirrors ``upsert_external``: same public path (canonical URL), and
+    a shared ``source_job_id`` only when the public paths agree.
     """
 
     def __init__(self, rows: list[tuple[str, str, str | None, str | None]] | None = None) -> None:
-        self._by_source: dict[tuple[str, str], str] = {}
+        self._by_source: dict[tuple[str, str], tuple[str, str | None]] = {}
         self._by_url: dict[str, str] = {}
+        self._by_canonical: dict[str, str] = {}
         self._urls_by_source: dict[str, set[str]] = {}
         for job_id, source, source_job_id, url in rows or []:
             if source_job_id:
-                self._by_source.setdefault((source, source_job_id), job_id)
+                self._by_source.setdefault((source, source_job_id), (job_id, url))
             if url:
                 self._by_url.setdefault(url, job_id)
+                key = canonical_job_key(url)
+                if key is not None:
+                    self._by_canonical.setdefault(key, job_id)
                 self._urls_by_source.setdefault(source, set()).add(url)
 
     @classmethod
@@ -207,9 +312,16 @@ class StoredJobIndex:
     def lookup(self, job: JobPosting) -> str | None:
         if job.source_job_id:
             found = self._by_source.get((job.source, job.source_job_id))
-            if found:
-                return found
-        return self._by_url.get(job.url) if job.url else None
+            if found is not None:
+                job_id, stored_url = found
+                if _same_public_vacancy(stored_url, job.url):
+                    return job_id
+        if job.url:
+            key = canonical_job_key(job.url)
+            if key is not None and key in self._by_canonical:
+                return self._by_canonical[key]
+            return self._by_url.get(job.url)
+        return None
 
 
 def write_job_json(job: JobPosting, output_dir: Path) -> Path:
@@ -244,6 +356,7 @@ def _to_row_fields(job: JobPosting) -> dict[str, object]:
         else job.discovered_at,
         "note": job.note,
         "match_score": job.match_score,
+        "share_code": job.share_code,
         "closes_at": job.closes_at.isoformat() if job.closes_at else None,
         "closes_on": job.closes_on,
         "closes_text": job.closes_text,
@@ -294,6 +407,7 @@ def _from_row(row: JobRow) -> JobPosting:
         discovered_at=row.discovered_at,
         note=row.note,
         match_score=row.match_score,
+        share_code=getattr(row, "share_code", None),
         closes_at=_closes_at(getattr(row, "closes_at", None)),
         closes_on=getattr(row, "closes_on", None),
         closes_text=getattr(row, "closes_text", None),

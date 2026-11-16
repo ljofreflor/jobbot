@@ -9,6 +9,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
+from jobbot.branding import Brand, brand_from_env, brand_from_parts, set_brand
 from jobbot.workspace import DEFAULT_LABEL, repo_root, resolve_root, verify_owner
 
 DEFAULT_PROFILE = Path("data/profile.yaml")
@@ -84,11 +85,21 @@ class CvConfig:
 
 
 @dataclass(frozen=True)
+class BrandConfig:
+    """Public product face. Engine/CLI package name stays ``jobbot``."""
+
+    product_name: str | None = None
+    mark: str | None = None
+    project_url: str | None = None
+
+
+@dataclass(frozen=True)
 class JobbotConfig:
     paths: PathsConfig = field(default_factory=PathsConfig)
     root: Path = field(default_factory=Path.cwd)
     search: SearchConfig = field(default_factory=SearchConfig)
     cv: CvConfig = field(default_factory=CvConfig)
+    brand: BrandConfig = field(default_factory=BrandConfig)
 
     @property
     def profile_path(self) -> Path:
@@ -209,6 +220,7 @@ def load_config(root: Path | None = None) -> JobbotConfig:
             paths=PathsConfig(templates=_default_templates(workspace)),
             root=base,
         )
+        _activate_brand(config)
         _verify(config, workspace)
         return config
 
@@ -220,7 +232,9 @@ def load_config(root: Path | None = None) -> JobbotConfig:
         root=base,
         search=_load_search(raw),
         cv=_load_cv(raw),
+        brand=_load_brand(raw),
     )
+    _activate_brand(config)
     _verify(config, workspace)
     return config
 
@@ -239,6 +253,63 @@ def _load_cv(raw: dict[str, object]) -> CvConfig:
         compact_before=compact if isinstance(compact, str) and len(compact) == 7 else None,
         max_pages=pages if isinstance(pages, int) and pages > 0 else None,
     )
+
+
+def _load_brand(raw: dict[str, object]) -> BrandConfig:
+    section = raw.get("brand")
+    brand_raw: dict[str, object] = section if isinstance(section, dict) else {}
+    name = brand_raw.get("product_name")
+    mark = brand_raw.get("mark")
+    url = brand_raw.get("project_url")
+    return BrandConfig(
+        product_name=name.strip() if isinstance(name, str) and name.strip() else None,
+        mark=mark.strip() if isinstance(mark, str) and mark.strip() else None,
+        project_url=url.strip() if isinstance(url, str) and url.strip() else None,
+    )
+
+
+def _activate_brand(config: JobbotConfig) -> Brand:
+    """Apply ``[brand]`` / env product name, then mark and project URL from config."""
+    env_brand = brand_from_env()
+    url = config.brand.project_url or config.cv.jobbot_project_url
+    product = config.brand.product_name
+    if product is None and env_brand is not None:
+        product = env_brand.product_name
+    brand = brand_from_parts(
+        product_name=product,
+        project_url=url,
+        mark=config.brand.mark,
+    )
+    set_brand(brand)
+    return brand
+
+
+def peek_brand(root: Path | None = None) -> Brand:
+    """Read ``[brand]`` / env for display. Never verifies owner or writes stamps.
+
+    Only ``[brand]`` and ``[cv].jobbot_project_url`` matter here — a bad
+    ``[search]`` must not stop ``jobbot version``.
+    """
+    if root is None:
+        base, workspace = resolve_root(Path.cwd())
+        if workspace is None:
+            base = resolve_workspace(Path.cwd())
+    else:
+        base, workspace = root.resolve(), None
+    config_path = _find_config_file(base, workspace=workspace)
+    if config_path is None:
+        return _activate_brand(JobbotConfig(root=base))
+    try:
+        with config_path.open("rb") as fh:
+            raw = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError):
+        return _activate_brand(JobbotConfig(root=base))
+    config = JobbotConfig(
+        root=base,
+        cv=_load_cv(raw),
+        brand=_load_brand(raw),
+    )
+    return _activate_brand(config)
 
 
 def _verify(config: JobbotConfig, workspace: str | None) -> None:
