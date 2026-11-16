@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-155 commands, 259 modules, 1451 public symbols.
+156 commands, 260 modules, 1463 public symbols.
 
 ## Commands
 
@@ -38,6 +38,7 @@ writing it again — the promotion rule lives in
 - `jobbot companies export` — Write a shareable snapshot: active entries only, no candidate PII.
 - `jobbot companies health` — Classify one portal read. Does not search or fetch.
 - `jobbot companies import` — Merge oneshot candidates into the registry (still candidate, never active).
+- `jobbot companies import-catalog` — Import a researched employer↔channel seed as candidates (#265/#269). Never activates.
 - `jobbot companies learn` — Register a company/portal relation you found yourself (candidate by default).
 - `jobbot companies list` — List known companies and their career platforms.
 - `jobbot companies promote` — Promote one company's candidate sites to active.
@@ -386,6 +387,7 @@ writing it again — the promotion rule lives in
 ### `companies`
 
 - `auto_promote.py` — Which candidate career sites technical evidence can promote. · `has_technical_evidence`, `auto_promote_eligible`, `auto_promote_plan`
+- `catalog_seed.py` — Import a researched employer↔channel inventory into the companies registry (#269). · `SeedSourceType`, `SeedReadState`, `SeedChannel`, `SeedExpectations`, `SeedDocument`, `IssueLevel`, `ImportIssue`, `CatalogImportReport`, `load_catalog_seed`, `candidates_from_seed`, `import_catalog_seed`, `render_catalog_import_report`
 - `discovery.py` — Classify a URL as posting / corporate career portal / ATS instance / redirect. · `SiteClassification`, `classify_url`, `career_root_url`, `career_page_evidence`
 - `health.py` — A portal health check names reachability. It does not search for postings. · `portal_health`
 - `learn.py` — Turn URLs seen during normal use into candidate company knowledge. · `LearnResult`, `learn_from_url`, `company_name_for_job`, `learn_from_job`

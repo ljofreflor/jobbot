@@ -1,7 +1,8 @@
-# Chilean source catalog — seed for `jobbot portals catalog import` (public data only).
+# Chilean source catalog — seed for `jobbot companies import-catalog` (public data only).
+# Channels land as candidates in the companies registry (#269: one model, not a parallel catalog).
 #
-#   uv run jobbot portals catalog import data/sources-cl.example.yaml          # dry-run
-#   uv run jobbot portals catalog import data/sources-cl.example.yaml --apply  # writes
+#   uv run jobbot companies import-catalog data/sources-cl.example.yaml          # dry-run
+#   uv run jobbot companies import-catalog data/sources-cl.example.yaml --apply  # writes
 #
 # What this file is: the compact inventory of the 2026-10-12 research into where Chilean
 # employers publish vacancies. Every row is one *observed* channel: an employer or brand,

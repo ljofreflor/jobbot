@@ -111,7 +111,10 @@ def _proposals(record: CompanyRecord, site: CareerSite) -> list[RecheckChange]:
         return []
     current = classify_url(site.url)
     root = career_root_url(current.url, current.ats)
-    if canonical_key(root) != site.key:
+    # Path-level posting detection: a listing whose identity lives in the query
+    # (tenant/country) must not look like a single opening just because
+    # career_root_url drops the query via public_url.
+    if canonical_key(root) != canonical_key(site.url):
         return _posting_proposals(record, site, root)
     # A company tenant (acme.trabajando.cl) runs on a board's software; it is still its site.
     board = current.site_type == CareerSiteType.JOB_BOARD or current.ats in JOB_BOARD_KINDS

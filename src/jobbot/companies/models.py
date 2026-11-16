@@ -7,7 +7,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from jobbot.companies.urls import canonical_key
+from jobbot.companies.urls import semantic_key
 from jobbot.portals.detect import AtsKind
 
 
@@ -71,7 +71,7 @@ class CareerSite(BaseModel):
 
     @property
     def key(self) -> str:
-        return canonical_key(self.url)
+        return semantic_key(self.url)
 
     @property
     def confidence(self) -> int:
@@ -88,7 +88,7 @@ class CompanyRecord(BaseModel):
     career_sites: list[CareerSite] = Field(default_factory=list)
 
     def find_site(self, url: str) -> CareerSite | None:
-        key = canonical_key(url)
+        key = semantic_key(url)
         return next((site for site in self.career_sites if site.key == key), None)
 
     def sites_with_status(self, status: KnowledgeStatus) -> list[CareerSite]:

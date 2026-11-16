@@ -158,7 +158,12 @@ def semantic_url(url: str) -> str:
     if not host:
         msg = f"URL without host: {url!r}"
         raise PrivateRouteRejected(msg)
-    if any(ch.isspace() for ch in host) or "." not in host:
+    if any(ch.isspace() for ch in host):
+        msg = f"not a host name: {host!r} (from {url!r})"
+        raise PrivateRouteRejected(msg)
+    # Single-label hosts are refuse (typos), except reserved names like localhost
+    # which ensure_not_reserved must still reject as fixture domains.
+    if "." not in host and not is_reserved_host(host):
         msg = f"not a host name: {host!r} (from {url!r})"
         raise PrivateRouteRejected(msg)
     netloc = host if parsed.port is None else f"{host}:{parsed.port}"
@@ -204,8 +209,12 @@ def is_reserved_host(host: str) -> bool:
 
 
 def ensure_not_reserved(url: str) -> str:
-    """Normalized URL, or ReservedDomainRejected when its host is a fixture name."""
-    normalized = public_url(url)
+    """Normalized URL, or ReservedDomainRejected when its host is a fixture name.
+
+    Uses ``semantic_url`` so a listing's tenant/country query survives; only
+    identified tracking is dropped. Fixture hosts are still refused.
+    """
+    normalized = semantic_url(url)
     host = host_of(normalized)
     if is_reserved_host(host):
         msg = f"{host} is a reserved example/test domain, not a company portal; not stored"
