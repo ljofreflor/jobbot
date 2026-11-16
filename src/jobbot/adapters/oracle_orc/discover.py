@@ -61,7 +61,11 @@ def detail_url(host: str, site: str, posting_id: str) -> str:
 
 
 class OracleOrcDiscover:
-    """Page a public ORC site. A 403 is this site's failure; the caller tries the next."""
+    """Page a public ORC site. A 403 is this site's failure; the caller tries the next.
+
+    The closing date and the long description arrive only on the detail, so a requisition
+    that is already stored is left out: its list row alone would overwrite both.
+    """
 
     name = "oracle_orc"
     default_details = False
@@ -156,8 +160,9 @@ class OracleOrcDiscover:
                 job = job_from_row(row, host=host, site=site, company=label)
                 if job is None or job.source_job_id in seen:
                     continue
-                if job.source_job_id not in self.known_ids:
-                    job = self._with_detail(job, host, site)
+                if job.source_job_id in self.known_ids:
+                    continue
+                job = self._with_detail(job, host, site)
                 if filters is not None and not filters.keeps(job):
                     continue
                 seen.add(job.source_job_id or "")
@@ -178,8 +183,12 @@ class OracleOrcDiscover:
         )
 
     def _with_detail(self, job: JobPosting, host: str, site: str) -> JobPosting:
+        """The list row stands when that requisition's detail cannot be read."""
         posting_id = (job.source_job_id or "").split(":")[-1]
-        status, body, _final = fetch_public(detail_url(host, site, posting_id))
+        try:
+            status, body, _final = fetch_public(detail_url(host, site, posting_id))
+        except OSError:
+            return job
         if status != 200:
             return job
         try:

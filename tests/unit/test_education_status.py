@@ -12,6 +12,7 @@ from jobbot.cv.renderer import CvStyle, es_year_range, render_cv_ats, render_cv_
 from jobbot.exit_codes import SUCCESS
 from jobbot.models.candidate import Candidate
 from jobbot.profile.loader import ProfileLoadError, load_profile
+from jobbot.profile.validator import validate_candidate
 from tests.fixtures.profile import sample_profile_dict
 
 DEGREE = "Doctorado en Ciencias Ficticias"
@@ -63,6 +64,16 @@ def test_an_entry_without_status_keeps_finished_dates_and_names_in_progress(
     assert "in progress" in ats
 
 
+def test_spanish_ats_education_keeps_the_status_wording(project_root: Path) -> None:
+    templates = project_root / "templates"
+    underway = render_cv_ats(_candidate(expected_end="2027-06"), templates, language="es")
+    assert "2021 – en curso (egreso esperado 2027)" in underway
+    assert "Presente" not in underway.split("FORMACIÓN", 1)[1]
+
+    done = render_cv_ats(_candidate(status="completed"), templates, language="es")
+    assert "Presente" not in done.split("FORMACIÓN", 1)[1]
+
+
 def test_candidate_degree_is_marked_in_spanish_and_english(project_root: Path) -> None:
     candidate = _candidate(status="candidate", expected_end="2027-06")
     templates = project_root / "templates"
@@ -70,6 +81,18 @@ def test_candidate_degree_is_marked_in_spanish_and_english(project_root: Path) -
     ats = render_cv_ats(candidate, templates)
     assert f"{DEGREE} (c)" in tex
     assert "Candidate" in ats
+
+
+def test_candidate_degree_is_underway_with_its_expected_end(project_root: Path) -> None:
+    """A candidacy used to print 'Presente' and drop the planned graduation."""
+    candidate = _candidate(status="candidate", expected_end="2027-06")
+    templates = project_root / "templates"
+    tex = render_cv_tex(candidate, templates, style=CvStyle.MODERNCV)
+    ats = render_cv_ats(candidate, templates)
+    section = tex.split("Formación Académica", 1)[1]
+    assert "2021 – en curso (egreso esperado 2027)" in section
+    assert "Presente" not in section
+    assert "in progress (expected 2027)" in ats
 
 
 def test_completed_without_end_does_not_say_present_and_warns(
@@ -156,6 +179,56 @@ def test_doctor_headline_without_a_completed_degree_warns_and_exits_zero(
     code = run_cli(["profile", "validate"], standalone_mode=False)
     assert code == SUCCESS
     assert "headline says doctor without a completed degree" in capsys.readouterr().err
+
+
+def test_an_earlier_completed_degree_does_not_back_a_doctor_headline(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A finished licenciatura used to silence the warning about an open doctorate."""
+    data = sample_profile_dict()
+    data["personal"]["headline"] = "Ph.D. in Ciencias Ficticias"
+    data["education"] = [
+        {
+            "id": "edu-lic",
+            "institution": INSTITUTION,
+            "degree": "Licenciatura en Ciencias Ficticias",
+            "start_date": "2012-03",
+            "end_date": "2017-12",
+        },
+        {
+            "id": "edu-doc",
+            "institution": INSTITUTION,
+            "degree": DEGREE,
+            "start_date": "2021-03",
+            "status": "candidate",
+        },
+    ]
+    _workspace(tmp_path, project_root, data)
+    monkeypatch.chdir(tmp_path)
+    from jobbot.cli import run_cli
+
+    assert run_cli(["profile", "validate"], standalone_mode=False) == SUCCESS
+    assert "headline says doctor without a completed degree" in capsys.readouterr().err
+
+
+def test_a_spanish_candidacy_headline_is_not_read_as_a_doctorate() -> None:
+    """'Candidato a Doctor' claims the candidacy the profile has, not the title."""
+    data = sample_profile_dict()
+    data["personal"]["headline"] = "Candidato a Doctor en Ciencias Ficticias"
+    data["education"] = [
+        {
+            "id": "edu-doc",
+            "institution": INSTITUTION,
+            "degree": DEGREE,
+            "start_date": "2021-03",
+            "status": "candidate",
+        }
+    ]
+    result = validate_candidate(Candidate.model_validate(data))
+    assert [w for w in result.warnings if w.path == "personal.headline"] == []
 
 
 def test_abandoned_with_expected_end_and_an_earlier_expected_end_are_errors() -> None:

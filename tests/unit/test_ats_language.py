@@ -6,9 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from jobbot.config import CvConfig, JobbotConfig, PathsConfig
+from jobbot.cv.build import build_adapted_cv
 from jobbot.cv.renderer import render_cv_ats, resolve_ats_language
 from jobbot.exit_codes import SUCCESS
+from jobbot.matching.analyzer import RuleBasedJobAnalyzer
 from jobbot.models.candidate import Candidate
+from jobbot.models.job import JobPosting
 from tests.fixtures.profile import sample_profile_dict
 
 _ENGLISH_ATS = """\
@@ -111,7 +115,7 @@ def test_spanish_profile_uses_spanish_headings_and_dates(project_root: Path) -> 
     ats = render_cv_ats(_spanish(), project_root / "templates")
     for label in ("RESUMEN", "EXPERIENCIA", "FORMACIÓN", "Teléfono:", "Mar 2019 – Presente"):
         assert label in ats
-    assert "2015 – Presente" in ats
+    assert "2015 – en curso" in ats
     assert "Gestion y relacionamiento" in ats
     assert "SUMMARY" not in ats
     assert "– Present" not in ats.replace("– Presente", "")
@@ -191,3 +195,38 @@ def test_cv_build_lang_en_writes_english_headings(
     assert "SUMMARY" in text
     assert "RESUMEN" not in text
     assert "2019-03 – Present" in text
+
+
+def test_configured_language_reaches_the_job_adapted_text(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The standing `[cv] language` also governs the CV pasted into a form."""
+
+    def fake(tex_path: Path, work_dir: Path) -> Path:
+        pdf = work_dir / "cv.pdf"
+        pdf.write_bytes(b"%PDF-1.4\n")
+        return pdf
+
+    monkeypatch.setattr("jobbot.cv.build._compile_xelatex", fake)
+    config = JobbotConfig(
+        paths=PathsConfig(templates=project_root / "templates"),
+        root=tmp_path,
+        cv=CvConfig(language="en"),
+    )
+    candidate = _spanish()
+    job = JobPosting.model_validate(
+        {
+            "id": "J0900",
+            "title": "Analista",
+            "company": "Casa Ficticia",
+            "url": "https://jobs.example.com/postings/42",
+            "description": "Buscamos un analista para la unidad regional.",
+        }
+    )
+    build_adapted_cv(config, candidate, job, RuleBasedJobAnalyzer().analyze(candidate, job))
+
+    ats = (tmp_path / "output" / "jobs" / "J0900" / "cv_ats.txt").read_text(encoding="utf-8")
+    assert "EXPERIENCE" in ats
+    assert "EXPERIENCIA" not in ats

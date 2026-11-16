@@ -73,8 +73,12 @@ def _year_month(value: str) -> tuple[int, int]:
     return int(year), int(month)
 
 
-_CANDIDATE_HEADLINE = re.compile(r"\bdoctor c\b|\bphd candidate\b|\bcandidate\b")
-_DOCTOR_HEADLINE = re.compile(r"\bdoctor\b|\bphd\b")
+# Folded text: 'Ph.D.' reads 'ph d' and 'Doctor(c)' reads 'doctor c'.
+_CANDIDATE_HEADLINE = re.compile(
+    r"\bdoctor\w* c\b|\b(?:ph d|phd) candidate\b|\bcandidate\b|\bcandidat\w+ a doctor\w*\b"
+)
+_DOCTOR_HEADLINE = re.compile(r"\bdoctor\b|\bph d\b|\bphd\b")
+_DOCTORATE_DEGREE = re.compile(r"\bdoctor\w*\b|\bph d\b|\bphd\b")
 
 
 def _check_headline_degree(candidate: Candidate, result: ValidationResult) -> None:
@@ -82,7 +86,11 @@ def _check_headline_degree(candidate: Candidate, result: ValidationResult) -> No
     headline = fold_text(candidate.personal.headline or "")
     if not headline:
         return
-    statuses = {edu.resolved_status() for edu in candidate.education}
+    statuses = {
+        edu.resolved_status()
+        for edu in candidate.education
+        if _DOCTORATE_DEGREE.search(fold_text(edu.degree))
+    }
     if _CANDIDATE_HEADLINE.search(headline):
         if "candidate" not in statuses:
             result.warn("personal.headline", "headline says candidate without a candidate degree")

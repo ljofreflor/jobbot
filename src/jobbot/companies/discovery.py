@@ -224,6 +224,7 @@ def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
         AtsKind.WORKABLE,
         AtsKind.MANATAL,
         AtsKind.BUK,
+        AtsKind.READY,
     }:
         return f"https://{host}"
     if ats == AtsKind.RECRUITEE or ats == AtsKind.BAMBOOHR:

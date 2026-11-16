@@ -4076,10 +4076,11 @@ def jobs_discover(
             console.print(f"Next: [bold]jobbot jobs show {first}[/bold] or jobbot jobs shortlist")
 
     code = exit_code_for(outcomes)
-    if any(outcome.detail.startswith("captcha:") for outcome in outcomes):
-        code = MANUAL_CHALLENGE
-    elif source in {"lumesse", "cornerstone", "impactpool", "laborum"} and code != SUCCESS:
-        code = VALIDATION_FAILURE
+    if code != SUCCESS:
+        if any(outcome.detail.startswith("captcha:") for outcome in outcomes):
+            code = MANUAL_CHALLENGE
+        elif source in {"lumesse", "cornerstone", "impactpool", "laborum"}:
+            code = VALIDATION_FAILURE
     if code == UI_CHANGED and not dry_run:
         changed = next(o for o in outcomes if o.status is SiteStatus.CHANGED)
         raise _RecordedExit(
@@ -5334,7 +5335,11 @@ def _application_apply_one(
         return
 
     if plan.method == ApplyMethod.EMAIL:
-        from jobbot.adapters.ats.email_apply import is_tailored_cv, resolve_cv_path
+        from jobbot.adapters.ats.email_apply import (
+            is_tailored_cv,
+            resolve_cv_path,
+            write_email_draft,
+        )
 
         if apply_changes:
             _build_job_cv(config, candidate, job)
@@ -5347,6 +5352,8 @@ def _application_apply_one(
         cv_pdf = resolve_cv_path(config.output_dir, job.id)
         tailored = is_tailored_cv(cv_pdf, job.id)
         draft = build_email_draft(candidate, job, cv_path=cv_pdf)
+        app_dir = config.output_dir / "jobs" / job.id / "application"
+        draft_path = write_email_draft(draft, app_dir)
         if cv_pdf is None:
             cv_line = "(none — run jobbot cv build --job " + job.id + ")"
         elif tailored:
@@ -5361,6 +5368,10 @@ def _application_apply_one(
                 f"[bold]CV:[/bold] {cv_line}",
                 title="email apply draft (HITL)",
             )
+        )
+        console.print(
+            f"[dim]Saved durable draft[/dim] {draft_path} "
+            "[dim](use this on phone — Gmail compose is easy to lose)[/dim]"
         )
         if draft.body_truncated_for_url:
             console.print(
