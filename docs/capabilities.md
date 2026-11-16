@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-155 commands, 257 modules, 1417 public symbols.
+155 commands, 257 modules, 1428 public symbols.
 
 ## Commands
 
@@ -200,7 +200,7 @@ writing it again — the promotion rule lives in
 
 - `advance.py` — An advance label may be pressed later. A submit label never is. · `button_role`, `pressable_advance`
 - `apply.py` — Generic ATS open / prefill helpers (HITL; no CAPTCHA bypass). · `AtsApplyPlan`, `resolve_ats_url`, `build_apply_plan`, `open_ats_in_browser`, `split_personal_name`, `prefill_field_map`, `prefill_sheet_fields`, `describe_prefill`
-- `apply_fill.py` — Fill an external ATS form in your own Chrome (CDP) and stop before submit. · `ApplyFillError`, `FieldFill`, `ApplyFillPlan`, `ApplyFillResult`, `profile_key_for`, `plan_apply_fill`, `looks_like_login`, `has_captcha`, `fill_open_page`, `acquire_fill_page`, `open_and_fill_over_cdp`
+- `apply_fill.py` — Fill an external ATS form in your own Chrome (CDP) and stop before submit. · `ApplyFillError`, `ApplyFillAttachError`, `FieldFill`, `ApplyFillPlan`, `ApplyFillResult`, `profile_key_for`, `plan_apply_fill`, `looks_like_login`, `has_captcha`, `fill_open_page`, `acquire_fill_page`, `open_and_fill_over_cdp`
 - `ashby.py` — Ashby ATS adapter — open + known-field map only (HITL submit). · `AshbyAdapter`
 - `email_apply.py` — Email apply drafts and Gmail compose HITL (user presses Send). · `EmailApplyDraft`, `resolve_cv_path`, `is_tailored_cv`, `build_email_draft`, `gmail_compose_url`, `open_gmail_compose`
 - `getonboard.py` — Get on Board adapter — open job page + known-field map (HITL submit). · `GetOnBoardAdapter`
@@ -213,7 +213,7 @@ writing it again — the promotion rule lives in
 
 ### `adapters/avature`
 
-- `discover.py` — `jobs discover --source avature` reads a public SearchJobs list. `unops` is one site. · `pause`, `fetch_public`, `search_url`, `AvatureDiscover`, `UnopsDiscover`, `blocked_qtvc`
+- `discover.py` — `jobs discover --source avature` reads a public SearchJobs list. `unops` is one site. · `pause`, `QtvcDisallowed`, `fetch_public`, `fetch_detail`, `search_url`, `AvatureDiscover`, `UnopsDiscover`, `blocked_qtvc`
 - `parse.py` — Read an Avature SearchJobs page and a JobDetail page. No network. · `SearchPage`, `site_key`, `canonical_job_url`, `source_job_id`, `company_name`, `parse_search`, `apply_detail`
 
 ### `adapters/bne`
@@ -272,12 +272,12 @@ writing it again — the promotion rule lives in
 ### `adapters/indeed`
 
 - `client.py` — Indeed adapter — login, inspect, pull, full resume sync from profile.yaml. · `IndeedAdapter`, `indeed_session_authenticated`, `normalize_indeed_continue_url`
-- `cv_upload.py` — Decide whether an Indeed PDF upload is needed. The portal write stays HITL. · `receipt_path`, `file_sha256`, `load_receipt_sha`, `icon_glyph_message`
+- `cv_upload.py` — Decide whether an Indeed PDF upload is needed. The portal write stays HITL. · `IndeedCvUploadError`, `receipt_path`, `file_sha256`, `load_receipt_sha`, `write_receipt`, `upload_cv`, `icon_glyph_message`
 - `external.py` — An Indeed posting whose apply step leaves Indeed. · `IndeedVerificationRequired`, `read_apply_entry`, `gate_indeed_entry`, `external_apply_url`, `remember_external_landing`, `strip_indeed_tracking`
 - `jobs.py` — Indeed job discovery — small explicit volumes, no mass crawl. · `posting_is_closed`, `IndeedJobClosed`, `IndeedChallengePending`, `IndeedJobSource`, `parse_indeed_search_html`, `indeed_apply_url`, `parse_indeed_job_detail_html`, `card_to_job_posting`, `detail_is_empty_or_search`
 - `owner.py` — The open Indeed resume must name this workspace before anything is typed. · `IndeedOwnerMismatch`, `cv_name_verdict`, `refuse_indeed_write`, `write_allowed`
 - `package.py` — Build Indeed sync package texts from Candidate (facts only; no invention). · `IndeedSyncPackage`, `truncate`, `build_indeed_sync_package`, `render_sync_package_markdown`
-- `preferences.py` — Project local preferences onto Indeed's Preferencias tab. Sends nothing. · `PreferencePlan`, `desired_titles`, `plan_preferences`, `save_preferences`
+- `preferences.py` — Project local preferences onto Indeed's Preferencias tab and type them there. · `PreferencePlan`, `desired_titles`, `plan_preferences`, `open_preferences`, `fill_preferences`, `save_preferences`
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
 - `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `IndeedUiChanged`, `resume_editor_state`, `preferences_tab_missing`, `editor_state_path`, `record_editor_state`, `load_editor_state`, `ensure_structured_editor`, `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `apply_resume_sections`, `parse_resume_page_text`, `clamp_portal_ym`, `role_identity`, `roles_already_listed`, `add_missing_experiences`, `headline_visible_in_contact`
 - `selectors.py` — Indeed selector hints (prefer role/label over obfuscated CSS). · `indeed_jobs_base`, `select_list_testid`
@@ -328,7 +328,7 @@ writing it again — the promotion rule lives in
 ### `adapters/smartrecruiters`
 
 - `discover.py` — `jobs discover --source smartrecruiters` reads the public Posting API. · `pause`, `fetch_public`, `postings_url`, `SmartRecruitersDiscover`
-- `parse.py` — Map one SmartRecruiters posting. No network. · `company_identifier`, `parse_postings`
+- `parse.py` — Map one SmartRecruiters posting. No network. · `board_in_text`, `company_identifier`, `parse_postings`
 
 ### `adapters/taleo`
 
@@ -348,7 +348,7 @@ writing it again — the promotion rule lives in
 ### `adapters/vacantes`
 
 - `discover.py` — `jobs discover --source vacantes` reads a landing or the vacancy sitemap. · `pause`, `fetch_public`, `VacantesDiscover`
-- `parse.py` — Vacantes.com landing links, sitemap locs, robots rules and JSON-LD jobs. · `ListingLink`, `canonical_job_url`, `link_from_url`, `listing_links`, `xml_locs`, `disallowed`, `path_blocked`, `job_from_html`
+- `parse.py` — Vacantes.com landing links, sitemap locs, robots rules and JSON-LD jobs. · `ListingLink`, `canonical_job_url`, `link_from_url`, `hex_ids`, `listing_links`, `xml_locs`, `disallowed`, `path_blocked`, `job_from_html`
 
 ### `adapters/workday`
 
@@ -415,7 +415,7 @@ writing it again — the promotion rule lives in
 - `propagate.py` — Propagate the CV outward: local artifacts + permanent portal profiles. · `PropagationTarget`, `TargetPlan`, `UnknownTargetError`, `parse_targets`, `plan_cv`, `plan_indeed`, `plan_linkedin`, `plan_getonboard`, `with_session`, `plan_propagation`, `summarize_plans`
 - `renderer.py` — Jinja2 rendering of CV templates. · `CvStyle`, `registered_styles`, `cv_language`, `as_cv_language`, `resolve_ats_language`, `split_name`, `social_handle`, `es_date_range`, `es_year_range`, `shown_education`, `edu_label`, `edu_when`, `url_label`, `skills_for_selection`, `education_for_selection`, `render_cv_tex`, `render_cv_ats`
 - `review.py` — A reviewer only keeps or rejects a change. It does not propose a new sentence. · `review_change`
-- `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`
+- `selection.py` — Achievement / content selection for CV builds. · `SelectedAchievement`, `SelectionResult`, `select_for_base_cv`, `select_for_job`, `write_selection_json`, `filter_experiences`, `profile_facts_text`
 - `status.py` — Permanent CV / profile presence across local artifacts and portals. · `PresenceState`, `PresenceRow`, `CvStatusReport`, `build_cv_status`
 - `sync.py` — Standing presence sync: permanent profiles + active company portals (issue #43). · `CompanySyncRow`, `SyncPlan`, `plan_sync`, `plan_active_companies`, `rows_to_open`, `career_session_url`, `page_urls_from_cdp`
 - `text_layer.py` — The text an ATS reads from a CV. Icons and stuffed terms are findings, not facts. · `TextLayerIssue`, `check_text_layer`, `issues_in_text`, `issues_for_outputs`
