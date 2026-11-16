@@ -297,10 +297,6 @@ _ATS_LABELS: dict[Language, dict[str, str]] = {
 }
 
 
-def _edu_dates(edu: Education) -> str:
-    return edu_when(edu, language="en")
-
-
 def _metrics_line(metrics: Mapping[str, int | float | str]) -> str:
     return "; ".join(format_metric(k, v) for k, v in metrics.items())
 
@@ -368,6 +364,9 @@ def _exp_compact(
     extra = set(selection.compact_ids)
 
     def exp_compact(exp: Experience) -> bool:
+        if selection.full:
+            # --full keeps every role whole: nothing is collapsed to its date line.
+            return False
         if exp.id in extra:
             return True
         if not compact_before or exp.current or not exp.end_date:
@@ -449,9 +448,7 @@ def render_cv_ats(
         return exp.format_date_range()
 
     def edu_dates(edu: Education) -> str:
-        if resolved == "es":
-            return es_year_range(edu.start_date, edu.end_date)
-        return _edu_dates(edu)
+        return edu_when(edu, language=resolved, years_only=resolved == "es")
 
     return template.render(
         candidate=candidate,
