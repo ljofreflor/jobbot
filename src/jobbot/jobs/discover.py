@@ -30,6 +30,7 @@ class SiteStatus(StrEnum):
     EMPTY = "sin resultados"
     FAILED = "falló"
     ROBOTS = "bloqueado: robots"
+    TOKEN = "bloqueado: token de sesión"
     CHANGED = "forma cambiada"
 
 

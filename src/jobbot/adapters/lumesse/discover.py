@@ -10,6 +10,8 @@ from jobbot.companies.registry import CompanyRegistry
 from jobbot.jobs.discover import JobFilters, SiteOutcome, SiteStatus, SiteTarget, registry_sites_for
 
 _REVIEWED = "2026-10-08"
+# The ban lives on TalentLink's front-office host, not on the career site that embeds it.
+_ROBOTS_HOST = "recruitmentplatform.com"
 
 
 def forbids_fo_rest(robots_text: str, url: str) -> bool:
@@ -22,7 +24,7 @@ def forbids_fo_rest(robots_text: str, url: str) -> bool:
 def refusal(host: str) -> str:
     """The one sentence `jobs discover --source lumesse` prints."""
     return (
-        f"Lumesse TalentLink: robots.txt de {host} prohíbe /fo/rest "
+        f"Lumesse TalentLink en {host}: robots.txt de {_ROBOTS_HOST} prohíbe /fo/rest "
         f"para bots que no son de búsqueda (revisado {_REVIEWED}). "
         "Usa jobs add --file. Muchos avisos también aparecen en ReliefWeb (#180)."
     )

@@ -3347,6 +3347,7 @@ def _propagate_getonboard_cv(
 
 def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, yes: bool) -> None:
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.owner import IndeedOwnerMismatch
     from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
@@ -3366,6 +3367,9 @@ def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, ye
     except IndeedUiChanged as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(UI_CHANGED) from exc
+    except IndeedOwnerMismatch as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
 
 
 def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> None:
@@ -3405,6 +3409,7 @@ def _add_buk_list(session: Session, config: JobbotConfig, html: str, url: str) -
         path = write_job_json(stored, config.output_dir)
         console.print(f"[green]Added[/green] {stored.id}  {stored.company}  {stored.title}")
         console.print(f"Wrote {path}")
+        _learn_company_knowledge(config, stored)
 
 
 @jobs_app.command("add")
@@ -4950,7 +4955,7 @@ def _warn_from_named_cdp(ats_kind: AtsKind, site: str, cdp: str) -> None:
         return
     if report.status is CdpSessionStatus.UNREACHABLE:
         console.print(
-            f"[bold yellow]{portal}: {where} did not answer. "
+            f"[bold yellow]{portal}: {report.evidence} ({where}). "
             "That is not a missing session.[/bold yellow]"
         )
         return
@@ -6715,6 +6720,7 @@ def getonboard_upload_cv(
     """Validate the local CV PDF, upload it, and report whether the portal rewrote the profile."""
     from jobbot.adapters.getonboard.cv_upload import (
         PROFILE_REWRITE_WARNING,
+        UNKNOWN_OVERWRITE,
         GobCvUploadError,
         profile_rewrite_guard,
         resolve_base_cv,
@@ -6751,6 +6757,7 @@ def getonboard_upload_cv(
         with _getonboard_session(config, cdp) as browser:
             page = browser.page
             page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+            page.wait_for_timeout(1500)
             before = read_current(page)
             result = upload_cv(
                 page,
@@ -6759,21 +6766,30 @@ def getonboard_upload_cv(
                 make_default=make_default,
                 check=check,
             )
-            if not wait_for_cv_parse(page):
-                err_console.print("la lectura del CV no terminó")
-                console.print(PROFILE_REWRITE_WARNING)
-                raise typer.Exit(GENERIC_FAILURE)
-            page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
-            after = read_current(page)
+            guard = None
+            if wait_for_cv_parse(page):
+                page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+                page.wait_for_timeout(1500)
+                guard = profile_rewrite_guard(before, read_current(page))
     except GobCvUploadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
-    guard = profile_rewrite_guard(before, after)
-    write_upload_receipt(config.output_dir, check, result, overwrite=guard.receipt)
+    # The PDF is already on the portal: record it even when the parse never settled,
+    # so a retry can tell this hash apart from a first upload.
+    write_upload_receipt(
+        config.output_dir,
+        check,
+        result,
+        overwrite=guard.receipt if guard is not None else UNKNOWN_OVERWRITE,
+    )
     console.print(
         f"[green]Uploaded[/green] {result.path.name} as {result.label!r} "
         f"(default={result.is_default}) → {result.resumes_url}"
     )
+    if guard is None:
+        err_console.print("la lectura del CV no terminó")
+        console.print(PROFILE_REWRITE_WARNING)
+        raise typer.Exit(GENERIC_FAILURE)
     if guard.overwritten:
         for line in guard.lines:
             console.print(line, markup=False)
@@ -8015,7 +8031,7 @@ def companies_list(
     table.add_column("Status")
     table.add_column("Conf.")
     rows = 0
-    review_ids: list[str] = []
+    review_hints: list[str] = []
     for record in registry.companies:
         for site in record.career_sites:
             if wanted is not None and site.status.value not in wanted:
@@ -8031,15 +8047,17 @@ def companies_list(
                 site.status.value,
                 str(site.confidence),
             )
-            if review and record.id not in review_ids:
-                review_ids.append(record.id)
+            if review:
+                hint = f"jobbot companies reject {record.id} --site {site.url}"
+                if hint not in review_hints:
+                    review_hints.append(hint)
             rows += 1
     if rows == 0:
         console.print(f"No career sites with status {status!r}.")
         return
     console.print(table)
-    for company_id in review_ids:
-        console.print(f"jobbot companies reject {company_id}")
+    for hint in review_hints:
+        console.print(hint, markup=False, highlight=False, soft_wrap=True)
 
 
 @companies_app.command("show")

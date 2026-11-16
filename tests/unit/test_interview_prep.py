@@ -91,6 +91,42 @@ def test_requirement_without_evidence_is_a_bridge_not_a_new_achievement() -> Non
     assert "Lideré" not in rendered
 
 
+def test_a_shared_generic_word_is_not_evidence() -> None:
+    """'Experiencia' in both lines says nothing about the requirement itself."""
+    candidate = Candidate.model_validate(
+        {
+            "personal": {
+                "name": "Ana Ejemplo",
+                "headline": "Analista",
+                "email": "ana.ejemplo@example.com",
+            },
+            "experience": [
+                {
+                    "id": "bodega",
+                    "company": "Casa Ficticia",
+                    "title": "Encargada de bodega",
+                    "start_date": "2020-01",
+                    "end_date": "2023-01",
+                    "current": False,
+                    "achievements": [
+                        {
+                            "id": "turnos",
+                            "text": "Experiencia coordinando turnos con el equipo de sala.",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    cards = cards_for(
+        _job("Experiencia con el sistema XJ-90"),
+        candidate,
+        _selection("turnos"),
+    )
+    assert cards[0].evidence_id is None
+    assert cards[0].bridge == "no lo ejercí; sí Encargada de bodega en Casa Ficticia"
+
+
 def test_interview_command_reads_the_package_selection(
     tmp_path: Path,
     project_root: Path,

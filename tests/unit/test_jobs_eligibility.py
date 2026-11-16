@@ -346,3 +346,52 @@ def test_driving_license_and_travel_in_spanish_and_english() -> None:
     assert status(english, held, ConditionKind.DRIVING_LICENSE) is VerdictStatus.MEETS
     assert status(english, held, ConditionKind.TRAVEL) is VerdictStatus.DEALBREAKER
     assert status(english, abroad, ConditionKind.TRAVEL) is VerdictStatus.MEETS
+
+
+def _posting(description: str) -> JobPosting:
+    return JobPosting(
+        id="J0915",
+        title="Analyst",
+        company="Estudio Neutro",
+        location="Santiago, Chile",
+        description=description,
+    )
+
+
+def test_desirable_license_and_travel_do_not_block() -> None:
+    job = _posting(
+        "Deseables:\n- Licencia de conducir clase B.\n- Disponibilidad para viajar a regiones.\n"
+    )
+    verdicts = assess_conditions(
+        posting_conditions(job),
+        _candidate(),
+        ApplicationAnswers(driving_license=DrivingLicenseAnswers(has=False), travel="none"),
+    )
+    assert _of(verdicts, ConditionKind.DRIVING_LICENSE)[0].status is VerdictStatus.NOTE
+    assert _of(verdicts, ConditionKind.TRAVEL)[0].status is VerdictStatus.NOTE
+    assert not has_dealbreaker(verdicts)
+
+
+def test_a_denied_license_or_travel_is_not_a_condition() -> None:
+    job = _posting("No travel required.\nNo se requiere licencia de conducir.")
+    conditions = posting_conditions(job)
+    assert not [c for c in conditions if c.kind is ConditionKind.TRAVEL]
+    assert not [c for c in conditions if c.kind is ConditionKind.DRIVING_LICENSE]
+
+
+def test_a_stricter_travel_scope_survives_an_earlier_one() -> None:
+    job = _posting(
+        "Disponibilidad para viajar a regiones.\nDisponibilidad para viajar al extranjero."
+    )
+    scopes = [c.detail for c in posting_conditions(job) if c.kind is ConditionKind.TRAVEL]
+    assert scopes == ["domestic", "international"]
+
+
+def test_travel_abroad_is_international() -> None:
+    job = _posting("Disponibilidad para viajar al extranjero (excluyente).")
+    travel = [c for c in posting_conditions(job) if c.kind is ConditionKind.TRAVEL]
+    assert travel[0].detail == "international"
+    verdicts = assess_conditions(
+        posting_conditions(job), _candidate(), ApplicationAnswers(travel="domestic")
+    )
+    assert _of(verdicts, ConditionKind.TRAVEL)[0].status is VerdictStatus.DEALBREAKER

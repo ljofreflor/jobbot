@@ -100,13 +100,40 @@ def test_cookie_presence_signs_in_without_keeping_the_value() -> None:
     assert "SHOE" not in report.evidence
 
 
-def test_greeting_name_stays_out_of_apply_output(
+def test_a_greeting_in_the_markup_is_not_a_session() -> None:
+    from jobbot.adapters.indeed.client import indeed_session_authenticated
+
+    assert (
+        indeed_session_authenticated(
+            url=INDEED,
+            html="<p>Hola, nos alegra verte de vuelta</p>",
+            cookie_names=["CTK"],
+        )
+        is False
+    )
+
+
+def test_a_job_tab_that_greets_in_its_title_is_not_a_session() -> None:
+    report = probe_cdp_session(
+        "http://127.0.0.1:9222",
+        "indeed",
+        fetch=RecordingFetch(
+            [
+                {
+                    "url": f"{INDEED}viewjob?jk=abc123def456",
+                    "title": "Hola, buscamos analista - Estudio Neutro - Empleo | Indeed.com",
+                }
+            ]
+        ),
+    )
+    assert report.status is CdpSessionStatus.NOT_SIGNED_IN
+
+
+def _stored_indeed_job(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    caplog: pytest.LogCaptureFixture,
-) -> None:
+) -> str:
     (tmp_path / "data").mkdir()
     (tmp_path / "output").mkdir()
     (tmp_path / "data" / "profile.yaml").write_text(
@@ -118,15 +145,11 @@ def test_greeting_name_stays_out_of_apply_output(
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
-    import jobbot.browser.sessions as sessions
     import jobbot.cli as cli
-    from jobbot.cli import run_cli
     from jobbot.db.engine import make_engine, make_session_factory
     from jobbot.jobs.repository import JobRepository
     from jobbot.models.job import JobPosting
 
-    fetch = RecordingFetch([{"url": INDEED, "title": GREETING}])
-    monkeypatch.setattr(sessions, "fetch_local_json", fetch)
     monkeypatch.setattr(
         "jobbot.jobs.closure.fetch_posting_text",
         lambda _url, **_k: "<html>still open</html>",
@@ -148,10 +171,26 @@ def test_greeting_name_stays_out_of_apply_output(
             }
         )
     )
+    return stored.id
+
+
+def test_greeting_name_stays_out_of_apply_output(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    import jobbot.browser.sessions as sessions
+    from jobbot.cli import run_cli
+
+    job_id = _stored_indeed_job(tmp_path, project_root, monkeypatch)
+    fetch = RecordingFetch([{"url": INDEED, "title": GREETING}])
+    monkeypatch.setattr(sessions, "fetch_local_json", fetch)
 
     with caplog.at_level(logging.DEBUG):
         code = run_cli(
-            ["application", "apply", stored.id, "--cdp", "http://[::1]:9222"],
+            ["application", "apply", job_id, "--cdp", "http://[::1]:9222"],
             standalone_mode=False,
         )
 
@@ -163,3 +202,26 @@ def test_greeting_name_stays_out_of_apply_output(
     assert "127.0.0.1" not in captured.out
     assert "Caso Demo" not in text
     assert all(item.startswith("http://[::1]:9222/") for item in fetch.requested)
+
+
+def test_a_non_local_cdp_host_does_not_abort_apply(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from jobbot.cli import run_cli
+
+    report = probe_cdp_session("http://host.docker.internal:9222", "indeed")
+    assert report.status is CdpSessionStatus.UNREACHABLE
+    assert report.evidence == "endpoint is not a local host"
+
+    job_id = _stored_indeed_job(tmp_path, project_root, monkeypatch)
+    code = run_cli(
+        ["application", "apply", job_id, "--cdp", "http://host.docker.internal:9222"],
+        standalone_mode=False,
+    )
+
+    captured = capsys.readouterr()
+    assert code == SUCCESS
+    assert "unreachable" in captured.out

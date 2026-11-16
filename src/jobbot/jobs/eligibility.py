@@ -160,12 +160,14 @@ class IdentityAnswers(BaseModel):
     def _codes(cls, value: object) -> object:
         return _country_list(value)
 
-    @field_validator("gender_to_declare")
+    @field_validator("gender_to_declare", mode="before")
     @classmethod
-    def _gender(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
+    def _gender(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
         text = value.strip().casefold().replace("-", "_").replace(" ", "_")
+        if not text:
+            return None
         if text not in _GENDERS:
             msg = f"gender_to_declare: {value}"
             raise ValueError(msg)
@@ -198,12 +200,12 @@ class SalaryAnswers(BaseModel):
             raise ValueError(msg)
         return code
 
-    @field_validator("period", "basis")
+    @field_validator("period", "basis", mode="before")
     @classmethod
-    def _token(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        return value.strip().casefold()
+    def _token(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        return value.strip().casefold() or None
 
 
 class DrivingLicenseAnswers(BaseModel):
@@ -390,7 +392,15 @@ _JOB_KEYS = (
     "work_authorization",
     "relocation",
     "remote_preference",
+    "job_types",
+    "desired_titles",
 )
+_JOB_BLOCKS = ("identity", "salary", "availability")
+
+
+def _answered(value: object) -> bool:
+    """A posting's own file only overrides where it actually holds an answer."""
+    return value not in (None, "", [], {})
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -416,8 +426,18 @@ def load_application_answers(path: Path, *, job_answers: Path | None = None) -> 
         job = _read_yaml(job_answers)
         for key in _JOB_KEYS:
             value = job.get(key)
-            if value not in (None, "", []):
+            if _answered(value):
                 data[key] = value
+        for block in _JOB_BLOCKS:
+            own = job.get(block)
+            if not isinstance(own, dict):
+                if _answered(own):
+                    data[block] = own
+                continue
+            answered = {key: value for key, value in own.items() if _answered(value)}
+            if answered:
+                base = data.get(block)
+                data[block] = {**base, **answered} if isinstance(base, dict) else answered
         english = job.get("english_level")
         if english not in (None, ""):
             languages = {
@@ -806,6 +826,13 @@ def _modality(c: Condition, candidate: Candidate, answers: ApplicationAnswers) -
     return Verdict(c, VerdictStatus.NOTE, f"modality: {modality}{where}")
 
 
+def _unmet(c: Condition, reason: str) -> Verdict:
+    """Only a condition the posting marks as mandatory blocks; a desirable one is a note."""
+    if c.mandatory is False:
+        return Verdict(c, VerdictStatus.NOTE, f"desirable: {reason}")
+    return Verdict(c, VerdictStatus.DEALBREAKER, reason)
+
+
 def _driving_license(c: Condition, answers: ApplicationAnswers) -> Verdict:
     license_answers = answers.driving_license
     if license_answers is None or license_answers.has is None:
@@ -818,10 +845,8 @@ def _driving_license(c: Condition, answers: ApplicationAnswers) -> Verdict:
     if license_answers.has:
         held = f" class {license_answers.license_class}" if license_answers.license_class else ""
         return Verdict(c, VerdictStatus.MEETS, f"you hold a driving license{held}")
-    return Verdict(
-        c,
-        VerdictStatus.DEALBREAKER,
-        f"the posting asks for a driving license and you do not have one ({ANSWERS_FILE})",
+    return _unmet(
+        c, f"the posting asks for a driving license and you do not have one ({ANSWERS_FILE})"
     )
 
 
@@ -835,15 +860,12 @@ def _travel(c: Condition, answers: ApplicationAnswers) -> Verdict:
             f"Can you travel ({needed})? Set travel in {ANSWERS_FILE}.",
         )
     if answers.travel == "none":
-        return Verdict(
-            c,
-            VerdictStatus.DEALBREAKER,
-            f"the posting asks for {needed} travel and you do not travel ({ANSWERS_FILE})",
+        return _unmet(
+            c, f"the posting asks for {needed} travel and you do not travel ({ANSWERS_FILE})"
         )
     if answers.travel == "domestic" and needed == "international":
-        return Verdict(
+        return _unmet(
             c,
-            VerdictStatus.DEALBREAKER,
             f"the posting asks for international travel; you travel inside the country "
             f"({ANSWERS_FILE})",
         )

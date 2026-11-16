@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from urllib.parse import parse_qsl, unquote, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
@@ -111,7 +111,7 @@ def _unwrap(url: str) -> str:
     if _is_indeed_host(host) and ("rclk" in parts.path or parts.path.startswith("/rc/clk")):
         dest = dict(parse_qsl(parts.query)).get("dest")
         if dest:
-            return unquote(dest)
+            return dest
     return url
 
 

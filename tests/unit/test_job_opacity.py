@@ -36,6 +36,13 @@ def test_caduco_banner_is_closed_and_ranks_last() -> None:
     assert open_key < closed_key
 
 
+def test_published_close_already_past_is_closed() -> None:
+    expired = _job("J0003", closes_on=(NOW - timedelta(days=2)).date())
+    ahead = _job("J0004", closes_on=(NOW + timedelta(days=30)).date())
+    assert assess(expired, peers=[expired], sites=[], events=[], now=NOW).closure == "closed"
+    assert assess(ahead, peers=[ahead], sites=[], events=[], now=NOW).closure == "unknown"
+
+
 def test_same_ats_url_marks_both_ids_as_reposts() -> None:
     url = "https://boards.greenhouse.io/acme/jobs/1?utm_source=x"
     first = _job("J0001", ats_url=url, title="Uno")
