@@ -8775,6 +8775,49 @@ def companies_discover(
     console.print(f"Next: [bold]jobbot companies import {target}[/bold]")
 
 
+@companies_app.command("import-catalog")
+def companies_import_catalog(
+    seed: Annotated[
+        Path,
+        typer.Argument(help="Researched inventory (e.g. data/sources-cl.example.yaml)"),
+    ],
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Write candidates into companies (default: dry-run)"),
+    ] = False,
+) -> None:
+    """Import a researched employer↔channel seed as candidates (#265/#269). Never activates."""
+    from jobbot.companies.catalog_seed import (
+        import_catalog_seed,
+        load_catalog_seed,
+        render_catalog_import_report,
+    )
+    from jobbot.companies.registry import save_companies
+
+    config = load_config()
+    path = seed.expanduser().resolve()
+    if not path.is_file():
+        err_console.print(f"[red]Seed not found:[/red] {path}")
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        doc = load_catalog_seed(path)
+    except (ValueError, yaml.YAMLError) as exc:
+        err_console.print(f"[red]Invalid catalog seed:[/red] {exc}")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    registry, registry_path = _companies_registry(config)
+    report = import_catalog_seed(registry, doc, apply=apply_changes)
+    applied = apply_changes and report.ok
+    if applied:
+        save_companies(registry, registry_path)
+    for line in render_catalog_import_report(report, applied=applied):
+        console.print(line)
+    if not report.ok:
+        raise typer.Exit(VALIDATION_FAILURE)
+    if applied:
+        console.print(f"Registry: {registry_path}")
+        console.print("Promote what you verified: [bold]jobbot companies promote COMPANY[/bold]")
+
+
 @companies_app.command("import")
 def companies_import(
     candidates_file: Annotated[Path, typer.Argument(help="Generated candidates YAML")],

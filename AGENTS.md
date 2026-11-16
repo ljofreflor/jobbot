@@ -272,10 +272,10 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
     confirmación por aporte.
   - **Un solo modelo:** el catálogo de fuentes ([#265](https://github.com/ljofreflor/jobbot/issues/265))
     se fusiona en el registro de `companies`; no se crea un registro paralelo de empleador↔canal.
-    Semilla chilena investigada (2026-10-12): `data/sources-cl.example.yaml`. URLs de listado
-    conservan tenant/país (`semantic_url` / `semantic_key` en `companies/urls.py`) y pierden solo
-    tracking identificado. Un paquete `SourceCatalog` paralelo **no** se aterriza: adaptar el tip
-    `cursor/chile-source-catalog-2cd9` al registro de `companies` antes del import (#269).
+    Semilla chilena (2026-10-12): `data/sources-cl.example.yaml` →
+    `jobbot companies import-catalog` (dry-run; `--apply` escribe **candidates**). URLs de listado
+    conservan tenant/país (`semantic_url` / `semantic_key`); `CareerSite.key` usa la clave semántica.
+    Nada se habilita por estar indexado.
   - **Registros viejos:** cuando mejora un detector, los sitios ya guardados se revisan con
     `companies recheck` ([#270](https://github.com/ljofreflor/jobbot/issues/270)): la nueva
     evidencia entra como observación y nunca pisa la anterior.
@@ -845,6 +845,8 @@ uv run jobbot companies learn URL --company NAME --country CL
 uv run jobbot companies list|show|promote|reject|sites|export
 uv run jobbot companies discover data/companies-cl.example.yaml   # oneshot → candidatos
 uv run jobbot companies import output/discovery/company_portals.generated.yaml
+uv run jobbot companies import-catalog data/sources-cl.example.yaml  # dry-run (#265/#269)
+uv run jobbot companies import-catalog data/sources-cl.example.yaml --apply
 uv run jobbot companies signup NOMBRE --apply [--cdp URL] # fill known; HITL create (#44)
 uv run jobbot companies recon NOMBRE --fixture PATH   # aprender ATS/form desde HTML (#45)
 uv run jobbot companies recon NOMBRE --cdp URL --apply

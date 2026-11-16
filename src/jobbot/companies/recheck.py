@@ -19,7 +19,7 @@ from jobbot.companies.models import (
     KnowledgeStatus,
 )
 from jobbot.companies.registry import CompanyRegistry
-from jobbot.companies.urls import canonical_key
+from jobbot.companies.urls import semantic_key
 from jobbot.portals.detect import JOB_BOARD_KINDS, AtsKind, is_white_label_tenant
 
 REVIEW_NOTE = "review: job board"
@@ -111,7 +111,7 @@ def _proposals(record: CompanyRecord, site: CareerSite) -> list[RecheckChange]:
         return []
     current = classify_url(site.url)
     root = career_root_url(current.url, current.ats)
-    if canonical_key(root) != site.key:
+    if semantic_key(root) != site.key:
         return _posting_proposals(record, site, root)
     # A company tenant (acme.trabajando.cl) runs on a board's software; it is still its site.
     board = current.site_type == CareerSiteType.JOB_BOARD or current.ats in JOB_BOARD_KINDS

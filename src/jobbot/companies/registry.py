@@ -20,10 +20,10 @@ from jobbot.companies.models import (
     utc_now,
 )
 from jobbot.companies.urls import (
-    canonical_key,
     ensure_not_reserved,
     host_of,
     registrable_domain,
+    semantic_key,
     slugify,
 )
 from jobbot.portals.detect import AtsKind
@@ -67,7 +67,7 @@ class CompanyRegistry(BaseModel):
 
     def find_site(self, url: str) -> tuple[CompanyRecord, CareerSite] | None:
         """Global URL lookup — how duplicates across companies get caught."""
-        key = canonical_key(url)
+        key = semantic_key(url)
         for record in self.companies:
             for site in record.career_sites:
                 if site.key == key:
@@ -210,7 +210,7 @@ class CompanyRegistry(BaseModel):
             return []
         moment = now or utc_now()
         targets = (
-            [site for site in record.career_sites if url is None or site.key == canonical_key(url)]
+            [site for site in record.career_sites if url is None or site.key == semantic_key(url)]
             if record.career_sites
             else []
         )
