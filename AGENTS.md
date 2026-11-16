@@ -382,6 +382,12 @@ Matching and packages stay portal-agnostic. New sites implement:
 - `JobSourceAdapter` — discovery via `get_job_source()` in [`src/jobbot/jobs/sources.py`](src/jobbot/jobs/sources.py) (Indeed, LinkedIn posts, GetOnBoard)
 - `ApplicationPortalAdapter` — prefill/attach from Candidate + package ([`src/jobbot/adapters/base.py`](src/jobbot/adapters/base.py); registry in [`src/jobbot/adapters/ats/registry.py`](src/jobbot/adapters/ats/registry.py))
 - Portal registry — `data/portals.yaml` via `jobbot portals list|add|detect`; auto-learned from sweep URLs
+- **Alta de cuenta (#434):** 1 plataforma / 1 adaptador (o extensión del existente) = **1 PR**. Sin
+  mezclar portales en el mismo PR; cada PR cierra o avanza un solo hijo #435–#457. Rama
+  `feat/account-<portal-slug>-NNNN`. Reutilizar `companies/signup.py`, `adapters/ats/signup_fill.py`,
+  `cv/sync.py` (`needs_account`), `portals/sso.py`, Taleo si aplica. HITL: nunca inventar password,
+  nunca CAPTCHA/ClaveÚnica/OAuth, nunca create/submit final sin confirm. Fixtures en `example.org`,
+  sin PII.
 
 Inject only known fields; HITL for salary/visa/English/CAPTCHA. Prioridad actual de verticales:
 Workday de punta a punta ([#214](https://github.com/ljofreflor/jobbot/issues/214)), en el orden

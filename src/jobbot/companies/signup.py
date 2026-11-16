@@ -44,6 +44,12 @@ _ACCOUNT_BY_ATS: dict[AtsKind, AccountNeed] = {
     AtsKind.GETONBOARD: AccountNeed.NEEDED,
     AtsKind.INDEED: AccountNeed.NEEDED,
     AtsKind.LINKEDIN: AccountNeed.NEEDED,
+    AtsKind.TALEO: AccountNeed.NEEDED,
+    # Chilean public boards: account before apply; sheet is identity_bound.
+    AtsKind.EMPLEOS_PUBLICOS: AccountNeed.NEEDED,
+    AtsKind.ALTA_DIRECCION_PUBLICA: AccountNeed.NEEDED,
+    # UN Careers / Inspira Talent Pool requires a candidate account (#437).
+    AtsKind.UN_CAREERS: AccountNeed.NEEDED,
 }
 
 _NOTES: dict[AccountNeed, str] = {
@@ -92,7 +98,24 @@ def account_need(ats: AtsKind) -> AccountNeed:
 
 def signup_target(site: CareerSite) -> SignupTarget:
     need = account_need(site.ats)
-    return SignupTarget(url=site.url, need=need, note=_NOTES[need])
+    url = site.url
+    if site.ats is AtsKind.TALEO:
+        from jobbot.adapters.taleo.signup import registration_url
+
+        url = registration_url(site.url)
+    elif site.ats is AtsKind.EMPLEOS_PUBLICOS:
+        from jobbot.adapters.empleospublicos.signup import registration_url
+
+        url = registration_url(site.url)
+    elif site.ats is AtsKind.ALTA_DIRECCION_PUBLICA:
+        from jobbot.adapters.alta_direccion.signup import registration_url
+
+        url = registration_url(site.url)
+    elif site.ats is AtsKind.UN_CAREERS:
+        from jobbot.adapters.inspira.signup import registration_url
+
+        url = registration_url(site.url)
+    return SignupTarget(url=url, need=need, note=_NOTES[need])
 
 
 def signup_sheet(

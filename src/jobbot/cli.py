@@ -7464,11 +7464,99 @@ def portals_profile_sheet(
             return
         console.print(text, markup=False)
         return
+    from jobbot.adapters.alta_direccion.signup import (
+        portal_for_id as adp_portal_for_id,
+        render_adp_sheet,
+    )
+    from jobbot.adapters.empleospublicos.signup import (
+        portal_for_id as empleos_portal_for_id,
+        render_empleos_publicos_sheet,
+    )
+    from jobbot.adapters.inspira.signup import (
+        portal_for_id as inspira_portal_for_id,
+        render_inspira_sheet,
+    )
+    from jobbot.adapters.taleo.signup import portal_for_id as taleo_portal_for_id
+    from jobbot.adapters.taleo.signup import render_taleo_sheet
+
+    aliases = load_aliases(default_alias_path(config.root))
+    taleo_portal = taleo_portal_for_id(portal)
+    if taleo_portal is not None:
+        text = render_taleo_sheet(
+            taleo_portal,
+            candidate,
+            aliases,
+            email_alias=state.email_alias,
+        )
+        if out is not None:
+            destination = out.expanduser()
+            if not destination.is_absolute():
+                destination = config.root / destination
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
+            console.print(f"Wrote {destination}")
+            return
+        console.print(text, markup=False)
+        return
+    empleos_portal = empleos_portal_for_id(portal)
+    if empleos_portal is not None:
+        text = render_empleos_publicos_sheet(
+            candidate,
+            aliases,
+            email_alias=state.email_alias,
+            portal=empleos_portal,
+        )
+        if out is not None:
+            destination = out.expanduser()
+            if not destination.is_absolute():
+                destination = config.root / destination
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
+            console.print(f"Wrote {destination}")
+            return
+        console.print(text, markup=False)
+        return
+    adp_portal = adp_portal_for_id(portal)
+    if adp_portal is not None:
+        text = render_adp_sheet(
+            candidate,
+            aliases,
+            email_alias=state.email_alias,
+            portal=adp_portal,
+        )
+        if out is not None:
+            destination = out.expanduser()
+            if not destination.is_absolute():
+                destination = config.root / destination
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
+            console.print(f"Wrote {destination}")
+            return
+        console.print(text, markup=False)
+        return
+    inspira_portal = inspira_portal_for_id(portal)
+    if inspira_portal is not None:
+        text = render_inspira_sheet(
+            candidate,
+            aliases,
+            email_alias=state.email_alias,
+            portal=inspira_portal,
+        )
+        if out is not None:
+            destination = out.expanduser()
+            if not destination.is_absolute():
+                destination = config.root / destination
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
+            console.print(f"Wrote {destination}")
+            return
+        console.print(text, markup=False)
+        return
     try:
         text = render_fill_sheet(
             state,
             candidate,
-            load_aliases(default_alias_path(config.root)),
+            aliases,
             lang=lang,
             catalog=fill_portal(portal),
         )
