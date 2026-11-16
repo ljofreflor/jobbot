@@ -33,21 +33,8 @@ class JobRepository:
             existing = self.find_by_canonical_url(url)
             if existing is not None:
                 self.remember_url(existing.id, url)
-                job = parse_job_text(text, job_id=existing.id, source=source, url=url)
-                if job.note is None:
-                    job.note = existing.note
-                if job.match_score is None:
-                    job.match_score = existing.match_score
-                if job.share_code is None:
-                    job.share_code = existing.share_code
-                if job.open_status is None:
-                    job.open_status = existing.open_status
-                    job.checked_at = existing.checked_at
-                    job.open_evidence = existing.open_evidence
-                    job.invalid_reason = existing.invalid_reason
-                self._stamp_share_code(job)
-                self.save(job)
-                return job
+                # Body only: discovery metadata (source, closing, ATS, dates) stays.
+                return self.replace_description(existing.id, text)
         job_id = next_job_id(self._session)
         job = parse_job_text(text, job_id=job_id, source=source, url=url)
         self._stamp_share_code(job)

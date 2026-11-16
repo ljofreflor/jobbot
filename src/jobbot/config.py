@@ -284,6 +284,32 @@ def _activate_brand(config: JobbotConfig) -> Brand:
     return brand
 
 
+def peek_brand(root: Path | None = None) -> Brand:
+    """Read ``[brand]`` / env for display. Never verifies owner or writes stamps."""
+    if root is None:
+        base, workspace = resolve_root(Path.cwd())
+        if workspace is None:
+            base = resolve_workspace(Path.cwd())
+    else:
+        base, workspace = root.resolve(), None
+    config_path = _find_config_file(base, workspace=workspace)
+    if config_path is None:
+        return _activate_brand(JobbotConfig(root=base))
+    try:
+        with config_path.open("rb") as fh:
+            raw = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError):
+        return _activate_brand(JobbotConfig(root=base))
+    config = JobbotConfig(
+        paths=_load_paths(raw, workspace=workspace),
+        root=base,
+        search=_load_search(raw),
+        cv=_load_cv(raw),
+        brand=_load_brand(raw),
+    )
+    return _activate_brand(config)
+
+
 def _verify(config: JobbotConfig, workspace: str | None) -> None:
     verify_owner(
         config.profile_path,

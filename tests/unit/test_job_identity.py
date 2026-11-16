@@ -122,6 +122,10 @@ def test_add_from_text_refreshes_body_when_url_matches(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     url = "https://boards.example.com/jobs/42"
     first = repo.add_from_text("Old title\n\nOld body about Northwind.", url=url)
+    first.source = "greenhouse"
+    first.source_job_id = "ext-42"
+    first.note = "keep me"
+    repo.save(first)
     again = repo.add_from_text(
         "Fresh title\nCompany: Acme\n\nNew description for the same vacancy.",
         url=f"{url}?utm_source=share",
@@ -132,6 +136,15 @@ def test_add_from_text_refreshes_body_when_url_matches(tmp_path: Path) -> None:
     assert loaded is not None
     assert "New description" in loaded.description
     assert "Old body" not in loaded.description
+    assert loaded.source == "greenhouse"
+    assert loaded.source_job_id == "ext-42"
+    assert loaded.note == "keep me"
+
+
+def test_fragment_distinguishes_vacancies_on_the_same_path() -> None:
+    base = "https://boards.example.com/concursos"
+    assert canonical_job_key(f"{base}#concurso-1") != canonical_job_key(f"{base}#concurso-2")
+    assert canonical_job_key(f"{base}#concurso-1") == canonical_job_key(f"{base}#concurso-1")
 
 
 def test_discover_preview_matches_canonical_url() -> None:

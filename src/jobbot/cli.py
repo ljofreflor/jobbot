@@ -8,7 +8,6 @@ import re
 import shutil
 import sys
 from collections.abc import Callable, Sequence
-from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any
@@ -383,9 +382,9 @@ def main(
 def version_cmd() -> None:
     """Show engine version and active product brand."""
     from jobbot.branding import ENGINE_NAME, get_brand
+    from jobbot.config import peek_brand
 
-    with suppress(ConfigError):
-        load_config()
+    peek_brand()
     brand = get_brand()
     if brand.product_name.casefold() == ENGINE_NAME:
         console.print(__version__)

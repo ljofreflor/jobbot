@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-155 commands, 259 modules, 1447 public symbols.
+155 commands, 259 modules, 1448 public symbols.
 
 ## Commands
 
@@ -177,7 +177,7 @@ writing it again — the promotion rule lives in
 - `branding.py` — Public face vs engine name. · `Brand`, `get_brand`, `set_brand`, `reset_brand`, `brand_from_parts`, `brand_from_env`, `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
-- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `ConfigError`, `SearchConfig`, `CvConfig`, `BrandConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
+- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `ConfigError`, `SearchConfig`, `CvConfig`, `BrandConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`, `peek_brand`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `pdf_text.py` — Text layer of a PDF, shared by postings. The CV importer keeps its own path reader. · `PdfTextError`, `text_from_pdf_bytes`
 - `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `CheckResult`, `InstallInfo`, `update_jobbot`, `docker_hint`, `parse_direct_url`, `read_direct_url`, `installed_info`, `parse_ls_remote`, `latest_commit`, `short_commit`, `check_for_update`

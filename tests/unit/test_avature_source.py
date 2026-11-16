@@ -123,11 +123,12 @@ def test_posting_end_date_is_end_of_day_utc(project_root: Path) -> None:
     assert job.note == ZONE_NOTE
 
 
-def test_the_same_id_with_another_slug_does_not_duplicate(
+def test_a_different_slug_is_a_different_public_vacancy(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Path is part of the identity key: a new slug is a new row even with the same id."""
     _workspace(tmp_path, project_root, monkeypatch)
     slugs = iter(("Administration-Assistant", "Admin-Assistant"))
 
@@ -150,7 +151,7 @@ def test_the_same_id_with_another_slug_does_not_duplicate(
         standalone_mode=False,
     ) == 0
     stored = list((tmp_path / "output" / "jobs").glob("*/job.json"))
-    assert len(stored) == 1
+    assert len(stored) == 2
 
 
 def test_companies_learn_keeps_the_redirected_avature_site(

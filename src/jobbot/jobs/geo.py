@@ -276,7 +276,7 @@ def _country_from_cities(text: str) -> str | None:
     return None
 
 
-# ccTLD on an @mailbox in the post body (talento@macal.cl → Chile).
+# ccTLD on an @mailbox in the post body (jobs@empresa.cl → Chile).
 _EMAIL_CCTLD_RE = re.compile(
     r"@[a-z0-9.-]+\.(?P<tld>cl|pe|ar|co|mx|uy|br|es)\b",
     re.IGNORECASE,

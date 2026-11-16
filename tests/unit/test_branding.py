@@ -125,3 +125,20 @@ def test_version_shows_toml_product_name(tmp_path: Path, monkeypatch: pytest.Mon
     assert result.exit_code == 0
     assert "Oficio" in result.stdout
     assert "jobbot engine" in result.stdout
+    # peek_brand must not stamp owner dirs as a side effect of version.
+    assert not (tmp_path / "data").exists()
+    assert not (tmp_path / "output").exists()
+
+
+def test_version_survives_broken_toml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from typer.testing import CliRunner
+
+    from jobbot import __version__
+    from jobbot.cli import app
+
+    monkeypatch.delenv("JOBBOT_PRODUCT_NAME", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".jobbot.toml").write_text("[[[not valid", encoding="utf-8")
+    result = CliRunner().invoke(app, ["version"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert __version__ in result.stdout

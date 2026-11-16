@@ -37,7 +37,11 @@ _TRACKING_NAMES = frozenset(
 
 
 def canonical_job_key(url: str) -> str | None:
-    """Host + path + non-tracking query, or None when the URL is not public."""
+    """Host + path + non-tracking query + fragment, or None when not public.
+
+    The fragment is part of the key: PJUD (and similar boards) put the concurso
+    id after ``#``, and dropping it would merge every opening on that page.
+    """
     raw = (url or "").strip()
     if not raw or raw.lower().startswith("mailto:"):
         return None
@@ -56,7 +60,11 @@ def canonical_job_key(url: str) -> str | None:
         kept.append((name, value))
     kept.sort()
     query = urlencode(kept)
-    return f"{host}{path}" + (f"?{query}" if query else "")
+    key = f"{host}{path}" + (f"?{query}" if query else "")
+    fragment = (parsed.fragment or "").strip()
+    if fragment:
+        key = f"{key}#{fragment}"
+    return key
 
 
 def share_code_for_key(key: str) -> str:
