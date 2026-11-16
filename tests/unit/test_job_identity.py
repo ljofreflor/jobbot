@@ -7,13 +7,14 @@ from pathlib import Path
 import pytest
 
 from jobbot.db.engine import make_engine, make_session_factory
+from jobbot.jobs.discover import unique_jobs
 from jobbot.jobs.identity import (
     SHARE_CODE_LENGTH,
     canonical_job_key,
     share_code_for_key,
     share_code_for_url,
 )
-from jobbot.jobs.repository import JobRepository
+from jobbot.jobs.repository import JobRepository, StoredJobIndex
 from jobbot.models.job import JobPosting
 
 
@@ -115,3 +116,86 @@ def test_same_code_on_two_urls_is_kept_not_lengthened(
     assert len(second.share_code or "") == SHARE_CODE_LENGTH
     found = repo.find_by_share_code("a" * SHARE_CODE_LENGTH)
     assert {job.id for job in found} == {first.id, second.id}
+
+
+def test_add_from_text_refreshes_body_when_url_matches(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    url = "https://boards.example.com/jobs/42"
+    first = repo.add_from_text("Old title\n\nOld body about Northwind.", url=url)
+    again = repo.add_from_text(
+        "Fresh title\nCompany: Acme\n\nNew description for the same vacancy.",
+        url=f"{url}?utm_source=share",
+    )
+
+    assert again.id == first.id
+    loaded = repo.get(first.id)
+    assert loaded is not None
+    assert "New description" in loaded.description
+    assert "Old body" not in loaded.description
+
+
+def test_discover_preview_matches_canonical_url() -> None:
+    clean = "https://boards.example.com/jobs/42"
+    index = StoredJobIndex([("J0001", "manual", None, clean)])
+    tracked = JobPosting(
+        id="PENDING",
+        title="Analyst",
+        company="Northwind",
+        url=f"{clean}?utm_source=li&rcm=member",
+        description="A public opening.",
+    )
+    other = JobPosting(
+        id="PENDING",
+        title="Other",
+        company="Northwind",
+        url="https://boards.example.com/jobs/99",
+        description="Another opening.",
+    )
+    assert index.lookup(tracked) == "J0001"
+    assert index.lookup(other) is None
+
+
+def test_discover_preview_splits_same_source_id_on_different_paths() -> None:
+    index = StoredJobIndex(
+        [
+            (
+                "J0001",
+                "greenhouse",
+                "same-external",
+                "https://careers.example.com/job/1/role-a",
+            )
+        ]
+    )
+    sibling = JobPosting(
+        id="PENDING",
+        title="Role B",
+        company="Northwind",
+        url="https://careers.example.com/job/1/role-b",
+        description="A different slug.",
+        source="greenhouse",
+        source_job_id="same-external",
+    )
+    assert index.lookup(sibling) is None
+
+
+def test_unique_jobs_collapses_tracking_variants() -> None:
+    clean = "https://boards.example.com/jobs/42"
+    first = JobPosting(
+        id="PENDING",
+        title="Analyst",
+        company="Northwind",
+        url=clean,
+        description="A public opening.",
+        source_job_id="ext-1",
+    )
+    tracked = JobPosting(
+        id="PENDING",
+        title="Analyst",
+        company="Northwind",
+        url=f"{clean}?utm_campaign=x",
+        description="A public opening.",
+        source_job_id="ext-1",
+    )
+    kept = unique_jobs([first, tracked])
+    assert len(kept) == 1
+    assert kept[0].url == clean

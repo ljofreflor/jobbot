@@ -33,7 +33,21 @@ class JobRepository:
             existing = self.find_by_canonical_url(url)
             if existing is not None:
                 self.remember_url(existing.id, url)
-                return existing
+                job = parse_job_text(text, job_id=existing.id, source=source, url=url)
+                if job.note is None:
+                    job.note = existing.note
+                if job.match_score is None:
+                    job.match_score = existing.match_score
+                if job.share_code is None:
+                    job.share_code = existing.share_code
+                if job.open_status is None:
+                    job.open_status = existing.open_status
+                    job.checked_at = existing.checked_at
+                    job.open_evidence = existing.open_evidence
+                    job.invalid_reason = existing.invalid_reason
+                self._stamp_share_code(job)
+                self.save(job)
+                return job
         job_id = next_job_id(self._session)
         job = parse_job_text(text, job_id=job_id, source=source, url=url)
         self._stamp_share_code(job)
@@ -265,17 +279,23 @@ class StoredJobIndex:
 
     A preview (`--dry-run`) must not create the database or migrate it, so this
     opens SQLite read-only and asks for three columns every version has.
+    Lookup mirrors ``upsert_external``: same public path (canonical URL), and
+    a shared ``source_job_id`` only when the public paths agree.
     """
 
     def __init__(self, rows: list[tuple[str, str, str | None, str | None]] | None = None) -> None:
-        self._by_source: dict[tuple[str, str], str] = {}
+        self._by_source: dict[tuple[str, str], tuple[str, str | None]] = {}
         self._by_url: dict[str, str] = {}
+        self._by_canonical: dict[str, str] = {}
         self._urls_by_source: dict[str, set[str]] = {}
         for job_id, source, source_job_id, url in rows or []:
             if source_job_id:
-                self._by_source.setdefault((source, source_job_id), job_id)
+                self._by_source.setdefault((source, source_job_id), (job_id, url))
             if url:
                 self._by_url.setdefault(url, job_id)
+                key = canonical_job_key(url)
+                if key is not None:
+                    self._by_canonical.setdefault(key, job_id)
                 self._urls_by_source.setdefault(source, set()).add(url)
 
     @classmethod
@@ -305,9 +325,16 @@ class StoredJobIndex:
     def lookup(self, job: JobPosting) -> str | None:
         if job.source_job_id:
             found = self._by_source.get((job.source, job.source_job_id))
-            if found:
-                return found
-        return self._by_url.get(job.url) if job.url else None
+            if found is not None:
+                job_id, stored_url = found
+                if _same_public_vacancy(stored_url, job.url):
+                    return job_id
+        if job.url:
+            key = canonical_job_key(job.url)
+            if key is not None and key in self._by_canonical:
+                return self._by_canonical[key]
+            return self._by_url.get(job.url)
+        return None
 
 
 def write_job_json(job: JobPosting, output_dir: Path) -> Path:

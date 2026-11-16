@@ -18,6 +18,7 @@ from jobbot.companies.models import KnowledgeStatus
 from jobbot.companies.registry import CompanyRegistry
 from jobbot.exit_codes import GENERIC_FAILURE, SUCCESS, UI_CHANGED
 from jobbot.jobs.closing import ClosingState, closing_state
+from jobbot.jobs.identity import canonical_job_key
 from jobbot.jobs.normalization import fold_text
 from jobbot.jobs.repository import StoredJobIndex
 from jobbot.models.job import JobPosting
@@ -244,7 +245,13 @@ def unique_jobs(jobs: Sequence[JobPosting]) -> list[JobPosting]:
     seen: set[tuple[str, ...]] = set()
     out: list[JobPosting] = []
     for job in jobs:
-        key = (job.source, job.source_job_id) if job.source_job_id else (job.url or job.title,)
+        canon = canonical_job_key(job.url) if job.url else None
+        if canon is not None:
+            key: tuple[str, ...] = ("url", canon)
+        elif job.source_job_id:
+            key = ("source", job.source, job.source_job_id)
+        else:
+            key = ("title", job.title)
         if key not in seen:
             seen.add(key)
             out.append(job)

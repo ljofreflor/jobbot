@@ -95,3 +95,33 @@ def test_env_product_name_sets_brand(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     monkeypatch.setenv("JOBBOT_PRODUCT_NAME", "Oficio")
     load_config(tmp_path)
     assert get_brand().product_name == "Oficio"
+
+
+def test_env_product_name_keeps_toml_mark_and_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("JOBBOT_PRODUCT_NAME", "Oficio")
+    (tmp_path / ".jobbot.toml").write_text(
+        '[brand]\nmark = "hecho con Oficio"\n'
+        'project_url = "https://example.org/oficio"\n',
+        encoding="utf-8",
+    )
+    load_config(tmp_path)
+    brand = get_brand()
+    assert brand.product_name == "Oficio"
+    assert brand.mark == "hecho con Oficio"
+    assert brand.repo_url == "https://example.org/oficio"
+
+
+def test_version_shows_toml_product_name(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from typer.testing import CliRunner
+
+    from jobbot.cli import app
+
+    monkeypatch.delenv("JOBBOT_PRODUCT_NAME", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".jobbot.toml").write_text('[brand]\nproduct_name = "Oficio"\n', encoding="utf-8")
+    result = CliRunner().invoke(app, ["version"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "Oficio" in result.stdout
+    assert "jobbot engine" in result.stdout

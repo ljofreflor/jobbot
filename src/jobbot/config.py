@@ -269,11 +269,8 @@ def _load_brand(raw: dict[str, object]) -> BrandConfig:
 
 
 def _activate_brand(config: JobbotConfig) -> Brand:
-    """Apply ``[brand]``, then ``[cv].jobbot_project_url``, then env override."""
+    """Apply ``[brand]`` / env product name, then mark and project URL from config."""
     env_brand = brand_from_env()
-    if env_brand is not None and config.brand.product_name is None:
-        set_brand(env_brand)
-        return env_brand
     url = config.brand.project_url or config.cv.jobbot_project_url
     product = config.brand.product_name
     if product is None and env_brand is not None:

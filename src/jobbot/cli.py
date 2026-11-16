@@ -383,6 +383,10 @@ def version_cmd() -> None:
     """Show engine version and active product brand."""
     from jobbot.branding import ENGINE_NAME, get_brand
 
+    try:
+        load_config()
+    except ConfigError:
+        pass
     brand = get_brand()
     if brand.product_name.casefold() == ENGINE_NAME:
         console.print(__version__)
