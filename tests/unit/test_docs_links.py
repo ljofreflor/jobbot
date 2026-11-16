@@ -70,10 +70,30 @@ def _nav_pages(node: object) -> set[str]:
     return set()
 
 
+def _not_in_nav_pages(patterns: str, docs: Path) -> set[str]:
+    """Expand ``not_in_nav`` entries the way MkDocs does (globs under ``docs/``)."""
+    listed: set[str] = set()
+    for raw in patterns.split():
+        pattern = raw.strip()
+        if not pattern:
+            continue
+        if any(ch in pattern for ch in "*?[]"):
+            listed.update(
+                str(path.relative_to(docs))
+                for path in docs.glob(pattern)
+                if path.is_file() and path.suffix == ".md"
+            )
+        else:
+            listed.add(pattern)
+    return listed
+
+
 def test_every_page_is_in_nav_or_declared_out_of_it(project_root: Path) -> None:
     config = yaml.load((project_root / "mkdocs.yml").read_text(encoding="utf-8"), _Loader)  # noqa: S506
-    listed = _nav_pages(config["nav"]) | set(str(config.get("not_in_nav", "")).split())
     docs = project_root / "docs"
+    listed = _nav_pages(config["nav"]) | _not_in_nav_pages(
+        str(config.get("not_in_nav", "")), docs
+    )
     pages = {
         str(p.relative_to(docs))
         for p in _doc_pages(project_root)
@@ -81,3 +101,15 @@ def test_every_page_is_in_nav_or_declared_out_of_it(project_root: Path) -> None:
         and "overrides" not in p.relative_to(docs).parts[:1]
     }
     assert pages - listed == set()
+
+
+def test_not_in_nav_globs_match_nested_markdown(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    (docs / "sdd-issue-patches").mkdir(parents=True)
+    (docs / "sdd-issue-patches" / "1.md").write_text("# a\n", encoding="utf-8")
+    (docs / "uml.md").write_text("# u\n", encoding="utf-8")
+
+    assert _not_in_nav_pages("uml.md\nsdd-issue-patches/*\n", docs) == {
+        "uml.md",
+        "sdd-issue-patches/1.md",
+    }
