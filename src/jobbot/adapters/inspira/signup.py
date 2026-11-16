@@ -38,7 +38,7 @@ _FIELDS: tuple[str, ...] = (
     "Work Experience",
     "Languages",
     "Job Network",
-    "Password",
+    "Clave",
     "CAPTCHA",
     "Subscribe",
 )
@@ -52,10 +52,18 @@ _ALWAYS_HITL: frozenset[str] = frozenset(
         "Work Experience",
         "Languages",
         "Job Network",
-        "Password",
+        "Clave",
         "CAPTCHA",
         "Subscribe",
     }
+)
+
+# Catalog gaps the sheet must name even when the row list uses display labels.
+_SHEET_GAPS: tuple[str, ...] = (
+    "date_of_birth",
+    "gender",
+    "nationality",
+    "disability",
 )
 
 _CAPTCHA_MARKERS: tuple[str, ...] = (
@@ -221,9 +229,10 @@ def render_inspira_sheet(
         "",
         f"Registro: `{portal.signup_url}`",
         "",
-        "Hoja de alta (UN Global Talent Pool / Inspira). JobBot rellena solo campos "
-        "que el SST ya responde (`companies signup --apply`); DOB, género, "
-        "nacionalidad, Job Network, password, CAPTCHA y Subscribe quedan en HITL.",
+        "Hoja de alta (UN Global Talent Pool / Inspira). JobBot no envía la postulación "
+        "ni acepta términos. Rellena solo campos que el SST ya responde "
+        "(`companies signup --apply`); DOB, género, nacionalidad, Job Network, clave, "
+        "CAPTCHA y Subscribe quedan en HITL.",
         "",
     ]
     for item in signup_items(candidate):
@@ -241,5 +250,13 @@ def render_inspira_sheet(
             continue
         shown = item.value.strip() if item.value else f"[falta en el SST: {item.label}]"
         lines.append(f"- {item.label}: {shown}")
-    lines.append("")
+    lines.extend(
+        [
+            "",
+            "## Datos que el portal pide y el SST no tiene",
+            "",
+            *[f"- [falta en el SST: {gap}]" for gap in _SHEET_GAPS],
+            "",
+        ]
+    )
     return "\n".join(lines)

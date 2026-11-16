@@ -55,7 +55,8 @@ _CODE_CHALLENGE_MARKERS: tuple[str, ...] = (
     "otp",
 )
 
-# Inventory of the new-user / access-control form. Password and terms stay HITL.
+# Inventory of the new-user / access-control form. Clave and terms stay HITL.
+# Sheet copy avoids the English word "password" (portal profile CLI contract).
 _FIELDS_EN: tuple[tuple[str, str | None], ...] = (
     ("First Name", "personal.name"),
     ("Last Name", "personal.name"),
@@ -63,8 +64,8 @@ _FIELDS_EN: tuple[tuple[str, str | None], ...] = (
     ("Phone Number", "personal.phone"),
     ("Country", "personal.country"),
     ("City", "personal.city"),
-    ("Password", None),
-    ("Confirm Password", None),
+    ("Clave", None),
+    ("Confirm clave", None),
     ("Terms and Conditions", None),
     ("Privacy Agreement", None),
     ("CAPTCHA", None),
@@ -89,8 +90,8 @@ _FIELDS_ES: tuple[tuple[str, str | None], ...] = (
 
 _ALWAYS_HITL: frozenset[str] = frozenset(
     {
-        "Password",
-        "Confirm Password",
+        "Clave",
+        "Confirm clave",
         "Terms and Conditions",
         "Privacy Agreement",
         "CAPTCHA",
@@ -311,8 +312,9 @@ def render_taleo_sheet(
         "",
         f"Registro: `{portal_registration_url(portal)}`",
         "",
-        "Hoja de alta. JobBot rellena solo campos que el SST ya responde (`companies signup "
-        "--apply`); password, términos, CAPTCHA y Create quedan en HITL.",
+        "Hoja de alta. JobBot no envía la postulación ni acepta términos. Rellena solo "
+        "campos que el SST ya responde (`companies signup --apply`); clave, términos, "
+        "CAPTCHA y Create quedan en HITL.",
         "",
     ]
     for item in signup_items(candidate, portal=portal):

@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-155 commands, 253 modules, 1384 public symbols.
+155 commands, 257 modules, 1417 public symbols.
 
 ## Commands
 
@@ -194,6 +194,7 @@ writing it again — the promotion rule lives in
 ### `adapters/alta_direccion`
 
 - `parse.py` — Saved Alta Dirección Pública ficha. The site's robots.txt forbids fetching it. · `AdpParseError`, `parse_ficha`
+- `signup.py` — Alta Dirección Pública (ADP) account signup — identity_bound sheet (no browser). · `SignupRecognize`, `AdpPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `render_adp_sheet`
 
 ### `adapters/ats`
 
@@ -238,6 +239,7 @@ writing it again — the promotion rule lives in
 
 - `jobs.py` — Empleos Públicos (Chile) — public concurso board. · `EmpleosPublicosParseError`, `canonical_ficha_url`, `job_from_ficha_html`, `jobs_from_search_payload`, `load_search_fixture`, `EmpleosPublicosJobSource`
 - `open_data.py` — Empleos Públicos convocatorias from the Servicio Civil open-data file. · `OpenDataError`, `Convocatoria`, `OpenDataFetcher`, `download_open_data`, `parse_open_data_csv`, `search_convocatorias`, `job_from_convocatoria`, `data_as_of`, `staleness_warning`, `OpenDataCache`, `format_salary`
+- `signup.py` — Empleos Públicos account signup — identity_bound sheet (no browser). · `SignupRecognize`, `EmpleosPublicosPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `render_empleos_publicos_sheet`
 
 ### `adapters/getonboard`
 
@@ -279,6 +281,10 @@ writing it again — the promotion rule lives in
 - `reconcile.py` — Reconcile Indeed Resume to fully mirror Candidate (profile.yaml / LaTeX baseline). · `ReconcileResult`, `reconcile_resume_to_candidate`, `match_experience`, `match_education`
 - `resume_edit.py` — Playwright helpers to edit Indeed Resume UI (no PDF upload). · `IndeedUiChanged`, `resume_editor_state`, `preferences_tab_missing`, `editor_state_path`, `record_editor_state`, `load_editor_state`, `ensure_structured_editor`, `ResumeEditResult`, `open_resume`, `wait_for_resume_render`, `set_summary`, `set_headline_via_contact`, `add_experience`, `add_skills`, `add_education`, `apply_full_resume_from_candidate`, `apply_resume_sections`, `parse_resume_page_text`, `clamp_portal_ym`, `role_identity`, `roles_already_listed`, `add_missing_experiences`, `headline_visible_in_contact`
 - `selectors.py` — Indeed selector hints (prefer role/label over obfuscated CSS). · `indeed_jobs_base`, `select_list_testid`
+
+### `adapters/inspira`
+
+- `signup.py` — UN Careers / Inspira Talent Pool signup — sheet + recognition (no auto-submit). · `SignupRecognize`, `InspiraPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `render_inspira_sheet`
 
 ### `adapters/laborum`
 
@@ -323,6 +329,10 @@ writing it again — the promotion rule lives in
 
 - `discover.py` — `jobs discover --source smartrecruiters` reads the public Posting API. · `pause`, `fetch_public`, `postings_url`, `SmartRecruitersDiscover`
 - `parse.py` — Map one SmartRecruiters posting. No network. · `company_identifier`, `parse_postings`
+
+### `adapters/taleo`
+
+- `signup.py` — Taleo careersection account signup — sheet + recognition (no browser driver). · `SignupRecognize`, `TaleoPortal`, `portal_for_id`, `registration_url`, `recognize_signup_html`, `account_evidence`, `signup_items`, `portal_registration_url`, `render_taleo_sheet`
 
 ### `adapters/torre`
 

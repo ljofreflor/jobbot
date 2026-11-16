@@ -213,7 +213,7 @@ def render_adp_sheet(
         f"Registro: `{portal.signup_url}`",
         "",
         "Este portal pide identidad estatal (RUN). jobbot no abre el navegador "
-        "ni escribe. Copiar esta hoja a mano. Password y Registrar quedan en HITL. "
+        "ni escribe. Copiar esta hoja a mano. Contraseña y Registrar quedan en HITL. "
         "El sitio prohíbe fetch automático (robots); la evidencia es local.",
         "",
     ]
@@ -232,5 +232,13 @@ def render_adp_sheet(
             continue
         shown = item.value.strip() if item.value else f"[falta en el SST: {item.label}]"
         lines.append(f"- {item.label}: {shown}")
-    lines.append("")
+    lines.extend(
+        [
+            "",
+            "## Datos que el portal pide y el SST no tiene",
+            "",
+            "- [falta en el SST: national_id]",
+            "",
+        ]
+    )
     return "\n".join(lines)

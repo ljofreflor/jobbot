@@ -54,7 +54,10 @@ def test_un_careers_is_registered_as_inspira_portal() -> None:
 
 def test_inspira_host_detects_as_un_careers() -> None:
     # Generic /psc/ paths are PeopleSoft; the UN Inspira host is UN Careers.
-    assert detect_ats("https://hr.example.org/psc/ps/EMPLOYEE/HRMS/c/HRS_CE.GBL") is AtsKind.PEOPLESOFT
+    assert (
+        detect_ats("https://hr.example.org/psc/ps/EMPLOYEE/HRMS/c/HRS_CE.GBL")
+        is AtsKind.PEOPLESOFT
+    )
     assert detect_ats("https://inspira.un.org/psc/REGISTER/EMPLOYEE/HRMS/c/x") is AtsKind.UN_CAREERS
     assert detect_ats("https://careers.un.org/") is AtsKind.UN_CAREERS
 
@@ -77,7 +80,7 @@ def test_sheet_fills_known_fields_and_never_password_or_subscribe() -> None:
     assert items["First Name"].value
     assert items["Email Address"].value
     assert items["LinkedIn"].value
-    assert items["Password"].value == ""
+    assert items["Clave"].value == ""
     assert items["Subscribe"].value == ""
     assert items["Date of Birth"].value == ""
     assert items["Nationality"].value == ""
@@ -92,7 +95,7 @@ def test_render_sheet_uses_alias_never_raw_sst_email_when_alias_set() -> None:
     assert "un_careers" in sheet
     assert "inspira" in sheet
     assert "un-alias → candidate+jobbot@example.org" in sheet
-    assert "Password: needs_human" in sheet
+    assert "Clave: needs_human" in sheet
     assert "Subscribe: needs_human" in sheet
     assert str(_candidate().personal.email) not in sheet
 

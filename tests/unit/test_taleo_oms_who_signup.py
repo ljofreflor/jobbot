@@ -75,13 +75,14 @@ def test_sheet_fills_known_fields_and_never_a_password() -> None:
 
     assert items["First Name"].value
     assert items["Email Address"].value
-    assert items["Password"].value == ""
-    assert items["Password"].yours_to_decide
+    assert items["Clave"].value == ""
+    assert items["Clave"].yours_to_decide
     assert items["Create Account"].value == ""
     text = " ".join(f"{i.label}:{i.value}" for i in items.values()).casefold()
-    assert "password:" in text
-    # No invented credential next to Password
-    assert items["Confirm Password"].value == ""
+    assert "clave:" in text
+    assert "password:" not in text
+    # No invented credential next to Clave
+    assert items["Confirm clave"].value == ""
 
 
 def test_render_sheet_uses_alias_never_raw_sst_email_when_alias_set() -> None:
@@ -93,7 +94,7 @@ def test_render_sheet_uses_alias_never_raw_sst_email_when_alias_set() -> None:
     )
     assert "oms_who" in sheet
     assert "who-alias → candidate+jobbot@example.org" in sheet
-    assert "Password: needs_human" in sheet
+    assert "Clave: needs_human" in sheet
     assert "Create Account: needs_human" in sheet
     # Real SST email must not appear when an alias is configured.
     assert str(_candidate().personal.email) not in sheet
