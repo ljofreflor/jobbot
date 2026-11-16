@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-154 commands, 252 modules, 1363 public symbols.
+154 commands, 252 modules, 1366 public symbols.
 
 ## Commands
 
@@ -291,7 +291,7 @@ writing it again — the promotion rule lives in
 - `package.py` — LinkedIn publications sync package from Candidate (facts only). · `LinkedInPublicationItem`, `doi_url`, `build_linkedin_publication_items`, `publications_missing_from_remote`
 - `posts_source.py` — LinkedIn recruiter-post job source (MVP: posts → ATS URL / email / LinkedIn message). · `permalink_from_html`, `first_post_permalink`, `author_profile_url`, `canonical_post_url`, `copy_post_permalink`, `allow_clipboard_read`, `wait_for_post_cards`, `autoscroll_feed`, `expand_truncated_posts`, `LinkedInPostJobSource`, `collect_jobs_from_feed_page`
 - `publications.py` — Playwright helpers for LinkedIn Publications (Spanish UI; HITL; no CAPTCHA bypass). · `profile_publications_new_url`, `profile_publications_details_url`, `vanity_from_linkedin_url`, `list_remote_publication_titles`, `open_new_publication_form`, `open_edit_publication_form`, `fill_publication_form`, `save_publication`
-- `selectors.py` — LinkedIn selector hints.
+- `selectors.py` — LinkedIn selector hints. The Easy Apply submit control is named and never clicked. · `is_easy_apply_submit`
 - `sweep.py` — Parse LinkedIn recruiter posts into job-shaped records (no invention). · `looks_like_job_post`, `PostVacancy`, `LinkedInPostCandidate`, `posted_at_from_url`, `current_time`, `posted_at_from_text`, `strip_engagement_chrome`, `strip_feed_chrome`, `labelled_vacancy_links`, `split_vacancy_links`, `post_offers_wanted_country`, `parse_post_blob`, `parse_posts_fixture`, `post_to_jobs`, `post_to_job`, `vacancy_dedupe_key`, `dedupe_jobs_by_apply_target`, `employer_from_post`
 
 ### `adapters/lumesse`
@@ -391,7 +391,7 @@ writing it again — the promotion rule lives in
 - `advisor.py` — Small, non-destructive suggestions for how the CV presents existing facts. · `Axis`, `TargetKind`, `Target`, `Advice`, `char_delta`, `compress_phrase`, `advise`, `validate_advice`, `apply_advice`, `default_advice_log_path`, `load_advice_log`, `record_decision`, `render_advice_markdown`
 - `application_log.py` — Opt-in last page of a job CV: which posting it was built for, the match, and where · `LogText`, `ApplicationLogOptions`, `EvidenceLine`, `ApplicationLog`, `posting_url`, `build_application_log`, `strong_requirement_evidence`
 - `ats.py` — ATS-oriented CV generation helpers. · `build_ats_text`
-- `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
+- `build.py` — CV build pipeline: profile → Jinja2 → tex/ats → optional XeLaTeX PDF. · `BuildTarget`, `cv_pdf_person_stem`, `write_named_cv_pdf`, `build_cv`, `should_rebuild_job_cv`, `application_log_options`, `build_adapted_cv`, `build_job_cv_bundle`
 - `check.py` — Structural CV checks. A failure asks a question; it never adds a fact. · `CheckStatus`, `Check`, `CvCheckReport`, `check_cv`, `accepted_suggestion`, `write_cv_check`
 - `company_apply.py` — Open an active career site and fill only what ``profile.yaml`` already answers. · `MissingAdaptedCvError`, `CompanyApplyIntent`, `CompanyApplyResult`, `CompanyPortalReceipt`, `resolve_job_adapted_cv`, `company_apply_intent`, `perform_company_apply`, `observe_company_presence`, `company_receipts_path`, `load_company_receipts`, `has_receipt_for`, `write_company_receipt`
 - `gap.py` — Which posting terms the profile already evidences, and which stay questions. · `GapStatus`, `GapTerm`, `GapReport`, `gap_report`, `write_gap_report`
