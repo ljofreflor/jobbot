@@ -69,12 +69,25 @@ def test_known_ats_qualifies_and_http_200_rejected_and_boards_do_not() -> None:
         conflicts=["ats changed"],
     )
 
+    catalog_only = _site(
+        url="https://empresa-demo.csod.com/ux/ats/careersite/5/home?c=empresa-demo",
+        ats=AtsKind.UNKNOWN,
+        evidence="catalog seed read=fetched; researched_at=2026-10-12",
+    )
+    catalog_named_ats = _site(
+        url="https://empresa-demo.csod.com/ux/ats/careersite/4/home?c=otra",
+        ats=AtsKind.GREENHOUSE,
+        evidence="catalog seed read=fetched",
+    )
+
     assert auto_promote_eligible(greenhouse) is True
     assert auto_promote_eligible(http_only) is False
     assert auto_promote_eligible(rejected) is False
     assert auto_promote_eligible(stale) is False
     assert auto_promote_eligible(board) is False
     assert auto_promote_eligible(conflicted) is False
+    assert auto_promote_eligible(catalog_only) is False
+    assert auto_promote_eligible(catalog_named_ats) is False
 
 
 def test_dry_run_lists_the_site_and_apply_marks_it_active(

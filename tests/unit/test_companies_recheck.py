@@ -127,6 +127,25 @@ def test_contradicting_host_rule_leaves_the_site_stale_with_both_evidences() -> 
     assert site.conflicts
 
 
+def test_listing_with_tenant_query_is_not_treated_as_a_posting() -> None:
+    """Catalog listings keep ?c=tenant; recheck must not reject them as openings."""
+    listing = "https://empresa-demo.csod.com/ux/ats/careersite/5/home?c=empresa-demo&utm_source=x"
+    registry = CompanyRegistry()
+    _seed(
+        registry,
+        company="Empresa Demo",
+        url=listing,
+        ats=AtsKind.UNKNOWN,
+        site_type=CareerSiteType.ATS_INSTANCE,
+    )
+
+    changes = plan_recheck(registry)
+    assert all(change.action != "reject_posting" for change in changes)
+    assert all(change.action != "add_root" for change in changes)
+    site = registry.companies[0].career_sites[0]
+    assert "c=empresa-demo" in site.url
+
+
 def test_rejected_site_is_left_alone() -> None:
     registry = CompanyRegistry()
     _seed(

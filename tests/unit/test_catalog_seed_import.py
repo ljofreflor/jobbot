@@ -114,6 +114,31 @@ def test_enabled_row_is_an_error(tmp_path: Path) -> None:
     assert any("enabled" in i.reason for i in report.errors)
 
 
+def test_imported_catalog_rows_are_not_auto_promote_eligible(tmp_path: Path) -> None:
+    from jobbot.companies.auto_promote import auto_promote_eligible, auto_promote_plan
+
+    path = _mini_seed(
+        tmp_path,
+        channels=[
+            {
+                "employer": "Cencosud",
+                "sector": "retail",
+                "url": "https://cencosud.csod.com/ux/ats/careersite/5/home?c=cencosud",
+                "type": "listing",
+                "ats": "unknown",
+                "read": "fetched",
+            }
+        ],
+        expected={"employers": 1, "channels": 1, "sectors": 1},
+    )
+    doc = load_catalog_seed(path)
+    registry = CompanyRegistry()
+    assert import_catalog_seed(registry, doc, apply=True).ok
+    site = registry.find_company("Cencosud").career_sites[0]
+    assert auto_promote_eligible(site) is False
+    assert auto_promote_plan(registry) == ()
+
+
 def test_full_chile_seed_counts_match() -> None:
     root = Path("data/sources-cl.example.yaml")
     if not root.is_file():

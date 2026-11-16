@@ -8598,7 +8598,7 @@ def companies_promote(
     """Promote one company's candidate sites to active."""
     from jobbot.companies.models import KnowledgeStatus
     from jobbot.companies.registry import save_companies
-    from jobbot.companies.urls import canonical_key
+    from jobbot.companies.urls import semantic_key
 
     config = load_config()
     registry, path = _companies_registry(config)
@@ -8609,7 +8609,7 @@ def companies_promote(
     targets = [
         s
         for s in record.career_sites
-        if s.status != KnowledgeStatus.REJECTED and (site is None or s.key == canonical_key(site))
+        if s.status != KnowledgeStatus.REJECTED and (site is None or s.key == semantic_key(site))
     ]
     if not targets:
         console.print("Nothing to promote.")
