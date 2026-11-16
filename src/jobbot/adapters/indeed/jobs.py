@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import logging
 import re
+import sys
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote_plus, urljoin, urlparse
@@ -37,11 +38,35 @@ class IndeedJobClosed(ValueError):
 
 
 class IndeedChallengePending(Exception):
-    """A challenge is still on the page. That is not an empty search."""
+    """Indeed asked for a human check; JobBot does not solve CAPTCHA or stealth.
+
+    A challenge that nobody clears is a block, not an empty search (#184).
+    """
 
     def __init__(self, context: str) -> None:
         self.context = context
-        super().__init__(context)
+        super().__init__("Indeed pidió verificación anti-bot y no se resolvió")
+
+
+# Tip-era name kept as an alias for callers/tests that still import it.
+ChallengeBlocked = IndeedChallengePending
+
+
+def challenge_wait_seconds(
+    explicit: float | None = None,
+    *,
+    stdin_is_tty: bool | None = None,
+) -> float:
+    """How long to wait for a human to clear a challenge.
+
+    Interactive sessions default to 5 minutes. Agent / no-TTY runs default to 0
+    so a block is reported immediately instead of looking like an empty search.
+    ``--challenge-wait`` overrides either way (0 still fails fast on a TTY).
+    """
+    if explicit is not None:
+        return max(0.0, float(explicit))
+    tty = sys.stdin.isatty() if stdin_is_tty is None else stdin_is_tty
+    return 300.0 if tty else 0.0
 
 
 class IndeedJobSource:
@@ -53,6 +78,7 @@ class IndeedJobSource:
         *,
         cdp_url: str | None = None,
         cdp_attach_s: float | None = None,
+        challenge_wait: float | None = None,
     ) -> None:
         self.config = config or load_config()
         self.base = selectors.indeed_jobs_base(self._country())
@@ -62,6 +88,7 @@ class IndeedJobSource:
 
         self.cdp_url = resolve_cdp_url(cdp_url)
         self.cdp_attach_s = DEFAULT_CDP_ATTACH_S if cdp_attach_s is None else cdp_attach_s
+        self.challenge_wait = challenge_wait_seconds(challenge_wait)
 
     def _country(self) -> str:
         # Loaded from .jobbot.toml [indeed].country when present
@@ -131,9 +158,10 @@ class IndeedJobSource:
                 return []
 
             results: list[JobPosting] = []
+            enrich_details = enrich
             for card in cards[:limit]:
                 detail_html = None
-                if enrich and card.get("url"):
+                if enrich_details and card.get("url"):
                     try:
                         browser.page.goto(
                             card["url"],
@@ -141,14 +169,21 @@ class IndeedJobSource:
                             timeout=20_000,
                         )
                         if not self._clear_challenge(browser, context="job detail"):
-                            raise IndeedChallengePending("job detail")
-                        detail_html = browser.page.content()
-                        if detail_is_empty_or_search(detail_html):
-                            logger.info(
-                                "skipping Indeed card %s: detail is not a posting",
-                                card.get("source_job_id"),
+                            # First unresolved detail challenge: keep cards already
+                            # read and stop opening more (#184).
+                            enrich_details = False
+                            console.print(
+                                "[yellow]Indeed pidió verificación en el detalle; "
+                                "se devuelven las tarjetas ya leídas sin abrir más avisos.[/yellow]"
                             )
-                            continue
+                        else:
+                            detail_html = browser.page.content()
+                            if detail_is_empty_or_search(detail_html):
+                                logger.info(
+                                    "skipping Indeed card %s: detail is not a posting",
+                                    card.get("source_job_id"),
+                                )
+                                continue
                     except IndeedChallengePending:
                         raise
                     except Exception as exc:  # noqa: BLE001
@@ -162,7 +197,8 @@ class IndeedJobSource:
         url = job_id if job_id.startswith("http") else f"{self.base}/viewjob?jk={job_id}"
         with self._session() as browser:
             browser.page.goto(url, wait_until="domcontentloaded")
-            self._clear_challenge(browser, context="job detail")
+            if not self._clear_challenge(browser, context="job detail"):
+                raise IndeedChallengePending("job detail")
             html = browser.page.content()
             card = {
                 "source_job_id": _extract_jk(url) or job_id,
@@ -177,18 +213,20 @@ class IndeedJobSource:
     def _clear_challenge(self, browser: BrowserSession, *, context: str) -> bool:
         if not _looks_like_challenge(browser.page):
             return True
+        wait = self.challenge_wait
+        if wait <= 0:
+            browser.dump_debug("indeed", "challenge_blocked", context=context)
+            return False
         cleared = browser.pause_for_manual(
             f"Indeed showed a challenge/CAPTCHA/consent on {context}. "
             "Complete it in the Chromium window, then press Enter "
             "(or wait — this run polls until the page clears).",
             is_clear=lambda: not _looks_like_challenge(browser.page),
-            timeout_seconds=300,
+            timeout_seconds=wait,
         )
         if not cleared:
             browser.dump_debug("indeed", "challenge_timeout", context=context)
-            console.print(
-                f"[red]Challenge on {context} not cleared within 5 minutes.[/red]"
-            )
+            console.print(f"[red]Challenge on {context} not cleared within {wait:.0f}s.[/red]")
             return False
         return True
 

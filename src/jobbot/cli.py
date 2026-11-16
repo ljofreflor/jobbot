@@ -3681,6 +3681,14 @@ def jobs_search(
         float,
         typer.Option("--cdp-timeout", help="Seconds to wait for a CDP attach (default 15)"),
     ] = 15,
+    challenge_wait: Annotated[
+        float | None,
+        typer.Option(
+            "--challenge-wait",
+            help="Seconds to wait for a human to clear an Indeed challenge "
+            "(default: 300 on a TTY, 0 without one)",
+        ),
+    ] = None,
 ) -> None:
     """Search Indeed and store job postings locally (small volumes)."""
     from jobbot.adapters.indeed.jobs import IndeedChallengePending, IndeedJobSource
@@ -3693,7 +3701,12 @@ def jobs_search(
 
     session, config = _session()
     cdp_url = resolve_cdp_url(cdp)
-    source = IndeedJobSource(config, cdp_url=cdp_url, cdp_attach_s=cdp_timeout)
+    source = IndeedJobSource(
+        config,
+        cdp_url=cdp_url,
+        cdp_attach_s=cdp_timeout,
+        challenge_wait=challenge_wait,
+    )
     q = JobSearchQuery(query=query, location=location, remote=remote, limit=limit)
 
     if cdp_url:
@@ -3702,8 +3715,11 @@ def jobs_search(
     try:
         found = source.search_jobs(q) if enrich else source.search_cards(q)
     except IndeedChallengePending as exc:
+        err_console.print(f"[red]{exc}[/red]")
         err_console.print(
-            f"[red]Indeed challenge on {exc.context} was not cleared. Not an empty search.[/red]"
+            "Abrí una sesión humana: [bold]jobbot browser chrome-debug --site indeed[/bold] "
+            "y repetí con [bold]--cdp[/bold]. "
+            "O aparcá el aviso: [bold]jobbot get --park URL[/bold]."
         )
         raise _QuietExit(MANUAL_CHALLENGE) from exc
     except Exception as exc:
