@@ -36,6 +36,7 @@ class JobRow(Base):
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    share_code: Mapped[str | None] = mapped_column(String(12), nullable=True, index=True)
     # ISO-8601 with its own offset: SQLite DateTime would drop the posting's zone.
     closes_at: Mapped[str | None] = mapped_column(Text, nullable=True)
     closes_on: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -45,6 +46,17 @@ class JobRow(Base):
     checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     open_evidence: Mapped[str | None] = mapped_column(Text, nullable=True)
     invalid_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class JobUrlRow(Base):
+    """Public URLs seen for one job. A different path is a different job."""
+
+    __tablename__ = "job_urls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    job_id: Mapped[str] = mapped_column(String(32), index=True)
+    url: Mapped[str] = mapped_column(Text)
+    canonical_key: Mapped[str] = mapped_column(Text, index=True)
 
 
 class ApplicationRow(Base):

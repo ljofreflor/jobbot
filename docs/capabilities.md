@@ -8,7 +8,7 @@ writing it again — the promotion rule lives in
 [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md), section
 "Design economics".
 
-155 commands, 258 modules, 1435 public symbols.
+155 commands, 259 modules, 1447 public symbols.
 
 ## Commands
 
@@ -160,7 +160,7 @@ writing it again — the promotion rule lives in
 - `jobbot status` — Show which permanent CVs / profiles and active company portals are up.
 - `jobbot torre search` — Search Torre (LATAM / remote) and store jobs locally.
 - `jobbot update` — Upgrade the ``jobbot`` executable on PATH (uv tool reinstall from GitHub).
-- `jobbot version` — Show JobBot version.
+- `jobbot version` — Show engine version and active product brand.
 - `jobbot workspace adopt` — Hand this workspace's data and output over to the profile now in place.
 - `jobbot workspace consent` — Record local consent and a retention date for one sandbox.
 - `jobbot workspace delete` — Delete one sandbox. Never touches the checkout's own data/.
@@ -174,10 +174,10 @@ writing it again — the promotion rule lives in
 
 - `advisor.py` — Advisor view across workspaces: status, a client report, consent, deletion. · `WorkspaceDeleteRefused`, `Consent`, `WorkspaceActivity`, `consent_path`, `read_consent`, `write_consent`, `retention_due`, `retention_warning`, `workspace_activity`, `status_lines`, `write_report`, `parse_since`, `delete_workspace`
 - `advisor_inbox.py` — Inbound client messages (WhatsApp): questions and CV HITL, never submit, never secrets. · `InboundKind`, `PendingPrompt`, `InboundDecision`, `classify_inbound`
-- `branding.py` — One closing mark on texts Jobbot publishes. · `has_mark`, `strip_mark`, `stamp_description`
+- `branding.py` — Public face vs engine name. · `Brand`, `get_brand`, `set_brand`, `reset_brand`, `brand_from_parts`, `brand_from_env`, `has_mark`, `strip_mark`, `stamp_description`
 - `cli.py` — CLI entrypoint for JobBot. · `run_cli`
 - `cli_sdk_demo.py` — CLI SDK Integration Demo.
-- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `ConfigError`, `SearchConfig`, `CvConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
+- `config.py` — Configuration loading for JobBot. · `PathsConfig`, `ConfigError`, `SearchConfig`, `CvConfig`, `BrandConfig`, `JobbotConfig`, `resolve_workspace`, `load_config`
 - `exit_codes.py` — Exit codes used by the JobBot CLI.
 - `pdf_text.py` — Text layer of a PDF, shared by postings. The CV importer keeps its own path reader. · `PdfTextError`, `text_from_pdf_bytes`
 - `self_update.py` — Reinstall / upgrade the ``jobbot`` executable on PATH. · `UpdateResult`, `CheckResult`, `InstallInfo`, `update_jobbot`, `docker_hint`, `parse_direct_url`, `read_direct_url`, `installed_info`, `parse_ls_remote`, `latest_commit`, `short_commit`, `check_for_update`
@@ -426,7 +426,7 @@ writing it again — the promotion rule lives in
 ### `db`
 
 - `engine.py` — SQLAlchemy engine and session helpers. · `make_engine`, `make_readonly_engine`, `make_session_factory`
-- `models.py` — SQLAlchemy ORM tables. · `Base`, `JobRow`, `ApplicationRow`, `ApplicationEventRow`, `ExternalProfileSnapshotRow`, `OpsFailureRow`, `OpsSymptomRow`
+- `models.py` — SQLAlchemy ORM tables. · `Base`, `JobRow`, `JobUrlRow`, `ApplicationRow`, `ApplicationEventRow`, `ExternalProfileSnapshotRow`, `OpsFailureRow`, `OpsSymptomRow`
 
 ### `jobs`
 
@@ -446,6 +446,7 @@ writing it again — the promotion rule lives in
 - `freshness.py` — How old a posting is, and whether that is still worth applying to. · `age_in_days`, `is_fresh`, `age_label`
 - `from_url.py` — Ingest a hard job URL: know the portal, fetch the JD, store, match, prepare. · `UnknownPortalError`, `UnsupportedPortalFetchError`, `PortalDisallowedError`, `InvalidPostingUrlError`, `PortalShapeChangedError`, `GetFromUrlResult`, `ingest_hard_link`, `fetch_workday_posting`
 - `geo.py` — Where the candidate wants to work: country detection from job text. · `normalize_country`, `country_name`, `normalize_countries`, `countries_in_text`, `leading_country`, `detect_country`, `mentions_remote`, `remote_is_location_free`, `country_allows`, `resolve_countries`
+- `identity.py` — Stable public identity for a job URL. · `canonical_job_key`, `share_code_for_key`, `share_code_for_url`, `display_url`
 - `ids.py` — Allocate readable internal IDs: J0001, A0001, … · `next_job_id`, `next_application_id`, `next_failure_id`, `next_symptom_id`
 - `inbox.py` — Park hard job URLs for later ingest (phone-friendly; no CAPTCHA bypass). · `inbox_path`, `normalize_park_url`, `list_parked`, `park_url`, `remove_parked`
 - `indeed_url.py` — Indeed job URL canonicalization and validation. · `IndeedUrlError`, `indeed_jk_rejection`, `validate_indeed_jk`, `canonical_indeed_job_url`, `extract_indeed_jk`

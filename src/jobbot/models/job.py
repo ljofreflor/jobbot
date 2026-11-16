@@ -29,6 +29,7 @@ class JobPosting(BaseModel):
     discovered_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     note: str | None = None
     match_score: float | None = None
+    share_code: str | None = None
     # Closing as the posting publishes it: `closes_at` only when both the time and
     # an unambiguous zone are published (aware); otherwise just the date.
     closes_at: datetime | None = None
