@@ -100,21 +100,23 @@ def signup_target(site: CareerSite) -> SignupTarget:
     need = account_need(site.ats)
     url = site.url
     if site.ats is AtsKind.TALEO:
-        from jobbot.adapters.taleo.signup import registration_url
+        from jobbot.adapters.taleo.signup import registration_url as taleo_registration_url
 
-        url = registration_url(site.url)
+        url = taleo_registration_url(site.url)
     elif site.ats is AtsKind.EMPLEOS_PUBLICOS:
-        from jobbot.adapters.empleospublicos.signup import registration_url
+        from jobbot.adapters.empleospublicos.signup import (
+            registration_url as empleos_registration_url,
+        )
 
-        url = registration_url(site.url)
+        url = empleos_registration_url(site.url)
     elif site.ats is AtsKind.ALTA_DIRECCION_PUBLICA:
-        from jobbot.adapters.alta_direccion.signup import registration_url
+        from jobbot.adapters.alta_direccion.signup import registration_url as adp_registration_url
 
-        url = registration_url(site.url)
+        url = adp_registration_url(site.url)
     elif site.ats is AtsKind.UN_CAREERS:
-        from jobbot.adapters.inspira.signup import registration_url
+        from jobbot.adapters.inspira.signup import registration_url as un_registration_url
 
-        url = registration_url(site.url)
+        url = un_registration_url(site.url)
     return SignupTarget(url=url, need=need, note=_NOTES[need])
 
 
