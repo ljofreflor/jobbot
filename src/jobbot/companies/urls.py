@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
 import httpx
 
@@ -104,6 +104,84 @@ def canonical_key(url: str) -> str:
     normalized = public_url(url)
     parsed = urlparse(normalized)
     return f"{parsed.netloc}{parsed.path}".casefold()
+
+
+# Parameters identified as tracking on career links we stored: share referrers,
+# campaign ids, ad click ids, LinkedIn's per-member ``rcm`` / ``trk``. Everything
+# else stays — a query also carries tenant, country and search.
+_TRACKING_PARAMS: frozenset[str] = frozenset(
+    {
+        "_ga",
+        "fbclid",
+        "gclid",
+        "icid",
+        "igshid",
+        "mc_cid",
+        "mc_eid",
+        "msclkid",
+        "rcm",
+        "ref_src",
+        "referrer",
+        "source",
+        "spm",
+        "src",
+        "trackingid",
+        "trk",
+        "trkcampaignid",
+    }
+)
+_TRACKING_PREFIXES: tuple[str, ...] = ("utm_",)
+
+
+def is_tracking_param(name: str) -> bool:
+    folded = (name or "").strip().casefold()
+    return folded in _TRACKING_PARAMS or folded.startswith(_TRACKING_PREFIXES)
+
+
+def semantic_url(url: str) -> str:
+    """Shareable URL that keeps the portal's tenant/country query and drops tracking.
+
+    ``public_url`` drops the whole query, which is right when identity is the path.
+    It is wrong for a listing whose tenant lives in the query (``?c=cencosud``).
+    """
+    raw = (url or "").strip()
+    if not raw:
+        msg = "empty URL"
+        raise PrivateRouteRejected(msg)
+    if raw.lower().startswith("mailto:"):
+        msg = "email apply routes are personal data, not company knowledge"
+        raise PrivateRouteRejected(msg)
+    if not re.match(r"^https?://", raw, re.I):
+        raw = f"https://{raw}"
+    parsed = urlparse(raw)
+    host = (parsed.hostname or "").lower()
+    if not host:
+        msg = f"URL without host: {url!r}"
+        raise PrivateRouteRejected(msg)
+    if any(ch.isspace() for ch in host) or "." not in host:
+        msg = f"not a host name: {host!r} (from {url!r})"
+        raise PrivateRouteRejected(msg)
+    netloc = host if parsed.port is None else f"{host}:{parsed.port}"
+    path = re.sub(r"/{2,}", "/", parsed.path or "")
+    scheme = parsed.scheme.lower() if parsed.scheme in {"http", "https"} else "https"
+    kept = [
+        (name, value)
+        for name, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if not is_tracking_param(name)
+    ]
+    query = urlencode(kept, quote_via=quote)
+    return urlunparse((scheme, netloc, path, "", query, ""))
+
+
+def semantic_key(url: str) -> str:
+    """Dedup key that survives ``www.``, a trailing slash and parameter order."""
+    parsed = urlparse(semantic_url(url))
+    host = (parsed.hostname or "").removeprefix("www.")
+    netloc = host if parsed.port is None else f"{host}:{parsed.port}"
+    path = (parsed.path or "").rstrip("/")
+    params = sorted(parse_qsl(parsed.query, keep_blank_values=True))
+    query = urlencode(params, quote_via=quote)
+    return f"{netloc}{path}{'?' + query if query else ''}".casefold()
 
 
 def host_of(url: str) -> str:

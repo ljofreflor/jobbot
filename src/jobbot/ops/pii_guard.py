@@ -22,6 +22,10 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
         "learned company portals reflect your own search (share via companies export)",
     ),
     (
+        r"^data/source_catalog\.yaml$",
+        "imported source catalog (share the researched seed, data/sources-*.example.yaml)",
+    ),
+    (
         r"^data/form_knowledge\.yaml$",
         "observed application forms (local knowledge, not shared)",
     ),
@@ -42,8 +46,8 @@ _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
         "email aliases used to open portal accounts",
     ),
     (
-        r"^data/(profile|portals|companies|recruiters|form_knowledge|application_answers|"
-        r"portal_profiles|aliases)"
+        r"^data/(profile|portals|companies|source_catalog|recruiters|form_knowledge|"
+        r"application_answers|portal_profiles|aliases)"
         r"\.yaml\..+$",
         "backup or variant of a local data file (same data as the original)",
     ),

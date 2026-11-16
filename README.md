@@ -3,7 +3,9 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ljofreflor/jobbot/badge)](https://scorecard.dev/viewer/?uri=github.com/ljofreflor/jobbot)
 
 Local terminal tool for managing a job search: structured CV as source of truth, portal sync,
-matching, adapted CVs, and assisted applications. **No web UI** — everything runs from the CLI.
+matching, adapted CVs, and assisted applications. **No web UI.** Meant to be used **chat-first**
+(Cursor or another coding agent runs `uv run jobbot …` for you); the CLI is the contract the
+agent calls — direct terminal use is supported and secondary.
 
 New here? Start with the [tutorial](docs/tutorial.md): the loop end to end, the practices that
 keep it safe, and the guarantees the code enforces.
