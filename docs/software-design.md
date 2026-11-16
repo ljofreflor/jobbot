@@ -678,7 +678,7 @@ thesis) — see
 ## 9. Related documents
 
 - [manifesto.md](manifesto.md) — brand/product voice: búsqueda mientras programas
-- [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md) — agent policy; Design economics (System 2 → System 1)
+- [AGENTS.md](https://github.com/ljofreflor/jobbot/blob/main/AGENTS.md) — agent policy; Design economics (System 2 → System 1); Against over-engineering (Beck / YAGNI / dissolve)
 - [blog: teorías de reclutamiento / people analytics](blog/posts/2026-10-18-teorias-reclutamiento-people-analytics.md) — theory → class next steps
 - [README.md](https://github.com/ljofreflor/jobbot/blob/main/README.md) — product overview and commands
 - [data/README.md](https://github.com/ljofreflor/jobbot/blob/main/data/README.md) — what is gitignored under `data/`
