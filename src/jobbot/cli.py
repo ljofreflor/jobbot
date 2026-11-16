@@ -7495,14 +7495,20 @@ def portals_profile_sheet(
         return
     from jobbot.adapters.alta_direccion.signup import (
         portal_for_id as adp_portal_for_id,
+    )
+    from jobbot.adapters.alta_direccion.signup import (
         render_adp_sheet,
     )
     from jobbot.adapters.empleospublicos.signup import (
         portal_for_id as empleos_portal_for_id,
+    )
+    from jobbot.adapters.empleospublicos.signup import (
         render_empleos_publicos_sheet,
     )
     from jobbot.adapters.inspira.signup import (
         portal_for_id as inspira_portal_for_id,
+    )
+    from jobbot.adapters.inspira.signup import (
         render_inspira_sheet,
     )
     from jobbot.adapters.taleo.signup import portal_for_id as taleo_portal_for_id
