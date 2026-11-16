@@ -142,3 +142,21 @@ def test_version_survives_broken_toml(tmp_path: Path, monkeypatch: pytest.Monkey
     result = CliRunner().invoke(app, ["version"], catch_exceptions=False)
     assert result.exit_code == 0
     assert __version__ in result.stdout
+
+
+def test_version_survives_invalid_search_with_brand(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from typer.testing import CliRunner
+
+    from jobbot.cli import app
+
+    monkeypatch.delenv("JOBBOT_PRODUCT_NAME", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".jobbot.toml").write_text(
+        '[brand]\nproduct_name = "Oficio"\n\n[search]\nmax_age_days = "nope"\n',
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(app, ["version"], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "Oficio" in result.stdout

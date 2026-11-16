@@ -285,7 +285,11 @@ def _activate_brand(config: JobbotConfig) -> Brand:
 
 
 def peek_brand(root: Path | None = None) -> Brand:
-    """Read ``[brand]`` / env for display. Never verifies owner or writes stamps."""
+    """Read ``[brand]`` / env for display. Never verifies owner or writes stamps.
+
+    Only ``[brand]`` and ``[cv].jobbot_project_url`` matter here — a bad
+    ``[search]`` must not stop ``jobbot version``.
+    """
     if root is None:
         base, workspace = resolve_root(Path.cwd())
         if workspace is None:
@@ -301,9 +305,7 @@ def peek_brand(root: Path | None = None) -> Brand:
     except (OSError, tomllib.TOMLDecodeError):
         return _activate_brand(JobbotConfig(root=base))
     config = JobbotConfig(
-        paths=_load_paths(raw, workspace=workspace),
         root=base,
-        search=_load_search(raw),
         cv=_load_cv(raw),
         brand=_load_brand(raw),
     )
