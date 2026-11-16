@@ -272,6 +272,10 @@ Baseline may be updated only via **confirmed** market feedback (`profile suggest
     confirmación por aporte.
   - **Un solo modelo:** el catálogo de fuentes ([#265](https://github.com/ljofreflor/jobbot/issues/265))
     se fusiona en el registro de `companies`; no se crea un registro paralelo de empleador↔canal.
+    Semilla chilena investigada (2026-10-12): `data/sources-cl.example.yaml`. URLs de listado
+    conservan tenant/país (`semantic_url` / `semantic_key` en `companies/urls.py`) y pierden solo
+    tracking identificado. Un paquete `SourceCatalog` paralelo **no** se aterriza: adaptar el tip
+    `cursor/chile-source-catalog-2cd9` al registro de `companies` antes del import (#269).
   - **Registros viejos:** cuando mejora un detector, los sitios ya guardados se revisan con
     `companies recheck` ([#270](https://github.com/ljofreflor/jobbot/issues/270)): la nueva
     evidencia entra como observación y nunca pisa la anterior.
