@@ -149,3 +149,24 @@ def test_normalize_country_is_accent_insensitive() -> None:
 def test_normalize_country_rejects_words_that_are_not_countries() -> None:
     assert normalize_country("remoto") is None
     assert normalize_country("Santiago") is None
+
+
+def test_leading_country_needs_a_clear_lead_or_a_named_country() -> None:
+    from jobbot.jobs.geo import leading_country
+
+    assert leading_country((("EC", 2_000_000),)) == "EC"
+    assert leading_country((("BO", 2_000_000), ("MX", 250_000))) == "BO"
+    assert leading_country((("AR", 2_100_000), ("ES", 320_000))) is None
+    assert leading_country((("ES", 800_000), ("VE", 1_600_000)), named=("VE",)) == "VE"
+    assert leading_country((("ES", 800_000), ("VE", 1_600_000)), named=("ES", "VE")) is None
+
+
+def test_city_snapshot_detects_quito_and_la_paz_only_in_a_location_frame() -> None:
+    assert detect_country("Analista en Quito") == "EC"
+    assert detect_country("Ubicación: La Paz") == "BO"
+    assert detect_country("Oficina en Valencia") is None
+    assert detect_country("Oficina en Valencia, Venezuela") == "VE"
+    assert detect_country("Oficina en Córdoba") is None
+    assert detect_country("split the team across regions") is None
+    assert not country_allows("Puesto en Quito", wanted=("CL",))
+    assert country_allows("Puesto en Valencia", wanted=("CL",))

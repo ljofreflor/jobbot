@@ -1,0 +1,19 @@
+{
+  "totalFound": 1,
+  "content": [
+    {
+      "id": "12345",
+      "name": "Counsel",
+      "location": {
+        "city": "Santiago",
+        "country": "cl",
+        "remote": false
+      },
+      "releasedDate": "2026-10-08T15:00:00.000Z",
+      "company": {
+        "name": "Acme"
+      },
+      "ref": "REF-12345"
+    }
+  ]
+}

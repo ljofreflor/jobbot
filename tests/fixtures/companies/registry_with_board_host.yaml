@@ -1,0 +1,14 @@
+version: 1
+companies:
+  - id: consultora-ficticia
+    name: Consultora Ficticia
+    country: CL
+    career_sites:
+      - url: https://www.trabajando.cl/trabajo-empleo/oferta/1234567-cargo-ficticio
+        domain: www.trabajando.cl
+        site_type: company_career_portal
+        ats: unknown
+        status: candidate
+        first_seen: 2026-10-01T12:00:00Z
+        observations: []
+        conflicts: []

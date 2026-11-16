@@ -59,7 +59,9 @@ def public_url(url: str) -> str:
     """Normalize to a shareable URL: no credentials, no query, no fragment.
 
     Query strings and fragments are dropped on purpose: they are where portals put
-    session ids, referral tokens and per-application parameters.
+    session ids, referral tokens and per-application parameters. ``httpx.URL``
+    folds IDNA, default ports, dot-segments and percent-decoding; ``www.`` and
+    repeated slashes stay our rule.
     """
     raw = (url or "").strip()
     if not raw:
@@ -70,14 +72,17 @@ def public_url(url: str) -> str:
         raise PrivateRouteRejected(msg)
     if not re.match(r"^https?://", raw, re.I):
         raw = f"https://{raw}"
-    parsed = urlparse(raw)
-    host = (parsed.hostname or "").lower().removeprefix("www.")
+    try:
+        parsed = httpx.URL(raw)
+    except httpx.InvalidURL as exc:
+        raise PrivateRouteRejected(str(exc)) from exc
+    host = parsed.host.removeprefix("www.")
     if not host:
         msg = f"URL without host: {url!r}"
         raise PrivateRouteRejected(msg)
-    netloc = host if parsed.port is None else f"{host}:{parsed.port}"
     path = re.sub(r"/{2,}", "/", parsed.path or "").rstrip("/")
-    scheme = parsed.scheme.lower() if parsed.scheme in {"http", "https"} else "https"
+    netloc = host if parsed.port is None else f"{host}:{parsed.port}"
+    scheme = parsed.scheme if parsed.scheme in {"http", "https"} else "https"
     return urlunparse((scheme, netloc, path, "", "", ""))
 
 

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from collections.abc import Sequence
 from functools import lru_cache
 
 from babel import Locale
+
+from jobbot.resources import resource_text
 
 DEFAULT_COUNTRIES: tuple[str, ...] = ("CL",)
 
@@ -113,6 +116,14 @@ _LOCATION_ANCHORS = (
 
 _WORD_RE = re.compile(r"[a-záéíóúñü]+", re.IGNORECASE)
 
+# A city is evidence only next to a location frame. "split the team" is not Split, Croatia.
+_CITY_FRAME_RE = re.compile(
+    r"(?:[,;:]|\b(?:ubicacion|location|sede|oficina|en|in|at|de)\b)\W*$",
+    re.IGNORECASE,
+)
+_POPULATION_LEAD = 8
+_MAX_CITY_WORDS = 6
+
 
 def normalize_country(value: str | None) -> str | None:
     """Accept 'cl', 'CL', 'Chile', 'México', 'Ecuador' → ISO code."""
@@ -180,6 +191,91 @@ def countries_in_text(text: str) -> tuple[str, ...]:
     return tuple(out)
 
 
+def leading_country(
+    rows: Sequence[tuple[str, int]],
+    *,
+    named: Sequence[str] = (),
+) -> str | None:
+    """Pick a country from one city name, or None when the guess could drop a job.
+
+    A country the text already names wins. Otherwise a single country, or the
+    most populated one when it has at least eight times the next, is enough.
+    A closer race stays undetectable.
+    """
+    totals: dict[str, int] = {}
+    for code, population in rows:
+        totals[code] = max(totals.get(code, 0), population)
+    if not totals:
+        return None
+    named_hit: list[str] = []
+    for code in named:
+        if code in totals and code not in named_hit:
+            named_hit.append(code)
+    if len(named_hit) == 1:
+        return named_hit[0]
+    ordered = sorted(totals.items(), key=lambda item: item[1], reverse=True)
+    if len(ordered) == 1:
+        return ordered[0][0]
+    runner_up = ordered[1][1]
+    if runner_up > 0 and ordered[0][1] >= _POPULATION_LEAD * runner_up:
+        return ordered[0][0]
+    return None
+
+
+@lru_cache(maxsize=1)
+def _city_index() -> dict[str, tuple[tuple[str, int], ...]]:
+    """Primary geonames of cities at or above 100k inhabitants, folded.
+
+    The geonamescache package is 33 MB, mostly alternate names, so the wheel
+    ships this snapshot instead. Credit: GeoNames (https://www.geonames.org/),
+    CC-BY 4.0. Alternate names are omitted on purpose.
+    """
+    raw = json.loads(resource_text("cities_100k.json"))
+    index: dict[str, tuple[tuple[str, int], ...]] = {}
+    if not isinstance(raw, dict):
+        return index
+    for name, rows in raw.items():
+        if not isinstance(name, str) or not isinstance(rows, list):
+            continue
+        parsed: list[tuple[str, int]] = []
+        for row in rows:
+            if isinstance(row, list) and len(row) == 2 and isinstance(row[0], str):
+                parsed.append((row[0], int(row[1])))
+        if parsed:
+            index[name] = tuple(parsed)
+    return index
+
+
+def _has_location_frame(folded: str, start: int) -> bool:
+    window = folded[max(0, start - 24) : start]
+    return _CITY_FRAME_RE.search(window) is not None
+
+
+def _country_from_cities(text: str) -> str | None:
+    folded = _fold(text)
+    words = list(re.finditer(r"[a-z0-9]+", folded))
+    if not words:
+        return None
+    named = countries_in_text(text)
+    index = _city_index()
+    cursor = 0
+    while cursor < len(words):
+        consumed = 1
+        for size in range(min(_MAX_CITY_WORDS, len(words) - cursor), 0, -1):
+            phrase = " ".join(match.group(0) for match in words[cursor : cursor + size])
+            rows = index.get(phrase)
+            if rows is None:
+                continue
+            consumed = size
+            if _has_location_frame(folded, words[cursor].start()):
+                code = leading_country(rows, named=named)
+                if code:
+                    return code
+            break
+        cursor += consumed
+    return None
+
+
 def detect_country(text: str) -> str | None:
     """Best-effort country of a posting; None when the text does not say."""
     lowered = (text or "").casefold()
@@ -191,7 +287,9 @@ def detect_country(text: str) -> str | None:
         )
         if hit >= 0 and (best is None or hit < best[0]):
             best = (hit, code)
-    return best[1] if best else None
+    if best:
+        return best[1]
+    return _country_from_cities(text or "")
 
 
 def mentions_remote(text: str) -> bool:

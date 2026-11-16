@@ -45,6 +45,22 @@ def test_evidenced_session_needs_no_warning() -> None:
     assert login_warning(AtsKind.GETONBOARD, [state]) is None
 
 
+def test_a_ready_workday_tenant_is_this_session_only() -> None:
+    ready = _state("acme.wd5.myworkdayjobs.com", SessionStatus.READY, "signed-in page open")
+    other = _state("other.wd5.myworkdayjobs.com", SessionStatus.READY, "signed-in page open")
+
+    assert login_warning(AtsKind.WORKDAY, [ready], host="acme.wd5.myworkdayjobs.com") is None
+    warning = login_warning(AtsKind.WORKDAY, [other], host="acme.wd5.myworkdayjobs.com")
+    assert warning is not None
+    assert "no puede comprobar" in warning
+
+
+def test_workday_without_a_tenant_page_still_cannot_be_checked() -> None:
+    warning = login_warning(AtsKind.WORKDAY, [])
+    assert warning is not None
+    assert "no puede comprobar" in warning
+
+
 def test_platform_that_takes_applications_directly_needs_no_warning() -> None:
     assert login_warning(AtsKind.GREENHOUSE, []) is None
 

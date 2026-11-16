@@ -238,6 +238,8 @@ def test_portal_draft_shows_the_candidates_own_skills() -> None:
     text = build_permanent_profile_fields(candidate).experiencia_y_perfil
 
     assert "Ventilación Mecánica" in text
+    assert "Stack habitual" not in text
+    assert "Habilidades:" in text
 
 
 def test_imported_cv_keeps_its_own_skill_groups() -> None:

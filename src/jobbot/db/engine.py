@@ -2,28 +2,18 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import Date, DateTime, Float, Integer, String, Text, create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.sql.schema import Table
 
 from jobbot.db import models as orm
 
-_JOB_EXTRA_COLUMNS: dict[str, str] = {
-    "ats_url": "TEXT",
-    "ats_kind": "VARCHAR(64)",
-    "posted_at": "DATETIME",
-    "closes_at": "TEXT",
-    "closes_on": "DATE",
-    "closes_text": "TEXT",
-    "ats_signals_json": "TEXT",
-    "open_status": "VARCHAR(16)",
-    "checked_at": "DATETIME",
-    "open_evidence": "TEXT",
-    "invalid_reason": "TEXT",
-}
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def make_engine(db_path: Path) -> Engine:
@@ -35,14 +25,50 @@ def make_engine(db_path: Path) -> Engine:
     return engine
 
 
+def _sqlite_type(column_type: object) -> str | None:
+    """SQLite type for an additive column. Unknown types are skipped, not guessed."""
+    if isinstance(column_type, Text):
+        return "TEXT"
+    if isinstance(column_type, String):
+        return f"VARCHAR({column_type.length})" if column_type.length else "VARCHAR(255)"
+    if isinstance(column_type, DateTime):
+        return "DATETIME"
+    if isinstance(column_type, Date):
+        return "DATE"
+    if isinstance(column_type, Integer):
+        return "INTEGER"
+    if isinstance(column_type, Float):
+        return "FLOAT"
+    return None
+
+
+def _missing_nullable(table: Table, existing: set[str]) -> list[tuple[str, str]]:
+    """Nullable columns the ORM has and this file does not. NOT NULL stays put."""
+    missing: list[tuple[str, str]] = []
+    for column in table.columns:
+        name = column.name
+        if name in existing or column.primary_key or not column.nullable:
+            continue
+        if _IDENTIFIER.fullmatch(name) is None or _IDENTIFIER.fullmatch(table.name) is None:
+            continue
+        col_type = _sqlite_type(column.type)
+        if col_type is not None:
+            missing.append((name, col_type))
+    return missing
+
+
 def _migrate_sqlite(engine: Engine) -> None:
-    """Add columns introduced after first create_all (SQLite has no ALTER sync)."""
+    """Add nullable columns the ORM gained after create_all (SQLite has no ALTER sync)."""
     with engine.begin() as conn:
-        rows = conn.execute(text("PRAGMA table_info(jobs)")).fetchall()
-        existing = {r[1] for r in rows}
-        for name, col_type in _JOB_EXTRA_COLUMNS.items():
-            if name not in existing:
-                conn.execute(text(f"ALTER TABLE jobs ADD COLUMN {name} {col_type}"))
+        for table in orm.Base.metadata.sorted_tables:
+            if _IDENTIFIER.fullmatch(table.name) is None:
+                continue
+            rows = conn.execute(text(f"PRAGMA table_info({table.name})")).fetchall()
+            if not rows:
+                continue
+            existing = {row[1] for row in rows}
+            for name, col_type in _missing_nullable(table, existing):
+                conn.execute(text(f"ALTER TABLE {table.name} ADD COLUMN {name} {col_type}"))
 
 
 def make_readonly_engine(db_path: Path) -> Engine:

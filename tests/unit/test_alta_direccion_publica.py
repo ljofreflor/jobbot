@@ -126,13 +126,44 @@ SAVED_FICHA = """<html><head><title>Convocatoria ADP-29895</title></head><body>
 <h2>Requisitos</h2>
 <ul><li>Título profesional de abogado(a)</li><li>Cinco años de experiencia</li></ul>
 <p>Región Metropolitana de Santiago</p>
+<p>Renta bruta mensual: $2.500.000</p>
+<p>Fecha de cierre: 15 de noviembre de 2026 a las 18:00 hora de Chile</p>
 </body></html>"""
 
 
-def test_a_saved_ficha_without_job_markup_points_to_jobs_add(
+def test_a_saved_ficha_is_read_offline(
     tmp_path: Path, project_root: Path, no_network: list[str]
 ) -> None:
-    """No ADP parser yet (#228): the saved page is read offline and the way out is named."""
+    """The saved page is the only input: title, service, rent and Chile closing."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    config = _config(tmp_path, project_root)
+    session = make_session_factory(make_engine(config.database_path))()
+    result = ingest_hard_link(
+        config,
+        session,
+        FICHA_URL,
+        candidate=Candidate.model_validate(public_health_profile_dict()),
+        html=SAVED_FICHA,
+        build=False,
+        prepare=False,
+    )
+
+    assert no_network == []
+    job = result.job
+    assert job.title == "Jefe(a) División Jurídica"
+    assert job.company == "Servicio Neutro de Vivienda"
+    assert job.source_job_id == "ADP-29895"
+    assert job.location == "Región Metropolitana de Santiago"
+    assert "Título profesional de abogado(a)" in job.requirements
+    assert job.note == "Renta bruta mensual: $2.500.000"
+    assert job.closes_at == datetime(2026, 11, 15, 18, 0, tzinfo=ZoneInfo("America/Santiago"))
+
+
+def test_a_saved_page_without_a_title_points_to_jobs_add(
+    tmp_path: Path, project_root: Path, no_network: list[str]
+) -> None:
     config = _config(tmp_path, project_root)
     session = make_session_factory(make_engine(config.database_path))()
 
@@ -142,13 +173,25 @@ def test_a_saved_ficha_without_job_markup_points_to_jobs_add(
             session,
             FICHA_URL,
             candidate=Candidate.model_validate(public_health_profile_dict()),
-            html=SAVED_FICHA,
+            html="<html><body><p>sin cargo</p></body></html>",
             build=False,
             prepare=False,
         )
 
     assert no_network == []
     assert f"jobbot jobs add --file ficha.txt --url {FICHA_URL}" in str(caught.value)
+
+
+def test_another_trade_uses_the_same_structure() -> None:
+    from jobbot.adapters.alta_direccion.parse import parse_ficha
+
+    job = parse_ficha(
+        "<html><body><h1>Enfermera(o) de turno</h1>"
+        "<p>Servicio Neutro de Salud</p></body></html>",
+        url=FICHA_URL,
+    )
+    assert job.title == "Enfermera(o) de turno"
+    assert job.company == "Servicio Neutro de Salud"
 
 
 def test_jobs_add_keeps_the_adp_link_as_evidence_without_fetching(

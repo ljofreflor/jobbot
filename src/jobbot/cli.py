@@ -10,7 +10,7 @@ import sys
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer
 import yaml
@@ -18,6 +18,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from jobbot.adapters.indeed.client import IndeedAdapter
 
 from jobbot import __version__
 from jobbot.applications.manager import (
@@ -27,7 +30,7 @@ from jobbot.applications.manager import (
 from jobbot.browser.background import background_notice
 from jobbot.companies.models import DiscoverySource
 from jobbot.companies.registry import CompanyRegistry
-from jobbot.config import JobbotConfig, load_config
+from jobbot.config import ConfigError, JobbotConfig, load_config
 from jobbot.cv.build import BuildTarget, build_cv
 from jobbot.cv.renderer import CvStyle
 from jobbot.db.engine import make_engine, make_session_factory
@@ -87,10 +90,17 @@ def _restamp_after_profile_promote(config: JobbotConfig) -> None:
 
 app = typer.Typer(
     name="jobbot",
-    help="Local terminal tool for job search and structured CV management.",
+    help=(
+        "Start here: profile, cv, get, capture. "
+        "Local terminal tool for job search and structured CV management."
+    ),
     no_args_is_help=True,
 )
 profile_app = typer.Typer(help="Candidate profile operations", no_args_is_help=True)
+answers_app = typer.Typer(
+    help="Local application answers (preferences, not professional facts)",
+    no_args_is_help=True,
+)
 cv_app = typer.Typer(help="Build CV variants", no_args_is_help=True)
 jobs_app = typer.Typer(help="Search and inspect jobs", no_args_is_help=True)
 application_app = typer.Typer(help="Prepare or open one application", no_args_is_help=True)
@@ -146,6 +156,7 @@ secrets_app = typer.Typer(
 
 app.add_typer(workspace_app, name="workspace")
 app.add_typer(secrets_app, name="secrets")
+profile_app.add_typer(answers_app, name="answers")
 app.add_typer(profile_app, name="profile")
 app.add_typer(cv_app, name="cv")
 app.add_typer(jobs_app, name="jobs")
@@ -234,6 +245,11 @@ def run_cli(
         if standalone_mode:
             raise SystemExit(VALIDATION_FAILURE) from exc
         return VALIDATION_FAILURE
+    except ConfigError as exc:
+        err_console.print(f"[bold red]Invalid config[/bold red]\n{exc}")
+        if standalone_mode:
+            raise SystemExit(VALIDATION_FAILURE) from exc
+        return VALIDATION_FAILURE
     except _QuietExit as exc:
         if standalone_mode:
             raise SystemExit(exc.code) from exc
@@ -302,6 +318,14 @@ def _print_version_and_exit(value: bool) -> None:
         raise typer.Exit(code=SUCCESS)
 
 
+def _update_and_exit(value: bool) -> None:
+    """``jobbot -U`` is ``jobbot update``: reinstall from main, then stop."""
+    if not value:
+        return
+    update_cmd()
+    raise typer.Exit(code=SUCCESS)
+
+
 @app.callback()
 def main(
     verbose: Annotated[
@@ -316,6 +340,16 @@ def main(
             callback=_print_version_and_exit,
             is_eager=True,
             help="Show JobBot version and exit",
+        ),
+    ] = False,
+    update: Annotated[
+        bool,
+        typer.Option(
+            "--update",
+            "-U",
+            callback=_update_and_exit,
+            is_eager=True,
+            help="Reinstall JobBot from main and exit (same as `jobbot update`)",
         ),
     ] = False,
     workspace: Annotated[
@@ -567,6 +601,10 @@ def _print_cv_status(*, as_json: bool) -> None:
         "Active company portals need page evidence; a yes is never a receipt. "
         "Per-job apply stages: jobbot applications list[/dim]"
     )
+    from jobbot.applications.feedback import interview_reminders
+
+    for line in interview_reminders(config.root):
+        console.print(line)
 
 
 def _ingest_with_progress(
@@ -623,6 +661,33 @@ def _ingest_with_progress(
             cdp_url=cdp_url,
             on_chunk=on_chunk,
         )
+
+
+@app.command("postulate")
+def postulate_cmd(
+    fixture: Annotated[
+        str | None,
+        typer.Option("--fixture", help="Post text to classify. This command does not fetch."),
+    ] = None,
+) -> None:
+    """Classify a post as email, portal, or unknown. Does not write portals.yaml."""
+    from pathlib import Path
+
+    from jobbot.portals.postulate import known_portal_domains, plan_postulate, render_plan
+
+    if not fixture:
+        err_console.print("postulate needs --fixture; the post was not read.")
+        raise _QuietExit(VALIDATION_FAILURE)
+    path = Path(fixture)
+    if not path.is_file():
+        err_console.print("postulate needs --fixture; the post was not read.")
+        raise _QuietExit(VALIDATION_FAILURE)
+    config = load_config()
+    text = path.read_text(encoding="utf-8")
+    plan = plan_postulate(text, known_domains=known_portal_domains(config))
+    for line in render_plan(plan):
+        console.print(line)
+    raise typer.Exit(SUCCESS)
 
 
 @app.command("get")
@@ -1293,8 +1358,12 @@ def profile_validate(
             help="Treat unknown YAML keys as errors (default: warn and exit 0)",
         ),
     ] = False,
+    lang: Annotated[
+        str | None,
+        typer.Option("--lang", help="Check profile.<lang>.yaml ids and numbers (en)"),
+    ] = None,
 ) -> None:
-    """Validate data/profile.yaml."""
+    """Validate data/profile.yaml and application_answers.yaml."""
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
@@ -1306,6 +1375,9 @@ def profile_validate(
 
     result = validate_candidate(candidate)
     unknowns = unknown_profile_keys(raw)
+    if lang is not None:
+        _reject_overlay(candidate, config.profile_path, lang)
+    _reject_presentations(candidate, raw)
     if not result.ok or (strict and unknowns):
         err_console.print("[bold red]PROFILE INVALID[/bold red]")
         for issue in result.issues:
@@ -1315,13 +1387,147 @@ def profile_validate(
                 err_console.print(f"{issue.path}: {issue.message}")
         raise typer.Exit(VALIDATION_FAILURE)
 
+    from jobbot.jobs.eligibility import (
+        default_answers_path,
+        load_application_answers,
+        salary_migration_hint,
+    )
+
+    answers_path = default_answers_path(config.root)
+    try:
+        answers = load_application_answers(answers_path)
+    except ValueError as exc:
+        err_console.print("[bold red]ANSWERS INVALID[/bold red]")
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
     console.print("[bold green]PROFILE VALID[/bold green]")
+    for issue in result.warnings:
+        err_console.print(f"[yellow]{issue.path}: {issue.message}[/yellow]")
+    hint = salary_migration_hint(answers)
+    if hint:
+        console.print(hint, markup=False)
     for issue in unknowns:
         err_console.print(f"[yellow]{issue.path}: {issue.message}[/yellow]")
     console.print(f"Experiences: {len(candidate.experience)}")
     console.print(f"Achievements: {candidate.achievement_count()}")
     console.print(f"Skills: {candidate.skills.count()}")
     console.print(f"Publications: {len(candidate.publications)}")
+    raise typer.Exit(SUCCESS)
+
+
+def _reject_overlay(candidate: Candidate, profile_path: Path, lang: str) -> None:
+    """An overlay id the base does not have, or a changed number, is exit 2."""
+    from jobbot.profile.overlay import overlay_problems, read_overlay
+
+    if lang != "en":
+        err_console.print("--lang must be en")
+        raise _QuietExit(VALIDATION_FAILURE)
+    path = profile_path.with_name("profile.en.yaml")
+    if not path.is_file():
+        return
+    try:
+        texts = read_overlay(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    problems = overlay_problems(candidate, texts)
+    if not problems:
+        return
+    err_console.print("[bold red]OVERLAY INVALID[/bold red]")
+    for problem in problems:
+        err_console.print(problem)
+    raise _QuietExit(VALIDATION_FAILURE)
+
+
+def _reject_presentations(candidate: Candidate, raw: dict[str, Any]) -> None:
+    """A variant that changes the headline or adds a figure is exit 2."""
+    from jobbot.profile.presentations import presentation_problems, presentations_block
+
+    block = presentations_block(raw)
+    if block is None:
+        return
+    problems = presentation_problems(candidate, block)
+    if not problems:
+        return
+    err_console.print("[bold red]PRESENTATION INVALID[/bold red]")
+    for problem in problems:
+        err_console.print(problem)
+    raise _QuietExit(VALIDATION_FAILURE)
+
+
+@answers_app.command("show")
+def profile_answers_show(
+    reveal: Annotated[
+        bool,
+        typer.Option("--reveal", help="Print stored values. Default: block names only"),
+    ] = False,
+) -> None:
+    """Show which application-answer blocks are filled, without values."""
+    from jobbot.jobs.eligibility import (
+        default_answers_path,
+        format_answers_show,
+        load_application_answers,
+    )
+
+    config = load_config()
+    try:
+        answers = load_application_answers(default_answers_path(config.root))
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    if reveal:
+        import yaml
+
+        payload = answers.model_dump(mode="json")
+        console.print(
+            yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
+            markup=False,
+        )
+    else:
+        console.print(format_answers_show(answers), markup=False)
+    raise typer.Exit(SUCCESS)
+
+
+@answers_app.command("set")
+def profile_answers_set(
+    key: Annotated[str, typer.Argument(help="Dotted key, such as salary.amount")],
+    value: Annotated[str, typer.Argument(help="Value to store")],
+    yes: Annotated[bool, typer.Option("--yes", help="Write the file. Default: print only")] = False,
+) -> None:
+    """Set one application answer. Refuses a national id. Writes only with --yes."""
+    import yaml
+    from pydantic import ValidationError
+
+    from jobbot.jobs.eligibility import (
+        ApplicationAnswers,
+        answer_key_refused,
+        assign_answer,
+        default_answers_path,
+        read_answers_mapping,
+    )
+
+    if answer_key_refused(key):
+        err_console.print(f"no se guarda un identificador nacional: {key}")
+        raise typer.Exit(VALIDATION_FAILURE)
+    config = load_config()
+    path = default_answers_path(config.root)
+    try:
+        data = read_answers_mapping(path)
+        assign_answer(data, key, value)
+        ApplicationAnswers.model_validate(data)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    except ValidationError as exc:
+        err_console.print(f"{key}: {exc}")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    if not yes:
+        console.print(f"no se escribió: {key}", markup=False)
+        raise typer.Exit(SUCCESS)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    console.print(f"escrito: {key}", markup=False)
     raise typer.Exit(SUCCESS)
 
 
@@ -1345,9 +1551,65 @@ def profile_show() -> None:
     table.add_row("Email", str(personal.email) if personal.email else "—")
     table.add_row("Experiences", str(len(candidate.experience)))
     table.add_row("Skills", str(candidate.skills.count()))
+    for edu in candidate.education:
+        table.add_row("Education", f"{edu.degree} ({edu.resolved_status()})")
     console.print(table)
     if candidate.summary:
         console.print(Panel(candidate.summary.strip(), title="Summary"))
+
+
+@profile_app.command("skills-map")
+def profile_skills_map(
+    unbacked: Annotated[
+        bool,
+        typer.Option("--unbacked", help="Skills with no evidence, and achievements with no skill"),
+    ] = False,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Write the evidence links into profile.yaml after confirm"),
+    ] = False,
+) -> None:
+    """Map each declared skill to the role or degree that already shows it."""
+    from jobbot.cv.tune import backup_profile
+    from jobbot.profile.skill_map import evidence_records, format_map, format_unbacked, map_skills
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+        raw = load_profile_raw(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    uses = map_skills(candidate)
+    lines = format_unbacked(candidate) if unbacked else format_map(uses)
+    if not lines:
+        console.print("No skill evidence.")
+    for line in lines:
+        console.print(line, markup=False)
+    if not apply_changes:
+        raise typer.Exit(SUCCESS)
+    records = evidence_records(uses)
+    if not records:
+        console.print("Nothing to write.")
+        raise typer.Exit(SUCCESS)
+    if not typer.confirm("Write skill evidence into profile.yaml?", default=False):
+        console.print("Nothing written.")
+        raise typer.Exit(SUCCESS)
+    raw["skill_evidence"] = [record.model_dump() for record in records]
+    backup = backup_profile(config.profile_path)
+    config.profile_path.write_text(
+        yaml.safe_dump(raw, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    stored = load_profile(config.profile_path)
+    check = validate_candidate(stored)
+    if not check.ok:
+        for issue in check.issues:
+            err_console.print(str(issue))
+        raise typer.Exit(VALIDATION_FAILURE)
+    console.print(f"Wrote skill evidence. Backup: {backup.name}", markup=False)
+    raise typer.Exit(SUCCESS)
 
 
 @profile_app.command("import-latex")
@@ -1482,6 +1744,107 @@ def profile_import_pdf(
                 title="Next steps",
             )
         )
+
+
+@profile_app.command("import-folder")
+def profile_import_folder(
+    folder: Annotated[Path, typer.Argument(help="Directory of PDF CVs. Nothing is written.")],
+) -> None:
+    """List role ids a folder would add or replace. Does not write profile.yaml."""
+    from jobbot.profile.folder_import import folder_report
+    from jobbot.profile.loader import ProfileLoadError, load_profile
+
+    if not folder.is_dir():
+        err_console.print("import-folder needs a directory.")
+        raise _QuietExit(VALIDATION_FAILURE)
+    config = load_config()
+    stored: set[str] = set()
+    if config.profile_path.is_file():
+        try:
+            candidate = load_profile(config.profile_path)
+        except ProfileLoadError as exc:
+            err_console.print(str(exc))
+            raise _QuietExit(VALIDATION_FAILURE) from exc
+        stored = {exp.id for exp in candidate.experience}
+    new, conflict, unread = folder_report(folder, stored)
+    for role_id in new:
+        console.print(f"new: {role_id}")
+    for role_id in conflict:
+        console.print(f"conflict: {role_id}")
+    for name in unread:
+        err_console.print(f"unread: {name}")
+    if not new and not conflict and not unread:
+        console.print("no pdfs")
+    raise typer.Exit(SUCCESS)
+
+
+@profile_app.command("interview")
+def profile_interview(
+    gap: Annotated[str, typer.Option("--gap", help="A gap already named. Nothing is answered.")],
+) -> None:
+    """Ask one question about a gap. Does not invent the answer."""
+    from jobbot.profile.interview import gap_question
+
+    try:
+        line = gap_question(gap)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
+@profile_app.command("expand")
+def profile_expand(
+    text: Annotated[str, typer.Option("--text", help="Fact already read from the source.")],
+    source: Annotated[
+        str,
+        typer.Option("--source", help="Declared source: github, portfolio or scholar."),
+    ],
+) -> None:
+    """Confirm a fact from a declared source. Does not write the profile."""
+    from jobbot.profile.sourced import confirm_sourced_fact
+
+    try:
+        line = confirm_sourced_fact(text, source)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
+@profile_app.command("study")
+def profile_study(
+    term: Annotated[str, typer.Option("--term", help="Term repeated in stored postings.")],
+    repeats: Annotated[int, typer.Option("--repeats", help="How many postings name it.")],
+    known: Annotated[
+        bool,
+        typer.Option("--known", help="The profile already states this term."),
+    ] = False,
+) -> None:
+    """Ask whether to study a repeated term. Does not write the profile."""
+    from jobbot.profile.study import study_question
+
+    try:
+        line = study_question(term, repeats=repeats, known=known)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(line)
+
+
+@profile_app.command("rejection")
+def profile_rejection(
+    text: Annotated[str, typer.Option("--text", help="Why the suggestion does not fit")],
+) -> None:
+    """Classify a rejection. A preference or a condition does not edit the profile."""
+    from jobbot.profile.rejection import may_edit_profile, rejection_kind
+
+    kind = rejection_kind(text)
+    if may_edit_profile(kind):
+        console.print(f"{kind}: not written")
+    else:
+        console.print(f"{kind}: profile unchanged")
+    raise typer.Exit(SUCCESS)
 
 
 @profile_app.command("promote-generated")
@@ -1653,16 +2016,37 @@ def profile_queries(
         ),
     ] = False,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation")] = False,
+    check: Annotated[
+        bool,
+        typer.Option(
+            "--check",
+            help="Measure each query against text-search sources; stores nothing",
+        ),
+    ] = False,
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="With --check, print rows as JSON"),
+    ] = False,
+    source: Annotated[
+        list[str] | None,
+        typer.Option("--source", help="Text-search source to measure (repeatable)"),
+    ] = None,
 ) -> None:
-    """Job searches derived from your experience; --apply saves them for you to edit."""
+    """Job searches from your experience; --check measures them, --apply saves them."""
     from jobbot.profile.search_queries import derive_search_queries
 
+    if check and apply_changes:
+        err_console.print("[red]--check no escribe; no se combina con --apply.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
     except ProfileLoadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
+    if check:
+        _check_profile_queries(config, candidate, source=source, as_json=as_json, limit=limit)
+        return
 
     if candidate.search_queries:
         console.print("[bold]Saved in profile.yaml[/bold] (searches use these):")
@@ -1710,6 +2094,53 @@ def profile_queries(
     console.print(f"Backup: {backup}")
     console.print(f"[green]Saved[/green] {len(texts)} search queries → {config.profile_path}")
     console.print("Next: [bold]jobbot getonboard search[/bold] (no query needed)")
+
+
+def _check_profile_queries(
+    config: JobbotConfig,
+    candidate: Candidate,
+    *,
+    source: list[str] | None,
+    as_json: bool,
+    limit: int,
+) -> None:
+    from jobbot.profile.query_check import (
+        format_cell,
+        measure_queries,
+        search_source_titles,
+        sources_or_reject,
+    )
+    from jobbot.profile.search_queries import search_queries_for
+
+    chosen = sources_or_reject(source)
+    if isinstance(chosen, str):
+        err_console.print(f"[red]{chosen}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    queries = search_queries_for(candidate, limit=max(1, limit)).queries
+    if not queries:
+        err_console.print("[red]No hay consultas que medir.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+
+    def search(source_id: str, query: str) -> list[str]:
+        return search_source_titles(source_id, query, config=config)
+
+    report = measure_queries(candidate, queries, chosen, search)
+    if as_json:
+        console.print_json(data=report.to_dict())
+    else:
+        table = Table(title="Query check (nothing stored)")
+        table.add_column("Query")
+        table.add_column("Source")
+        table.add_column("Result")
+        for cell in report.cells:
+            table.add_row(cell.query, cell.source, format_cell(cell))
+        console.print(table)
+        for warning in report.warnings:
+            where = f" [{warning.source}]" if warning.source else ""
+            console.print(f"{warning.code}{where}: {warning.suggestion}")
+    if report.cells and all(cell.error for cell in report.cells):
+        err_console.print("[red]Todas las fuentes fallaron.[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
 
 
 @profile_app.command("status")
@@ -1778,6 +2209,99 @@ def cv_status(
     _print_cv_status(as_json=as_json)
 
 
+@cv_app.command("gap")
+def cv_gap(
+    job_id: Annotated[str, typer.Option("--job", help="Stored posting id")],
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Print the stable gap schema"),
+    ] = False,
+) -> None:
+    """Show which posting terms the profile already evidences."""
+    from jobbot.cv.gap import gap_report, write_gap_report
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    session, _ = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    report = gap_report(candidate, job)
+    path = write_gap_report(report, config.output_dir)
+    if as_json:
+        console.print_json(data=report.as_dict())
+    else:
+        for line in report.lines():
+            console.print(line)
+    err_console.print(f"[dim]{path}[/dim]")
+
+
+@cv_app.command("check")
+def cv_check(
+    job_id: Annotated[
+        str | None,
+        typer.Option("--job", help="Also list posting terms the profile does not cover"),
+    ] = None,
+) -> None:
+    """Print a structural CV checklist. Never rewrites the profile."""
+    from jobbot.cv.check import check_cv, write_cv_check
+
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    job = None
+    if job_id:
+        session, _ = _session()
+        job = JobRepository(session).get(job_id)
+        if job is None:
+            err_console.print(f"[red]Job not found: {job_id}[/red]")
+            raise _QuietExit(VALIDATION_FAILURE)
+    report = check_cv(candidate, job)
+    path = write_cv_check(report, config.output_dir)
+    for line in report.lines():
+        console.print(line)
+    err_console.print(f"[dim]{path}[/dim]")
+
+
+@cv_app.command("styles")
+def cv_styles() -> None:
+    """List the CV styles and their templates. Does not compile."""
+    from jobbot.cv.renderer import registered_styles
+
+    for name, template in registered_styles():
+        console.print(f"{name} {template}")
+
+
+@cv_app.command("layout")
+def cv_layout(
+    log_path: Annotated[Path, typer.Argument(help="LaTeX log. Nothing is compiled.")],
+) -> None:
+    """Report overfull boxes in a LaTeX log. Does not compile."""
+    from jobbot.cv.layout import layout_findings, pages_written
+
+    if not log_path.is_file():
+        err_console.print("log not found")
+        raise _QuietExit(VALIDATION_FAILURE)
+    text = log_path.read_text(encoding="utf-8")
+    pages = pages_written(text)
+    if pages is not None:
+        console.print(f"pages: {pages}")
+    findings = layout_findings(text)
+    if not findings:
+        console.print("no overfull boxes")
+        return
+    for line in findings:
+        console.print(line)
+
+
 @cv_app.command("build")
 def cv_build(
     target: Annotated[
@@ -1799,6 +2323,21 @@ def cv_build(
             help="With --job: keep every role and achievement, most related first per role",
         ),
     ] = False,
+    strict: Annotated[
+        bool,
+        typer.Option("--strict", help="Exit 2 when the text layer has a finding"),
+    ] = False,
+    lang: Annotated[
+        str | None,
+        typer.Option("--lang", help="ATS headings: es or en"),
+    ] = None,
+    highlights: Annotated[
+        bool,
+        typer.Option(
+            "--highlights",
+            help="Open with quantified bullets already in the profile.",
+        ),
+    ] = False,
 ) -> None:
     """Build CV from profile.yaml (base or job-specific)."""
     if full and not job_id:
@@ -1806,6 +2345,8 @@ def cv_build(
             "--full only applies with --job; the base CV already keeps every fact.",
             param_hint="--full",
         )
+    if lang is not None and lang not in ("es", "en"):
+        raise typer.BadParameter("--lang must be es or en", param_hint="--lang")
     config = load_config()
     try:
         candidate = load_profile(config.profile_path)
@@ -1840,6 +2381,15 @@ def cv_build(
         match = RuleBasedJobAnalyzer().analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
 
+    highlight_lines: tuple[str, ...] = ()
+    if highlights:
+        from jobbot.cv.highlights import select_highlights
+
+        plan = select_highlights(candidate, job)
+        highlight_lines = plan.lines
+        if plan.warning:
+            err_console.print(f"[yellow]{plan.warning}[/yellow]")
+
     from jobbot.cv.build import application_log_options
 
     try:
@@ -1854,6 +2404,11 @@ def cv_build(
             application_log=application_log_options(config.cv),
             credit=config.cv.jobbot_signature,
             full=full,
+            language=lang,
+            configured_language=config.cv.language,
+            compact_before=config.cv.compact_before,
+            max_pages=config.cv.max_pages,
+            highlight_lines=highlight_lines,
         )
     except (FileNotFoundError, RuntimeError) as exc:
         err_console.print(f"[red]{exc}[/red]")
@@ -1861,6 +2416,37 @@ def cv_build(
 
     for path in outputs:
         console.print(f"[green]Wrote[/green] {path}")
+    if job is not None and match is not None:
+        from jobbot.cv.selection import select_for_job
+
+        picked = select_for_job(candidate, job, match, full=full)
+        if not picked.used_posting_terms:
+            err_console.print(
+                "selección sin términos del aviso; revisa selection.json o re-parsea el aviso"
+            )
+    from jobbot.cv.text_layer import issues_for_outputs
+
+    layer = issues_for_outputs(outputs, candidate, job)
+    for finding in layer:
+        err_console.print(f"text layer: {finding.kind}: {finding.detail}")
+    if strict and layer:
+        raise typer.Exit(VALIDATION_FAILURE)
+
+
+@cv_app.command("review")
+def cv_review(
+    current: Annotated[str, typer.Option("--current", help="The sentence as it is now.")],
+    proposed: Annotated[str, typer.Option("--proposed", help="The sentence to judge.")],
+) -> None:
+    """Keep or reject one change. Does not propose another sentence."""
+    from jobbot.cv.review import review_change
+
+    try:
+        verdict = review_change(current, proposed)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print(verdict)
 
 
 @cv_app.command("advise")
@@ -2144,6 +2730,65 @@ def _reword_with_llm(
     for reason in rewriter.rejections[:3]:
         console.print(f"[dim]  discarded: {reason}[/dim]")
     return out
+
+
+@cv_app.command("update")
+def cv_update() -> None:
+    """List active portals this workspace has not integrated. Does not write the profile."""
+    from jobbot.companies.registry import load_companies
+    from jobbot.cv.portal_update import (
+        format_new_portals,
+        integration_log_path,
+        load_seen,
+        unseen_active_portals,
+    )
+
+    config = load_config()
+    registry = load_companies(config.companies_path)
+    seen = load_seen(integration_log_path(config.output_dir))
+    for line in format_new_portals(unseen_active_portals(registry, seen)):
+        console.print(line)
+    raise typer.Exit(SUCCESS)
+
+
+@cv_app.command("translate")
+def cv_translate(
+    lang: Annotated[
+        str,
+        typer.Option("--lang", help="Check output/cv/<lang>.yaml against the profile (en)"),
+    ] = "en",
+) -> None:
+    """Check a derived translation keeps the source numbers, names, and skills."""
+    from jobbot.cv.translate_check import translation_problems
+    from jobbot.profile.loader import ProfileLoadError, load_profile
+    from jobbot.profile.overlay import read_overlay
+
+    if lang != "en":
+        err_console.print("--lang must be en")
+        raise _QuietExit(VALIDATION_FAILURE)
+    config = load_config()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    path = config.output_dir / "cv" / "en.yaml"
+    if not path.is_file():
+        console.print("no translation; the source text stays")
+        raise typer.Exit(SUCCESS)
+    try:
+        texts = read_overlay(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    problems = translation_problems(candidate, texts)
+    if problems:
+        err_console.print("[bold red]TRANSLATION INVALID[/bold red]")
+        for problem in problems:
+            err_console.print(problem)
+        raise _QuietExit(VALIDATION_FAILURE)
+    console.print("translation keeps the source")
+    raise typer.Exit(SUCCESS)
 
 
 @cv_app.command("propagate")
@@ -2435,9 +3080,7 @@ def _run_company_fill(
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
     if intent.mode == "login":
-        console.print(
-            f"[green]Opened login[/green] {intent.url} — type the password yourself."
-        )
+        console.print(f"[green]Opened login[/green] {intent.url} — type the password yourself.")
         return
 
     console.print(
@@ -2571,6 +3214,10 @@ def _propagate_base_cv(config: JobbotConfig, candidate: Candidate, *, style: CvS
                 target=target,
                 style=style,
                 credit=config.cv.jobbot_signature,
+                compact_before=config.cv.compact_before,
+                max_pages=config.cv.max_pages,
+                language=None,
+                configured_language=config.cv.language,
             )
         except (FileNotFoundError, RuntimeError) as exc:
             err_console.print(f"[red]cv ({target.value}): {exc}[/red]")
@@ -2602,6 +3249,7 @@ def _propagate_getonboard(
     from jobbot.adapters.getonboard.draft import load_permanent_profile
     from jobbot.adapters.getonboard.profile_edit import (
         GOB_EDIT_URL,
+        ProfileEditError,
         apply_writes,
         desired_from_fields,
         plan_writes,
@@ -2628,7 +3276,11 @@ def _propagate_getonboard(
         page = browser.page
         page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
         page.wait_for_timeout(1500)
-        writes = plan_writes(read_current(page), desired)
+        try:
+            writes = plan_writes(read_current(page), desired, page=page)
+        except ProfileEditError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(GENERIC_FAILURE) from exc
         if not writes:
             console.print("getonboard: el portal ya tiene estos textos.")
         else:
@@ -2640,7 +3292,11 @@ def _propagate_getonboard(
             ):
                 console.print("getonboard: skipped profile fields.")
             else:
-                done = apply_writes(page, writes)
+                try:
+                    done = apply_writes(page, writes)
+                except ProfileEditError as exc:
+                    err_console.print(f"[red]{exc}[/red]")
+                    raise typer.Exit(GENERIC_FAILURE) from exc
                 console.print(f"[green]Wrote[/green] {len(done)} field(s) on Get on Board.")
     _propagate_getonboard_cv(config, cdp=cdp, yes=yes)
 
@@ -2653,6 +3309,7 @@ def _propagate_getonboard_cv(
 ) -> None:
     """Upload output/base/cv.pdf after validating it; mark default when confirmed."""
     from jobbot.adapters.getonboard.cv_upload import (
+        PROFILE_REWRITE_WARNING,
         resolve_base_cv,
         upload_cv,
         validate_cv_for_upload,
@@ -2685,10 +3342,12 @@ def _propagate_getonboard_cv(
         f"[green]Uploaded[/green] {result.path.name} as {result.label!r} "
         f"(default={result.is_default}) → {result.resumes_url}"
     )
+    console.print(PROFILE_REWRITE_WARNING)
 
 
 def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, yes: bool) -> None:
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
     adapter = IndeedAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
@@ -2702,7 +3361,11 @@ def _propagate_indeed(config: JobbotConfig, *, section: str, cdp: str | None, ye
     ):
         console.print("indeed: skipped.")
         return
-    console.print(adapter.apply_sync_plan(plan).message)
+    try:
+        console.print(adapter.apply_sync_plan(plan, section=section).message)
+    except IndeedUiChanged as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
 
 
 def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> None:
@@ -2727,6 +3390,23 @@ def _propagate_linkedin(config: JobbotConfig, *, cdp: str | None, yes: bool) -> 
 # ── jobs ─────────────────────────────────────────────────────────────────────
 
 
+def _add_buk_list(session: Session, config: JobbotConfig, html: str, url: str) -> None:
+    """Store each card of a saved Buk list. A page without cards is a shape change."""
+    from jobbot.adapters.buk.listings import BukShapeError, jobs_from_list_html
+
+    try:
+        jobs = jobs_from_list_html(html, page_url=url)
+    except BukShapeError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
+    repo = JobRepository(session)
+    for job in jobs:
+        stored = repo.upsert_external(job)
+        path = write_job_json(stored, config.output_dir)
+        console.print(f"[green]Added[/green] {stored.id}  {stored.company}  {stored.title}")
+        console.print(f"Wrote {path}")
+
+
 @jobs_app.command("add")
 def jobs_add(
     file: Annotated[
@@ -2735,17 +3415,31 @@ def jobs_add(
     ] = None,
     url: Annotated[
         str | None,
-        typer.Option("--url", help="Posting URL. A Workday URL alone downloads it (CXS)"),
+        typer.Option(
+            "--url",
+            help="Posting URL. A Workday URL downloads itself; a PDF URL reads its text layer",
+        ),
     ] = None,
     stdin: Annotated[
         bool,
         typer.Option("--stdin", help="Read JD from stdin"),
     ] = False,
 ) -> None:
-    """Add a job posting from a text file or stdin (manual fallback)."""
+    """Add a job posting from a text file, stdin, or a public PDF URL."""
     from jobbot.portals.detect import AtsKind, detect_ats
 
     session, config = _session()
+    if url:
+        from jobbot.jobs.open_signals import trabajando_needs_slug
+
+        if trabajando_needs_slug(url):
+            err_console.print(
+                "trabajando.cl needs the slug in the URL, not the id alone. Not stored."
+            )
+            raise _QuietExit(VALIDATION_FAILURE)
+    if file is not None and url and detect_ats(url) == AtsKind.BUK:
+        _add_buk_list(session, config, file.read_text(encoding="utf-8"), url)
+        return
     if file is not None:
         text = file.read_text(encoding="utf-8")
     elif stdin:
@@ -2756,6 +3450,18 @@ def jobs_add(
         text = typer.get_text_stream("stdin").read()
     elif url and detect_ats(url) == AtsKind.WORKDAY:
         _add_workday_url(session, config, url)
+        return
+    elif url:
+        from jobbot.jobs.pdf_posting import NotAPdf
+
+        try:
+            _add_pdf_url(session, config, url)
+        except NotAPdf:
+            err_console.print(
+                "Provide --file or --stdin (a Workday --url downloads by itself; "
+                "a PDF URL reads its text layer)"
+            )
+            raise typer.Exit(GENERIC_FAILURE) from None
         return
     else:
         err_console.print(
@@ -2782,6 +3488,26 @@ def jobs_add(
     console.print(f"[green]Added[/green] {job.id}  {job.company}  {job.title}")
     console.print(f"Wrote {path}")
     _learn_company_knowledge(config, job)
+
+
+def _add_pdf_url(session: Session, config: JobbotConfig, url: str) -> None:
+    """Store one bases PDF. A missing text layer or a closed contest is not stored."""
+    from jobbot.jobs.pdf_posting import PdfAddError, PdfFetchError, job_from_public
+
+    try:
+        draft = job_from_public(url)
+    except PdfAddError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        code = GENERIC_FAILURE if isinstance(exc, PdfFetchError) else VALIDATION_FAILURE
+        raise _QuietExit(code) from exc
+    stored = JobRepository(session).upsert_external(draft.job)
+    path = write_job_json(stored, config.output_dir)
+    console.print(f"[green]Added[/green] {stored.id}  {stored.company}  {stored.title}")
+    if draft.unverified:
+        console.print("vigencia no verificable (#207)", markup=False)
+    else:
+        console.print(f"Closes: {_closing_line(stored)}", markup=False)
+    console.print(f"Wrote {path}")
 
 
 def _add_workday_url(session: Session, config: JobbotConfig, url: str) -> None:
@@ -2817,6 +3543,29 @@ def _add_workday_url(session: Session, config: JobbotConfig, url: str) -> None:
     _learn_company_knowledge(config, stored)
 
 
+def _discover_pdf_index(page_url: str | None, *, match: str) -> None:
+    """List same-host PDF links. This source never writes."""
+    from jobbot.jobs.pdf_index import fetch_page, matching_pdfs
+    from jobbot.jobs.pdf_posting import PdfAddError
+
+    if not page_url or not page_url.strip():
+        err_console.print("[red]pdf-index needs --url[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    if not match.strip():
+        err_console.print("[red]--match needs a value[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    try:
+        html = fetch_page(page_url)
+    except PdfAddError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(GENERIC_FAILURE) from exc
+    links = matching_pdfs(html, page_url, match=match)
+    for link in links:
+        console.print(link, markup=False, highlight=False)
+    console.print(f"{len(links)} pdf", markup=False)
+    console.print("Nothing written.", markup=False)
+
+
 def _closing_line(job: JobPosting, *, evidence: bool = True) -> str:
     from jobbot.jobs.closing import describe_closing
 
@@ -2831,11 +3580,65 @@ def _closing_now() -> datetime:
     return closing.utc_now()
 
 
-def _closing_flag(job: JobPosting, now: datetime) -> str:
-    from jobbot.jobs.closing import ClosingState, closing_state
+def _evidenced_portals(registry: CompanyRegistry) -> list[tuple[str, str]]:
+    """Career-site hosts whose ATS was observed, not guessed from a hostname."""
+    from jobbot.portals.detect import AtsKind
 
-    state = closing_state(job.closes_at, job.closes_on, now=now)
-    if state is ClosingState.EXPIRED:
+    sites: list[tuple[str, str]] = []
+    for company in registry.companies:
+        for site in company.career_sites:
+            if site.ats == AtsKind.UNKNOWN:
+                continue
+            evidenced = any(obs.ats == site.ats for obs in site.observations)
+            if evidenced or site.status.value == "active":
+                sites.append((site.domain, site.ats.value))
+    return sites
+
+
+def _events_by_job(
+    repo: ApplicationRepository,
+) -> dict[str, list[tuple[str, str | None, datetime]]]:
+    grouped: dict[str, list[tuple[str, str | None, datetime]]] = {}
+    for app in repo.list_all():
+        grouped[app.job_id] = [
+            (event.event_type, event.detail, event.created_at) for event in repo.events_for(app.id)
+        ]
+    return grouped
+
+
+def _opacity_line(session: Session, config: JobbotConfig, job: JobPosting) -> str:
+    """One line for show/match. Local rows only."""
+    from jobbot.companies.registry import load_companies
+    from jobbot.jobs.opacity import assess
+    from jobbot.jobs.repository import JobRepository
+
+    repo = JobRepository(session)
+    stored = repo.list_all()
+    peers = stored if any(item.id == job.id for item in stored) else [*stored, job]
+    signal = assess(
+        job,
+        peers=peers,
+        sites=_evidenced_portals(load_companies(config.companies_path)),
+        events=_events_by_job(ApplicationRepository(session)).get(job.id, []),
+        now=_closing_now(),
+        max_age_days=config.search.max_age_days,
+    )
+    return (
+        f"Opacity: {signal.band} ({signal.score:.2f})  "
+        f"freshness={signal.freshness}  closure={signal.closure}  "
+        f"repost={'yes' if signal.repost else 'no'}  "
+        f"portal={'known' if signal.portal_known else 'unknown'}  "
+        f"silence={signal.silence}"
+    )
+
+
+def _closing_flag(job: JobPosting, now: datetime, *, soon_days: int) -> str:
+    from jobbot.jobs.closing import ClosingState, closing_state
+    from jobbot.jobs.closure import closure_evidence
+
+    stated = closure_evidence(job.raw_description or "") or closure_evidence(job.description or "")
+    state = closing_state(job.closes_at, job.closes_on, now=now, soon_days=soon_days)
+    if stated or state is ClosingState.EXPIRED:
         return "vencido"
     if state is ClosingState.SOON:
         return "cierra pronto"
@@ -2869,9 +3672,13 @@ def jobs_search(
             "Also: JOBBOT_CDP_URL. Start with: jobbot browser chrome-debug",
         ),
     ] = None,
+    cdp_timeout: Annotated[
+        float,
+        typer.Option("--cdp-timeout", help="Seconds to wait for a CDP attach (default 15)"),
+    ] = 15,
 ) -> None:
     """Search Indeed and store job postings locally (small volumes)."""
-    from jobbot.adapters.indeed.jobs import IndeedJobSource
+    from jobbot.adapters.indeed.jobs import IndeedChallengePending, IndeedJobSource
     from jobbot.browser.cdp import resolve_cdp_url
     from jobbot.jobs.sources import JobSearchQuery
 
@@ -2881,7 +3688,7 @@ def jobs_search(
 
     session, config = _session()
     cdp_url = resolve_cdp_url(cdp)
-    source = IndeedJobSource(config, cdp_url=cdp_url)
+    source = IndeedJobSource(config, cdp_url=cdp_url, cdp_attach_s=cdp_timeout)
     q = JobSearchQuery(query=query, location=location, remote=remote, limit=limit)
 
     if cdp_url:
@@ -2889,7 +3696,17 @@ def jobs_search(
     console.print(f"Searching Indeed ({source.base}) for [bold]{query}[/bold]…")
     try:
         found = source.search_jobs(q) if enrich else source.search_cards(q)
+    except IndeedChallengePending as exc:
+        err_console.print(
+            f"[red]Indeed challenge on {exc.context} was not cleared. Not an empty search.[/red]"
+        )
+        raise _QuietExit(MANUAL_CHALLENGE) from exc
     except Exception as exc:
+        from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout
+
+        if isinstance(exc, (CdpAttachTimeout, CdpAttachInterrupted)):
+            err_console.print(f"[red]{exc}[/red]")
+            raise _RecordedExit(GENERIC_FAILURE, error_class="CdpAttach", message=str(exc)) from exc
         err_console.print(f"[red]Indeed search failed: {exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
 
@@ -2916,11 +3733,51 @@ def jobs_search(
     console.print("Or: [bold]jobbot jobs shortlist[/bold]")
 
 
+@jobs_app.command("describe")
+def jobs_describe(
+    job_id: Annotated[str, typer.Argument(help="Stored job id")],
+    file: Annotated[
+        Path | None,
+        typer.Option("--file", help="Plain text that replaces the stored description"),
+    ] = None,
+) -> None:
+    """Replace one stored posting's description. The id, URL, note and application stay."""
+    if file is None:
+        err_console.print("[red]Pass --file with the posting text.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    text = file.expanduser().read_text(encoding="utf-8").strip()
+    if not text:
+        err_console.print("[red]--file is empty.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    session, config = _session()
+    try:
+        job = JobRepository(session).replace_description(job_id, text)
+    except KeyError:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from None
+    write_job_json(job, config.output_dir)
+    console.print(f"Updated {job.id} description ({len(text)} characters).")
+
+
+def _iso_territory(code: str) -> bool:
+    from babel import Locale
+
+    return Locale("en").territories.get(code.upper()) is not None
+
+
 @jobs_app.command("discover")
 def jobs_discover(
     source: Annotated[
         str,
-        typer.Option("--source", help="Public source to read: workday, un-careers"),
+        typer.Option(
+            "--source",
+            help=(
+                "Public source to read: workday, un-careers, buk, pdf-index, "
+                "lumesse, cornerstone, avature, unops, impactpool, "
+                "pageup, unicef, pjud, smartrecruiters, greenhouse, "
+                "oracle_orc, bne, chiletrabajos, vacantes, laborum"
+            ),
+        ),
     ],
     site: Annotated[
         list[str] | None,
@@ -2934,6 +3791,25 @@ def jobs_discover(
     query: Annotated[
         str | None,
         typer.Option("--query", "-q", help="Search text (default: your profile's searches)"),
+    ] = None,
+    company: Annotated[
+        str | None,
+        typer.Option("--company", help="SmartRecruiters company identifier"),
+    ] = None,
+    country: Annotated[
+        str | None,
+        typer.Option("--country", help="ISO 3166 country (SmartRecruiters or Vacantes)"),
+    ] = None,
+    all_sitemap: Annotated[
+        bool,
+        typer.Option(
+            "--all-sitemap",
+            help="Vacantes: vacancy sitemap instead of the country landing",
+        ),
+    ] = False,
+    board_token: Annotated[
+        str | None,
+        typer.Option("--board", help="Greenhouse board token"),
     ] = None,
     limit: Annotated[
         int,
@@ -2970,8 +3846,16 @@ def jobs_discover(
         bool,
         typer.Option("--dry-run", help="Preview: writes nothing (no DB, job JSON, companies.yaml)"),
     ] = False,
+    page_url: Annotated[
+        str | None,
+        typer.Option("--url", help="Page whose PDF links pdf-index lists"),
+    ] = None,
+    name_match: Annotated[
+        str,
+        typer.Option("--match", help="pdf-index keeps PDF filenames containing this text"),
+    ] = "concurso",
 ) -> None:
-    """Discover postings through a source's public API; --dry-run previews without writing."""
+    """Discover postings through a public source; --dry-run previews without writing."""
     from jobbot.companies.registry import load_companies
     from jobbot.jobs.discover import (
         JobFilters,
@@ -2985,9 +3869,13 @@ def jobs_discover(
     )
     from jobbot.jobs.repository import StoredJobIndex
 
-    if limit < 1 or limit > 200:
-        err_console.print("[red]--limit must be between 1 and 200[/red]")
+    ceiling = 300 if source == "smartrecruiters" else 200
+    if limit < 1 or limit > ceiling:
+        err_console.print(f"[red]--limit must be between 1 and {ceiling}[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
+    if source == "pdf-index":
+        _discover_pdf_index(page_url, match=name_match)
+        return
     levels = tuple(part.strip() for raw in level or [] for part in raw.split(","))
     if any(not part for part in levels) or (location is not None and not location.strip()):
         err_console.print("[red]--level and --location need a value[/red]")
@@ -3000,8 +3888,40 @@ def jobs_discover(
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
     config = load_config()
+    if source == "smartrecruiters":
+        from jobbot.adapters.smartrecruiters.discover import SmartRecruitersDiscover
+        from jobbot.jobs.geo import normalize_country
+
+        if not isinstance(adapter, SmartRecruitersDiscover):
+            raise typer.Exit(VALIDATION_FAILURE)
+        if company is not None and not company.strip():
+            err_console.print("[red]--company needs an identifier[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        if country is None:
+            adapter.countries = config.search.countries
+        else:
+            country_code = normalize_country(country)
+            if country_code is None or not _iso_territory(country_code):
+                err_console.print(f"[red]{country} is not an ISO 3166 country[/red]")
+                raise typer.Exit(VALIDATION_FAILURE)
+            adapter.countries = (country_code,)
     known = adapter.registry_targets(load_companies(config.companies_path))
     targets: list[SiteTarget] = []
+    if source == "smartrecruiters" and company and company.strip():
+        try:
+            targets = [adapter.site_target(company.strip())]
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+    if source == "greenhouse" and board_token is not None:
+        if not board_token.strip():
+            err_console.print("[red]--board needs a token[/red]")
+            raise typer.Exit(VALIDATION_FAILURE)
+        try:
+            targets = [adapter.site_target(board_token.strip())]
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
     for raw in site or []:
         try:
             target = adapter.site_target(raw)
@@ -3010,7 +3930,7 @@ def jobs_discover(
             raise typer.Exit(VALIDATION_FAILURE) from exc
         named = next((k for k in known if k.url == target.url), None)
         targets.append(named or target)
-    if not site:
+    if not site and not targets:
         targets = known
     if not targets:
         err_console.print(
@@ -3019,7 +3939,38 @@ def jobs_discover(
         )
         raise typer.Exit(VALIDATION_FAILURE)
 
-    queries = _search_queries(config, query, max_queries)
+    if source == "greenhouse":
+        from jobbot.adapters.greenhouse.discover import GreenhouseDiscover
+
+        if isinstance(adapter, GreenhouseDiscover) and not dry_run:
+            adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for("greenhouse")
+    if source == "oracle_orc":
+        from jobbot.adapters.oracle_orc.discover import OracleOrcDiscover
+
+        if isinstance(adapter, OracleOrcDiscover) and not dry_run:
+            adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for("oracle_orc")
+    if source == "vacantes":
+        from jobbot.adapters.vacantes.discover import LANDINGS, VacantesDiscover
+
+        if isinstance(adapter, VacantesDiscover):
+            chosen = country or (config.search.countries[0] if config.search.countries else "CL")
+            chosen = chosen.upper()
+            if chosen not in LANDINGS:
+                listed = ", ".join(sorted(LANDINGS))
+                err_console.print(
+                    f"[red]{chosen} has no Vacantes landing.[/red] Available: {listed}"
+                )
+                raise typer.Exit(VALIDATION_FAILURE)
+            adapter.country = chosen
+            adapter.all_sitemap = all_sitemap
+            if not dry_run:
+                adapter.known_ids = StoredJobIndex.read_only(config.database_path).ids_for(
+                    "vacantes"
+                )
+    if source in {"pjud", "greenhouse"} and query is None:
+        queries = [""]
+    else:
+        queries = _search_queries(config, query, max_queries)
     read_details = adapter.default_details if details is None else details
     narrator = _narrator()
     outcomes: list[SiteOutcome] = []
@@ -3034,7 +3985,7 @@ def jobs_discover(
             if outcome.detail:
                 line += f" ({outcome.detail})"
             style = "green" if outcome.answered else "yellow"
-            console.print(line, style=style, markup=False, highlight=False)
+            console.print(line, style=style, markup=False, highlight=False, soft_wrap=True)
     fed = feed_summary(outcomes)
     if fed is not None:
         console.print(
@@ -3113,6 +4064,10 @@ def jobs_discover(
             console.print(f"Next: [bold]jobbot jobs show {first}[/bold] or jobbot jobs shortlist")
 
     code = exit_code_for(outcomes)
+    if any(outcome.detail.startswith("captcha:") for outcome in outcomes):
+        code = MANUAL_CHALLENGE
+    elif source in {"lumesse", "cornerstone", "impactpool", "laborum"} and code != SUCCESS:
+        code = VALIDATION_FAILURE
     if code == UI_CHANGED and not dry_run:
         changed = next(o for o in outcomes if o.status is SiteStatus.CHANGED)
         raise _RecordedExit(
@@ -3200,7 +4155,7 @@ def jobs_show(
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     """Show a stored job posting."""
-    session, _ = _session()
+    session, config = _session()
     job = JobRepository(session).get(job_id)
     if job is None:
         err_console.print(f"[red]Job not found: {job_id}[/red]")
@@ -3219,7 +4174,7 @@ def jobs_show(
 
         console.print(f"Online: {verification_label(job)}", markup=False)
     if job.closes_on or job.closes_at:
-        flag = _closing_flag(job, _closing_now())
+        flag = _closing_flag(job, _closing_now(), soon_days=3)
         console.print(
             f"Closes: {_closing_line(job)}" + (f"  ⚠ {flag}" if flag else ""), markup=False
         )
@@ -3232,6 +4187,7 @@ def jobs_show(
         console.print("Requirements:")
         for req in job.requirements:
             console.print(f"  - {req}")
+    console.print(_opacity_line(session, config, job), markup=False)
     console.print(Panel(job.description[:2000], title="Description"))
 
 
@@ -3266,6 +4222,7 @@ def jobs_match(
         console.print_json(data=match.to_dict())
         return
     console.print(format_match_report(match))
+    console.print(_opacity_line(session, config, job), markup=False)
 
 
 @jobs_app.command("conditions")
@@ -3455,8 +4412,19 @@ def jobs_shortlist(
         bool,
         typer.Option("--include-closed", help="Also list postings check-open found closed"),
     ] = False,
+    soon_days: Annotated[
+        int,
+        typer.Option(
+            "--soon-days",
+            help="Flag a published closing within this many days (default 3)",
+        ),
+    ] = 3,
 ) -> None:
-    """Rank stored jobs by match score; hides postings verified closed (jobs check-open)."""
+    """Rank stored jobs by match score; flag a close and a finished posting."""
+    if soon_days < 1:
+        err_console.print("[red]--soon-days must be at least 1[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    from jobbot.jobs.admissibility import shortlist_mark
     from jobbot.jobs.check_open import is_verified_closed, verification_label
 
     session, config = _session()
@@ -3466,37 +4434,235 @@ def jobs_shortlist(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
+    from jobbot.companies.registry import load_companies
+    from jobbot.jobs.opacity import Opacity, assess, shortlist_key
     from jobbot.matching.scoring import match_reasons
 
     repo = JobRepository(session)
     analyzer = RuleBasedJobAnalyzer()
     now = _closing_now()
-    rows: list[tuple[float, str, str, str, str, list[str]]] = []
+    stored = repo.list_all()
+    sites = _evidenced_portals(load_companies(config.companies_path))
+    events = _events_by_job(ApplicationRepository(session))
+    signals = {
+        job.id: assess(
+            job,
+            peers=stored,
+            sites=sites,
+            events=events.get(job.id, []),
+            now=now,
+            max_age_days=config.search.max_age_days,
+        )
+        for job in stored
+    }
+    rows: list[tuple[tuple[int, int, float], float, str, str, str, str, list[str], Opacity]] = []
     hidden = 0
-    for job in repo.list_all():
+    for job in stored:
         if is_verified_closed(job) and not include_closed:
             hidden += 1
             continue
         match = analyzer.analyze(candidate, job)
         repo.update_match_score(job.id, match.score)
-        flag = _closing_flag(job, now)
-        if flag:
-            flag = f"  [{flag}: {_closing_line(job, evidence=False)}]"
+        label = _closing_flag(job, now, soon_days=soon_days)
+        flag = ""
+        if label and (job.closes_at or job.closes_on):
+            flag = f"  [{label}: {_closing_line(job, evidence=False)}]"
+        elif label:
+            flag = f"  [{label}]"
         if is_verified_closed(job):
             flag += f"  [{verification_label(job)}]"
-        rows.append((match.score, job.id, job.title, job.company, flag, match_reasons(match)))
-    rows.sort(key=lambda r: r[0], reverse=True)
+        opacity = signals[job.id]
+        rows.append(
+            (
+                shortlist_key(
+                    closed=opacity.closure == "closed",
+                    band=opacity.band,
+                    fit=match.score,
+                ),
+                match.score,
+                job.id,
+                job.title,
+                job.company,
+                flag,
+                match_reasons(match),
+                opacity,
+            )
+        )
+    rows.sort(key=lambda r: r[0])
     console.print("[bold]TOP MATCHES[/bold]")
-    for score, jid, title, company, flag, reasons in rows:
-        line = f"{score:5.1f}%  {jid}  {title}  {company}{flag}"
+    for _key, score, jid, title, company, flag, reasons, opacity in rows:
+        mark = shortlist_mark(config.output_dir / "jobs" / jid / "admissibility.json")
+        line = f"{score:5.1f}%  {jid}  {title}  {company}{flag}{mark}"
         console.print(line, markup=False, highlight=False)
+        console.print(f"         opacity {opacity.label()}", markup=False, highlight=False)
         for reason in reasons:
             console.print(f"         {reason}", markup=False, highlight=False, soft_wrap=True)
     if hidden:
         console.print(
             f"{hidden} hidden: verified closed by jobs check-open (--include-closed to list them)."
         )
-    _warn_if_matcher_blind([row[0] for row in rows])
+    _warn_if_matcher_blind([row[1] for row in rows])
+
+
+@jobs_app.command("admissibility")
+def jobs_admissibility(
+    job_ids: Annotated[list[str] | None, typer.Argument(help="Stored job ids")] = None,
+    source: Annotated[
+        str | None,
+        typer.Option("--source", help="Only stored postings from this source"),
+    ] = None,
+    open_only: Annotated[
+        bool,
+        typer.Option("--open", help="Skip postings already marked closed"),
+    ] = False,
+    as_json: Annotated[bool, typer.Option("--json", help="Print the verdicts as JSON")] = False,
+) -> None:
+    """Admissibility of a stored posting against the profile (offline). Sends nothing."""
+    import json
+
+    from jobbot.jobs.admissibility import assess, contest_code, extract_rules
+    from jobbot.jobs.open_signals import OpenStatus
+
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    repo = JobRepository(session)
+    if job_ids:
+        jobs = []
+        for job_id in job_ids:
+            job = repo.get(job_id)
+            if job is None:
+                err_console.print(f"aviso desconocido: {job_id}")
+                raise typer.Exit(VALIDATION_FAILURE)
+            jobs.append(job)
+    elif source:
+        jobs = [job for job in repo.list_all() if job.source == source]
+        if open_only:
+            jobs = [job for job in jobs if job.open_status != OpenStatus.CLOSED.value]
+        if not jobs:
+            err_console.print("fuente sin concursos guardados")
+            raise typer.Exit(VALIDATION_FAILURE)
+    else:
+        err_console.print("indica un id o --source")
+        raise typer.Exit(VALIDATION_FAILURE)
+    payload = []
+    for job in jobs:
+        text = job.raw_description or ""
+        verdict = assess(
+            extract_rules(text),
+            candidate,
+            contest_code=contest_code(text, job.id),
+        )
+        path = config.output_dir / "jobs" / job.id / "admissibility.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(verdict.as_dict(), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        payload.append({"job_id": job.id, **verdict.as_dict()})
+        if not as_json:
+            console.print(
+                f"{job.id}  {verdict.status}  {verdict.rule}",
+                markup=False,
+                highlight=False,
+            )
+            detail = verdict.question or verdict.evidence
+            if detail:
+                console.print(f"  {detail}", markup=False, highlight=False)
+    if as_json:
+        console.print(json.dumps(payload, ensure_ascii=False, indent=2), markup=False)
+
+
+@jobs_app.command("digest")
+def jobs_digest(
+    since: Annotated[
+        str | None,
+        typer.Option("--since", help="Include postings after this date (YYYY-MM-DD)"),
+    ] = None,
+    fmt: Annotated[
+        str,
+        typer.Option("--format", help="whatsapp or md"),
+    ] = "whatsapp",
+    limit: Annotated[int, typer.Option("--limit", min=1)] = 10,
+    include_doubtful: Annotated[
+        bool,
+        typer.Option("--include-doubtful", help="Also list postings marked dudoso"),
+    ] = False,
+    out: Annotated[
+        str | None,
+        typer.Option("--out", help="Write the text under output/"),
+    ] = None,
+) -> None:
+    """Shareable summary of new open postings (WhatsApp or Markdown). Sends nothing."""
+    from jobbot.jobs.digest import (
+        DigestError,
+        load_eligibility,
+        output_path,
+        parse_since,
+        refuse_pii,
+        render_markdown,
+        render_whatsapp,
+        resolve_timezone,
+        save_last_digest,
+        select_entries,
+        why_line,
+    )
+
+    if fmt not in {"whatsapp", "md"}:
+        err_console.print("[red]--format debe ser whatsapp o md.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    from datetime import UTC
+
+    session, config = _session()
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    try:
+        zone = resolve_timezone(config, candidate.personal.country)
+        now = datetime.now(UTC)
+        state = config.root / "data" / "digest_state.json"
+        start = parse_since(since, now=now, zone=zone, state_path=state)
+        marks = load_eligibility(config.root / "data" / "eligibility.yaml")
+        destination = output_path(config, out) if out else None
+    except DigestError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+
+    repo = JobRepository(session)
+    jobs = repo.list_all(include_invalid=True)
+    reasons = {job.id: text for job in jobs if (text := why_line(candidate, job))}
+    entries = select_entries(
+        jobs,
+        since=start,
+        zone=zone,
+        eligibility=marks,
+        reasons=reasons,
+        include_doubtful=include_doubtful,
+        limit=limit,
+    )
+    messages = (
+        render_whatsapp(entries, since=start)
+        if fmt == "whatsapp"
+        else [render_markdown(entries, since=start)]
+    )
+    text = "\n\n".join(messages)
+    try:
+        refuse_pii(text)
+    except DigestError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    for message in messages:
+        console.print(message, markup=False, highlight=False)
+    if destination is not None:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(text, encoding="utf-8")
+        console.print(f"Wrote {destination}", markup=False)
+    save_last_digest(state, now)
 
 
 @jobs_app.command("backfill-dates")
@@ -3515,6 +4681,22 @@ def jobs_backfill_dates() -> None:
         console.print("Older than the freshness window:")
         for job in stale:
             console.print(f"  {job.id}  {age_label(job.posted_at):>9}  {job.title[:50]}")
+
+
+@jobs_app.command("reparse")
+def jobs_reparse(
+    job_id: Annotated[str, typer.Argument(help="Stored job id, kept as-is")],
+) -> None:
+    """Re-read a stored posting's text and keep its id (offline)."""
+    from jobbot.jobs.backfill import reparse_stored
+
+    session, _ = _session()
+    try:
+        job = reparse_stored(JobRepository(session), job_id)
+    except KeyError as exc:
+        err_console.print(f"[red]Unknown job {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE) from exc
+    console.print(f"[green]Reparsed[/green] {job.id}: {job.title} — {job.company}")
 
 
 @jobs_app.command("note")
@@ -3587,6 +4769,17 @@ def _stop_if_filled(session: Session, job: JobPosting) -> None:
     evidence = _filled_vacancy(job)
     if evidence is None:
         return
+    from datetime import UTC, datetime
+
+    from jobbot.jobs.open_signals import OpenStatus
+    from jobbot.jobs.repository import JobRepository
+
+    JobRepository(session).record_open_check(
+        job.id,
+        status=OpenStatus.CLOSED.value,
+        evidence=evidence,
+        checked_at=datetime.now(UTC),
+    )
     url = job.ats_url or job.url or job.id
     err_console.print(f"[red]Vacancy is filled[/red] ({evidence}). Not opening {url}.")
     err_console.print("No portal receipt — status stays unknown, not applied.")
@@ -3665,6 +4858,34 @@ def application_prepare(job_id: Annotated[str, typer.Argument()]) -> None:
         console.print(f"Get on Board Spanish drafts: {gob}")
 
 
+@application_app.command("interview")
+def application_interview(job_id: Annotated[str, typer.Argument()]) -> None:
+    """Preguntas de entrevista desde lo enviado, sin inventar un logro."""
+    from jobbot.applications.interview import (
+        cards_for,
+        format_cards,
+        load_sent_selection,
+        sent_selection_path,
+    )
+
+    session, config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    path = sent_selection_path(config.output_dir, job.id)
+    if path is None:
+        err_console.print(f"[red]No selection.json for {job.id}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    cards = cards_for(job, candidate, load_sent_selection(path))
+    console.print(format_cards(cards))
+
+
 @application_app.command("open")
 def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
     """Open the job URL (or ATS URL) in the default browser (does not apply)."""
@@ -3684,7 +4905,13 @@ def application_open(job_id: Annotated[str, typer.Argument()]) -> None:
     console.print(open_ats_in_browser(target))
 
 
-def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | None) -> None:
+def _warn_if_login_needed(
+    config: JobbotConfig,
+    ats_kind: AtsKind,
+    cdp: str | None,
+    *,
+    host: str | None = None,
+) -> None:
     from urllib.parse import urlparse
 
     from jobbot.applications.login_gate import login_warning, session_site
@@ -3694,6 +4921,9 @@ def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | No
     if account_need(ats_kind) is not AccountNeed.NEEDED:
         return
     site = session_site(ats_kind)
+    if cdp and site is not None:
+        _warn_from_named_cdp(ats_kind, site, cdp)
+        return
     states: list[browser_sessions.SessionState] = []
     if site is not None:
         ports = list(browser_sessions.DEFAULT_PORTS)
@@ -3701,9 +4931,30 @@ def _warn_if_login_needed(config: JobbotConfig, ats_kind: AtsKind, cdp: str | No
         if cdp_port is not None and cdp_port not in ports:
             ports.append(cdp_port)
         states = browser_sessions.inspect_sessions(config.root, sites=[site], ports=ports)
-    warning = login_warning(ats_kind, states)
+    warning = login_warning(ats_kind, states, host=host)
     if warning:
         console.print(f"[bold yellow]{warning}[/bold yellow]")
+
+
+def _warn_from_named_cdp(ats_kind: AtsKind, site: str, cdp: str) -> None:
+    """Session on the exact ``--cdp`` host. A silent port is not a missing login."""
+    from jobbot.applications.login_gate import _MUST_SIGN_IN, _PORTAL_NAMES
+    from jobbot.browser.cdp import cdp_endpoint
+    from jobbot.browser.sessions import CdpSessionStatus, probe_cdp_session
+
+    report = probe_cdp_session(cdp, site)
+    portal = _PORTAL_NAMES.get(ats_kind, ats_kind.value)
+    where = cdp_endpoint(report.url)
+    console.print(f"{portal}: {report.status.value} ({where})")
+    if report.status is CdpSessionStatus.SIGNED_IN:
+        return
+    if report.status is CdpSessionStatus.UNREACHABLE:
+        console.print(
+            f"[bold yellow]{portal}: {where} did not answer. "
+            "That is not a missing session.[/bold yellow]"
+        )
+        return
+    console.print(f"[bold yellow]No iniciaste sesión en {portal}: {_MUST_SIGN_IN}.[/bold yellow]")
 
 
 def _ats_target_url(adapter: Any, job: JobPosting, ats_url: str) -> str:
@@ -3723,20 +4974,25 @@ def _fill_ats_over_cdp(
     job_id: str,
     *,
     foreground: bool = False,
+    attach_timeout_s: float = 15,
 ) -> bool:
-    """Fill known fields in your Chrome. False → fall back. Never raises the window."""
+    """Fill known fields in the requested Chrome. A failure does not open another browser."""
     from jobbot.adapters.ats import apply_fill
     from jobbot.adapters.ats.email_apply import resolve_cv_path
 
     cv_pdf = resolve_cv_path(config.output_dir, job_id)
     try:
         result = apply_fill.open_and_fill_over_cdp(
-            cdp, url, candidate, cv_path=cv_pdf, focus=foreground
+            cdp,
+            url,
+            candidate,
+            cv_path=cv_pdf,
+            focus=foreground,
+            attach_timeout_s=attach_timeout_s,
         )
     except apply_fill.ApplyFillError as exc:
-        err_console.print(f"[yellow]{exc}[/yellow]")
-        err_console.print("[yellow]Falling back to your default browser + prefill sheet.[/yellow]")
-        return False
+        err_console.print(f"[red]{exc}[/red]")
+        raise _RecordedExit(GENERIC_FAILURE, error_class="CdpAttach", message=str(exc)) from exc
     if result.opened:
         where = f"Chrome ({cdp})"
         if foreground:
@@ -3794,6 +5050,10 @@ def application_apply(
         str | None,
         typer.Option("--cdp", help="Attach to your logged-in Chrome (see browser chrome-debug)"),
     ] = None,
+    cdp_timeout: Annotated[
+        float,
+        typer.Option("--cdp-timeout", help="Seconds to wait for a CDP attach (default 15)"),
+    ] = 15,
     foreground: Annotated[
         bool,
         typer.Option(
@@ -3805,6 +5065,13 @@ def application_apply(
         int | None,
         typer.Option("--limit", help="With --all, open at most N jobs"),
     ] = None,
+    min_match: Annotated[
+        float,
+        typer.Option(
+            "--min-match",
+            help="Warn before --apply below this match. 0.7 means 70%. Default 70.",
+        ),
+    ] = 70,
 ) -> None:
     """Plan or open ATS/Gmail apply for a job (HITL; no CAPTCHA bypass; no invented answers).
 
@@ -3815,12 +5082,20 @@ def application_apply(
     if all_jobs and job_id:
         err_console.print("[red]Pass a job id or --all, not both.[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
+    from jobbot.applications.preflight import MatchThresholdError, threshold_percent
+
+    try:
+        minimum = threshold_percent(min_match)
+    except MatchThresholdError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
     if all_jobs:
         _application_apply_all(
             apply_changes=apply_changes,
             yes=yes,
             attach=attach,
             cdp=cdp,
+            cdp_timeout=cdp_timeout,
             foreground=foreground,
             limit=limit,
         )
@@ -3834,8 +5109,33 @@ def application_apply(
         yes=yes,
         attach=attach,
         cdp=cdp,
+        cdp_timeout=cdp_timeout,
         foreground=foreground,
+        min_match=minimum,
     )
+
+
+def _confirm_low_match(candidate: Candidate, job: JobPosting, *, minimum: float, yes: bool) -> None:
+    """Print the gap list and stop unless the person confirms. --yes still warns."""
+    from jobbot.applications.preflight import below_threshold
+    from jobbot.cv.gap import GapStatus, gap_report
+
+    if not below_threshold(job.match_score, minimum):
+        return
+    score = job.match_score or 0
+    console.print(f"match {score:.0f}% is below {minimum:.0f}%")
+    missing = [
+        term.term
+        for term in gap_report(candidate, job).terms
+        if term.kind == "hard" and term.status is GapStatus.GAP
+    ]
+    if missing:
+        console.print("gaps: " + ", ".join(missing))
+    if yes:
+        return
+    if not typer.confirm("The match is below the threshold. Continue?", default=False):
+        console.print("Aborted.")
+        raise _QuietExit(USER_CANCEL)
 
 
 def _application_apply_all(
@@ -3844,6 +5144,7 @@ def _application_apply_all(
     yes: bool,
     attach: bool,
     cdp: str | None,
+    cdp_timeout: float,
     foreground: bool,
     limit: int | None,
 ) -> None:
@@ -3902,6 +5203,7 @@ def _application_apply_all(
                 yes=True,
                 attach=attach,
                 cdp=cdp,
+                cdp_timeout=cdp_timeout,
                 foreground=foreground,
             )
             opened += 1
@@ -3934,7 +5236,9 @@ def _application_apply_one(
     yes: bool,
     attach: bool,
     cdp: str | None,
+    cdp_timeout: float = 15,
     foreground: bool = False,
+    min_match: float = 70,
 ) -> None:
     """Assist apply for a single job id (same behaviour as before --all)."""
     from jobbot.adapters.ats.apply import (
@@ -3959,6 +5263,9 @@ def _application_apply_one(
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(VALIDATION_FAILURE) from exc
 
+    if apply_changes:
+        _confirm_low_match(candidate, job, minimum=min_match, yes=yes)
+
     plan = build_apply_plan(candidate, job)
     adapter = adapter_for_job(job)
     adapter_name = adapter.name if adapter is not None else plan.ats_kind.value
@@ -3966,7 +5273,22 @@ def _application_apply_one(
     console.print(f"ATS: {plan.ats_kind.value}  adapter={adapter_name}  {plan.ats_url or '(none)'}")
     console.print(f"Method: {plan.method.value}")
     console.print(plan.message)
-    _warn_if_login_needed(config, plan.ats_kind, cdp)
+    if plan.ats_kind.value == "indeed" and plan.ats_url:
+        from jobbot.adapters.indeed.external import IndeedVerificationRequired, gate_indeed_entry
+
+        try:
+            gate_indeed_entry(plan.ats_url)
+        except IndeedVerificationRequired as exc:
+            err_console.print(f"[yellow]{exc}[/yellow]")
+            raise _QuietExit(MANUAL_CHALLENGE) from exc
+    from urllib.parse import urlparse
+
+    _warn_if_login_needed(
+        config,
+        plan.ats_kind,
+        cdp,
+        host=urlparse(plan.ats_url).hostname if plan.ats_url else None,
+    )
 
     if plan.method == ApplyMethod.LINKEDIN_MESSAGE:
         from jobbot.adapters.ats.apply import open_ats_in_browser
@@ -4124,18 +5446,21 @@ def _application_apply_one(
     ):
         console.print("Aborted.")
         raise typer.Exit(SUCCESS)
-    # Ensure package exists
     job_dir = config.output_dir / "jobs" / job.id
+    filled_in_cdp = False
+    if cdp:
+        _fill_ats_over_cdp(
+            str(cdp),
+            _ats_target_url(adapter, job, plan.ats_url),
+            candidate,
+            config,
+            job.id,
+            foreground=foreground,
+            attach_timeout_s=cdp_timeout,
+        )
+        filled_in_cdp = True
     app_dir = prepare_application_package(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
-    )
-    filled_in_cdp = bool(cdp) and _fill_ats_over_cdp(
-        str(cdp),
-        _ats_target_url(adapter, job, plan.ats_url),
-        candidate,
-        config,
-        job.id,
-        foreground=foreground,
     )
     if not filled_in_cdp:
         if adapter is not None and hasattr(adapter, "open"):
@@ -4188,7 +5513,8 @@ def application_check_answer(
     """Check a free-text answer against profile.yaml and the stored posting (pastes nothing).
 
     Exit 0 when every claim is backed, 2 when a claim is unbacked or misattributed,
-    4 when the question asks for motivation (only you can answer it).
+    4 when the question asks for motivation, including a cover letter whose claims
+    are all backed: the output says so, and only you can confirm the motivation.
     """
     from jobbot.applications.answer_check import Verdict, check_answer, render_answer_check
 
@@ -4240,6 +5566,112 @@ def application_show(job_id: Annotated[str, typer.Argument()]) -> None:
         console.print("No application record yet. Run: jobbot application prepare " + job_id)
 
 
+@application_app.command("status")
+def application_status(
+    job_id: Annotated[str, typer.Argument()],
+    set_status: Annotated[
+        str | None,
+        typer.Option("--set", help="Move the pipeline. applied asks first."),
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the applied confirmation")] = False,
+) -> None:
+    """Show or set one job's pipeline status. A new job is saved."""
+    from jobbot.applications.tracker import TrackerError, parse_status, status_label
+
+    session, _config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    repo = ApplicationRepository(session)
+    if set_status is not None:
+        try:
+            target = parse_status(set_status)
+        except TrackerError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise _QuietExit(VALIDATION_FAILURE) from exc
+        if (
+            target is ApplicationStatus.APPLIED
+            and not yes
+            and not typer.confirm(f"Set {job.id} to applied?", default=False)
+        ):
+            console.print("Aborted.")
+            raise _QuietExit(USER_CANCEL)
+        repo.upsert_for_job(job.id, status=target)
+    current = repo.get_for_job(job.id)
+    label = status_label(current)
+    when = current.updated_at.isoformat() if current is not None else job.discovered_at.isoformat()
+    console.print(f"{job.id}  {label}  {when}")
+    if job.note:
+        console.print(f"note: {job.note}")
+
+
+@application_app.command("tracker")
+def application_tracker(
+    status: Annotated[
+        str | None,
+        typer.Option("--status", help="Only this pipeline label, including saved"),
+    ] = None,
+) -> None:
+    """List stored jobs by pipeline status. Order is the job id."""
+    from jobbot.applications.tracker import known_status, status_label
+
+    if status is not None and not known_status(status):
+        err_console.print(f"[red]unknown status {status!r}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    session, _config = _session()
+    apps = {app.job_id: app for app in ApplicationRepository(session).list_all()}
+    wanted = status.casefold() if status else None
+    for job in sorted(JobRepository(session).list_all(), key=lambda item: item.id):
+        label = status_label(apps.get(job.id))
+        if wanted is not None and label != wanted:
+            continue
+        note = f"  {job.note}" if job.note else ""
+        console.print(f"{job.id}  {label}  {job.company}  {job.title}{note}")
+
+
+@application_app.command("cover-letter")
+def application_cover_letter(
+    job_id: Annotated[str, typer.Argument()],
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Record the path on the package manifest, if one exists"),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the manifest confirmation")] = False,
+) -> None:
+    """Write a cover letter that only restates profile facts. Nothing is sent."""
+    from jobbot.applications.cover_letter import draft_cover_letter, record_manifest
+
+    session, config = _session()
+    job = JobRepository(session).get(job_id)
+    if job is None:
+        err_console.print(f"[red]Job not found: {job_id}[/red]")
+        raise typer.Exit(GENERIC_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    letter = config.output_dir / "jobs" / job.id / "cover-letter.txt"
+    letter.parent.mkdir(parents=True, exist_ok=True)
+    letter.write_text(draft_cover_letter(candidate, job), encoding="utf-8")
+    console.print(str(letter))
+    manifest = config.output_dir / "jobs" / job.id / "application" / "manifest.json"
+    if not apply_changes:
+        return
+    if not manifest.is_file():
+        console.print("No application package. Manifest unchanged.")
+        return
+    if (
+        not yes
+        and not typer.confirm(f"Record {letter.name} on the package manifest?", default=False)
+    ):
+        console.print("Aborted.")
+        raise _QuietExit(USER_CANCEL)
+    record_manifest(manifest, letter)
+    console.print(f"Recorded {letter}")
+
+
 @applications_app.command("list")
 def applications_list() -> None:
     """List tracked applications."""
@@ -4261,10 +5693,97 @@ def applications_list() -> None:
     console.print(table)
 
 
+@applications_app.command("followup")
+def applications_followup(
+    company: Annotated[str, typer.Option("--company", help="Employer already on the posting.")],
+    title: Annotated[str, typer.Option("--title", help="Role already on the posting.")],
+    sent: Annotated[
+        int, typer.Option("--sent", help="Follow-ups already written. Two is the cap.")
+    ],
+) -> None:
+    """Print a silence follow-up draft. Never sends, and two is the cap."""
+    from jobbot.applications.followup import followup_draft
+
+    try:
+        draft = followup_draft(company, title, sent=sent)
+    except ValueError as exc:
+        err_console.print(str(exc))
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    console.print("cap reached" if draft is None else draft)
+
+
 @applications_app.command("status")
 def applications_status() -> None:
     """Alias for applications list."""
     applications_list()
+
+
+@applications_app.command("feedback")
+def applications_feedback(
+    file: Annotated[
+        str | None,
+        typer.Option("--file", help="Pasted employer message. Otherwise stdin."),
+    ] = None,
+    job: Annotated[
+        str | None,
+        typer.Option("--job", help="Force the posting id when the message names it."),
+    ] = None,
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write the event. Default is dry-run."),
+    ] = False,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", help="Confirm a rejection that would replace an offer."),
+    ] = False,
+) -> None:
+    """Classify a pasted employer message and record it on the application."""
+    from jobbot.applications.feedback import FeedbackError, read_feedback, store_feedback
+
+    body = _pasted_message(file)
+    session, config = _session()
+    try:
+        reading = read_feedback(
+            body,
+            JobRepository(session).list_all(),
+            ApplicationRepository(session).list_all(),
+            job_id=job,
+        )
+    except FeedbackError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    for line in reading.lines():
+        console.print(line)
+    if not apply:
+        console.print("[dim]dry-run: nothing written[/dim]")
+        return
+    if reading.needs_confirm and not yes:
+        err_console.print("[yellow]Sin --yes el estado offer no cambia.[/yellow]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    store_feedback(session, config.root, reading, body)
+
+
+@applications_app.command("report")
+def applications_report() -> None:
+    """Funnel per stored posting: responses, interviews and rejections."""
+    from jobbot.applications.feedback import funnel, report_lines
+
+    session, _ = _session()
+    for line in report_lines(funnel(session)):
+        console.print(line)
+
+
+def _pasted_message(file: str | None) -> str:
+    if file:
+        path = Path(file)
+        if not path.is_file():
+            err_console.print(f"[red]File not found: {file}[/red]")
+            raise _QuietExit(VALIDATION_FAILURE)
+        return path.read_text(encoding="utf-8")
+    if sys.stdin.isatty():
+        err_console.print("[red]Paste a message via --file or stdin.[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    return sys.stdin.read()
 
 
 # ── indeed / linkedin (Vertical B) ───────────────────────────────────────────
@@ -4312,7 +5831,11 @@ def indeed_status(
     from jobbot.browser.cdp import resolve_cdp_url
 
     ok = IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).session_valid()
-    console.print("Indeed session: " + ("valid" if ok else "not authenticated"))
+    if ok:
+        console.print("Indeed session: valid")
+        return
+    console.print("Indeed session: not authenticated")
+    raise typer.Exit(AUTH_REQUIRED)
 
 
 @indeed_app.command("inspect")
@@ -4340,11 +5863,18 @@ def indeed_prepare() -> None:
 def indeed_pull(
     cdp: Annotated[str | None, typer.Option("--cdp")] = None,
 ) -> None:
-    """Pull Indeed profile snapshot (read)."""
+    """Pull Indeed profile snapshot (read). Refuses when the structured editor is gone."""
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
-    path = IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).pull_and_save()
+    try:
+        path = IndeedAdapter.from_config(
+            load_config(), cdp_url=resolve_cdp_url(cdp)
+        ).pull_and_save()
+    except IndeedUiChanged as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
     console.print(f"[green]Wrote[/green] {path}")
 
 
@@ -4354,10 +5884,95 @@ def indeed_diff(
 ) -> None:
     """Diff local profile vs Indeed snapshot."""
     from jobbot.adapters.diff_engine import render_profile_diff
+    from jobbot.adapters.indeed.resume_edit import DOCUMENT_ONLY_MESSAGE, load_editor_state
 
     config = load_config()
+    if load_editor_state(config.output_dir) == "document_only":
+        console.print(DOCUMENT_ONLY_MESSAGE)
+        raise typer.Exit(UI_CHANGED)
     candidate = load_profile(config.profile_path)
     console.print(render_profile_diff(candidate, config.output_dir, "indeed", section=section))
+
+
+def _sync_indeed_preferences(
+    adapter: IndeedAdapter, *, apply_changes: bool, yes: bool
+) -> None:
+    from jobbot.adapters.indeed.preferences import plan_preferences, save_preferences
+    from jobbot.jobs.eligibility import (
+        ApplicationAnswers,
+        default_answers_path,
+        read_answers_mapping,
+    )
+    from jobbot.profile.loader import load_profile
+
+    candidate = load_profile(adapter.config.profile_path)
+    answers_path = default_answers_path(adapter.config.root)
+    answers = (
+        ApplicationAnswers.model_validate(read_answers_mapping(answers_path))
+        if answers_path.is_file()
+        else ApplicationAnswers()
+    )
+    for line in plan_preferences(candidate, answers).lines:
+        console.print(line)
+    if not apply_changes:
+        return
+    with adapter._session() as browser:
+        confirmed = yes or typer.confirm("¿Guardar preferencias en Indeed?", default=False)
+        if not confirmed:
+            raise typer.Exit(USER_CANCEL)
+        save_preferences(browser.page, confirmed=True)
+
+
+@indeed_app.command("upload-cv")
+def indeed_upload_cv(
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Upload when the hash differs (default: check only)"),
+    ] = False,
+    variant: Annotated[
+        str,
+        typer.Option("--variant", help="base_es or base_en when --cv is omitted"),
+    ] = "base_es",
+    cv: Annotated[
+        Path | None,
+        typer.Option("--cv", help="PDF to upload (default: output/base/cv.pdf)"),
+    ] = None,
+    cdp: Annotated[str | None, typer.Option("--cdp")] = None,
+) -> None:
+    """Replace the Indeed PDF when its hash differs from the last receipt."""
+    from jobbot.adapters.indeed.cv_upload import (
+        ALREADY_CURRENT,
+        KNOWN_VARIANTS,
+        file_sha256,
+        icon_glyph_message,
+        load_receipt_sha,
+    )
+
+    config = load_config()
+    if variant not in KNOWN_VARIANTS:
+        err_console.print(f"variante desconocida: {variant}")
+        raise typer.Exit(VALIDATION_FAILURE)
+    path = cv if cv is not None else config.output_dir / "base" / "cv.pdf"
+    if not path.is_file():
+        err_console.print(f"no está el PDF: {path}")
+        raise typer.Exit(VALIDATION_FAILURE)
+    reason = icon_glyph_message(path)
+    if reason:
+        err_console.print(reason)
+        raise typer.Exit(VALIDATION_FAILURE)
+    digest = file_sha256(path)
+    if load_receipt_sha(config.output_dir) == digest:
+        console.print(ALREADY_CURRENT)
+        return
+    if not apply_changes:
+        console.print(f"subiría {path.name}")
+        return
+    from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.browser.cdp import resolve_cdp_url
+
+    adapter = IndeedAdapter.from_config(config, cdp_url=resolve_cdp_url(cdp))
+    with adapter._session() as browser:
+        browser.page.set_input_files('input[type="file"]', str(path))
 
 
 @indeed_app.command("sync")
@@ -4366,7 +5981,7 @@ def indeed_sync(
         str,
         typer.Option(
             "--section",
-            help="headline|summary|skills|experience|all (default: all)",
+            help="headline|summary|skills|experience|preferences|all (default: all)",
         ),
     ] = "all",
     apply_changes: Annotated[
@@ -4389,11 +6004,16 @@ def indeed_sync(
         typer.Option("--cdp", help="Attach to Chrome CDP (e.g. http://127.0.0.1:9222)"),
     ] = None,
 ) -> None:
-    """Dry-run (default) or apply Indeed profile sync from profile.yaml."""
+    """Dry-run or apply Indeed sync; --section preferences plans titles and salary."""
     from jobbot.adapters.indeed.client import IndeedAdapter
+    from jobbot.adapters.indeed.owner import IndeedOwnerMismatch
+    from jobbot.adapters.indeed.resume_edit import IndeedUiChanged
     from jobbot.browser.cdp import resolve_cdp_url
 
     adapter = IndeedAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp))
+    if section == "preferences":
+        _sync_indeed_preferences(adapter, apply_changes=apply_changes, yes=yes)
+        return
     if reconcile:
         if not apply_changes:
             console.print(
@@ -4408,7 +6028,14 @@ def indeed_sync(
         ):
             console.print("Aborted.")
             raise typer.Exit(SUCCESS)
-        result = adapter.apply_reconcile()
+        try:
+            result = adapter.apply_reconcile()
+        except IndeedUiChanged as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(UI_CHANGED) from exc
+        except IndeedOwnerMismatch as exc:
+            err_console.print(str(exc))
+            raise typer.Exit(VALIDATION_FAILURE) from exc
         console.print(result.message)
         return
 
@@ -4431,7 +6058,14 @@ def indeed_sync(
     ):
         console.print("Aborted.")
         raise typer.Exit(SUCCESS)
-    result = adapter.apply_sync_plan(plan)
+    try:
+        result = adapter.apply_sync_plan(plan, section=section)
+    except IndeedUiChanged as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(UI_CHANGED) from exc
+    except IndeedOwnerMismatch as exc:
+        err_console.print(str(exc))
+        raise typer.Exit(VALIDATION_FAILURE) from exc
     console.print(result.message)
 
 
@@ -4455,9 +6089,14 @@ def linkedin_status(
 ) -> None:
     """Check whether a LinkedIn session appears valid."""
     from jobbot.adapters.linkedin.client import LinkedInAdapter
-    from jobbot.browser.cdp import resolve_cdp_url
+    from jobbot.browser.cdp import CdpAttachInterrupted, CdpAttachTimeout, resolve_cdp_url
 
-    ok = LinkedInAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp)).session_valid()
+    try:
+        adapter = LinkedInAdapter.from_config(load_config(), cdp_url=resolve_cdp_url(cdp))
+        ok = adapter.session_valid()
+    except (CdpAttachTimeout, CdpAttachInterrupted) as exc:
+        err_console.print(f"LinkedIn session: unreachable ({exc})")
+        raise typer.Exit(GENERIC_FAILURE) from exc
     console.print("LinkedIn session: " + ("valid" if ok else "not authenticated"))
 
 
@@ -4488,12 +6127,86 @@ def linkedin_pull(
 def linkedin_diff(
     section: Annotated[str | None, typer.Option("--section")] = None,
 ) -> None:
-    """Diff local profile vs LinkedIn snapshot (read-only audit)."""
+    """Diff local profile vs LinkedIn snapshot. Mismatches are warnings; exit 0."""
     from jobbot.adapters.diff_engine import render_profile_diff
 
     config = load_config()
     candidate = load_profile(config.profile_path)
     console.print(render_profile_diff(candidate, config.output_dir, "linkedin", section=section))
+
+
+@linkedin_app.command("import")
+def linkedin_import(
+    section: Annotated[
+        str | None,
+        typer.Option("--section", help="headline, experience, education, or skills"),
+    ] = None,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Write confirmed sections into profile.yaml"),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Confirm every section")] = False,
+) -> None:
+    """Merge a stored LinkedIn snapshot into profile.yaml. Dry-run writes nothing."""
+    from jobbot.adapters.diff_engine import load_snapshot
+    from jobbot.adapters.linkedin.importer import (
+        LinkedInImportError,
+        apply_import,
+        import_plan,
+        render_change,
+    )
+    from jobbot.cv.tune import backup_profile
+
+    config = load_config()
+    if not config.profile_path.is_file():
+        err_console.print(
+            "[red]No profile.yaml. The snapshot has no name, so import cannot create one.[/red]"
+        )
+        raise _QuietExit(VALIDATION_FAILURE)
+    external = load_snapshot(config.output_dir, "linkedin")
+    if external is None:
+        err_console.print("[red]No linkedin snapshot found. Run: jobbot linkedin pull[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    try:
+        candidate = load_profile(config.profile_path)
+    except ProfileLoadError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(VALIDATION_FAILURE) from exc
+    try:
+        plan = import_plan(candidate, external, section=section)
+    except LinkedInImportError as exc:
+        err_console.print(f"[red]{exc}[/red]")
+        raise _QuietExit(VALIDATION_FAILURE) from exc
+    for warning in plan.warnings:
+        err_console.print(f"[yellow]{warning}[/yellow]")
+    for change in plan.changes:
+        console.print(render_change(change))
+    if not plan.changes:
+        console.print("Nothing to write.")
+        return
+    if not apply_changes:
+        console.print("Dry-run only. Nothing written.")
+        return
+    raw = yaml.safe_load(config.profile_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        err_console.print("[red]profile.yaml is not a mapping[/red]")
+        raise _QuietExit(VALIDATION_FAILURE)
+    chosen: set[str] = set()
+    for name in ("headline", "experience", "education", "skills"):
+        if not any(change.section == name for change in plan.changes):
+            continue
+        if yes or typer.confirm(f"Write LinkedIn {name} into profile.yaml?", default=False):
+            chosen.add(name)
+    if not chosen:
+        console.print("Nothing written.")
+        return
+    backup = backup_profile(config.profile_path)
+    merged = apply_import(raw, plan, sections=chosen)
+    config.profile_path.write_text(
+        yaml.safe_dump(merged, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    console.print(f"Wrote profile.yaml. Backup: {backup.name}")
 
 
 @linkedin_app.command("sync")
@@ -4714,6 +6427,14 @@ def linkedin_sweep(
         )
 
     found = _unique_postings(_run_portal_queries(queries, search_one, portal="LinkedIn"))
+    if fixture is not None:
+        for reason in source.fixture_skip_reasons(
+            fixture.expanduser().resolve(),
+            countries=countries,
+            allow_remote=config.search.allow_remote,
+            max_age_days=max_age,
+        ):
+            console.print(f"descartada por {reason}")
 
     if not found:
         console.print("No relevant posts found.")
@@ -4797,6 +6518,80 @@ def linkedin_sweep(
     )
     if candidate is not None:
         _warn_if_matcher_blind(scores)
+
+
+@linkedin_app.command("jobs")
+def linkedin_jobs(
+    query: Annotated[
+        str | None,
+        typer.Argument(help="Job search keywords (default: the profile's search queries)"),
+    ] = None,
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Parse a saved search-results page (no browser)"),
+    ] = None,
+    country: Annotated[
+        list[str] | None,
+        typer.Option("--country", help="Keep cards in these countries (default: CL)"),
+    ] = None,
+    any_country: Annotated[
+        bool,
+        typer.Option("--any-country", help="Keep cards from every country"),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Print the table and write nothing"),
+    ] = False,
+    cdp: Annotated[
+        str | None,
+        typer.Option("--cdp", help="Attach to Chrome CDP; without this or --fixture, stop"),
+    ] = None,
+) -> None:
+    """Save LinkedIn job cards from a search page; --dry-run writes nothing."""
+    from jobbot.adapters.linkedin.job_search import jobs_from_search_html
+    from jobbot.jobs.geo import detect_country, resolve_countries
+
+    config = load_config()
+    countries = resolve_countries(config.search.countries, country, any_country=any_country)
+    if fixture is not None:
+        html = fixture.expanduser().resolve().read_text(encoding="utf-8")
+    elif cdp:
+        err_console.print("linkedin jobs --cdp aún no abre la búsqueda; pasa --fixture")
+        raise typer.Exit(VALIDATION_FAILURE)
+    else:
+        err_console.print("pasa --fixture o --cdp; no abro un navegador solo")
+        raise typer.Exit(VALIDATION_FAILURE)
+    cards = jobs_from_search_html(html)
+    if countries:
+        cards = [
+            card
+            for card in cards
+            if (detected := detect_country(f"{card.location or ''}\n{card.title}")) is None
+            or detected in countries
+        ]
+    label = query or "perfil"
+    table = Table(title=f"LinkedIn jobs: {label}" + (" (dry-run)" if dry_run else ""))
+    table.add_column("Title")
+    table.add_column("Company")
+    table.add_column("Where")
+    table.add_column("URL")
+    for card in cards:
+        table.add_row(
+            card.title[:40],
+            card.company[:28],
+            card.location or "?",
+            card.url or "",
+        )
+    console.print(table)
+    if dry_run:
+        console.print("Dry-run: nothing written.")
+        return
+    _session_pair, config = _session()
+    repo = JobRepository(_session_pair)
+    for card in cards:
+        stored = repo.upsert_external(card)
+        write_job_json(stored, config.output_dir)
+    console.print("Next: jobbot jobs shortlist")
 
 
 @getonboard_app.command("prepare")
@@ -4917,14 +6712,18 @@ def getonboard_upload_cv(
         typer.Option("--cv", help="PDF to upload (default: output/base/cv.pdf)"),
     ] = None,
 ) -> None:
-    """Validate the local CV PDF, then upload it to Get on Board Tus CVs."""
+    """Validate the local CV PDF, upload it, and report whether the portal rewrote the profile."""
     from jobbot.adapters.getonboard.cv_upload import (
+        PROFILE_REWRITE_WARNING,
         GobCvUploadError,
+        profile_rewrite_guard,
         resolve_base_cv,
         upload_cv,
         validate_cv_for_upload,
+        wait_for_cv_parse,
         write_upload_receipt,
     )
+    from jobbot.adapters.getonboard.profile_edit import GOB_EDIT_URL, read_current
 
     config = load_config()
     path = cv.expanduser().resolve() if cv else resolve_base_cv(config.output_dir)
@@ -4950,21 +6749,36 @@ def getonboard_upload_cv(
         raise typer.Exit(SUCCESS)
     try:
         with _getonboard_session(config, cdp) as browser:
+            page = browser.page
+            page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+            before = read_current(page)
             result = upload_cv(
-                browser.page,
+                page,
                 path,
                 label=label,
                 make_default=make_default,
                 check=check,
             )
+            if not wait_for_cv_parse(page):
+                err_console.print("la lectura del CV no terminó")
+                console.print(PROFILE_REWRITE_WARNING)
+                raise typer.Exit(GENERIC_FAILURE)
+            page.goto(GOB_EDIT_URL, wait_until="domcontentloaded")
+            after = read_current(page)
     except GobCvUploadError as exc:
         err_console.print(f"[red]{exc}[/red]")
         raise typer.Exit(GENERIC_FAILURE) from exc
-    write_upload_receipt(config.output_dir, check, result)
+    guard = profile_rewrite_guard(before, after)
+    write_upload_receipt(config.output_dir, check, result, overwrite=guard.receipt)
     console.print(
         f"[green]Uploaded[/green] {result.path.name} as {result.label!r} "
         f"(default={result.is_default}) → {result.resumes_url}"
     )
+    if guard.overwritten:
+        for line in guard.lines:
+            console.print(line, markup=False)
+    else:
+        console.print(guard.receipt, markup=False)
 
 
 @getonboard_app.command("open-cvs")
@@ -4999,11 +6813,30 @@ def getonboard_sync(
             help="Open profile + CV editors (default: dry-run checklist only)",
         ),
     ] = False,
+    section: Annotated[
+        str | None,
+        typer.Option("--section", help="skills, seniority, english (comma-separated)"),
+    ] = None,
 ) -> None:
-    """Maintain permanent GoB profile: regenerate texts; optionally open editors."""
+    """Maintain permanent GoB profile; --section plans skills, seniority and English."""
     from jobbot.adapters.getonboard.client import GetOnBoardProfileClient
+    from jobbot.adapters.getonboard.profile_fields import parse_sections, render_section_plan
+    from jobbot.jobs.eligibility import default_answers_path, load_application_answers
 
-    client = GetOnBoardProfileClient.from_config(load_config())
+    config = load_config()
+    if section:
+        try:
+            sections = parse_sections(section)
+            candidate = load_profile(config.profile_path)
+            answers = load_application_answers(default_answers_path(config.root))
+        except (ProfileLoadError, ValueError) as exc:
+            err_console.print(str(exc))
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        for line in render_section_plan(candidate, answers, sections):
+            console.print(line, markup=False)
+        return
+
+    client = GetOnBoardProfileClient.from_config(config)
     path, result = client.prepare_package()
     console.print(f"[green]Wrote[/green] {path}  (mode={result.mode})")
     if not apply_changes:
@@ -5266,7 +7099,14 @@ def empleospublicos_search(
         else "Empleos Públicos (leads)"
     )
     for column in (
-        "ID", "Institución", "Cargo", "Región", "Cierre", "Renta bruta", "Grado", "Match"
+        "ID",
+        "Institución",
+        "Cargo",
+        "Región",
+        "Cierre",
+        "Renta bruta",
+        "Grado",
+        "Match",
     ):
         table.add_column(column)
     stored: list[str] = []
@@ -5509,6 +7349,7 @@ def portals_profile_status(
     from datetime import UTC, datetime
 
     from jobbot.portals.profile_state import (
+        account_coverage,
         coverage_report,
         cv_hashes_from_output,
         default_state_path,
@@ -5546,6 +7387,8 @@ def portals_profile_status(
     if as_json:
         console.print_json(data=report.to_public_dict())
         return
+    ready, counted = account_coverage(states)
+    console.print(f"accounts {ready}/{counted}")
     console.print(
         f"KPI {report.kpi_num}/{report.kpi_den}  "
         f"automation {report.automation:.0%}  "
@@ -5585,6 +7428,26 @@ def portals_profile_sheet(
         err_console.print("[red]Profile not found. The sheet needs data/profile.yaml.[/red]")
         raise typer.Exit(VALIDATION_FAILURE)
     state = _resolve_portal_state(config, portal)
+    if portal == "chiletrabajos":
+        from jobbot.jobs.eligibility import default_answers_path, load_application_answers
+        from jobbot.portals.chiletrabajos import render_chiletrabajos_sheet
+
+        try:
+            answers = load_application_answers(default_answers_path(config.root))
+        except ValueError as exc:
+            err_console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(VALIDATION_FAILURE) from exc
+        text = render_chiletrabajos_sheet(candidate, answers)
+        if out is not None:
+            destination = out.expanduser()
+            if not destination.is_absolute():
+                destination = config.root / destination
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(text, encoding="utf-8")
+            console.print(f"Wrote {destination}")
+            return
+        console.print(text, markup=False)
+        return
     try:
         text = render_fill_sheet(
             state,
@@ -5949,6 +7812,26 @@ def _learn_company_knowledge(
         err_console.print(f"[yellow]Contradiction:[/yellow] {result.conflict}")
 
 
+@companies_app.command("health")
+def companies_health(
+    status: Annotated[
+        int | None,
+        typer.Option("--status", help="HTTP status already observed. Nothing is fetched."),
+    ] = None,
+    robots: Annotated[
+        bool,
+        typer.Option("--robots", help="robots.txt disallows this page."),
+    ] = False,
+) -> None:
+    """Classify one portal read. Does not search or fetch."""
+    from jobbot.companies.health import portal_health
+
+    if status is None and not robots:
+        err_console.print("nothing observed")
+        raise _QuietExit(VALIDATION_FAILURE)
+    console.print(portal_health(status=status, robots_disallow=robots))
+
+
 @companies_app.command("detect")
 def companies_detect(
     url: Annotated[str, typer.Argument(help="Career page, ATS or job URL")],
@@ -5996,10 +7879,14 @@ def companies_learn(
         bool,
         typer.Option("--verify", help="Promote straight to active (you confirm it is right)"),
     ] = False,
+    fixture: Annotated[
+        Path | None,
+        typer.Option("--fixture", help="Saved HTML used to recognise an embedded ATS"),
+    ] = None,
 ) -> None:
     """Register a company/portal relation you found yourself (candidate by default)."""
     from jobbot.companies.learn import learn_from_url
-    from jobbot.companies.models import DiscoverySource
+    from jobbot.companies.models import DiscoverySource, KnowledgeStatus
     from jobbot.companies.registry import save_companies
     from jobbot.companies.urls import PrivateRouteRejected, company_hint_from_url
 
@@ -6008,6 +7895,7 @@ def companies_learn(
     narrator = _narrator()
     narrator.phase(Phase.UPDATING_WORLD, "company career platforms")
     try:
+        page = fixture.read_text(encoding="utf-8") if fixture is not None else None
         outcome = learn_from_url(
             registry,
             company=company or company_hint_from_url(url),
@@ -6015,6 +7903,7 @@ def companies_learn(
             source=DiscoverySource.USER_OBSERVATION,
             country=country,
             resolve=resolve,
+            html=page,
         )
     except PrivateRouteRejected as exc:
         err_console.print(f"[red]Not shareable company knowledge:[/red] {exc}")
@@ -6040,10 +7929,55 @@ def companies_learn(
     if outcome.conflict:
         err_console.print(f"[yellow]Contradiction:[/yellow] {outcome.conflict}")
     if not verify:
-        console.print(
-            f"Candidate stored. Confirm with: [bold]jobbot companies promote "
-            f"{outcome.company.id} --site {outcome.site.url}[/bold]"
-        )
+        if outcome.site.status == KnowledgeStatus.CANDIDATE:
+            console.print(
+                f"Candidate stored. Confirm with: [bold]jobbot companies promote "
+                f"{outcome.company.id} --site {outcome.site.url}[/bold]"
+            )
+        else:
+            console.print(f"Recorded. Status stays {outcome.site.status.value}.")
+
+
+@companies_app.command("recheck")
+def companies_recheck(
+    company: Annotated[
+        str | None,
+        typer.Argument(help="One company id or name; omit to recheck every saved site"),
+    ] = None,
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Confirm each detector change before writing"),
+    ] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Apply every proposed change")] = False,
+) -> None:
+    """Re-run offline detectors on saved sites. Dry-run writes nothing."""
+    from jobbot.companies.recheck import apply_recheck, plan_recheck
+    from jobbot.companies.registry import save_companies
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    if company is not None and registry.find_company(company) is None:
+        err_console.print(f"[red]No company {company!r} in the registry.[/red]")
+        raise typer.Exit(VALIDATION_FAILURE)
+    changes = plan_recheck(registry, company=company)
+    if not changes:
+        console.print("No detector changes.")
+        return
+    for change in changes:
+        console.print(f"{change.company_id}  {change.action}  {change.detail}")
+    if not apply_changes:
+        console.print("Dry-run only. Re-run with [bold]--apply[/bold] to confirm each change.")
+        return
+    confirmed = []
+    for change in changes:
+        if yes or typer.confirm(f"Apply {change.action} on {change.url}?", default=False):
+            confirmed.append(change)
+    if not confirmed:
+        console.print("Nothing applied.")
+        return
+    apply_recheck(registry, confirmed)
+    save_companies(registry, path)
+    console.print(f"Applied {len(confirmed)} change(s).")
 
 
 @companies_app.command("list")
@@ -6056,6 +7990,7 @@ def companies_list(
     """List known companies and their career platforms."""
     from jobbot.companies.models import KnowledgeStatus
     from jobbot.companies.urls import display_url
+    from jobbot.portals.detect import job_board_host_review
 
     config = load_config()
     registry, path = _companies_registry(config)
@@ -6080,24 +8015,31 @@ def companies_list(
     table.add_column("Status")
     table.add_column("Conf.")
     rows = 0
+    review_ids: list[str] = []
     for record in registry.companies:
         for site in record.career_sites:
             if wanted is not None and site.status.value not in wanted:
                 continue
+            review = job_board_host_review(site.url)
+            site_type = site.site_type.value if not review else f"{site.site_type.value} · {review}"
             table.add_row(
                 record.id,
                 record.country or "—",
                 display_url(site.url),
-                site.site_type.value,
+                site_type,
                 site.ats.value,
                 site.status.value,
                 str(site.confidence),
             )
+            if review and record.id not in review_ids:
+                review_ids.append(record.id)
             rows += 1
     if rows == 0:
         console.print(f"No career sites with status {status!r}.")
         return
     console.print(table)
+    for company_id in review_ids:
+        console.print(f"jobbot companies reject {company_id}")
 
 
 @companies_app.command("show")
@@ -6472,7 +8414,7 @@ def companies_promote(
     ] = None,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation")] = False,
 ) -> None:
-    """Promote candidate knowledge to active (the only way it becomes truth)."""
+    """Promote one company's candidate sites to active."""
     from jobbot.companies.models import KnowledgeStatus
     from jobbot.companies.registry import save_companies
     from jobbot.companies.urls import canonical_key
@@ -6506,6 +8448,34 @@ def companies_promote(
     if promoted:
         save_companies(registry, path)
     console.print(f"[green]Promoted[/green] {promoted} career site(s) → {path}")
+
+
+@companies_app.command("auto-promote")
+def companies_auto_promote(
+    apply_changes: Annotated[
+        bool,
+        typer.Option("--apply", help="Mark eligible candidate sites active"),
+    ] = False,
+) -> None:
+    """List candidate sites technical evidence can promote. Dry-run writes nothing."""
+    from jobbot.companies.auto_promote import auto_promote_plan
+    from jobbot.companies.registry import save_companies
+
+    config = load_config()
+    registry, path = _companies_registry(config)
+    plan = auto_promote_plan(registry)
+    if not plan:
+        console.print("Nothing to auto-promote.")
+        return
+    for record, site in plan:
+        console.print(f"{record.id}  {site.url}  {site.ats.value}")
+    if not apply_changes:
+        console.print("Dry-run only. Re-run with --apply to mark these active.")
+        return
+    for record, site in plan:
+        registry.promote(record.id, url=site.url)
+    save_companies(registry, path)
+    console.print(f"Promoted {len(plan)} career site(s).")
 
 
 @companies_app.command("reject")

@@ -1,0 +1,16 @@
+identity:
+  birth_date: 1990-01-01
+  nationality: [CL]
+  gender_to_declare: prefer_not_to_say
+  comuna: Comuna Ejemplo
+  region: Region Ejemplo
+salary:
+  amount: 1500000
+  currency: CLP
+  period: month
+  basis: net
+availability:
+  from_date: 2026-11-01
+relocation: within_country
+job_types: [full_time, contract]
+desired_titles: [Analista]

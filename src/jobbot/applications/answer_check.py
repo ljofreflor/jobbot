@@ -30,6 +30,7 @@ from jobbot.models.candidate import Candidate
 from jobbot.models.experience import format_metric
 from jobbot.models.job import JobPosting
 from jobbot.nlp.refine import _named_entities
+from jobbot.nlp.sentences import split_sentences
 
 
 class QuestionKind(StrEnum):
@@ -169,7 +170,6 @@ _MOTIVATION_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
 
 _TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)*|[^\W\d_]+")
 _FIGURE_RE = re.compile(r"\d+(?:[.,]\d+)*")
-_SENTENCE_RE = re.compile(r"(?<=[.!?;])\s+|\n+")
 _BULLET_RE = re.compile(r"^\s*(?:[-*•·]|\d+[.)])\s+")
 _LABEL_LINE_RE = re.compile(r"^[^\W\d_][\w ]{0,24}:\s*\S.{0,60}$")
 _ORG_NAME_RE = re.compile(
@@ -298,6 +298,10 @@ def render_answer_check(check: AnswerCheck, job: JobPosting | None = None) -> li
             lines.append("     (no checkable claim: opinion or connective text)")
     for warning in check.warnings:
         lines.append(f"! {warning}")
+    backed = bool(check.sentences) and not any(item.problems for item in check.sentences)
+    if check.kind is QuestionKind.MOTIVATION and backed:
+        lines.append("Afirmaciones: todas respaldadas.")
+        lines.append("Motivación: la confirma la persona.")
     if check.posting_hooks:
         lines.append("Posting phrases a draft could rely on:")
         lines.extend(f"  - {hook}" for hook in check.posting_hooks)
@@ -377,6 +381,9 @@ def _check_entities(
                 continue
             if about and context.posting_index.has(word):
                 continue
+            if about and _posting_missing(context.job):
+                problems.append(_missing_posting(context.job))
+                break
             problems.append(f"names {entity!r}, which the profile does not back")
             break
 
@@ -411,6 +418,9 @@ def _check_figures(
                     )
             continue
         if about and key in context.posting_figures:
+            continue
+        if about and _posting_missing(context.job):
+            problems.append(_missing_posting(context.job))
             continue
         problems.append(f"the figure {token.text} is not in the profile")
 
@@ -507,6 +517,9 @@ def _check_company_claim(
             best, hits = segment, count
     if hits >= min(2, len(content)) and hits * 2 >= len(content):
         evidence.append(Evidence("posting", "posting", _short(best)))
+        return
+    if _posting_missing(context.job):
+        problems.append(_missing_posting(context.job))
         return
     problems.append(
         f"says something about {context.job.company} that the posting does not: "
@@ -771,9 +784,17 @@ def _figure_key(raw: str) -> str:
     return raw.replace(",", ".")
 
 
+def _posting_missing(job: JobPosting) -> bool:
+    return not (job.description or "").strip() and not (job.raw_description or "").strip()
+
+
+def _missing_posting(job: JobPosting) -> str:
+    return f"sin descripción guardada para {job.id}"
+
+
 def _sentences(text: str) -> list[str]:
     out: list[str] = []
-    for part in _SENTENCE_RE.split(text or ""):
+    for part in split_sentences(text):
         cleaned = _BULLET_RE.sub("", part).strip()
         if cleaned:
             out.append(cleaned)

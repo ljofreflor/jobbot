@@ -7,6 +7,7 @@ import unicodedata
 from typing import Any
 
 from jobbot.jobs.normalization import fold_text, normalize_skill
+from jobbot.jobs.untrusted import for_scoring
 from jobbot.models.job import JobPosting
 
 _HEADER_FIELD_RE = re.compile(
@@ -158,6 +159,23 @@ _PAGE_FIELD_LABELS = frozenset(
         "grado",
     }
 )
+# A stamp of when the post went up, or a heading that is not itself a skill.
+_POSTING_CHROME_LINES = frozenset(
+    {
+        "publicado",
+        "posted",
+        "principales desafios",
+        "key challenges",
+        "main challenges",
+    }
+)
+_POSTING_CHROME_PREFIXES = (
+    "publicado en ",
+    "publicado el ",
+    "posted on ",
+    "posted in ",
+)
+_HASHTAG_RE = re.compile(r"(?<!\w)#\w+")
 # Page chrome with no value of its own: buttons, table headings, reference numbers.
 _PAGE_CHROME_WORDS = frozenset(
     {
@@ -201,6 +219,8 @@ def looks_like_page_metadata(phrase: str) -> bool:
     if text in _CURRENCY_CODES or folded in _PAGE_FIELD_LABELS:
         return True
     if bare in _PAGE_FIELD_LABELS or bare in _PAGE_CHROME_WORDS:
+        return True
+    if folded in _POSTING_CHROME_LINES or folded.startswith(_POSTING_CHROME_PREFIXES):
         return True
     if _URLISH_RE.search(text) or _SOCIAL_RE.search(text) or _DELIVERABLE_ROW_RE.match(text):
         return True
@@ -340,15 +360,16 @@ def parse_job_text(
     url: str | None = None,
 ) -> JobPosting:
     """Best-effort parse of a pasted JD into a JobPosting."""
-    lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip()]
-    title = _field(lines, "title", "role", "cargo", "puesto") or (lines[0] if lines else "Untitled")
-    company = _field(lines, "company", "empresa", "organization") or "Unknown"
+    trusted = for_scoring(text)
+    lines = [ln.strip() for ln in trusted.strip().splitlines() if ln.strip()]
+    title = _field(lines, "title", "role", "cargo", "puesto") or _fallback_title(lines)
+    company = _field(lines, "company", "empresa", "organization") or _company_from_about(lines)
     location = _field(lines, "location", "ubicacion", "ubicación", "city")
-    seniority = _infer_seniority(text)
-    remote_type = _infer_remote(text)
-    skills = _extract_skills(text)
-    requirements = _extract_requirements(text)
-    languages = _extract_languages(text)
+    seniority = _infer_seniority(trusted)
+    remote_type = _infer_remote(trusted)
+    skills = _extract_skills(trusted)
+    requirements = _extract_requirements(trusted)
+    languages = _extract_languages(trusted)
 
     description = text.strip()
     return JobPosting(
@@ -372,6 +393,46 @@ def job_to_dict(job: JobPosting) -> dict[str, Any]:
     return job.model_dump(mode="json")
 
 
+_TITLE_CHROME = frozenset(
+    {
+        "volver",
+        "volver a resultados",
+        "postular",
+        "postula",
+        "postula aqui",
+        "apply",
+        "apply now",
+        "inicio",
+        "menu",
+        "home",
+    }
+)
+_ABOUT_NOT_COMPANY = frozenset({"nosotros", "la empresa", "la compania", "el equipo"})
+_ABOUT_RE = re.compile(r"(?i)^acerca\s+de\s+(.+)$")
+
+
+def _fallback_title(lines: list[str]) -> str:
+    """First line that is not a button or an 'Acerca de' employer line."""
+    for line in lines:
+        folded = fold_text(line)
+        if folded in _TITLE_CHROME or folded.startswith("acerca de"):
+            continue
+        return line
+    return "Untitled"
+
+
+def _company_from_about(lines: list[str]) -> str:
+    """'Acerca de Servicio Neutro' names the employer. 'Acerca de nosotros' does not."""
+    for line in lines:
+        match = _ABOUT_RE.match(line.strip())
+        if match is None:
+            continue
+        name = match.group(1).strip(" .:")
+        if name and fold_text(name) not in _ABOUT_NOT_COMPANY:
+            return name
+    return "Unknown"
+
+
 def _field(lines: list[str], *keys: str) -> str | None:
     for line in lines:
         for key in keys:
@@ -381,7 +442,18 @@ def _field(lines: list[str], *keys: str) -> str | None:
     return None
 
 
+# Employment level, not a profession. Bare "práctica" is not enough: "buenas prácticas"
+# and "práctica clínica" are the work itself.
+_INTERN_RE = re.compile(
+    r"modalidad de pr[aá]ctica|pr[aá]ctica profesional|pasant[ií]a|"
+    r"\bpasante\b|\bpracticante\b|\binternship\b|\bintern\b|\btrainee\b",
+    re.IGNORECASE,
+)
+
+
 def _infer_seniority(text: str) -> str | None:
+    if _INTERN_RE.search(text):
+        return "intern"
     lower = text.lower()
     for label in ("staff", "principal", "senior", "semi-senior", "mid", "junior", "lead"):
         if re.search(rf"\b{re.escape(label)}\b", lower):
@@ -477,7 +549,14 @@ def _text_blocks(text: str) -> list[str]:
         if not stripped:
             flush()
             continue
+        stripped = " ".join(_HASHTAG_RE.sub(" ", stripped).split())
+        if not stripped:
+            flush()
+            continue
         folded = fold_text(stripped)
+        if folded in _POSTING_CHROME_LINES or folded.startswith(_POSTING_CHROME_PREFIXES):
+            flush()
+            continue
         if folded in _PAGE_FIELD_LABELS:
             flush()
             value_pending = True
@@ -543,12 +622,37 @@ def _clean_skill(phrase: str, *, max_words: int = _ITEM_MAX_WORDS) -> str | None
     return cleaned
 
 
+# Headings that ask something of the candidate. Folded, so the accent and the
+# question mark do not matter. A bare "perfil" is not one of them.
+_REQUIREMENT_OPENERS = frozenset(
+    {
+        "requirements",
+        "requisitos",
+        "what you ll need",
+        "what youll need",
+        "perfil del cargo",
+        "perfil buscado",
+        "que buscamos",
+        "lo que necesitas",
+        "formacion y experiencia",
+        "conocimientos deseables",
+    }
+)
+
+
+def _opens_requirements(line: str) -> bool:
+    folded = fold_text(line)
+    if folded in _REQUIREMENT_OPENERS:
+        return True
+    return folded.startswith(("requirements", "requisitos", "what you ll need", "what youll need"))
+
+
 def _extract_requirements(text: str) -> list[str]:
     reqs: list[str] = []
     in_block = False
     for line in text.splitlines():
         stripped = line.strip()
-        if re.match(r"(?i)^(requirements|requisitos|requirements:|what you.ll need)", stripped):
+        if _opens_requirements(stripped):
             in_block = True
             continue
         if in_block:

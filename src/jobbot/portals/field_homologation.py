@@ -12,7 +12,9 @@ import re
 import unicodedata
 from enum import StrEnum
 
+from jobbot.jobs.eligibility import ApplicationAnswers
 from jobbot.models.candidate import Candidate
+from jobbot.models.experience import Experience
 
 
 class ProfileFact(StrEnum):
@@ -30,6 +32,19 @@ class ProfileFact(StrEnum):
     LINKEDIN = "linkedin"
     GITHUB = "github"
     RESUME = "resume"
+    BIRTH_DATE = "birth_date"
+    NATIONALITY = "nationality"
+    GENDER = "gender"
+    COMUNA = "comuna"
+    REGION = "region"
+    SALARY_NET = "salary_net"
+    SALARY_GROSS = "salary_gross"
+    AVAILABILITY_DATE = "availability_date"
+    EMPLOYER = "employer"
+    UNIT = "unit"
+    WORK_MODE = "work_mode"
+    LANGUAGES = "languages"
+    CERTIFICATIONS = "certifications"
 
 
 # One fact → many accepted portal labels. Unknown labels stay unmapped (HITL).
@@ -102,7 +117,54 @@ _HOMOLOGATION: dict[ProfileFact, tuple[str, ...]] = {
         "currículum vitae",
         "curriculum vitae",
     ),
+    ProfileFact.BIRTH_DATE: (
+        "birth date",
+        "date of birth",
+        "fecha de nacimiento",
+    ),
+    ProfileFact.NATIONALITY: ("nationality", "nacionalidad"),
+    ProfileFact.GENDER: ("gender", "género", "genero"),
+    ProfileFact.COMUNA: ("comuna",),
+    ProfileFact.REGION: ("region", "región"),
+    ProfileFact.SALARY_NET: (
+        "net salary",
+        "renta líquida",
+        "renta liquida",
+        "sueldo líquido",
+        "sueldo liquido",
+    ),
+    ProfileFact.SALARY_GROSS: (
+        "gross salary",
+        "renta bruta",
+        "sueldo bruto",
+    ),
+    ProfileFact.AVAILABILITY_DATE: (
+        "availability",
+        "available from",
+        "fecha de disponibilidad",
+        "disponibilidad",
+    ),
+    ProfileFact.EMPLOYER: ("employer", "company", "empleador"),
+    ProfileFact.UNIT: ("department", "área", "area", "unidad"),
+    ProfileFact.WORK_MODE: ("work arrangement", "work mode", "modalidad"),
+    ProfileFact.LANGUAGES: ("language", "languages", "idioma", "idiomas", "proficiency", "nivel"),
+    ProfileFact.CERTIFICATIONS: (
+        "certifications",
+        "licenses & certifications",
+        "certificaciones",
+    ),
 }
+
+_NATIONAL_ID_LABELS = frozenset(
+    {
+        "run",
+        "rut",
+        "rol unico nacional",
+        "national id",
+        "dni",
+    }
+)
+NEEDS_HUMAN = "needs_human"
 
 _ALIAS_TO_FACT: dict[str, ProfileFact] = {}
 
@@ -161,13 +223,80 @@ def value_for_fact(candidate: Candidate, fact: ProfileFact) -> tuple[str, str]:
         return _pair(personal.location_line(), "personal.city + country")
     if fact is ProfileFact.HEADLINE:
         return _pair(personal.headline, "personal.headline")
+    if fact is ProfileFact.EMPLOYER:
+        return _from_role(candidate, "company")
+    if fact is ProfileFact.UNIT:
+        return _from_role(candidate, "unit")
+    if fact is ProfileFact.WORK_MODE:
+        return _from_role(candidate, "work_mode")
+    if fact is ProfileFact.LANGUAGES:
+        lines = [lang.line() for lang in candidate.languages]
+        return _pair("; ".join(lines), "languages")
+    if fact is ProfileFact.CERTIFICATIONS:
+        lines = [cert.line() for cert in candidate.certifications]
+        return _pair("; ".join(lines), "certifications")
     if fact is ProfileFact.LINKEDIN:
         return _pair(personal.linkedin, "personal.linkedin")
     if fact is ProfileFact.GITHUB:
         return _pair(personal.github, "personal.github")
     if fact is ProfileFact.RESUME:
         return ("output/base/cv.pdf", "cv build")
+    if fact in {
+        ProfileFact.BIRTH_DATE,
+        ProfileFact.NATIONALITY,
+        ProfileFact.GENDER,
+        ProfileFact.COMUNA,
+        ProfileFact.REGION,
+        ProfileFact.SALARY_NET,
+        ProfileFact.SALARY_GROSS,
+        ProfileFact.AVAILABILITY_DATE,
+    }:
+        return ("", NEEDS_HUMAN)
     return ("", "you decide: not a fact in the profile")
+
+
+def project_answer(label: str, answers: ApplicationAnswers) -> str:
+    """Value for a form label, or needs_human when the basis differs or the fact is blank.
+
+    A national id is never read from the answers file.
+    """
+    if _fold(label) in _NATIONAL_ID_LABELS:
+        return NEEDS_HUMAN
+    fact = resolve_fact(label)
+    if fact is None:
+        return NEEDS_HUMAN
+    return _from_answers(fact, answers)
+
+
+def _from_answers(fact: ProfileFact, answers: ApplicationAnswers) -> str:
+    identity = answers.identity
+    if fact is ProfileFact.BIRTH_DATE:
+        return identity.birth_date.isoformat() if identity.birth_date else NEEDS_HUMAN
+    if fact is ProfileFact.NATIONALITY:
+        return ", ".join(identity.nationality) if identity.nationality else NEEDS_HUMAN
+    if fact is ProfileFact.GENDER:
+        return identity.gender_to_declare or NEEDS_HUMAN
+    if fact is ProfileFact.COMUNA:
+        return identity.comuna or NEEDS_HUMAN
+    if fact is ProfileFact.REGION:
+        return identity.region or NEEDS_HUMAN
+    if fact is ProfileFact.SALARY_NET:
+        return _salary_for(answers, "net")
+    if fact is ProfileFact.SALARY_GROSS:
+        return _salary_for(answers, "gross")
+    if fact is ProfileFact.AVAILABILITY_DATE:
+        availability = answers.availability
+        if availability is not None and availability.from_date is not None:
+            return availability.from_date.isoformat()
+        return NEEDS_HUMAN
+    return NEEDS_HUMAN
+
+
+def _salary_for(answers: ApplicationAnswers, basis: str) -> str:
+    salary = answers.salary
+    if salary is None or salary.amount is None or salary.basis != basis:
+        return NEEDS_HUMAN
+    return str(salary.amount)
 
 
 def answer_for_label(candidate: Candidate, label: str) -> tuple[str, str]:
@@ -176,6 +305,24 @@ def answer_for_label(candidate: Candidate, label: str) -> tuple[str, str]:
     if fact is None:
         return ("", "you decide: not a fact in the profile")
     return value_for_fact(candidate, fact)
+
+
+def _from_role(candidate: Candidate, field: str) -> tuple[str, str]:
+    """Employer, unit, or work mode from the current role (latest start if several)."""
+    role = _portal_role(candidate)
+    if role is None:
+        return ("", "you decide: not a fact in the profile")
+    value = getattr(role, field)
+    return _pair(value, f"experience.{role.id}.{field}")
+
+
+def _portal_role(candidate: Candidate) -> Experience | None:
+    roles = list(candidate.experience)
+    if not roles:
+        return None
+    current = [role for role in roles if role.current]
+    pool = current or roles
+    return max(pool, key=lambda role: role.start_date)
 
 
 def _pair(value: object, source: str) -> tuple[str, str]:

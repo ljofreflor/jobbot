@@ -1,0 +1,33 @@
+{
+  "totalFound": 2,
+  "content": [
+    {
+      "id": "1",
+      "name": "Santiago role",
+      "location": {
+        "city": "Santiago",
+        "country": "cl",
+        "remote": false
+      },
+      "releasedDate": "2026-10-08T15:00:00.000Z",
+      "company": {
+        "name": "Acme"
+      },
+      "ref": "REF-1"
+    },
+    {
+      "id": "2",
+      "name": "Madrid role",
+      "location": {
+        "city": "Madrid",
+        "country": "es",
+        "remote": false
+      },
+      "releasedDate": "2026-10-08T15:00:00.000Z",
+      "company": {
+        "name": "Acme"
+      },
+      "ref": "REF-2"
+    }
+  ]
+}

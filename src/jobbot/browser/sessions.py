@@ -21,7 +21,7 @@ from urllib.request import urlopen
 logger = logging.getLogger("jobbot.browser.sessions")
 
 DEFAULT_PORTS: tuple[int, ...] = (9222, 9223, 9224)
-LOCAL_HOSTS: tuple[str, ...] = ("127.0.0.1", "localhost")
+LOCAL_HOSTS: tuple[str, ...] = ("127.0.0.1", "localhost", "[::1]")
 
 
 class SessionStatus(StrEnum):
@@ -31,6 +31,14 @@ class SessionStatus(StrEnum):
     PROFILE_BUSY = "profile_busy"
     WRONG_ACCOUNT = "wrong_account"
     NO_ENDPOINT = "no_endpoint"
+
+
+class CdpSessionStatus(StrEnum):
+    """What an explicit ``--cdp`` endpoint showed. A silent port is not 'no session'."""
+
+    SIGNED_IN = "signed in"
+    NOT_SIGNED_IN = "not signed in"
+    UNREACHABLE = "unreachable"
 
 
 def session_blocks_open(status: SessionStatus) -> bool:
@@ -307,6 +315,75 @@ def session_for(states: Sequence[SessionState], site: str) -> SessionState | Non
     return next((state for state in states if state.site == site), None)
 
 
+@dataclass(frozen=True)
+class CdpSessionReport:
+    """Verdict for one named CDP endpoint. Evidence never carries an identity."""
+
+    status: CdpSessionStatus
+    evidence: str
+    url: str
+
+
+def cdp_base_url(url: str) -> str:
+    """``http://host:port`` for a CDP URL. An IPv6 host stays in brackets."""
+    from urllib.parse import urlsplit
+
+    raw = url.strip()
+    if "://" not in raw:
+        raw = f"http://{raw}"
+    parts = urlsplit(raw)
+    host = parts.hostname or ""
+    shown = f"[{host}]" if ":" in host else host
+    port = parts.port or 9222
+    base = f"http://{shown}:{port}"
+    if not any(base.startswith(f"http://{allowed}:") for allowed in LOCAL_HOSTS):
+        msg = f"refusing non-local CDP url: {url}"
+        raise ValueError(msg)
+    return base
+
+
+def probe_cdp_session(
+    url: str,
+    site: str,
+    *,
+    fetch: JsonFetcher | None = None,
+    cookie_names: Callable[[str], Sequence[str]] | None = None,
+) -> CdpSessionReport:
+    """Read the endpoint the person named, even when its profile is outside this workspace.
+
+    ``browser sessions`` without ``--cdp`` still does not read that profile. The
+    report names the state and the host; it does not repeat a greeting or a cookie.
+    """
+    getter = fetch if fetch is not None else fetch_local_json
+    base = cdp_base_url(url)
+    try:
+        getter(f"{base}/json/version")
+        pages = getter(f"{base}/json/list")
+    except (URLError, OSError, ValueError, json.JSONDecodeError) as exc:
+        logger.debug("named CDP endpoint did not answer at %s: %s", base, type(exc).__name__)
+        return CdpSessionReport(
+            status=CdpSessionStatus.UNREACHABLE,
+            evidence="endpoint did not answer",
+            url=base,
+        )
+    spec = site_spec(site)
+    if spec is None or not _any_signed_in(spec, pages, cookie_names):
+        saw = spec is not None and _saw_site(spec, pages)
+        evidence = "page open without a session" if saw else "no page for this site on the endpoint"
+        if spec is None:
+            evidence = "no session check for this site"
+        return CdpSessionReport(
+            status=CdpSessionStatus.NOT_SIGNED_IN,
+            evidence=evidence,
+            url=base,
+        )
+    return CdpSessionReport(
+        status=CdpSessionStatus.SIGNED_IN,
+        evidence="signed-in page on this endpoint",
+        url=base,
+    )
+
+
 def judge_account(site: str, html: str, expected: AccountExpectation) -> SessionStatus:
     """Match a signed-in page to this workspace. No identity on the page is unknown."""
     if site == "gmail":
@@ -519,6 +596,51 @@ def _browser_name(version: object) -> str | None:
         if isinstance(name, str):
             return name
     return None
+
+
+def _any_signed_in(
+    spec: SiteSpec,
+    pages: object,
+    cookie_names: Callable[[str], Sequence[str]] | None,
+) -> bool:
+    for page in _page_records(pages):
+        page_url = str(page.get("url") or "")
+        if not _matches_host(page_url, spec):
+            continue
+        title = page.get("title")
+        text = title if isinstance(title, str) else ""
+        names = tuple(cookie_names(page_url)) if cookie_names is not None else ()
+        if _page_is_signed_in(spec, page_url, text, names):
+            return True
+    return False
+
+
+def _saw_site(spec: SiteSpec, pages: object) -> bool:
+    return any(
+        _matches_host(str(page.get("url") or ""), spec) for page in _page_records(pages)
+    )
+
+
+def _page_records(pages: object) -> list[dict[str, object]]:
+    if not isinstance(pages, list):
+        return []
+    return [page for page in pages if isinstance(page, dict)]
+
+
+def _page_is_signed_in(
+    spec: SiteSpec,
+    url: str,
+    text: str,
+    cookie_names: Sequence[str],
+) -> bool:
+    if spec.site == "indeed":
+        from jobbot.adapters.indeed.client import indeed_session_authenticated
+
+        return indeed_session_authenticated(url=url, html=text, cookie_names=cookie_names)
+    folded = url.casefold()
+    if any(marker in folded for marker in spec.auth):
+        return False
+    return any(marker in folded for marker in spec.signed_in)
 
 
 def _page_urls(pages: object) -> tuple[str, ...]:

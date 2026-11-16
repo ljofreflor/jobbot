@@ -138,6 +138,64 @@ def _load_builtin() -> None:
         from jobbot.adapters.un_careers.jobs import UnCareersDiscover
 
         register_source("un-careers", UnCareersDiscover)
+    if "buk" not in _FACTORIES:
+        from jobbot.adapters.buk.discover import BukDiscover
+
+        register_source("buk", BukDiscover)
+    if "lumesse" not in _FACTORIES:
+        from jobbot.adapters.lumesse.discover import LumesseDiscover
+
+        register_source("lumesse", LumesseDiscover)
+    if "cornerstone" not in _FACTORIES:
+        from jobbot.adapters.cornerstone.discover import CornerstoneDiscover
+
+        register_source("cornerstone", CornerstoneDiscover)
+    if "avature" not in _FACTORIES:
+        from jobbot.adapters.avature.discover import AvatureDiscover, UnopsDiscover
+
+        register_source("avature", AvatureDiscover)
+        register_source("unops", UnopsDiscover)
+    if "impactpool" not in _FACTORIES:
+        from jobbot.adapters.impactpool.discover import ImpactpoolDiscover
+
+        register_source("impactpool", ImpactpoolDiscover)
+    if "pageup" not in _FACTORIES:
+        from jobbot.adapters.pageup.discover import PageupDiscover, UnicefDiscover
+
+        register_source("pageup", PageupDiscover)
+        register_source("unicef", UnicefDiscover)
+    if "pjud" not in _FACTORIES:
+        from jobbot.adapters.pjud.discover import PjudDiscover
+
+        register_source("pjud", PjudDiscover)
+    if "smartrecruiters" not in _FACTORIES:
+        from jobbot.adapters.smartrecruiters.discover import SmartRecruitersDiscover
+
+        register_source("smartrecruiters", SmartRecruitersDiscover)
+    if "greenhouse" not in _FACTORIES:
+        from jobbot.adapters.greenhouse.discover import GreenhouseDiscover
+
+        register_source("greenhouse", GreenhouseDiscover)
+    if "oracle_orc" not in _FACTORIES:
+        from jobbot.adapters.oracle_orc.discover import OracleOrcDiscover
+
+        register_source("oracle_orc", OracleOrcDiscover)
+    if "bne" not in _FACTORIES:
+        from jobbot.adapters.bne.discover import BneDiscover
+
+        register_source("bne", BneDiscover)
+    if "chiletrabajos" not in _FACTORIES:
+        from jobbot.adapters.chiletrabajos.discover import ChiletrabajosDiscover
+
+        register_source("chiletrabajos", ChiletrabajosDiscover)
+    if "vacantes" not in _FACTORIES:
+        from jobbot.adapters.vacantes.discover import VacantesDiscover
+
+        register_source("vacantes", VacantesDiscover)
+    if "laborum" not in _FACTORIES:
+        from jobbot.adapters.laborum.discover import LaborumDiscover
+
+        register_source("laborum", LaborumDiscover)
 
 
 def registry_sites_for(registry: CompanyRegistry, ats: str) -> list[SiteTarget]:

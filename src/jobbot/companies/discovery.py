@@ -15,6 +15,7 @@ from jobbot.portals.detect import (
     aggregator_board,
     detect_ats,
     detect_ats_in_html,
+    is_white_label_tenant,
 )
 from jobbot.portals.redirect import follow_redirect_url
 
@@ -141,16 +142,17 @@ def classify_url(
     *,
     html: str | None = None,
     resolve: bool = False,
-    resolver: Callable[[str], str] = follow_redirect_url,
+    resolver: Callable[[str], str] | None = None,
 ) -> SiteClassification:
     """Classify a career URL. ATS stays ``unknown`` without technical evidence."""
+    follow = resolver if resolver is not None else follow_redirect_url
     requested = public_url(url)
     final = requested
     redirects_to: str | None = None
     evidence_bits: list[str] = []
     if resolve:
         try:
-            resolved = public_url(resolver(requested))
+            resolved = public_url(follow(requested))
         except PrivateRouteRejected:
             resolved = requested
         if canonical_key(resolved) != canonical_key(requested):
@@ -181,11 +183,24 @@ def classify_url(
     )
 
 
+_ORACLE_SITE = re.compile(r"/hcmUI/CandidateExperience/([^/]+)/sites/([^/]+)", re.I)
+
+
+def _oracle_site(path: str) -> tuple[str, str] | None:
+    """Language and siteNumber from a Candidate Experience path."""
+    found = _ORACLE_SITE.search(path)
+    if found is None:
+        return None
+    return found.group(1), found.group(2)
+
+
 def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
     """Collapse a single posting to the portal that lists the company's openings."""
     normalized = public_url(url)
     parsed = urlparse(normalized)
     host = parsed.netloc
+    if is_white_label_tenant(normalized):
+        return f"https://{host.split(':')[0]}"
     segments = [seg for seg in parsed.path.split("/") if seg]
     if ats in {AtsKind.GREENHOUSE, AtsKind.LEVER, AtsKind.ASHBY, AtsKind.SMARTRECRUITERS}:
         return f"https://{host}/{segments[0]}" if segments else f"https://{host}"
@@ -195,9 +210,14 @@ def career_root_url(url: str, ats: AtsKind = AtsKind.UNKNOWN) -> str:
     if ats in {AtsKind.WORKABLE, AtsKind.MANATAL} and host in _PATH_TENANT_HOSTS:
         # Shared vendor host: the company is the first path segment.
         return f"https://{host}/{segments[0]}" if segments else f"https://{host}"
+    if ats == AtsKind.ORACLE:
+        site = _oracle_site(parsed.path)
+        if site is not None:
+            lang, number = site
+            return f"https://{host}/hcmUI/CandidateExperience/{lang}/sites/{number}"
+        return f"https://{host}"
     if ats in {
         AtsKind.SUCCESSFACTORS,
-        AtsKind.ORACLE,
         AtsKind.TEAMTAILOR,
         AtsKind.WORKABLE,
         AtsKind.MANATAL,
@@ -252,6 +272,9 @@ def _site_type_for(url: str, ats: AtsKind, *, host_ats: AtsKind) -> CareerSiteTy
     """``ats`` says which technology; the host says whose page this is."""
     if ats == AtsKind.EMAIL:
         return CareerSiteType.UNKNOWN
+    if is_white_label_tenant(url):
+        posting = _is_posting_path(urlparse(url).path)
+        return CareerSiteType.JOB_POSTING if posting else CareerSiteType.ATS_INSTANCE
     if host_ats in JOB_BOARD_KINDS or aggregator_board(url) is not None:
         return CareerSiteType.JOB_BOARD
     posting = _is_posting_path(urlparse(url).path)

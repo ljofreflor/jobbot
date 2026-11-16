@@ -16,6 +16,7 @@ from typing import Any
 from jobbot.companies.signup import AccountNeed, SignupItem, signup_sheet
 from jobbot.models.candidate import Candidate
 from jobbot.portals.form_learn import FieldKind, FormField, FormKnowledge, learn_form_html
+from jobbot.portals.selectors import field_selector
 
 logger = logging.getLogger("jobbot.ats.signup")
 
@@ -272,9 +273,4 @@ def _is_resume_label(label: str) -> bool:
 
 def _selector(field: FormField) -> str | None:
     """CSS for Playwright. Workday often has no name= — only automation-id / id (#92)."""
-    name = field.name
-    if not name or any(char in name for char in "\"'\\[]"):
-        return None
-    if field.kind is FieldKind.LONG_TEXT:
-        return f'textarea[name="{name}"], textarea#{name}'
-    return f'[name="{name}"], [data-automation-id="{name}"], #{name}'
+    return field_selector(field)

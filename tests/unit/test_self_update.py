@@ -207,6 +207,36 @@ def _cli(args: list[str]) -> int:
     return run_cli(["update", *args], standalone_mode=False)
 
 
+def test_dash_u_reinstalls_and_stops(cli_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from jobbot.cli import run_cli
+
+    calls: list[str | None] = []
+
+    def fake(*, ref: str | None = None, **_kwargs: object) -> self_update.UpdateResult:
+        calls.append(ref)
+        return self_update.UpdateResult(ok=True, message="installed", version_line="0.1.0")
+
+    monkeypatch.setattr("jobbot.cli.update_jobbot", fake)
+    code = run_cli(["-U"], standalone_mode=False)
+
+    assert code == SUCCESS
+    assert calls == [None]
+    assert not (cli_home / "output").exists()
+
+
+def test_dash_u_failure_exits_1(cli_home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from jobbot.cli import run_cli
+
+    def fake(*, ref: str | None = None, **_kwargs: object) -> self_update.UpdateResult:
+        del ref
+        return self_update.UpdateResult(ok=False, message="uv not found")
+
+    monkeypatch.setattr("jobbot.cli.update_jobbot", fake)
+    code = run_cli(["--update"], standalone_mode=False)
+
+    assert code == GENERIC_FAILURE
+
+
 @pytest.mark.parametrize(
     ("status", "code"),
     [("up_to_date", SUCCESS), ("available", UPDATE_AVAILABLE), ("error", GENERIC_FAILURE)],

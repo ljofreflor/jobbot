@@ -97,6 +97,41 @@ def test_filled_page_behind_url_is_not_stored(
     assert JobRepository(session).list_all() == []
 
 
+def test_an_id_only_trabajando_url_is_not_stored(
+    tmp_path: Path,
+    project_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _workspace(tmp_path, project_root, monkeypatch)
+    from jobbot.cli import run_cli
+    from jobbot.config import load_config
+    from jobbot.db.engine import make_engine, make_session_factory
+    from jobbot.jobs.repository import JobRepository
+
+    path = tmp_path / "open.txt"
+    path.write_text(
+        "Title: Coordinador\nCompany: Servicio Neutro\n\nTurnos.\n",
+        encoding="utf-8",
+    )
+    code = run_cli(
+        [
+            "jobs",
+            "add",
+            "--file",
+            str(path),
+            "--url",
+            "https://www.trabajando.cl/trabajo/6135043",
+        ],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    assert "needs the slug" in capsys.readouterr().err
+    config = load_config()
+    session = make_session_factory(make_engine(config.database_path))()
+    assert JobRepository(session).list_all() == []
+
+
 def test_ctrl_c_prints_cancelled_and_records_nothing(
     tmp_path: Path,
     project_root: Path,

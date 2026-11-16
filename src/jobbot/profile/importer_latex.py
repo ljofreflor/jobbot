@@ -370,6 +370,16 @@ def _read_brace_args(text: str, start: int, expected: int) -> tuple[list[str], i
     return args, i
 
 
+def _brace_is_escaped(text: str, index: int) -> bool:
+    """A brace preceded by an odd number of backslashes is literal, not a group."""
+    slashes = 0
+    cursor = index - 1
+    while cursor >= 0 and text[cursor] == "\\":
+        slashes += 1
+        cursor -= 1
+    return slashes % 2 == 1
+
+
 def _read_balanced_brace(text: str, start: int) -> tuple[str, int]:
     """start points at '{'; return inner content and index after closing '}'."""
     assert text[start] == "{"
@@ -377,10 +387,8 @@ def _read_balanced_brace(text: str, start: int) -> tuple[str, int]:
     i = start
     while i < len(text):
         ch = text[i]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
+        if ch in "{}" and not _brace_is_escaped(text, i):
+            depth += 1 if ch == "{" else -1
             if depth == 0:
                 return text[start + 1 : i], i + 1
         i += 1

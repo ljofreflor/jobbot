@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /es/vacantes/
+Allow: /es/empleo/
+Disallow: /api/

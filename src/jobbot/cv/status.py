@@ -23,6 +23,7 @@ from jobbot.adapters.getonboard.draft import (
     load_permanent_profile,
     permanent_profile_md_path,
 )
+from jobbot.adapters.indeed.resume_edit import load_editor_state
 from jobbot.companies.registry import (
     CompanyRegistry,
     active_career_sites,
@@ -219,6 +220,14 @@ def _getonboard_profile(config: JobbotConfig, candidate: Candidate) -> PresenceR
 
 
 def _indeed(config: JobbotConfig, candidate: Candidate) -> PresenceRow:
+    if load_editor_state(config.output_dir) == "document_only":
+        return PresenceRow(
+            destination="indeed",
+            artifact="profile snapshot",
+            state=PresenceState.BLOCKED,
+            evidence="sin CV estructurado",
+            hint="El perfil es el PDF subido y Preferencias.",
+        )
     plan = plan_indeed(config, candidate)
     if not plan.ready:
         return PresenceRow(

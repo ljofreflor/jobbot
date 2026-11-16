@@ -68,6 +68,15 @@ class SkillGroups(BaseModel):
         return [values for _, values in self._groups()]
 
 
+class SkillEvidence(BaseModel):
+    """Where a declared skill already shows up. It never adds a skill."""
+
+    skill: str = Field(min_length=1)
+    experience_ids: list[str] = Field(default_factory=list)
+    achievement_ids: list[str] = Field(default_factory=list)
+    education_ids: list[str] = Field(default_factory=list)
+
+
 def _name_tokens(name: str) -> set[str]:
     folded = unicodedata.normalize("NFKD", name.casefold())
     ascii_name = "".join(c for c in folded if not unicodedata.combining(c))

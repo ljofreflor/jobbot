@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "babel>=2.16",
     "beautifulsoup4>=4.13",
+    "detect-secrets>=1.5.0",
     "email-validator>=2.0",
     "httpx>=0.27",
     "jinja2>=3.1",
@@ -52,6 +53,7 @@ packages = ["src/jobbot"]
 "src/jobbot/resources/templates/cv_ats.txt.j2" = "jobbot/resources/templates/cv_ats.txt.j2"
 "src/jobbot/resources/templates/cv_moderncv.tex.j2" = "jobbot/resources/templates/cv_moderncv.tex.j2"
 "src/jobbot/resources/templates/application/.gitkeep" = "jobbot/resources/templates/application/.gitkeep"
+"src/jobbot/resources/cities_100k.json" = "jobbot/resources/cities_100k.json"
 
 
 [tool.uv]

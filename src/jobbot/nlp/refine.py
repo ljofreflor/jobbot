@@ -215,13 +215,16 @@ def _named_entities(paragraph: str) -> list[str]:
     """Proper names as typography marks them: 'Adexus', 'MATLAB', 'Qt-Python'.
 
     Sentence-initial words are skipped: capitalisation there says nothing.
+    An abbreviation such as ``S.A.`` is not a name.
     """
+    from jobbot.nlp.sentences import is_abbreviation, split_sentences
+
     entities: list[str] = []
-    for sentence in re.split(r"(?<=[.!?])\s+", paragraph.strip()):
+    for sentence in split_sentences(paragraph.strip()):
         words = sentence.split()
         for word in words[1:]:
             token = word.strip(".,;:()[]\"'")
-            if len(token) < 3:
+            if len(token) < 3 or is_abbreviation(token):
                 continue
             if token.isupper() or (token[:1].isupper() and not token.isdigit()):
                 entities.append(token)

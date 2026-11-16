@@ -60,6 +60,29 @@ def test_status_without_a_state_file_lists_the_registry_as_unknown(
     assert "Marta Soto Vera" not in out
 
 
+def test_status_prints_the_account_ratio(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+    (tmp_path / "data" / "portals.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "portals": [
+                    {"domain": "alpha.example", "ats_kind": "unknown"},
+                    {"domain": "beta.example", "ats_kind": "unknown"},
+                    {"domain": "gamma.example", "ats_kind": "unknown"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert run_cli(["portals", "profile", "status"], standalone_mode=False) == SUCCESS
+    assert "accounts 0/3" in capsys.readouterr().out
+
+
 def test_status_json_matches_the_three_portal_fixture(
     tmp_path: Path,
     project_root: Path,
@@ -229,6 +252,533 @@ def test_push_refuses_identity_bound_and_unwritten_adapters(
     assert code == VALIDATION_FAILURE
     err = capsys.readouterr().err
     assert "inspira" in err
+    assert "Nothing was typed" in err
+
+
+def test_empleos_publicos_sheet_does_not_type_or_attach(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "empleos_publicos"], standalone_mode=False)
+        == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "Empleos Públicos" in sheet
+    assert "identidad estatal" in sheet
+    assert "[falta en el SST: national_id]" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "empleos_publicos", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "identity_bound" in err
+    assert "does not attach" in err
+
+
+def test_adp_sheet_does_not_type_or_attach(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "adp"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "Alta Dirección Pública" in sheet
+    assert "identidad estatal" in sheet
+    assert "[falta en el SST: national_id]" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "adp", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "identity_bound" in err
+    assert "does not attach" in err
+
+
+def test_un_careers_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "un_careers"], standalone_mode=False) == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "UN Careers / Inspira" in sheet
+    assert "no envía la postulación" in sheet
+    for gap in ("date_of_birth", "gender", "nationality", "disability"):
+        assert f"[falta en el SST: {gap}]" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "un_careers", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "inspira" in err
+    assert "Nothing was typed" in err
+
+
+def test_who_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "oms_who"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "WHO Careers (Taleo)" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `taleo`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "oms_who", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "taleo" in err
+    assert "Nothing was typed" in err
+
+
+def test_unicef_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "unicef"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "UNICEF Careers (PageUp)" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `pageup`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "unicef", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "pageup" in err
+    assert "Nothing was typed" in err
+
+
+def test_devex_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "devex"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "# Devex" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `devex`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "devex", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "devex" in err
+    assert "Nothing was typed" in err
+
+
+def test_impactpool_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "impactpool"], standalone_mode=False) == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "# Impactpool" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `impactpool`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "impactpool", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "impactpool" in err
+    assert "Nothing was typed" in err
+
+
+def test_idb_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "bid_idb"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "IDB Jobs" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "bid_idb", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_world_bank_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "banco_mundial"], standalone_mode=False)
+        == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "World Bank Group (Cornerstone)" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `cornerstone`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "banco_mundial", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "cornerstone" in err
+    assert "Nothing was typed" in err
+
+
+def test_undp_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "pnud_undp"], standalone_mode=False) == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "UNDP Careers" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `oracle_orc`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "pnud_undp", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "oracle_orc" in err
+    assert "Nothing was typed" in err
+
+
+def test_unops_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "unops"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "UNOPS Talent Community" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "unops", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_iom_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "oim_iom"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "IOM Careers" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `oracle_orc`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "oim_iom", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "oracle_orc" in err
+    assert "Nothing was typed" in err
+
+
+def test_fao_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "fao"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "FAO Jobs (Taleo)" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `taleo`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "fao", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "taleo" in err
+    assert "Nothing was typed" in err
+
+
+def test_laborum_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "laborum"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "# Laborum" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "laborum", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_korn_ferry_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "korn_ferry"], standalone_mode=False) == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "# Korn Ferry" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "korn_ferry", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_robert_walters_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "robert_walters"], standalone_mode=False)
+        == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "# Robert Walters" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "robert_walters", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_ifrc_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "ifrc"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "IFRC Careers" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `lumesse`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "ifrc", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "lumesse" in err
+    assert "Nothing was typed" in err
+
+
+def test_computrabajo_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert (
+        run_cli(["portals", "profile", "sheet", "computrabajo"], standalone_mode=False) == SUCCESS
+    )
+    sheet = capsys.readouterr().out
+    assert "# Computrabajo" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(
+        ["portals", "profile", "push", "computrabajo", "--apply"],
+        standalone_mode=False,
+    )
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_bne_sheet_does_not_type_or_attach(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "bne"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "Bolsa Nacional de Empleo" in sheet
+    assert "identidad estatal" in sheet
+    assert "[falta en el SST: national_id]" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "bne", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "identity_bound" in err
+    assert "does not attach" in err
+
+
+def test_randstad_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "randstad"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "# Randstad" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "randstad", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_adecco_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "adecco"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "# Adecco" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "adecco", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_hays_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "hays"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "# Hays" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "hays", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
+    assert "Nothing was typed" in err
+
+
+def test_iica_sheet_does_not_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from jobbot.cli import run_cli
+
+    _workspace(tmp_path, monkeypatch)
+
+    assert run_cli(["portals", "profile", "sheet", "iica"], standalone_mode=False) == SUCCESS
+    sheet = capsys.readouterr().out
+    assert "IICA consultant roster" in sheet
+    assert "no envía la postulación" in sheet
+    assert "adapter: `generic`" in sheet
+    assert "password" not in sheet.casefold()
+
+    code = run_cli(["portals", "profile", "push", "iica", "--apply"], standalone_mode=False)
+    assert code == VALIDATION_FAILURE
+    err = capsys.readouterr().err
+    assert "generic" in err
     assert "Nothing was typed" in err
 
 

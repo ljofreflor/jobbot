@@ -9,6 +9,7 @@ from typing import Any
 from jobbot.jobs.conditions import Condition, ConditionKind, posting_conditions
 from jobbot.jobs.eligibility import (
     ApplicationAnswers,
+    DrivingLicenseAnswers,
     Verdict,
     VerdictStatus,
     assess_conditions,
@@ -282,3 +283,66 @@ def test_report_shows_marks_questions_and_banner() -> None:
     assert "⚠️" in report
     assert "DEALBREAKER" in report
     assert "must reside in" in report.casefold()
+
+
+def _modality_status(location: str, relocation: object) -> VerdictStatus:
+    job = JobPosting(
+        id="J0912",
+        title="Analyst",
+        company="Estudio Neutro",
+        location=location,
+        remote_type="onsite",
+        description="Presencial en la oficina.",
+    )
+    verdicts = assess_conditions(
+        posting_conditions(job),
+        _candidate(country="Chile"),
+        ApplicationAnswers(relocation=relocation),  # type: ignore[arg-type]
+    )
+    return _of(verdicts, ConditionKind.MODALITY)[0].status
+
+
+def test_within_country_stops_at_the_border() -> None:
+    assert _modality_status("Colombia", "within_country") is VerdictStatus.DEALBREAKER
+    assert _modality_status("Valparaiso, Chile", "within_country") is VerdictStatus.MEETS
+
+
+def test_driving_license_and_travel_in_spanish_and_english() -> None:
+    spanish = JobPosting(
+        id="J0913",
+        title="Analyst",
+        company="Estudio Neutro",
+        location="Santiago, Chile",
+        description="Licencia de conducir clase B.\nDisponibilidad para viajar a regiones.",
+    )
+    english = JobPosting(
+        id="J0914",
+        title="Analyst",
+        company="Estudio Neutro",
+        location="Santiago",
+        description="Driver's license class C required.\nWillingness to travel internationally.",
+    )
+    blank = ApplicationAnswers()
+    held = ApplicationAnswers(
+        driving_license=DrivingLicenseAnswers(has=True, license_class="B"),
+        travel="domestic",
+    )
+    abroad = ApplicationAnswers(
+        travel="international",
+        driving_license=DrivingLicenseAnswers(has=True),
+    )
+
+    def status(
+        job: JobPosting, answers: ApplicationAnswers, kind: ConditionKind
+    ) -> VerdictStatus:
+        found = assess_conditions(posting_conditions(job), _candidate(), answers)
+        return _of(found, kind)[0].status
+
+    assert status(spanish, blank, ConditionKind.DRIVING_LICENSE) is VerdictStatus.ASK
+    assert status(spanish, held, ConditionKind.DRIVING_LICENSE) is VerdictStatus.MEETS
+    assert status(spanish, blank, ConditionKind.TRAVEL) is VerdictStatus.ASK
+    assert status(spanish, held, ConditionKind.TRAVEL) is VerdictStatus.MEETS
+    assert status(english, blank, ConditionKind.DRIVING_LICENSE) is VerdictStatus.ASK
+    assert status(english, held, ConditionKind.DRIVING_LICENSE) is VerdictStatus.MEETS
+    assert status(english, held, ConditionKind.TRAVEL) is VerdictStatus.DEALBREAKER
+    assert status(english, abroad, ConditionKind.TRAVEL) is VerdictStatus.MEETS

@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -343,11 +345,46 @@ def _location(item: dict[str, Any]) -> str | None:
     place = item.get("place")
     if isinstance(place, dict):
         if place.get("anywhere") is True:
-            return "Remote / anywhere"
+            stated = _stated_remote_scope(item)
+            return stated or "Remote / anywhere"
         kind = str(place.get("locationType") or "").strip()
         if kind:
             return kind.replace("_", " ")
     return None
+
+
+_REMOTE_SCOPE = re.compile(r"\b(?:remote|remoto)\s*\(([^)]+)\)", re.IGNORECASE)
+_OPEN_SCOPE = frozenset(
+    {"anywhere", "worldwide", "world", "cualquier lugar", "todo el mundo", "any country"}
+)
+
+
+def _stated_remote_scope(item: dict[str, Any]) -> str | None:
+    """A region the posting itself writes, such as ``Remote (LATAM)``.
+
+    ``place.anywhere`` means Torre did not attach a city. It does not mean the
+    title left the role open to every country.
+    """
+    texts = [str(item.get("objective") or "")]
+    for key in ("details", "tagline", "description"):
+        value = item.get(key)
+        if isinstance(value, str):
+            texts.append(value)
+    for text in texts:
+        found = _REMOTE_SCOPE.search(text)
+        if found is None:
+            continue
+        inner = " ".join(found.group(1).split())
+        if not inner or _fold_scope(inner) in _OPEN_SCOPE:
+            continue
+        return " ".join(found.group(0).split())
+    return None
+
+
+def _fold_scope(text: str) -> str:
+    stripped = unicodedata.normalize("NFKD", text)
+    plain = "".join(ch for ch in stripped if not unicodedata.combining(ch))
+    return " ".join(plain.casefold().split())
 
 
 def _place_names(raw: Any) -> str:

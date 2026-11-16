@@ -29,6 +29,15 @@
 {{ candidate.summary | latex_para }}
 {% endif %}
 
+{% if highlights %}
+\section*{Highlights}
+\begin{itemize}
+{% for line in highlights %}
+  \item {{ line | latex_para }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
 {% if candidate.specialties %}
 \section*{Specialties}
 {{ specialties_line }}
@@ -37,9 +46,9 @@
 {% if experiences %}
 \section*{Experience}
 {% for exp, achievements in experiences %}
-{{ bold(exp.title) }} --- {{ exp.company | latex }}\\
-\textit{ {{ exp.format_date_range() | latex }} }{% if exp.location %} $\cdot$ {{ exp.location | latex }}{% endif %}
-
+{{ bold(exp.title) }} --- {{ exp_employer(exp) | latex }}\\
+\textit{ {{ exp.format_date_range() | latex }} }{% if exp_place(exp) %} $\cdot$ {{ exp_place(exp) | latex }}{% endif %}
+{% if not exp_compact(exp) %}
 {% if exp.description %}
 {{ exp.description | latex_para }}
 {% endif %}
@@ -49,6 +58,7 @@
   \item {{ ach.text | latex_para }}{% if ach.metrics %} \textit{({{ metrics_line(ach.metrics) }})}{% endif %}
 {% endfor %}
 \end{itemize}
+{% endif %}
 {% endif %}
 
 {% endfor %}
@@ -64,10 +74,10 @@
 {% endfor %}
 {% endif %}
 
-{% if candidate.education %}
+{% if education %}
 \section*{Education}
-{% for edu in candidate.education %}
-{{ bold(edu.degree) }} --- {{ edu.institution | latex }}\\
+{% for edu in education %}
+{{ bold(edu_label(edu)) }} --- {{ edu.institution | latex }}\\
 {% if edu.start_date or edu.end_date %}
 \textit{ {{ edu_dates(edu) | latex }} }
 {% endif %}
@@ -76,6 +86,20 @@
 {{ edu.details | latex_para }}
 {% endif %}
 
+{% endfor %}
+{% endif %}
+
+{% if candidate.languages %}
+\section*{Languages}
+{% for lang in candidate.languages %}
+{{ bold(lang.name) }} ({{ lang.level | latex }})\\
+{% endfor %}
+{% endif %}
+
+{% if candidate.certifications %}
+\section*{Certifications}
+{% for cert in candidate.certifications %}
+{{ bold(cert.name) }} --- {{ cert.issuer | latex }} ({{ cert.date[:4] }})\\
 {% endfor %}
 {% endif %}
 

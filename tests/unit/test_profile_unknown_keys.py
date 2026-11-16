@@ -23,7 +23,7 @@ def _health_profile_with_unknown_keys() -> dict[str, Any]:
     """Fictional public-health profile: extras the schema does not know yet."""
     return {
         "personal": {"name": "Ana Ejemplo", "headline": "Epidemióloga"},
-        "languages": [{"name": "Inglés", "level": "B2"}],
+        "rosters": [{"name": "Inglés", "level": "B2"}],
         "experience": [
             {
                 "id": "e1",
@@ -39,7 +39,7 @@ def _health_profile_with_unknown_keys() -> dict[str, Any]:
                 "id": "d1",
                 "institution": "Universidad Ficticia",
                 "degree": "MSc",
-                "tags": ["salud_publica"],
+                "campus": ["salud_publica"],
             }
         ],
     }
@@ -48,9 +48,9 @@ def _health_profile_with_unknown_keys() -> dict[str, Any]:
 def test_unknown_keys_are_listed_with_id_paths() -> None:
     issues = unknown_profile_keys(_health_profile_with_unknown_keys())
     paths = {i.path: i.message for i in issues}
-    assert paths["languages"] == _UNKNOWN_MSG
+    assert paths["rosters"] == _UNKNOWN_MSG
     assert paths["experience.e1.achivements"] == _UNKNOWN_MSG
-    assert paths["education.d1.tags"] == _UNKNOWN_MSG
+    assert paths["education.d1.campus"] == _UNKNOWN_MSG
     assert Candidate.model_validate(_health_profile_with_unknown_keys())
 
 
@@ -69,9 +69,9 @@ def test_apply_confirmed_skills_on_raw_keeps_unknown_keys() -> None:
     raw = _health_profile_with_unknown_keys()
     raw["skills"] = {"engineering": ["Vigilancia epidemiológica"]}
     out = apply_confirmed_skills(raw, ["Epidemiología de campo"])
-    assert out["languages"][0]["name"] == "Inglés"
+    assert out["rosters"][0]["name"] == "Inglés"
     assert out["experience"][0]["achivements"]
-    assert out["education"][0]["tags"] == ["salud_publica"]
+    assert out["education"][0]["campus"] == ["salud_publica"]
     assert "Epidemiología de campo" in out["skills"]["other"]
     assert "Vigilancia epidemiológica" in out["skills"]["engineering"]
 
@@ -115,9 +115,9 @@ def test_profile_validate_warns_and_stays_valid(
     assert code == SUCCESS
     assert "PROFILE VALID" in out
     blob = out + err
-    assert "languages: clave desconocida, se ignora" in blob
+    assert "rosters: clave desconocida, se ignora" in blob
     assert "experience.e1.achivements: clave desconocida, se ignora" in blob
-    assert "education.d1.tags: clave desconocida, se ignora" in blob
+    assert "education.d1.campus: clave desconocida, se ignora" in blob
 
 
 def test_profile_validate_strict_exits_validation(
@@ -129,7 +129,7 @@ def test_profile_validate_strict_exits_validation(
     code, out, err = _run_validate(monkeypatch, ["profile", "validate", "--strict"])
     assert code == VALIDATION_FAILURE
     assert "PROFILE INVALID" in err or "PROFILE INVALID" in out
-    assert "languages" in (out + err)
+    assert "rosters" in (out + err)
 
 
 def test_profile_validate_without_extras_matches_the_valid_report(
@@ -170,7 +170,7 @@ def test_cv_build_summarises_ignored_keys(
     assert "profile validate" in blob
 
 
-def test_suggest_promote_keeps_languages(
+def test_suggest_promote_keeps_unknown_keys(
     tmp_path: Path,
     project_root: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -213,8 +213,8 @@ def test_suggest_promote_keeps_languages(
     )
     assert code == SUCCESS
     saved = yaml.safe_load((tmp_path / "data" / "profile.yaml").read_text(encoding="utf-8"))
-    assert saved["languages"][0]["name"] == "Inglés"
+    assert saved["rosters"][0]["name"] == "Inglés"
     assert saved["experience"][0]["achivements"]
-    assert saved["education"][0]["tags"] == ["salud_publica"]
+    assert saved["education"][0]["campus"] == ["salud_publica"]
     other = saved.get("skills", {}).get("other") or []
     assert any("tableau" in str(s).casefold() for s in other)

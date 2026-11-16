@@ -28,6 +28,14 @@ def test_blocked_paths_cover_profile_db_and_private_latex() -> None:
     assert is_blocked_path(".jobbot.toml")
     assert is_blocked_path("output/jobs/J0001/application/cv.pdf")
     assert is_blocked_path(".cursor/rules/jobbot.mdc")
+    assert is_blocked_path(".cursor/mcp.json")
+
+
+def test_cursor_project_skills_are_not_blocked() -> None:
+    """Shared Agent Skills under .cursor/skills/ are tracked; rules stay local."""
+    assert is_blocked_path(".cursor/skills/README.md") is None
+    assert is_blocked_path(".cursor/skills/jobbot-cargo/SKILL.md") is None
+    assert is_blocked_path(".cursor/rules/jobbot.mdc") == "local editor/agent config"
 
 
 def test_workspaces_of_other_candidates_are_blocked() -> None:
@@ -63,6 +71,21 @@ def test_scan_text_flags_real_email_and_phone() -> None:
 
 def test_scan_text_allows_placeholder_domains() -> None:
     assert scan_text("write to ana.ejemplo@example.com", "README.md") == []
+
+
+def test_scan_text_flags_aws_key_and_private_key_without_echoing_them() -> None:
+    findings = scan_text(
+        "aws_secret_access_key = AKIAIOSFODNN7EXAMPLE\n-----BEGIN PRIVATE KEY-----\n",
+        "docs/notes.md",
+    )
+    by_detail = {f.detail: f for f in findings if f.reason == "secret"}
+    assert set(by_detail) == {"AWS Access Key", "Private Key"}
+    assert "AKIAIOSFODNN7EXAMPLE" not in by_detail["AWS Access Key"].detail
+    assert scan_text("password: hunter2", "docs/notes.md") == []
+    assert (
+        scan_text("aws_secret_access_key = AKIAIOSFODNN7EXAMPLE", "tests/fixtures/key.txt")
+        == []
+    )
 
 
 def test_scan_text_flags_absolute_home_path_and_import_header() -> None:

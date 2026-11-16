@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from jobbot.adapters.ats.indeed_apply import IndeedApplyAdapter
+from jobbot.adapters.ats.indeed_apply import (
+    IndeedApplyAdapter,
+    missing_tailored_cv,
+    page_asks_for_cv,
+    tailored_cv_path,
+)
 from jobbot.adapters.ats.registry import adapter_for_kind
 from jobbot.adapters.indeed.jobs import IndeedJobClosed, card_to_job_posting
 from jobbot.models.candidate import Candidate
@@ -107,3 +114,51 @@ def test_prefill_does_not_invent_a_password() -> None:
 
     assert "password" not in text
     assert "contraseña" not in text
+
+
+def test_a_labeled_file_input_is_the_cv_step() -> None:
+    html = (
+        '<label for="resume">Currículum</label>'
+        '<input id="resume" type="file" name="resume">'
+    )
+    assert page_asks_for_cv(html) is True
+
+
+def test_a_letter_upload_is_not_the_cv_step() -> None:
+    html = (
+        '<label for="letter">Cover letter</label>'
+        '<input id="letter" type="file" name="letter">'
+        '<input type="text" name="phone">'
+    )
+    assert page_asks_for_cv(html) is False
+
+
+def test_tailored_cv_prefers_the_package_and_skips_the_base(tmp_path: Path) -> None:
+    job = tmp_path / "jobs" / "J0001"
+    (job / "application").mkdir(parents=True)
+    (job / "application" / "cv.pdf").write_bytes(b"%PDF packaged")
+    (job / "cv.pdf").write_bytes(b"%PDF built")
+    (tmp_path / "base").mkdir()
+    (tmp_path / "base" / "cv.pdf").write_bytes(b"%PDF base")
+
+    chosen = tailored_cv_path(tmp_path, "J0001")
+
+    assert chosen == job / "application" / "cv.pdf"
+
+
+def test_tailored_cv_uses_the_job_build_when_there_is_no_package(tmp_path: Path) -> None:
+    job = tmp_path / "jobs" / "J0001"
+    job.mkdir(parents=True)
+    (job / "cv.pdf").write_bytes(b"%PDF built")
+
+    assert tailored_cv_path(tmp_path, "J0001") == job / "cv.pdf"
+
+
+def test_missing_tailored_cv_does_not_offer_the_base(tmp_path: Path) -> None:
+    (tmp_path / "base").mkdir()
+    (tmp_path / "base" / "cv.pdf").write_bytes(b"%PDF base")
+
+    assert tailored_cv_path(tmp_path, "J0001") is None
+    note = missing_tailored_cv("J0001")
+    assert note == "Build the CV first: output/jobs/J0001/cv.pdf"
+    assert "base" not in note

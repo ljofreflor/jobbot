@@ -72,6 +72,15 @@
 {{ candidate.summary | latex_para }}
 {% endif %}
 
+{% if highlights %}
+\section{Logros}
+\begin{itemize}
+{% for line in highlights %}
+  \item {{ line | latex_para }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
 {% if candidate.specialties %}
 \section{Especialidades}
 \cvitem{}{ {{- specialties_line -}} }
@@ -80,7 +89,8 @@
 {% if experiences %}
 \section{Experiencia Profesional}
 {% for exp, achievements in experiences %}
-\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp.company | latex -}} }{ {{- (exp.location or '') | latex -}} }{}{}
+\cventry{ {{- exp_dates(exp) | latex -}} }{\textbf{ {{- exp.title | latex -}} }}{ {{- exp_employer(exp) | latex -}} }{ {{- exp_place(exp) | latex -}} }{}{}
+{% if not exp_compact(exp) %}
 {% if exp.description %}
 {{ exp.description | latex_para }}
 {% endif %}
@@ -90,6 +100,7 @@
   \item {{ ach.text | latex_para }}{% if ach.metrics %} \textit{({{ metrics_line(ach.metrics) }})}{% endif %}
 {% endfor %}
 \end{itemize}
+{% endif %}
 {% endif %}
 
 {% endfor %}
@@ -105,10 +116,24 @@
 {% endfor %}
 {% endif %}
 
-{% if candidate.education %}
+{% if education %}
 \section{Formación Académica}
-{% for edu in candidate.education %}
-\cventry{ {{- edu_years(edu) | latex -}} }{\textbf{ {{- edu.degree | latex -}} }}{ {{- edu.institution | latex -}} }{}{}{ {%- if edu.details -%}{{ edu.details | latex }}{%- endif -%} }
+{% for edu in education %}
+\cventry{ {{- edu_years(edu) | latex -}} }{\textbf{ {{- edu_label(edu) | latex -}} }}{ {{- edu.institution | latex -}} }{}{}{ {%- if edu.details -%}{{ edu.details | latex }}{%- endif -%} }
+{% endfor %}
+{% endif %}
+
+{% if candidate.languages %}
+\section{Idiomas}
+{% for lang in candidate.languages %}
+\cvitem{ {{- lang.name | latex -}} }{ {{- lang.level | latex -}} }
+{% endfor %}
+{% endif %}
+
+{% if candidate.certifications %}
+\section{Certificaciones}
+{% for cert in candidate.certifications %}
+\cvitem{ {{- cert.name | latex -}} }{ {{- cert.issuer | latex }} ({{ cert.date[:4] }}) }
 {% endfor %}
 {% endif %}
 

@@ -34,7 +34,7 @@ from jobbot.companies.urls import (
     registrable_domain,
     slugify,
 )
-from jobbot.portals.detect import AtsKind
+from jobbot.portals.detect import BUK_ROBOTS_REASON, AtsKind, detect_ats
 
 logger = logging.getLogger("jobbot.companies.oneshot")
 
@@ -310,6 +310,7 @@ def candidate_urls(seed: CompanySeed) -> list[str]:
             add(f"https://{domain}{path}")
         for sub in CAREER_SUBDOMAINS:
             add(f"https://{sub}.{domain}")
+    add(f"https://{seed.company_id}.buk.cl/trabaja-con-nosotros")
     return urls
 
 
@@ -392,6 +393,20 @@ def discover_company(
             verdict = robots.verdict(target)
             if verdict is RobotsVerdict.DISALLOWED:
                 probe.robots_skips += 1
+                if detect_ats(target) is AtsKind.BUK:
+                    probe.candidates.append(
+                        CompanyPortalCandidate(
+                            company=seed.name,
+                            company_id=seed.company_id,
+                            country=seed.country,
+                            sector=seed.sector,
+                            career_url=target,
+                            site_type=CareerSiteType.ATS_INSTANCE,
+                            ats=AtsKind.BUK,
+                            evidence=BUK_ROBOTS_REASON,
+                            source=source,
+                        )
+                    )
                 continue
             if verdict is RobotsVerdict.HOST_REFUSED:
                 probe.refusals += 1

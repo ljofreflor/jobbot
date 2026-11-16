@@ -1,0 +1,20 @@
+{
+  "jobs": [
+    {
+      "id": 1,
+      "title": "  Program lead  ",
+      "location": {
+        "name": "Santiago, Chile"
+      },
+      "company_name": "Acme",
+      "first_published": "2026-10-01T12:00:00Z",
+      "application_deadline": "2026-12-01T23:59:59Z",
+      "absolute_url": "https://careers.acme-demo.cl/jobs/1?gh_jid=123&utm_source=x",
+      "offices": [],
+      "metadata": []
+    }
+  ],
+  "meta": {
+    "total": 1
+  }
+}

@@ -110,3 +110,19 @@ def test_closed_indeed_fixture_is_refused(tmp_path: Path, project_root: Path) ->
             candidate=_candidate(),
             html=html,
         )
+
+
+def test_caduco_indeed_fixture_is_not_stored(tmp_path: Path, project_root: Path) -> None:
+    config = _config(tmp_path, project_root)
+    session = make_session_factory(make_engine(config.database_path))()
+    html = (project_root / "tests/fixtures/jobs/indeed_viewjob_caduco.html").read_text(
+        encoding="utf-8"
+    )
+    with pytest.raises(ClosedPostingError, match="caduc"):
+        ingest_hard_link(
+            config,
+            session,
+            "https://cl.indeed.com/viewjob?jk=8a5fab1a7c476a97",
+            candidate=_candidate(),
+            html=html,
+        )

@@ -41,6 +41,7 @@ class DiscoverySource(StrEnum):
     JOB_SOURCE = "job_source"
     WEB_DISCOVERY = "web_discovery"
     OFFICIAL_SITE = "official_site"
+    RECHECK = "recheck"
 
 
 class Observation(BaseModel):

@@ -59,6 +59,14 @@ def test_cold_start_when_no_previous() -> None:
     assert result.fields.experiencia_y_perfil
 
 
+def test_refine_prompt_does_not_assume_a_software_stack() -> None:
+    from jobbot.nlp.langchain_refine import _SYSTEM
+
+    folded = _SYSTEM.casefold()
+    assert "tecnolog" not in folded
+    assert "empleadores" in folded
+
+
 def test_refine_does_not_invent_kubernetes() -> None:
     candidate = Candidate.model_validate(sample_profile_dict())
     result = refine_permanent_profile(candidate, _previous_obsolete())

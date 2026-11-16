@@ -15,7 +15,7 @@ from rich.console import Console
 from jobbot.adapters.indeed import selectors
 from jobbot.browser.session import BrowserSession
 from jobbot.config import JobbotConfig, load_config
-from jobbot.jobs.closure import visible_soup
+from jobbot.jobs.closure import closure_evidence, visible_soup
 from jobbot.jobs.indeed_url import indeed_jk_rejection
 from jobbot.jobs.parsing import parse_job_text
 from jobbot.jobs.sources import JobSearchQuery
@@ -24,18 +24,24 @@ from jobbot.models.job import JobPosting
 logger = logging.getLogger("jobbot.indeed.jobs")
 console = Console()
 
-# Wording Indeed uses when a posting is closed. Not a list of job families.
-_CLOSED_MARKERS: tuple[str, ...] = (
-    "this job has expired",
-    "no longer accepting",
-    "ya no acepta",
-    "este empleo ha expirado",
-    "esta oferta ha caducado",
-)
+# Closed wording lives in jobbot.jobs.closure so Indeed and the shared check stay aligned.
+
+
+def posting_is_closed(html: str) -> bool:
+    """True when the page says the vacancy is no longer open."""
+    return closure_evidence(html) is not None
 
 
 class IndeedJobClosed(ValueError):
     """The posting is no longer accepting applications."""
+
+
+class IndeedChallengePending(Exception):
+    """A challenge is still on the page. That is not an empty search."""
+
+    def __init__(self, context: str) -> None:
+        self.context = context
+        super().__init__(context)
 
 
 class IndeedJobSource:
@@ -46,14 +52,16 @@ class IndeedJobSource:
         config: JobbotConfig | None = None,
         *,
         cdp_url: str | None = None,
+        cdp_attach_s: float | None = None,
     ) -> None:
         self.config = config or load_config()
         self.base = selectors.indeed_jobs_base(self._country())
         self.profile_dir = self.config.browser_profile_dir("indeed")
         self.debug_root = self.config.output_dir / "debug"
-        from jobbot.browser.cdp import resolve_cdp_url
+        from jobbot.browser.cdp import DEFAULT_CDP_ATTACH_S, resolve_cdp_url
 
         self.cdp_url = resolve_cdp_url(cdp_url)
+        self.cdp_attach_s = DEFAULT_CDP_ATTACH_S if cdp_attach_s is None else cdp_attach_s
 
     def _country(self) -> str:
         # Loaded from .jobbot.toml [indeed].country when present
@@ -73,6 +81,7 @@ class IndeedJobSource:
             slow_mo=100,
             debug_root=self.debug_root,
             cdp_url=self.cdp_url,
+            cdp_attach_s=self.cdp_attach_s,
         )
 
     def search_jobs(self, query: JobSearchQuery) -> list[JobPosting]:
@@ -92,13 +101,13 @@ class IndeedJobSource:
             browser.page.goto(self.base + "/", wait_until="domcontentloaded")
             browser.page.goto(url, wait_until="domcontentloaded")
             if not self._clear_challenge(browser, context="search results"):
-                return []
+                raise IndeedChallengePending("search results")
             html = browser.page.content()
             discards: list[tuple[str, str]] = []
             cards = parse_indeed_search_html(html, base_url=self.base, discards=discards)
             if not cards and _looks_like_challenge_html(html):
                 if not self._clear_challenge(browser, context="search results"):
-                    return []
+                    raise IndeedChallengePending("search results")
                 browser.page.goto(url, wait_until="domcontentloaded")
                 html = browser.page.content()
                 discards = []
@@ -132,7 +141,7 @@ class IndeedJobSource:
                             timeout=20_000,
                         )
                         if not self._clear_challenge(browser, context="job detail"):
-                            continue
+                            raise IndeedChallengePending("job detail")
                         detail_html = browser.page.content()
                         if detail_is_empty_or_search(detail_html):
                             logger.info(
@@ -140,6 +149,8 @@ class IndeedJobSource:
                                 card.get("source_job_id"),
                             )
                             continue
+                    except IndeedChallengePending:
+                        raise
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("detail fetch failed for %s: %s", card.get("url"), exc)
                 job = card_to_job_posting(card, detail_html=detail_html, placeholder_id="TMP")
@@ -292,12 +303,6 @@ def _unique_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return unique
 
 
-def posting_is_closed(html: str) -> bool:
-    """True when the page says the vacancy is no longer open."""
-    folded = (html or "").casefold()
-    return any(marker in folded for marker in _CLOSED_MARKERS)
-
-
 def indeed_apply_url(viewjob_url: str | None, jk: str | None) -> str | None:
     """Indeed Apply handoff for one vacancy: same country host, only jk."""
     if not viewjob_url or not jk:
@@ -342,30 +347,9 @@ def parse_indeed_job_detail_html(html: str) -> dict[str, Any]:
         ],
     )
     
-    # Detect external ATS URL (Apply on company site button)
-    ats_url = None
-    
-    # Look for "Apply on company site" or similar external apply links
-    apply_patterns = [
-        r'href="([^"]+)"[^>]*>Apply on company site',
-        r'href="([^"]+)"[^>]*>Apply on employer site',
-        r'href="([^"]+)"[^>]*>Aplicar en el sitio de la empresa',
-        r'data-tn-element="[^"]*externalApply[^"]*"[^>]*href="([^"]+)"',
-    ]
-    
-    for pattern in apply_patterns:
-        match = re.search(pattern, html, flags=re.I)
-        if match:
-            ats_url = match.group(1)
-            # Clean up Indeed redirect wrapper if present
-            if "indeed.com" in ats_url and ("rclk?jk=" in ats_url or "/rc/clk" in ats_url):
-                # Extract actual URL from Indeed redirect
-                redirect_match = re.search(r'[?&]dest=([^&]+)', ats_url)
-                if redirect_match:
-                    from urllib.parse import unquote
-                    ats_url = unquote(redirect_match.group(1))
-            break
-    
+    from jobbot.adapters.indeed.external import external_apply_url
+
+    ats_url = external_apply_url(html)
     return {
         "title": _clean(title),
         "company": _clean(company),
@@ -381,10 +365,8 @@ def card_to_job_posting(
     detail_html: str | None,
     placeholder_id: str,
 ) -> JobPosting:
-    if detail_html and posting_is_closed(detail_html):
-        raise IndeedJobClosed(
-            "This Indeed job is no longer accepting applications (expired)."
-        )
+    if detail_html and (phrase := closure_evidence(detail_html)):
+        raise IndeedJobClosed(phrase)
     detail = parse_indeed_job_detail_html(detail_html) if detail_html else {}
     title = detail.get("title") or card.get("title") or "Untitled"
     company = detail.get("company") or card.get("company") or "Unknown"

@@ -1,0 +1,14 @@
+version: 1
+companies:
+  - id: acme
+    name: Acme
+    country: CL
+    career_sites:
+      - url: https://acme.trabajando.cl
+        domain: acme.trabajando.cl
+        site_type: ats_instance
+        ats: trabajando
+        status: candidate
+        first_seen: 2026-10-01T12:00:00Z
+        observations: []
+        conflicts: []

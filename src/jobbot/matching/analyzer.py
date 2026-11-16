@@ -8,6 +8,7 @@ from typing import Protocol
 
 from jobbot.jobs.normalization import WordIndex, fold_text, normalize_skill, skills_in_text
 from jobbot.jobs.parsing import degree_fields, extract_skills_from_text, looks_like_page_metadata
+from jobbot.jobs.untrusted import for_scoring, is_instruction
 from jobbot.models.candidate import Candidate
 from jobbot.models.job import JobPosting
 from jobbot.models.match import JobMatch, MatchItem, MatchStrength
@@ -15,6 +16,9 @@ from jobbot.models.match import JobMatch, MatchItem, MatchStrength
 # A job whose posting names almost nothing cannot be a perfect fit, whatever it asks.
 _THIN_EVIDENCE_ITEMS = 3
 _THIN_EVIDENCE_CAP = 80.0
+_INTERN_CAP = 40.0
+_HIGHER_LEVEL_RE = re.compile(r"\b(?:senior|lead|staff|principal)\b")
+_HELD_INTERN_RE = re.compile(r"\b(?:intern|pasante|trainee|practicante)\b")
 
 # Requirement sentences are prose: only content words carry evidence.
 _STOPWORDS = frozenset(
@@ -194,7 +198,12 @@ class RuleBasedJobAnalyzer:
         if job.seniority:
             items.append(_seniority_item(candidate, job.seniority))
 
-        score = _score(items, role_cap=role_cap, required_tokens={t for t, _, _ in required})
+        score = _score(
+            items,
+            role_cap=role_cap,
+            level_cap=_intern_cap(candidate, job.seniority),
+            required_tokens={t for t, _, _ in required},
+        )
         return JobMatch(job_id=job.id, score=score, items=items)
 
 
@@ -236,12 +245,16 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
     pairs: list[tuple[str, str, str]] = []
     seen: set[str] = set()
     for skill in job.skills:
+        if is_instruction(skill):
+            continue
         token = normalize_skill(skill)
         if token and token not in seen and not looks_like_page_metadata(skill):
             seen.add(token)
             pairs.append((token, skill, skill))
     long_skills = [fold_text(label) for _, label, _ in pairs if len(label.split()) >= 3]
     for req in job.requirements:
+        if is_instruction(req):
+            continue
         if re.search(r"(?i)\b(english|spanish|idioma|language|proficiency)\b", req):
             continue
         if looks_like_page_metadata(req):
@@ -253,7 +266,7 @@ def _job_requirements(job: JobPosting) -> list[tuple[str, str, str]]:
         if token and token not in seen and len(req) <= _MAX_REQUIREMENT_CHARS:
             seen.add(token)
             pairs.append((token, req[:80], req))
-    blob = f"{job.title}\n{job.description}\n{job.raw_description}"
+    blob = for_scoring(f"{job.title}\n{job.description}\n{job.raw_description}")
     if len(pairs) < 3:
         for hint in extract_skills_from_text(blob):
             token = normalize_skill(hint)
@@ -411,9 +424,7 @@ def _profile_evidence(
     what is found is added: a claim the posting does not mention is not a gap, so it
     costs nothing. A claim already cited for a requirement is not counted twice.
     """
-    posting = WordIndex(
-        frozenset(_keyword_candidates(f"{job.title}\n{job.description}\n{job.raw_description}"))
-    )
+    posting = posting_word_index(job)
     if not posting.words:
         return []
     already = [
@@ -427,6 +438,8 @@ def _profile_evidence(
         *((claim, "profile") for claim in candidate.skills.all_skills()),
         *((claim, "profile") for claim in candidate.specialties),
         *((edu.degree, "profile") for edu in candidate.education),
+        *((lang.name, "profile") for lang in candidate.languages),
+        *((cert.name, "profile") for cert in candidate.certifications),
         *((exp.title, "held") for exp in candidate.experience),
     ]
     for claim, kind in claims:
@@ -448,9 +461,8 @@ def _profile_evidence(
             )
     for exp in candidate.experience:
         for ach in exp.achievements:
-            words = {word for word in _keyword_candidates(ach.text) if len(word) >= _ECHO_MIN_WORD}
-            hits = sorted(word for word in words if posting.has(word))
-            if len(hits) >= _ECHO_MIN_HITS and len(hits) >= _ECHO_SHARE * len(words):
+            hits = achievement_echo_hits(ach.text, posting)
+            if hits:
                 items.append(
                     MatchItem(
                         label=f"achievement:{ach.id}",
@@ -459,6 +471,27 @@ def _profile_evidence(
                     )
                 )
     return items
+
+
+def posting_word_index(job: JobPosting) -> WordIndex:
+    """Content words of the posting, the same index an achievement is echoed against."""
+    blob = for_scoring(f"{job.title}\n{job.description}\n{job.raw_description}")
+    return WordIndex(frozenset(_keyword_candidates(blob)))
+
+
+def achievement_echo_hits(text: str, posting: WordIndex) -> list[str]:
+    """Content words of an achievement that the posting also uses.
+
+    Empty unless enough of the achievement's own words are there. The bar is the
+    one `_profile_evidence` already applies, so a selector and a match cannot disagree.
+    """
+    words = {word for word in _keyword_candidates(text) if len(word) >= _ECHO_MIN_WORD}
+    if not words:
+        return []
+    hits = sorted(word for word in words if posting.has(word))
+    if len(hits) >= _ECHO_MIN_HITS and len(hits) >= _ECHO_SHARE * len(words):
+        return hits
+    return []
 
 
 def _keyword_candidates(text: str) -> set[str]:
@@ -579,11 +612,24 @@ def _title_words(*titles: str) -> set[str]:
     }
 
 
+def _intern_cap(candidate: Candidate, required: str | None) -> float | None:
+    """A higher level already held cannot score as a perfect internship fit."""
+    if required != "intern":
+        return None
+    titles = fold_text(" ".join(exp.title for exp in candidate.experience))
+    if _HELD_INTERN_RE.search(titles):
+        return None
+    if _HIGHER_LEVEL_RE.search(titles):
+        return _INTERN_CAP
+    return None
+
+
 def _score(
     items: list[MatchItem],
     *,
     role_cap: float | None,
     required_tokens: set[str],
+    level_cap: float | None = None,
 ) -> float:
     """Score only on strong/partial/missing skill-like items; unknowns excluded."""
     relevant = [i for i in items if i.strength != MatchStrength.UNKNOWN]
@@ -602,4 +648,6 @@ def _score(
         score = min(score, _THIN_EVIDENCE_CAP)
     if role_cap is not None:
         score = min(score, role_cap)
+    if level_cap is not None:
+        score = min(score, level_cap)
     return round(score, 1)
