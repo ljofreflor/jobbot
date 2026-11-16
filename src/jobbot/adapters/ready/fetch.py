@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.request
 
 from jobbot.adapters.ready.parse import api_url, career_slug, job_from_payload
@@ -21,6 +22,9 @@ def fetch_public(url: str) -> tuple[int, str]:
         with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
             status = int(getattr(response, "status", 200))
             body = response.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        # 4xx/5xx is an answer: keep the code so the caller names it.
+        return int(exc.code), exc.read(20_000).decode("utf-8", errors="replace")
     except OSError as exc:
         raise UnsupportedPortalFetchError(
             "Ready ATS did not answer. Pass --fixture with the careers JSON. "
