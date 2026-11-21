@@ -139,6 +139,7 @@ def test_ats_apply_builds_before_attaching(tmp_path, project_root, monkeypatch):
         source.write_bytes(b"%PDF CURRENT")
 
     def fill(*args, **kwargs):
+        kwargs["cv_path"] = kwargs["prepare_cv"]()
         assert built == [stored.id]
         assert kwargs["cv_path"].read_bytes() == b"%PDF CURRENT"
         return ApplyFillResult(url="https://example.com", readable=True)

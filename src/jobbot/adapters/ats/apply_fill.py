@@ -403,6 +403,7 @@ def open_and_fill_over_cdp(
     candidate: Candidate,
     *,
     cv_path: Path | None = None,
+    prepare_cv: Callable[[], Path | None] | None = None,
     timeout_ms: int = 30_000,
     focus: bool = False,
     playwright_factory: Callable[[], Any] | None = None,
@@ -450,6 +451,8 @@ def open_and_fill_over_cdp(
             msg = f"Could not load {url}: {exc}"
             raise ApplyFillError(msg) from exc
         _settle(page)
+        if prepare_cv is not None:
+            cv_path = prepare_cv()
         try:
             return fill_open_page(page, candidate, cv_path=cv_path)
         except Exception as exc:  # noqa: BLE001

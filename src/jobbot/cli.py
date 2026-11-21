@@ -5017,6 +5017,7 @@ def _fill_ats_over_cdp(
     job_id: str,
     *,
     foreground: bool = False,
+    job: JobPosting | None = None,
     attach_timeout_s: float = 15,
 ) -> None:
     """Fill known fields in the requested Chrome. A failure does not open another browser."""
@@ -5024,12 +5025,19 @@ def _fill_ats_over_cdp(
     from jobbot.adapters.ats.email_apply import resolve_cv_path
 
     cv_pdf = resolve_cv_path(config.output_dir, job_id)
+    def prepare_cv() -> Path | None:
+        if job is not None:
+            _build_job_cv(config, candidate, job)
+            prepare_application_package(job, config.output_dir, candidate=candidate)
+        return resolve_cv_path(config.output_dir, job_id)
+
     try:
         result = apply_fill.open_and_fill_over_cdp(
             cdp,
             url,
             candidate,
             cv_path=cv_pdf,
+            prepare_cv=prepare_cv,
             focus=foreground,
             attach_timeout_s=attach_timeout_s,
         )
@@ -5489,9 +5497,7 @@ def _application_apply_one(
     ):
         console.print("Aborted.")
         raise typer.Exit(SUCCESS)
-    _build_job_cv(config, candidate, job)
     job_dir = config.output_dir / "jobs" / job.id
-    prepare_application_package(job, config.output_dir, job_dir=job_dir, candidate=candidate)
     filled_in_cdp = False
     if cdp:
         _fill_ats_over_cdp(
@@ -5501,9 +5507,12 @@ def _application_apply_one(
             config,
             job.id,
             foreground=foreground,
+            job=job,
             attach_timeout_s=cdp_timeout,
         )
         filled_in_cdp = True
+    else:
+        _build_job_cv(config, candidate, job)
     app_dir = prepare_application_package(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
     )

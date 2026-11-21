@@ -76,6 +76,7 @@ def test_cdp_fills_in_your_chrome_instead_of_the_default_browser(
     calls: list[dict[str, Any]] = []
 
     def fake_fill(cdp_url: str, url: str, candidate: Any, **kwargs: Any) -> ApplyFillResult:
+        kwargs.pop("prepare_cv", None)
         calls.append({"cdp": cdp_url, "url": url, **kwargs})
         return ApplyFillResult(
             url=url,
@@ -121,6 +122,7 @@ def test_foreground_is_the_only_way_to_ask_for_a_front_tab(
     calls: list[dict[str, Any]] = []
 
     def fake_fill(cdp_url: str, url: str, candidate: Any, **kwargs: Any) -> ApplyFillResult:
+        kwargs.pop("prepare_cv", None)
         calls.append({"cdp": cdp_url, "url": url, **kwargs})
         return ApplyFillResult(url=url, readable=True, filled=("Email",))
 
