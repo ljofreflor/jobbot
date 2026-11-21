@@ -20,7 +20,7 @@ class JobBotClient:
     Example:
         >>> client = JobBotClient()
         >>> jobs = client.jobs.search("python developer", remote=True)
-        >>> client.cv.build(job=jobs[0], style="modern")
+        >>> client.cv.build(job=jobs[0], style="moderncv")
     """
 
     def __init__(
@@ -54,26 +54,11 @@ class JobBotClient:
     ) -> JobbotConfig:
         """Load configuration from file or defaults."""
         if config_path:
-            config_path = Path(config_path)
-            if not config_path.exists():
-                msg = f"Config file not found: {config_path}"
-                raise FileNotFoundError(msg)
-            return load_config(config_path)
-
-        if workspace_root:
-            workspace_root = Path(workspace_root)
-            config_file = workspace_root / "jobbot.toml"
-            if config_file.exists():
-                return load_config(config_file)
-            # Use workspace root with default config
-            return JobbotConfig(root=workspace_root)
-
-        # Discover from current directory
-        try:
-            return load_config()
-        except FileNotFoundError:
-            # Use current directory as workspace
-            return JobbotConfig()
+            path = Path(config_path).expanduser().resolve()
+            return load_config(
+                root=Path(workspace_root) if workspace_root else path.parent, config_file=path
+            )
+        return load_config(root=Path(workspace_root) if workspace_root else None)
 
     def close(self) -> None:
         """Close database connections and cleanup resources."""

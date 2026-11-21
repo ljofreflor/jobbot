@@ -59,6 +59,7 @@ _FILLABLE: frozenset[FieldKind] = frozenset(
         FieldKind.NUMBER,
         FieldKind.DATE,
         FieldKind.LONG_TEXT,
+        FieldKind.SELECT,
     }
 )
 
@@ -100,12 +101,17 @@ def build_fill_plan(
     stay manual. ``will_submit`` is always false — create/submit is not automated.
     """
     sheet = signup_sheet(candidate, form=form)
-    fillable = [
-        item.label
-        for item in sheet
-        if _is_fillable_item(item)
-    ]
+    fillable = [item.label for item in sheet if _is_fillable_item(item)]
     manual = list(_ALWAYS_MANUAL)
+    if form is not None and form.readable:
+        for field in form.fields:
+            item = next((item for item in sheet if item.label == field.label), None)
+            if field.kind is FieldKind.SELECT and (
+                item is None or _select_label(field, item.value) is None
+            ):
+                fillable = [label for label in fillable if label != field.label]
+                if field.label not in manual:
+                    manual.append(field.label)
     for item in sheet:
         if item.yours_to_decide or _forbidden_label(item.label):
             if item.label not in manual:
@@ -222,9 +228,22 @@ def _fill_page(
         selector = _selector(field)
         if not value or selector is None:
             continue
-        page.fill(selector, value)
+        if field.kind is FieldKind.SELECT:
+            label = _select_label(field, value)
+            if label is None:
+                continue
+            page.select_option(selector, label=label)
+        else:
+            page.fill(selector, value)
         filled.append(field.label)
     return tuple(filled), _attach_cv(page, form, cv_path)
+
+
+def _select_label(field: FormField, value: str) -> str | None:
+    matches = [
+        option for option in field.options if option.strip().casefold() == value.strip().casefold()
+    ]
+    return matches[0] if value.strip() and len(matches) == 1 else None
 
 
 def _attach_cv(page: Any, form: FormKnowledge, cv_path: Path | None) -> bool:
@@ -234,9 +253,19 @@ def _attach_cv(page: Any, form: FormKnowledge, cv_path: Path | None) -> bool:
     files = [
         field
         for field in form.fields
-        if field.kind is FieldKind.FILE and not _forbidden_label(field.label)
+        if field.kind is FieldKind.FILE
+        and not _forbidden_label(field.label)
+        and not _forbidden_label(field.name)
+        and _is_resume_label(field.label)
+        and (
+            not field.accepts
+            or any(
+                accept.strip().casefold() in {".pdf", "application/pdf", "application/*", "*/*"}
+                for accept in field.accepts
+            )
+        )
     ]
-    if not files:
+    if len(files) != 1:
         return False
     selector = _selector(files[0])
     if selector is None:

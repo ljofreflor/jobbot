@@ -13,6 +13,7 @@ from detect_secrets.settings import transient_settings
 
 # Paths that must never be tracked, even with `git add -f`.
 _BLOCKED_PATHS: tuple[tuple[str, str], ...] = (
+    (r"(^|/)\.local/", "private workspace data and browser sessions"),
     (r"^data/profile\.yaml$", "real candidate source of truth"),
     (r"^data/profile\.generated\.yaml$", "derived from private LaTeX CV"),
     (r"^data/profile\.suggested\.yaml$", "derived from market feedback"),

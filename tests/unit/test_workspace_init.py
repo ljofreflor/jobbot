@@ -24,7 +24,7 @@ def test_resolve_workspace_walks_up_to_jobbot_toml(
     root = tmp_path / "postulaciones"
     nested = root / "notas" / "hoy"
     nested.mkdir(parents=True)
-    (root / CONFIG_FILENAME).write_text("[search]\ncountries = [\"CL\"]\n", encoding="utf-8")
+    (root / CONFIG_FILENAME).write_text('[search]\ncountries = ["CL"]\n', encoding="utf-8")
     monkeypatch.delenv("JOBBOT_ROOT", raising=False)
     monkeypatch.chdir(nested)
     assert resolve_workspace() == root.resolve()
@@ -146,9 +146,7 @@ def test_init_local_under_absolute_target_when_cwd_differs(
     assert not (tmp_path / ".local").exists()
 
 
-def test_init_dot_uses_cwd_not_home_or_env(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_init_dot_uses_cwd_not_home_or_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     workspace = tmp_path / "invoked-here"
     decoy_home = tmp_path / "fake-home"
     decoy_root = tmp_path / "jobbot-root-env"
@@ -242,3 +240,45 @@ def test_import_pdf_promote_restamps_owner_for_cold_install(
     validate = runner.invoke(app, ["profile", "validate"])
     assert validate.exit_code == 0, validate.output
     assert "Wrong workspace" not in validate.output
+
+
+@pytest.mark.parametrize("selection", ["nested", "env", "sandbox"])
+def test_adopt_respects_configured_paths_and_replaces_owner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    selection: str,
+) -> None:
+    from typer.testing import CliRunner
+
+    from jobbot.cli import app
+    from jobbot.workspace import STAMP_NAME, owner_fingerprint, read_stamp
+
+    target = tmp_path / "client"
+    init_workspace(target)
+    monkeypatch.delenv("JOBBOT_WORKSPACE", raising=False)
+    monkeypatch.delenv("JOBBOT_ROOT", raising=False)
+    args = ["workspace", "adopt", "--yes"]
+    if selection == "env":
+        monkeypatch.setenv("JOBBOT_ROOT", str(target))
+        monkeypatch.chdir(tmp_path)
+    elif selection == "sandbox":
+        monkeypatch.setenv("JOBBOT_SANDBOXES", str(tmp_path))
+        monkeypatch.setenv("JOBBOT_WORKSPACE", "client")
+        monkeypatch.chdir(tmp_path)
+    else:
+        nested = target / "notes"
+        nested.mkdir()
+        monkeypatch.chdir(nested)
+    load_config()
+    profile = target / ".local" / "profile.yaml"
+    profile.write_text("personal:\n  name: New Candidate\n", encoding="utf-8")
+
+    result = CliRunner().invoke(app, args)
+
+    assert result.exit_code == 0, result.output
+    for directory in (target / ".local", target / ".local" / "output"):
+        stamp = read_stamp(directory / STAMP_NAME)
+        assert stamp is not None
+        assert stamp.fingerprint == owner_fingerprint("New Candidate")
+    assert load_config().profile_path == profile
+    assert not (target / "data").exists()

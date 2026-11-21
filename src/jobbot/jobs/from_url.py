@@ -133,6 +133,7 @@ def ingest_hard_link(
             ApplicationRepository(session).upsert_for_job(
                 stored.id,
                 status=ApplicationStatus.PREPARED,
+                preserve_progress=True,
                 package_dir=str(package_dir),
             )
 

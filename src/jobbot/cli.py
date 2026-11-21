@@ -71,7 +71,6 @@ from jobbot.workspace import (
     init_workspace,
     list_workspaces,
     read_stamp,
-    resolve_root,
     sandboxes_dir,
     set_active_workspace,
     workspace_root,
@@ -1128,9 +1127,9 @@ def workspace_adopt(
 ) -> None:
     """Hand this workspace's data and output over to the profile now in place."""
     name = active_workspace()
-    base, _ = resolve_root(Path.cwd())
-    profile_path = base / "data" / "profile.yaml"
-    output_dir = base / "output"
+    config = load_config(verify_ownership=False)
+    profile_path = config.profile_path
+    output_dir = config.output_dir
     console.print(f"Re-stamp {profile_path.parent} and {output_dir} for {profile_path}")
     if not yes and not typer.confirm("Artifacts of the previous owner stay in place. Continue?"):
         raise typer.Abort
@@ -4837,12 +4836,13 @@ def _note_no_receipt(session: Session, job_id: str, package_dir: str, url: str) 
     app = repo.upsert_for_job(
         job_id,
         status=ApplicationStatus.PREPARED,
+        preserve_progress=True,
         package_dir=package_dir,
     )
     repo.add_event(app.id, "no_receipt", url)
     console.print(
         f"[yellow]No portal receipt[/yellow] for {url}. "
-        "Status stays prepared — unknown whether it was submitted."
+        f"Status stays {app.status.value} — no new submission is evidenced."
     )
 
 
@@ -4892,6 +4892,7 @@ def application_prepare(job_id: Annotated[str, typer.Argument()]) -> None:
     ApplicationRepository(session).upsert_for_job(
         job.id,
         status=ApplicationStatus.PREPARED,
+        preserve_progress=True,
         package_dir=str(app_dir),
     )
     console.print(f"[green]Prepared[/green] {app_dir}")
@@ -5016,6 +5017,7 @@ def _fill_ats_over_cdp(
     job_id: str,
     *,
     foreground: bool = False,
+    job: JobPosting | None = None,
     attach_timeout_s: float = 15,
 ) -> None:
     """Fill known fields in the requested Chrome. A failure does not open another browser."""
@@ -5023,12 +5025,19 @@ def _fill_ats_over_cdp(
     from jobbot.adapters.ats.email_apply import resolve_cv_path
 
     cv_pdf = resolve_cv_path(config.output_dir, job_id)
+    def prepare_cv() -> Path | None:
+        if job is not None:
+            _build_job_cv(config, candidate, job)
+            prepare_application_package(job, config.output_dir, candidate=candidate)
+        return resolve_cv_path(config.output_dir, job_id)
+
     try:
         result = apply_fill.open_and_fill_over_cdp(
             cdp,
             url,
             candidate,
             cv_path=cv_pdf,
+            prepare_cv=prepare_cv,
             focus=foreground,
             attach_timeout_s=attach_timeout_s,
         )
@@ -5292,7 +5301,7 @@ def _application_apply_one(
         prefill_field_map,
         prefill_sheet_fields,
     )
-    from jobbot.adapters.ats.email_apply import build_email_draft, open_gmail_compose
+    from jobbot.adapters.ats.email_apply import build_email_draft
     from jobbot.adapters.ats.registry import adapter_for_job
     from jobbot.adapters.base import ApplyMethod
     from jobbot.applications.manager import FilesystemApplicationPackage
@@ -5444,30 +5453,16 @@ def _application_apply_one(
             if blocked:
                 err_console.print(f"[red]{blocked}[/red]")
                 raise typer.Exit(GENERIC_FAILURE)
-        if attach and cv_pdf is not None:
-            from jobbot.adapters.gmail.compose import GmailComposeAdapter, GmailComposeError
+        from jobbot.adapters.gmail.compose import GmailComposeAdapter, GmailComposeError
 
-            try:
-                GmailComposeAdapter(config, cdp_url=cdp).open_draft_for_review(
-                    draft, cv_path=cv_pdf
-                )
-                console.print(
-                    f"[green]Gmail draft ready with[/green] {cv_pdf.name} "
-                    "[green]attached. Review it and press Send yourself.[/green]"
-                )
-            except GmailComposeError as exc:
-                err_console.print(f"[yellow]Could not attach in Gmail: {exc}[/yellow]")
-                open_gmail_compose(draft)
-                err_console.print(
-                    f"[yellow]Opened plain compose — attach {cv_pdf} by hand.[/yellow]"
-                )
-        else:
-            url = open_gmail_compose(draft)
-            console.print(background_notice(f"Gmail compose ({len(url)} chars URL)"))
-            console.print(
-                f"Adjuntá el CV ({cv_pdf or 'output/base/cv.pdf'}) "
-                "y pulsá [bold]Enviar[/bold] en Gmail. JobBot no envía por vos."
+        try:
+            GmailComposeAdapter(config, cdp_url=cdp).open_draft_for_review(
+                draft, cv_path=cv_pdf, attach_cv=attach and cv_pdf is not None
             )
+            console.print("Gmail draft ready. Review it and press Send yourself.")
+        except GmailComposeError as exc:
+            err_console.print(f"Could not safely prepare Gmail draft: {exc}")
+            raise typer.Exit(GENERIC_FAILURE) from exc
         job_dir = config.output_dir / "jobs" / job.id
         app_dir = prepare_application_package(
             job, config.output_dir, job_dir=job_dir, candidate=candidate
@@ -5512,9 +5507,12 @@ def _application_apply_one(
             config,
             job.id,
             foreground=foreground,
+            job=job,
             attach_timeout_s=cdp_timeout,
         )
         filled_in_cdp = True
+    else:
+        _build_job_cv(config, candidate, job)
     app_dir = prepare_application_package(
         job, config.output_dir, job_dir=job_dir, candidate=candidate
     )

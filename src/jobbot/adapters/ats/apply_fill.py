@@ -403,6 +403,7 @@ def open_and_fill_over_cdp(
     candidate: Candidate,
     *,
     cv_path: Path | None = None,
+    prepare_cv: Callable[[], Path | None] | None = None,
     timeout_ms: int = 30_000,
     focus: bool = False,
     playwright_factory: Callable[[], Any] | None = None,
@@ -450,6 +451,8 @@ def open_and_fill_over_cdp(
             msg = f"Could not load {url}: {exc}"
             raise ApplyFillError(msg) from exc
         _settle(page)
+        if prepare_cv is not None:
+            cv_path = prepare_cv()
         try:
             return fill_open_page(page, candidate, cv_path=cv_path)
         except Exception as exc:  # noqa: BLE001
@@ -560,18 +563,25 @@ def _forbidden(field_: FormField) -> bool:
 
 
 def _cv_file_field(fields: list[FormField]) -> FormField | None:
-    files = [f for f in fields if f.kind is FieldKind.FILE and not _forbidden(f)]
-    for form_field in files:
-        blob = f"{_normalize(form_field.label)} {_normalize(form_field.name)}"
+    files = []
+    named = []
+    for f in fields:
+        if f.kind is not FieldKind.FILE or _forbidden(f):
+            continue
+        blob = f"{_normalize(f.label)} {_normalize(f.name)}"
+        if any(word in blob for word in _NOT_A_CV_WORDS):
+            continue
+        if f.accepts and not any(
+            a.casefold().strip() in {".pdf", "application/pdf", "application/*", "*/*"}
+            for a in f.accepts
+        ):
+            continue
+        files.append(f)
         if any(word in blob for word in _RESUME_WORDS) or "cv" in blob.split():
-            return form_field
-    if len(files) == 1:
-        only = files[0]
-        blob = f"{_normalize(only.label)} {_normalize(only.name)}"
-        accepts_pdf = not only.accepts or any("pdf" in a.casefold() for a in only.accepts)
-        if accepts_pdf and not any(word in blob for word in _NOT_A_CV_WORDS):
-            return only
-    return None
+            named.append(f)
+    if named:
+        return named[0] if len(named) == 1 else None
+    return files[0] if len(files) == 1 else None
 
 
 def _attachable_pdf(path: Path | None) -> Path | None:

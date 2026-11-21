@@ -298,9 +298,7 @@ def test_greenhouse_lever_ashby_stay_not_needed() -> None:
 
 def test_workday_create_account_fill_uses_automation_id(tmp_path: Path) -> None:
     """Workday email has no name= — only data-automation-id / id (#92)."""
-    html = Path("tests/fixtures/forms/workday_create_account.html").read_text(
-        encoding="utf-8"
-    )
+    html = Path("tests/fixtures/forms/workday_create_account.html").read_text(encoding="utf-8")
     page = FakePage(
         html=html,
         url=(
@@ -313,9 +311,7 @@ def test_workday_create_account_fill_uses_automation_id(tmp_path: Path) -> None:
     assert result.submitted is False
     assert "Email Address" in result.filled_fields
     assert not any("password" in f.casefold() for f in result.filled_fields)
-    assert any(
-        "data-automation-id" in sel or sel.startswith("#") for sel in page.filled
-    )
+    assert any("data-automation-id" in sel or sel.startswith("#") for sel in page.filled)
     assert page.clicked == []
 
 
@@ -339,3 +335,68 @@ def test_bare_name_does_not_fill_middle_or_family_name_fields() -> None:
     assert sheet["Father's Family Name"].value == ""
     assert sheet["Email Address"].value == str(_candidate().personal.email)
     assert sheet["City"].value == (_candidate().personal.city or "")
+
+
+def test_select_uses_observed_option_label() -> None:
+    candidate = _candidate()
+    country = candidate.personal.country
+    assert country
+    form = FormKnowledge(
+        url="https://example.com/signup",
+        readable=True,
+        fields=[
+            FormField(
+                name="country", label="Country", kind=FieldKind.SELECT, options=[country.upper()]
+            )
+        ],
+    )
+    page = FakePage()
+    selected: list[tuple[str, str]] = []
+    page.select_option = lambda selector, *, label: selected.append((selector, label))  # type: ignore[attr-defined]
+    result = fill_signup_form(page, candidate, form=form)
+    assert selected and selected[0][1] == country.upper()
+    assert result.filled_fields == ["Country"]
+    assert not page.filled
+
+
+def test_select_without_matching_option_stays_manual() -> None:
+    form = FormKnowledge(
+        url="https://example.com/signup",
+        readable=True,
+        fields=[
+            FormField(
+                name="country", label="Country", kind=FieldKind.SELECT, options=["Other country"]
+            )
+        ],
+    )
+    page = FakePage()
+    result = fill_signup_form(page, _candidate(), form=form)
+    assert not result.filled_fields
+    assert "Country" not in result.plan.fields_to_fill
+    assert "Country" in result.plan.needs_manual
+
+
+def test_cv_skips_photo_and_targets_resume(tmp_path: Path) -> None:
+    page = FakePage(
+        html="""<form>
+        <label for="photo">Photo</label><input id="photo" name="photo" type="file">
+        <label for="cv">Resume/CV</label><input id="cv" name="cv" type="file" accept=".pdf">
+    </form>"""
+    )
+    result = fill_signup_form(page, _candidate(), cv_path=_pdf(tmp_path))
+    assert result.attached
+    assert len(page.uploaded) == 1
+    assert 'name="cv"' in page.uploaded[0][0]
+
+
+def test_cv_ambiguous_unknown_or_incompatible_field_stays_manual(tmp_path: Path) -> None:
+    for controls in (
+        '<input name="photo" type="file" aria-label="Photo">',
+        '<input name="cv" type="file" aria-label="Resume" accept="image/*">',
+        '<input name="a" type="file" aria-label="Resume">'
+        '<input name="b" type="file" aria-label="CV">',
+    ):
+        page = FakePage(html=f"<form>{controls}</form>")
+        result = fill_signup_form(page, _candidate(), cv_path=_pdf(tmp_path))
+        assert not result.attached
+        assert not page.uploaded

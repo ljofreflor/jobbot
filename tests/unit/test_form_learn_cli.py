@@ -135,6 +135,7 @@ def test_apply_learns_the_form_while_you_fill_it(
     session.commit()
 
     html = (project_root / FIXTURE).read_text(encoding="utf-8")
+    monkeypatch.setattr(cli, "_build_job_cv", lambda *args: None)
     monkeypatch.setattr(cli, "_fetch_public_html", lambda url: html)
     opened: list[str] = []
     monkeypatch.setattr(
