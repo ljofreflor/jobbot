@@ -578,9 +578,9 @@ def _signed_in_verdict(
     account: AccountExpectation | None,
     page_text: dict[str, str] | None,
 ) -> tuple[SessionStatus, str]:
-    if account is None or page_text is None:
+    if account is None:
         return SessionStatus.READY, f"signed-in page open: {short}"
-    status = judge_account(spec.site, page_text.get(url, ""), account)
+    status = judge_account(spec.site, (page_text or {}).get(url, ""), account)
     if status is SessionStatus.WRONG_ACCOUNT:
         return status, "signed-in account does not match this workspace"
     if status is SessionStatus.READY:

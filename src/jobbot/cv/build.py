@@ -286,7 +286,7 @@ def should_rebuild_job_cv(job_dir: Path, profile_path: Path) -> bool:
     the profile. If the profile file is newer than either artifact, rebuild.
     """
     artifacts = [path for path in (job_dir / "cv.pdf", job_dir / "cv_ats.txt") if path.is_file()]
-    if not artifacts:
+    if not (job_dir / "cv.pdf").is_file():
         return True
     if not profile_path.is_file():
         return False
@@ -341,6 +341,10 @@ def build_adapted_cv(
             configured_language=config.cv.language,
         )
     except RuntimeError as exc:
+        # An earlier build or a failed compiler pass may have left a PDF behind.
+        # Neither it nor an already prepared copy belongs to this build.
+        (job_dir / "cv.pdf").unlink(missing_ok=True)
+        (job_dir / "application" / "cv.pdf").unlink(missing_ok=True)
         logger.warning("%s", exc)
         return build_cv(
             candidate,

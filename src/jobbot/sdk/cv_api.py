@@ -26,7 +26,7 @@ class CvApi:
         >>> api = CvApi(config, candidate)
         >>> cv_path = api.build(
         ...     job=job_posting,
-        ...     style="modern",
+        ...     style="moderncv",
         ...     output_path="cv_acme_corp.pdf"
         ... )
     """
@@ -74,8 +74,8 @@ class CvApi:
         # Build CV
         paths = build_cv(
             candidate=self.candidate,
-            templates_dir=self.config.paths.templates,
-            output_dir=self.config.paths.output,
+            templates_dir=self.config.templates_dir,
+            output_dir=self.config.output_dir,
             target=target,
             job=job,
             style=cv_style,
@@ -94,6 +94,7 @@ class CvApi:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             # Copy instead of rename to avoid cross-device link issues
             import shutil
+
             shutil.copy2(pdf_path, output_path)
             return output_path
 
@@ -103,7 +104,7 @@ class CvApi:
         self,
         job_id: str,
         *,
-        style: str = "modern",
+        style: str = "moderncv",
         output_path: Path | str | None = None,
     ) -> Path | None:
         """Build a CV tailored for a stored job by ID.

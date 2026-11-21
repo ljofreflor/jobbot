@@ -55,7 +55,11 @@ def test_email_apply_yes_stays_prepared_until_user_sends(
     session.commit()
 
     monkeypatch.setattr("jobbot.browser.background.open_url", lambda url, **_k: url)
-    # Avoid the Playwright Gmail attach path; --no-attach keeps the HITL compose URL.
+    # Identity verification now also applies without attachment; fake that boundary.
+    monkeypatch.setattr(
+        "jobbot.adapters.gmail.compose.GmailComposeAdapter.open_draft_for_review",
+        lambda self, draft, **kwargs: "https://mail.google.com/",
+    )
     code = run_cli(
         ["application", "apply", stored.id, "--apply", "--yes", "--no-attach"],
         standalone_mode=False,

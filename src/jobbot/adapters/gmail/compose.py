@@ -22,8 +22,34 @@ class GmailComposeError(RuntimeError):
     """Compose could not be prepared (DOM changed, upload not confirmed, …)."""
 
 
+class GmailIdentityError(GmailComposeError):
+    """Account identity could not be verified before creating a draft."""
+
+
 class GmailAuthRequired(GmailComposeError):
     """Gmail asked for login; the user completes it in the browser window."""
+
+
+def _verify_gmail_account(page: Any, expected_email: str) -> None:
+    # Read only the Google account control, never addresses inside mail content.
+    page.goto("https://mail.google.com/mail/u/0/#inbox", wait_until="domcontentloaded")
+    if is_auth_url(page.url):
+        raise GmailAuthRequired("Gmail requires login before identity verification")
+    control = page.locator('a[href*="accounts.google.com/SignOutOptions"]')
+    try:
+        control.wait_for(state="visible", timeout=30_000)
+        label = control.get_attribute("aria-label") or ""
+    except Exception as exc:
+        raise GmailIdentityError(
+            "Cannot verify the Gmail account; complete login manually"
+        ) from exc
+    from jobbot.browser.sessions import AccountExpectation, SessionStatus, judge_account
+
+    if (
+        judge_account("gmail", label, AccountExpectation(email=expected_email))
+        != SessionStatus.READY
+    ):
+        raise GmailIdentityError("Gmail account does not match this workspace or is unverified")
 
 
 def is_auth_url(url: str) -> bool:
@@ -167,13 +193,19 @@ class GmailComposeAdapter:
         draft: EmailApplyDraft,
         *,
         cv_path: Path | None = None,
+        attach_cv: bool = True,
     ) -> str:
         """Attach the CV in a real Gmail draft and hold the window open for review."""
         with self._session() as browser:
             # Attached to the user's own Chrome: never hijack a tab they are using.
             page = browser.new_tab() if self.cdp_url else browser.page
+            from jobbot.profile.loader import load_profile
+
+            candidate = load_profile(self.config.profile_path)
+            expected_email = str(candidate.personal.email or "")
             try:
-                url = prepare_gmail_draft(page, draft, cv_path=cv_path)
+                _verify_gmail_account(page, expected_email)
+                url = self._prepare_verified(page, draft, cv_path, attach_cv)
             except GmailAuthRequired:
                 ok = browser.pause_for_manual(
                     "Gmail requires login. Log in (including 2FA) in the browser window.",
@@ -183,7 +215,10 @@ class GmailComposeAdapter:
                 if not ok:
                     msg = "Gmail login was not completed"
                     raise GmailComposeError(msg) from None
-                url = prepare_gmail_draft(page, draft, cv_path=cv_path)
+                _verify_gmail_account(page, expected_email)
+                url = self._prepare_verified(page, draft, cv_path, attach_cv)
+            except GmailIdentityError:
+                raise
             except GmailComposeError:
                 browser.dump_debug("gmail", "compose-failed", job_id=draft.job_id)
                 # A half-uploaded draft is worse than none: it can be sent later.
@@ -193,13 +228,22 @@ class GmailComposeAdapter:
             if self.cdp_url:
                 print(background_notice("el borrador de Gmail", where="una pestaña de Chrome"))
             browser.pause_for_manual(
-                "Draft ready in Gmail with the CV attached.\n"
+                "Draft ready in Gmail.\n"
                 "Review recipient, subject, body and attachment, then press Send yourself.\n"
                 "JobBot will not send it.",
                 timeout_seconds=1_800,
                 continue_sentinel=self.review_sentinel(draft.job_id),
             )
             return url
+
+    def _prepare_verified(
+        self, page: Any, draft: EmailApplyDraft, cv_path: Path | None, attach_cv: bool
+    ) -> str:
+        if attach_cv:
+            return prepare_gmail_draft(page, draft, cv_path=cv_path)
+        url = gmail_compose_url(draft)
+        page.goto(url, wait_until="domcontentloaded")
+        return url
 
     def review_sentinel(self, job_id: str) -> Path | None:
         """Non-tty runs (agents) hold the window open until this file appears."""

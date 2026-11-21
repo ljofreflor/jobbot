@@ -60,6 +60,7 @@ class ApplicationRepository:
         *,
         status: ApplicationStatus,
         package_dir: str | None = None,
+        preserve_progress: bool = False,
     ) -> Application:
         existing = self._session.scalars(
             select(ApplicationRow).where(ApplicationRow.job_id == job_id)
@@ -78,6 +79,12 @@ class ApplicationRepository:
             self._session.add(row)
             self._add_event(app_id, "created", status.value)
         else:
+            if preserve_progress and existing.status not in {
+                ApplicationStatus.DISCOVERED.value,
+                ApplicationStatus.SHORTLISTED.value,
+                ApplicationStatus.PREPARED.value,
+            }:
+                status = ApplicationStatus(existing.status)
             existing.status = status.value
             existing.updated_at = now
             if package_dir:
@@ -228,9 +235,7 @@ def prepare_application_package(
 
         if isinstance(candidate, Candidate):
             permanent = load_permanent_profile(output_dir)
-            fields = draft_getonboard_fields(
-                candidate, job, permanent=permanent
-            )
+            fields = draft_getonboard_fields(candidate, job, permanent=permanent)
             (app_dir / "getonboard_es.md").write_text(
                 render_getonboard_markdown(fields, job=job),
                 encoding="utf-8",

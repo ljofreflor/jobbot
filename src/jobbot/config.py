@@ -204,8 +204,10 @@ def _load_paths(raw: dict[str, object], *, workspace: str | None) -> PathsConfig
     )
 
 
-def load_config(root: Path | None = None) -> JobbotConfig:
-    """Load config for the active sandbox workspace, else cold-install / cwd root."""
+def load_config(
+    root: Path | None = None, *, verify_ownership: bool = True, config_file: Path | None = None
+) -> JobbotConfig:
+    """Load workspace config; only explicit adoption may skip ownership verification."""
     if root is None:
         # Sandbox selection (--workspace / JOBBOT_WORKSPACE) wins when set.
         base, workspace = resolve_root(Path.cwd())
@@ -214,14 +216,15 @@ def load_config(root: Path | None = None) -> JobbotConfig:
             base = resolve_workspace(Path.cwd())
     else:
         base, workspace = root.resolve(), None
-    config_path = _find_config_file(base, workspace=workspace)
+    config_path = config_file or _find_config_file(base, workspace=workspace)
     if config_path is None:
         config = JobbotConfig(
             paths=PathsConfig(templates=_default_templates(workspace)),
             root=base,
         )
         _activate_brand(config)
-        _verify(config, workspace)
+        if verify_ownership:
+            _verify(config, workspace)
         return config
 
     with config_path.open("rb") as fh:
@@ -235,7 +238,8 @@ def load_config(root: Path | None = None) -> JobbotConfig:
         brand=_load_brand(raw),
     )
     _activate_brand(config)
-    _verify(config, workspace)
+    if verify_ownership:
+        _verify(config, workspace)
     return config
 
 

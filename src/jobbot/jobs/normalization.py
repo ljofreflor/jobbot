@@ -95,7 +95,7 @@ def _build_alias_map() -> None:
 def _normalize_key(text: str) -> str:
     nfkd = unicodedata.normalize("NFKD", text.strip().lower())
     ascii_text = "".join(c for c in nfkd if not unicodedata.combining(c))
-    return re.sub(r"[^a-z0-9]+", " ", ascii_text).strip()
+    return re.sub(r"[^a-z0-9+#]+", " ", ascii_text).strip()
 
 
 def fold_text(text: str) -> str:
